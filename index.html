@@ -346,6 +346,12 @@ details.tech p b{color:var(--ink)}
 .link3{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--pri);font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:4px 0}
 .pbtn{width:34px;height:34px;border-radius:50%;background:var(--bg);color:var(--mut);display:grid;place-items:center;cursor:pointer;margin-bottom:4px}
 .pbtn:focus-within{outline:2px solid var(--pri)}
+.mopen{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;flex:1;min-width:0;cursor:pointer;border-radius:18px}
+.mopen:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+.mopen .grow{display:block;flex:1;min-width:0}
+.mopen .bar,.mopen .note,.mopen .mini{display:block}
+.mopen .mini{display:inline-block}
+.mname{display:block;font-size:16px;font-weight:700}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
@@ -625,6 +631,23 @@ function addPlant(id, quick) {
   const p = S.plants.find(x => x.id === id);
   run(() => api.addMine(p), p.swedish_name + ' finns nu i din samling');
 }
+function openMine(id) {
+  const m = S.mine.find(x => x.id === id); if (!m) return;
+  if (m.plant_id && S.plants.some(p => p.id === m.plant_id)) return openPlant(m.plant_id);
+  S.myv = id; openModal('myplant');
+}
+function myplantV() {
+  const m = S.mine.find(x => x.id === S.myv); if (!m) return '';
+  const d = left(m);
+  return `<div class="mh"><h2>${esc(m.name)}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <div class="addpimg">${myPh(m)}</div>
+  ${m.latin ? `<p class="mut" style="margin:10px 0 0"><i>${esc(m.latin)}</i></p>` : ''}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><span class="tag lime">${esc(m.category || 'Egen växt')}</span><span class="tag green">${d === null ? 'Vattna vid torka' : d === 0 ? 'Vattna idag' : 'Vattnas om ' + d + (d === 1 ? ' dag' : ' dagar')}</span></div>
+  ${m.interval ? `<p style="margin:14px 0 0">Vattna ungefär var ${m.interval}${ord(m.interval)} dag.</p>` : ''}
+  ${m.notes ? `<div class="tipr" style="margin-top:12px;box-shadow:none"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>Anteckningar</b><span>${esc(m.notes)}</span></div></div>` : ''}
+  <p class="mut" style="font-size:13px;margin:14px 0 0">Den här växten finns bara i din samling och har ingen egen sida i växtdatabasen.</p>
+  ${d !== null ? `<div class="cta" style="padding:16px 0 0"><button class="btn" onclick="S.modal=null;water(${m.id})">Markera som vattnad</button></div>` : ''}`;
+}
 function addpPick(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.ap = { file: f, img: URL.createObjectURL(f) }; render(); }
 async function confirmAddp() {
   const p = S.plants.find(x => x.id === S.addp), photo = S.ap && S.ap.file;
@@ -770,7 +793,7 @@ function render() {
     m.innerHTML = S.sel ? detail() : S.tool ? toolV() : S.tab === 'home' ? home() : S.tab === 'mine' ? mineV() : S.tab === 'me' ? meV() : comm();
     if (!S.sel && !S.tool && S.tab === 'home') renderList();
   }
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'addp' ? addpV() : S.modal === 'pro' ? proV() : addV()}</div></div>` : '';
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'addp' ? addpV() : S.modal === 'pro' ? proV() : addV()}</div></div>` : '';
   const lv = $('#lv'); if (lv && lightStream) { lv.srcObject = lightStream; lv.hidden = false; lv.play().catch(() => {}); }
   loadPhotos();
 }
@@ -782,7 +805,7 @@ function myCard(m) {
   const water = d === null ? 'Ute' : d === 0 ? 'Idag' : d + ' d';
   const light = p ? LIGHT[p.light_level - 1].replace('Halvskugga', 'Halvsk.') : '–';
   const temp = p && p.temperature ? (/(\d+)\s*–\s*(\d+)/.exec(p.temperature) || [])[0] : null;
-  return `<button class="mycard" ${m.plant_id ? `onclick="openPlant(${m.plant_id})"` : `onclick="go('mine')"`} aria-label="${esc(m.name)}">${myPh(m)}<h3>${esc(m.name)}</h3>
+  return `<button class="mycard" onclick="openMine(${m.id})" aria-label="${esc(m.name)}">${myPh(m)}<h3>${esc(m.name)}</h3>
   <div class="mstats"><div><i class="${d === 0 ? 'due' : 'w'}">${ic(I.drop, 'currentColor', 15)}</i>${water}</div><div><i class="s">${ic(I.sun, 'currentColor', 15)}</i>${light}</div><div><i class="t">${ic(I.temp, 'currentColor', 15)}</i>${temp ? temp.replace(/\s/g, '') + '°' : '–'}</div></div></button>`;
 }
 function home() {
@@ -870,10 +893,9 @@ function mineV() {
   const due = S.mine.filter(m => left(m) === 0).length;
   const rows = S.mine.map(m => {
     const d = left(m), pct = m.interval ? Math.round((m.interval - d) / m.interval * 100) : 0;
-    const status = d === null ? '<span class="mut">Växer ute, vattna vid torka</span>' : d === 0 ? `<span class="due-t">Vattna idag</span> <button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
-    const title = m.custom ? esc(m.name) : `<button onclick="openPlant(${m.plant_id})">${esc(m.name)}</button>`;
-    return `<div class="mrow">${myPh(m)}<div class="grow"><h3>${title}</h3>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${d !== null ? `<div class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></div>` : '<div style="height:6px"></div>'}${status}${m.notes ? `<div class="note">${esc(m.notes)}</div>` : ''}</div>
-      <div class="side"><label class="pbtn" title="Byt foto" aria-label="Byt foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" capture="environment" class="sr" onchange="setMyPhoto(${m.id}, this)"></label>${d !== null ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
+    const status = d === null ? '<span class="mut">Växer ute, vattna vid torka</span>' : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
+    return `<div class="mrow"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${esc(m.name)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
+      <div class="side"><label class="pbtn" title="Byt foto" aria-label="Byt foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" capture="environment" class="sr" onchange="setMyPhoto(${m.id}, this)"></label>${d !== null ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
   }).join('');
   return `${topbar('Min samling')}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
