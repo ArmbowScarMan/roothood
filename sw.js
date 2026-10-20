@@ -1,5 +1,5 @@
 // Roothood service worker: hämtar alltid senaste versionen när nätet finns, annars sparad kopia.
-const CACHE = 'roothood-v3';
+const CACHE = 'roothood-v4';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './maskable-192.png', './maskable-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
