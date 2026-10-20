@@ -233,6 +233,19 @@ form label.check input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-co
 .cta{padding:22px 18px 6px}
 .cta .btn{width:100%;padding:16px;font-size:16px}
 .tag.lime{background:var(--soft);color:var(--pri);box-shadow:none}
+.flist{display:flex;flex-direction:column;gap:10px}
+.fcat,.thr{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh);cursor:pointer;width:100%}
+.fcat:focus-visible,.thr:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+.fic{flex:none;width:46px;height:46px;border-radius:15px;display:grid;place-items:center}
+.fcat .grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.fcat b{font-size:15.5px}
+.fcat span span,.fcat .grow>span{font-size:13.5px;color:var(--mut)}
+.fcat small{font-size:12px;color:var(--pri);font-weight:700;margin-top:3px}
+.thr{flex-direction:column;align-items:flex-start;gap:4px}
+.thr b{font-size:15.5px;line-height:1.3}
+.tmeta{display:flex;gap:14px;font-size:13px;font-weight:700;color:var(--pri);margin-top:4px}
+.tmeta span{display:flex;align-items:center;gap:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
@@ -256,7 +269,7 @@ const DEMO_PLANTS = [{"id": 1, "swedish_name": "Monstera", "latin_name": "Monste
 const CATS = ['Krukväxt','Köksträdgård','Trädgård','Orkidé','Kaktus'];
 const LIGHT = ['Skugga','Halvskugga','Full sol'], WATER = ['Lite','Måttligt','Mycket'];
 const S = {loading:true, err:null, tab:'home', sel:null, cat:'Alla', q:'', modal:null, prefill:'',
-  authMode:'in', env:'all', msg:'', feed:null, feedErr:null, post:null, draft:'', adraft:'', qcat:'Allmänt', rep:null, msgOk:false, busy:false, del:null, liked:{}, plants:[], user:null, mine:[]};
+  authMode:'in', env:'all', ctab:'q', threads:null, forum:null, newThread:false, tt:'', tb:'', msg:'', feed:null, feedErr:null, post:null, draft:'', adraft:'', qcat:'Allmänt', rep:null, msgOk:false, busy:false, del:null, liked:{}, plants:[], user:null, mine:[]};
 
 // ===== Hjälpfunktioner =====
 const $ = s => document.querySelector(s);
@@ -333,19 +346,31 @@ const demoApi = {
     if (!f) {
       const h = 36e5, t = n => new Date(Date.now() - n * h).toISOString();
       f = [
-        { id: 3, user_id: 'maja', author: 'Maja', category: 'Orkidé', body: 'Orkidén blommar inte efter vintern. Tips?', created_at: t(2), best_answer_id: null, likers: ['a', 'b'], answers: [] },
-        { id: 2, user_id: 'karim', author: 'Karim', category: 'Köksträdgård', body: 'När kan tomatplantorna stå ute i Västsverige?', created_at: t(20), best_answer_id: 21, likers: ['a', 'b', 'c', 'd', 'e'],
+        { id: 3, kind: 'question', user_id: 'maja', author: 'Maja', category: 'Orkidé', body: 'Orkidén blommar inte efter vintern. Tips?', created_at: t(2), best_answer_id: null, likers: ['a', 'b'], answers: [] },
+        { id: 2, kind: 'question', user_id: 'karim', author: 'Karim', category: 'Köksträdgård', body: 'När kan tomatplantorna stå ute i Västsverige?', created_at: t(20), best_answer_id: 21, likers: ['a', 'b', 'c', 'd', 'e'],
           answers: [{ id: 21, user_id: 'lena', author: 'Lena', body: 'Vänta tills nätterna ligger över 10 grader, oftast i början av juni.', created_at: t(18) }] },
-        { id: 1, user_id: 'elin', author: 'Elin', category: 'Krukväxt', body: 'Mina monsterablad blir gula. Vad gör jag?', created_at: t(50), best_answer_id: 11, likers: ['a', 'b', 'c'],
+        { id: 1, kind: 'question', user_id: 'elin', author: 'Elin', category: 'Krukväxt', body: 'Mina monsterablad blir gula. Vad gör jag?', created_at: t(50), best_answer_id: 11, likers: ['a', 'b', 'c'],
           answers: [{ id: 11, user_id: 'sara', author: 'Sara', body: 'Troligen för mycket vatten. Låt jorden torka mellan vattningarna.', created_at: t(48) },
                     { id: 12, user_id: 'omar', author: 'Omar', body: 'Kolla också att krukan har hål i botten.', created_at: t(40) }] }];
       store.set('feed', f);
     }
+    if (!store.get('forumSeeded', false)) {
+      const h = 36e5, t = n => new Date(Date.now() - n * h).toISOString();
+      f.push(
+        { id: 101, kind: 'thread', user_id: 'lena', author: 'Lena', category: 'Byten och sticklingar', title: 'Byter monsterasticklingar mot pilea', body: 'Jag har tre rotade sticklingar av monstera. Någon i Göteborg som vill byta mot en pilea eller gullranka?', created_at: t(5), best_answer_id: null, likers: ['a', 'b'],
+          answers: [{ id: 1011, user_id: 'omar', author: 'Omar', body: 'Jag har en pilea med massor av småplantor! Skickar ett meddelande.', created_at: t(3) }] },
+        { id: 102, kind: 'thread', user_id: 'sara', author: 'Sara', category: 'Krukväxter', title: 'Bästa växtlampan för mörka vintrar?', body: 'Mina växter blir långa och bleka från november. Vilka växtlampor använder ni, och hur många timmar om dagen?', created_at: t(30), best_answer_id: null, likers: ['a', 'b', 'c', 'd'],
+          answers: [{ id: 1021, user_id: 'karim', author: 'Karim', body: 'Jag kör en vanlig LED-växtlampa 12 timmar med timer. Stor skillnad!', created_at: t(26) },
+                    { id: 1022, user_id: 'maja', author: 'Maja', body: 'Häng den 20–30 cm ovanför bladen, inte för nära.', created_at: t(20) }] },
+        { id: 103, kind: 'thread', user_id: 'elin', author: 'Elin', category: 'Köksträdgård', title: 'Odlingsplanering inför våren', body: 'Vad sår ni först? Jag tänkte chili i januari och tomater i mars.', created_at: t(70), best_answer_id: null, likers: ['a'], answers: [] });
+      store.set('feed', f); store.set('forumSeeded', true);
+    }
     return f;
   },
   _save(f) { store.set('feed', f); },
-  async feed() { return JSON.parse(JSON.stringify(this._feed())); },
-  async ask(cat, body) { const f = this._feed(); f.unshift({ id: Date.now(), user_id: 'demo', author: 'Du', category: cat, body, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
+  async feed(kind) { kind = kind || 'question'; return JSON.parse(JSON.stringify(this._feed().filter(p => (p.kind || 'question') === kind))); },
+  async newThread(cat, title, body) { const f = this._feed(); f.unshift({ id: Date.now(), kind: 'thread', user_id: 'demo', author: 'Du', category: cat, title, body, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
+  async ask(cat, body) { const f = this._feed(); f.unshift({ id: Date.now(), kind: 'question', user_id: 'demo', author: 'Du', category: cat, body, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
   async answer(pid, body) { const f = this._feed(); f.find(p => p.id === pid).answers.push({ id: Date.now(), user_id: 'demo', author: 'Du', body, created_at: new Date().toISOString() }); this._save(f); },
   async like(pid, on) { const f = this._feed(), p = f.find(x => x.id === pid); p.likers = p.likers.filter(x => x !== 'demo'); if (on) p.likers.push('demo'); this._save(f); },
   async best(pid, aid) { const f = this._feed(); f.find(p => p.id === pid).best_answer_id = aid; this._save(f); },
@@ -397,9 +422,15 @@ const sbApi = {
   async water(id) { const { error } = await sb.from('user_plants').update({ last_watered: today() }).eq('id', id); if (error) throw error; },
   async setWatered(id, date) { const { error } = await sb.from('user_plants').update({ last_watered: date }).eq('id', id); if (error) throw error; },
   async remove(id) { const { error } = await sb.from('user_plants').delete().eq('id', id); if (error) throw error; },
-  async feed() {
-    const { data: posts, error } = await sb.from('posts').select('id,user_id,category,body,best_answer_id,created_at').order('created_at', { ascending: false }).limit(50);
-    if (error) throw error;
+  async feed(kind) {
+    kind = kind || 'question';
+    let res = await sb.from('posts').select('*').eq('kind', kind).order('created_at', { ascending: false }).limit(kind === 'thread' ? 200 : 50);
+    if (res.error && /kind/.test(res.error.message || '')) {
+      if (kind !== 'question') throw new Error('FORUM_NOT_READY');
+      res = await sb.from('posts').select('*').order('created_at', { ascending: false }).limit(50);
+    }
+    if (res.error) throw res.error;
+    const posts = res.data;
     if (!posts.length) return [];
     const ids = posts.map(p => p.id);
     const [a, l] = await Promise.all([
@@ -416,6 +447,7 @@ const sbApi = {
       likers: l.data.filter(x => x.post_id === p.id).map(x => x.user_id) }));
   },
   async ask(cat, body) { const { error } = await sb.from('posts').insert({ user_id: S.user.id, category: cat, body }); if (error) throw error; },
+  async newThread(cat, title, body) { const { error } = await sb.from('posts').insert({ user_id: S.user.id, kind: 'thread', category: cat, title, body }); if (error) throw error; },
   async answer(pid, body) { const { error } = await sb.from('answers').insert({ post_id: pid, user_id: S.user.id, body }); if (error) throw error; },
   async like(pid, on) {
     const { error } = on ? await sb.from('likes').insert({ post_id: pid, user_id: S.user.id })
@@ -437,7 +469,7 @@ async function run(fn, ok) {
   catch (e) { toast(errMsg(e)); }
   render();
 }
-function go(t) { S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm' || t === 'me') loadFeed(); }
+function go(t) { S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
 function openPlant(id) { S.sel = id; render(); $('#main').scrollTop = 0; }
 function openModal(m, prefill) { S.modal = m; S.msg = ''; S.prefill = prefill || ''; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
 function closeModal() { S.modal = null; S.msg = ''; render(); }
@@ -700,9 +732,18 @@ function addV() {
   <p class="mut" style="margin:0 0 12px">Förslaget granskas innan det syns för andra.</p></div>
   <button class="btn wide formbtn">Lägg till i min samling</button></form>`;
 }
-// ===== Community =====
+// ===== Community: frågor och forum =====
 const QCATS = ['Allmänt'].concat(CATS);
 const REASONS = ['Olämpligt eller elakt', 'Spam eller reklam', 'Farliga eller felaktiga råd', 'Annat'];
+const FORUMS = [
+  { id: 'Krukväxter', d: 'Allt om växter inomhus', c: '#4C8C1E' },
+  { id: 'Köksträdgård', d: 'Grönsaker, bär och kryddor', c: '#D8412F' },
+  { id: 'Trädgård', d: 'Rabatter, buskar och träd', c: '#6F5BA8' },
+  { id: 'Orkidéer', d: 'Skötsel och omblomning', c: '#D9709A' },
+  { id: 'Kaktusar och suckulenter', d: 'Torktåliga favoriter', c: '#3E8A5A' },
+  { id: 'Byten och sticklingar', d: 'Byt plantor och sticklingar med andra', c: '#2F7FC1' },
+  { id: 'Visa upp din växt', d: 'Berätta om dina stoltheter', c: '#C98612' },
+  { id: 'Allmänt prat', d: 'Allt annat om växter', c: '#6B7466' }];
 function ago(t) {
   const s = (Date.now() - Date.parse(t)) / 1000;
   if (s < 60) return 'nyss';
@@ -714,21 +755,39 @@ function ago(t) {
   return new Date(t).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
 }
 function needLogin() { if (!S.user) { openModal('login'); return true; } return false; }
+const isForum = () => S.ctab === 'forum';
+const curList = () => (isForum() ? S.threads : S.feed) || [];
+async function refreshComm() {
+  if (isForum()) S.threads = await api.feed('thread');
+  else S.feed = await api.feed('question');
+}
 async function loadFeed() {
-  try { S.feed = await api.feed(); S.feedErr = null; } catch (e) { S.feedErr = errMsg(e); }
+  try { await refreshComm(); S.feedErr = null; }
+  catch (e) { S.feedErr = e.message === 'FORUM_NOT_READY' ? 'Forumet är inte påslaget i databasen än.' : errMsg(e); }
   render();
 }
 async function commRun(fn, ok) {
-  try { await fn(); S.feed = await api.feed(); if (ok) toast(ok); } catch (e) { toast(errMsg(e)); }
+  try { await fn(); await refreshComm(); if (ok) toast(ok); } catch (e) { toast(errMsg(e)); }
   render();
 }
+function setCtab(t) { S.ctab = t; S.post = null; S.forum = null; S.del = null; S.feedErr = null; render(); loadFeed(); }
 function openPost(id) { S.post = id; S.adraft = ''; S.del = null; render(); $('#main').scrollTop = 0; }
+function openForum(id) { S.forum = id; S.post = null; S.newThread = false; render(); $('#main').scrollTop = 0; }
 function askQ() {
   if (needLogin()) return;
   const v = S.draft.trim();
   if (v.length < 5) return toast('Skriv minst 5 tecken.');
   S.draft = '';
   commRun(() => api.ask(S.qcat, v), 'Din fråga är publicerad');
+}
+function startThread() { if (needLogin()) return; S.newThread = true; render(); const f = $('#tt'); if (f) f.focus(); }
+function sendThread() {
+  if (needLogin()) return;
+  const t = S.tt.trim(), b = S.tb.trim();
+  if (t.length < 3) return toast('Skriv en rubrik på minst 3 tecken.');
+  if (b.length < 5) return toast('Skriv minst 5 tecken i inlägget.');
+  S.tt = ''; S.tb = ''; S.newThread = false;
+  commRun(() => api.newThread(S.forum, t, b), 'Din tråd är publicerad');
 }
 function sendAnswer(pid) {
   if (needLogin()) return;
@@ -739,7 +798,7 @@ function sendAnswer(pid) {
 }
 function toggleLike(pid) {
   if (needLogin()) return;
-  const p = S.feed.find(x => x.id === pid), on = !p.likers.includes(S.user.id);
+  const p = curList().find(x => x.id === pid), on = !p.likers.includes(S.user.id);
   p.likers = on ? p.likers.concat(S.user.id) : p.likers.filter(x => x !== S.user.id);
   render();
   commRun(() => api.like(pid, on));
@@ -748,7 +807,7 @@ function markBest(pid, aid) { commRun(() => api.best(pid, aid), 'Markerat som b�
 function delPost(id) {
   if (S.del !== 'p' + id) { S.del = 'p' + id; return render(); }
   S.del = null; S.post = null;
-  commRun(() => api.delPost(id), 'Frågan är borttagen');
+  commRun(() => api.delPost(id), isForum() ? 'Tråden är borttagen' : 'Frågan är borttagen');
 }
 function delAnswer(id) {
   if (S.del !== 'a' + id) { S.del = 'a' + id; return render(); }
@@ -772,6 +831,29 @@ function delBtn(key, fn, id) {
   const sure = S.del === key + id;
   return `<button class="x ${sure ? 'sure' : ''}" onclick="${fn}(${id})">${sure ? 'Bekräfta' : 'Ta bort'}</button>`;
 }
+function segBar() {
+  return `<div class="seg2" role="tablist">${[['q', 'Frågor'], ['forum', 'Forum']].map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>`;
+}
+function listState(list, emptyText) {
+  if (S.feedErr) return `<div class="empty"><p>${esc(S.feedErr)}</p><button class="btn sm" onclick="loadFeed()">Försök igen</button></div>`;
+  if (!list) return '<p class="mut" style="text-align:center">Hämtar…</p>';
+  if (!list.length) return `<div class="empty"><p>${emptyText}</p></div>`;
+  return null;
+}
+function replyBox(pid, ph_) {
+  return `<div class="ask" style="margin:14px 0 0"><textarea id="na" rows="3" maxlength="3000" placeholder="${ph_}" aria-label="Ditt svar" oninput="S.adraft=this.value">${esc(S.adraft)}</textarea><div style="margin-top:10px"><button class="btn sm" onclick="sendAnswer(${pid})">Skicka svar</button></div></div>`;
+}
+function answersV(p, allowBest) {
+  const mine = !!(S.user && p.user_id === S.user.id);
+  const ans = allowBest ? [...p.answers].sort((a, b) => (b.id === p.best_answer_id) - (a.id === p.best_answer_id)) : p.answers;
+  return ans.map(a => {
+    const isBest = allowBest && a.id === p.best_answer_id, own = !!(S.user && a.user_id === S.user.id);
+    return `<div class="post ${isBest ? 'bestc' : ''}">${who(a.author, ago(a.created_at), isBest ? '<span class="pill ok">Bästa svar</span>' : '')}<p style="margin:0;white-space:pre-line">${esc(a.body)}</p>
+    <div class="prow">${allowBest && mine && !isBest ? `<button class="link2" onclick="markBest(${p.id},${a.id})">Markera som bästa svar</button>` : ''}<span class="grow"></span>${own ? delBtn('a', 'delAnswer', a.id) : `<button class="x" onclick="openReport('answer',${a.id})">Rapportera</button>`}</div></div>`;
+  }).join('');
+}
+
+// --- Frågor ---
 function postCard(p) {
   const best = p.answers.find(a => a.id === p.best_answer_id);
   return `<div class="post">${who(p.author, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>`)}
@@ -780,32 +862,58 @@ function postCard(p) {
   <div class="prow">${likeBtn(p)}<button class="link2" onclick="openPost(${p.id})">${p.answers.length ? p.answers.length + ' svar' : 'Svara'}</button></div></div>`;
 }
 function comm() {
+  if (isForum()) return forumV();
   if (S.post) return postV();
-  let body;
-  if (S.feedErr) body = `<div class="empty"><p>${esc(S.feedErr)}</p><button class="btn sm" onclick="loadFeed()">Försök igen</button></div>`;
-  else if (!S.feed) body = '<p class="mut" style="text-align:center">Hämtar frågor…</p>';
-  else if (!S.feed.length) body = '<div class="empty"><p>Inga frågor än. Bli först med att fråga något!</p></div>';
-  else body = S.feed.map(postCard).join('');
-  return `${topbar('Community')}<p class="mut" style="text-align:center;margin:0 18px">Fråga och hjälp andra växtvänner.</p>
-  <div class="ask"><textarea id="nq" rows="2" maxlength="1000" placeholder="Vad undrar du över?" aria-label="Din fråga" oninput="S.draft=this.value">${esc(S.draft)}</textarea>
+  const st = listState(S.feed, 'Inga frågor än. Bli först med att fråga något!');
+  return `${topbar('Community')}${segBar()}
+  <div class="ask"><textarea id="nq" rows="2" maxlength="1000" placeholder="Snabb fråga? Skriv den här" aria-label="Din fråga" oninput="S.draft=this.value">${esc(S.draft)}</textarea>
   <div class="askrow"><select aria-label="Kategori" onchange="S.qcat=this.value">${QCATS.map(c => `<option ${c === S.qcat ? 'selected' : ''}>${c}</option>`).join('')}</select><button class="btn sm" onclick="askQ()">Publicera</button></div></div>
-  <div class="pad">${body}</div>`;
+  <div class="pad">${st || S.feed.map(postCard).join('')}</div>`;
 }
 function postV() {
-  const p = S.feed && S.feed.find(x => x.id === S.post);
+  const p = (S.feed || []).find(x => x.id === S.post);
   if (!p) { S.post = null; return comm(); }
   const mine = !!(S.user && p.user_id === S.user.id);
-  const ans = [...p.answers].sort((a, b) => (b.id === p.best_answer_id) - (a.id === p.best_answer_id));
   return `${topbar('Fråga', 'S.post=null;S.del=null;render()')}<div class="pad">
   <div class="post" style="margin-top:10px">${who(p.author, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>`)}<h2 style="font-size:21px">${esc(p.body)}</h2>
   <div class="prow">${likeBtn(p)}<span class="grow"></span>${mine ? delBtn('p', 'delPost', p.id) : `<button class="x" onclick="openReport('post',${p.id})">Rapportera</button>`}</div></div>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
-  ${ans.map(a => {
-    const isBest = a.id === p.best_answer_id, own = !!(S.user && a.user_id === S.user.id);
-    return `<div class="post ${isBest ? 'bestc' : ''}">${who(a.author, ago(a.created_at), isBest ? '<span class="pill ok">Bästa svar</span>' : '')}<p style="margin:0">${esc(a.body)}</p>
-    <div class="prow">${mine && !isBest ? `<button class="link2" onclick="markBest(${p.id},${a.id})">Markera som bästa svar</button>` : ''}<span class="grow"></span>${own ? delBtn('a', 'delAnswer', a.id) : `<button class="x" onclick="openReport('answer',${a.id})">Rapportera</button>`}</div></div>`;
-  }).join('')}
-  <div class="ask" style="margin:14px 0 0"><textarea id="na" rows="3" maxlength="1000" placeholder="Skriv ett svar" aria-label="Ditt svar" oninput="S.adraft=this.value">${esc(S.adraft)}</textarea><div style="margin-top:10px"><button class="btn sm" onclick="sendAnswer(${p.id})">Skicka svar</button></div></div></div>`;
+  ${answersV(p, true)}${replyBox(p.id, 'Skriv ett svar')}</div>`;
+}
+
+// --- Forum ---
+function forumV() {
+  if (S.post) return threadV();
+  if (S.forum) return forumCatV();
+  const st = listState(S.threads, '');
+  const body = st && S.feedErr ? st : !S.threads ? st : FORUMS.map(f => {
+    const ts = S.threads.filter(t => t.category === f.id);
+    const last = ts.map(t => t.answers.length ? t.answers[t.answers.length - 1].created_at : t.created_at).sort().pop();
+    return `<button class="fcat" onclick="openForum('${f.id}')"><span class="fic" style="background:${f.c}">${ic(I.leaf, '#fff', 20)}</span><span class="grow"><b>${f.id}</b><span>${f.d}</span><small>${ts.length ? ts.length + (ts.length === 1 ? ' tråd' : ' trådar') + ', senast ' + ago(last) : 'Inga trådar än'}</small></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button>`;
+  }).join('');
+  return `${topbar('Community')}${segBar()}<div class="sec"><h2>Forum</h2></div><div class="pad flist">${body}</div>`;
+}
+function forumCatV() {
+  const f = FORUMS.find(x => x.id === S.forum) || { id: S.forum, d: '' };
+  const ts = (S.threads || []).filter(t => t.category === f.id);
+  const form = S.newThread ? `<div class="ask" style="margin:12px 0 4px"><label class="sr" for="tt">Rubrik</label><input id="tt" maxlength="120" placeholder="Rubrik" value="${esc(S.tt)}" oninput="S.tt=this.value" style="margin-bottom:10px;background:var(--bg);border:0">
+    <textarea rows="5" maxlength="5000" placeholder="Vad vill du berätta eller diskutera?" aria-label="Inlägg" oninput="S.tb=this.value">${esc(S.tb)}</textarea>
+    <div class="askrow"><button class="btn sm line" onclick="S.newThread=false;render()">Avbryt</button><span class="grow" style="flex:1"></span><button class="btn sm" onclick="sendThread()">Publicera tråd</button></div></div>` : '';
+  const list = ts.length ? ts.map(t => `<button class="thr" onclick="openPost(${t.id})"><b>${esc(t.title || t.body.slice(0, 60))}</b><span class="mut">${esc(t.author)}, ${ago(t.created_at)}</span><span class="tmeta"><span>${ic('<path d="M5 5h14v10h-7l-4 4v-4H5z"/>', 'currentColor', 15)}${t.answers.length} svar</span><span>♥ ${t.likers.length}</span></span></button>`).join('')
+    : `<div class="empty"><p>Inga trådar här än. Starta den första!</p></div>`;
+  return `${topbar(f.id, 'S.forum=null;S.newThread=false;render()')}<p class="mut" style="text-align:center;margin:0 18px">${esc(f.d)}</p>
+  <div class="pad">${S.newThread ? form : `<div class="addbar" style="padding:14px 0 4px"><button class="btn wide" onclick="startThread()">+ Ny tråd</button></div>`}
+  <div class="flist" style="margin-top:10px">${list}</div></div>`;
+}
+function threadV() {
+  const p = (S.threads || []).find(x => x.id === S.post);
+  if (!p) { S.post = null; return forumCatV(); }
+  const mine = !!(S.user && p.user_id === S.user.id);
+  return `${topbar(p.category, 'S.post=null;S.del=null;render()')}<div class="pad">
+  <div class="post" style="margin-top:10px">${who(p.author, ago(p.created_at))}<h2 style="font-size:21px;margin-bottom:8px">${esc(p.title || '')}</h2><p style="margin:0;white-space:pre-line">${esc(p.body)}</p>
+  <div class="prow">${likeBtn(p)}<span class="grow"></span>${mine ? delBtn('p', 'delPost', p.id) : `<button class="x" onclick="openReport('post',${p.id})">Rapportera</button>`}</div></div>
+  <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
+  ${answersV(p, false)}${replyBox(p.id, 'Skriv ett svar i tråden')}</div>`;
 }
 function reportV() {
   return `<div class="mh"><h2>Rapportera</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
