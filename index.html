@@ -313,6 +313,9 @@ details.tech{margin-top:12px;background:var(--surf);border-radius:18px;padding:1
 details.tech summary{font-weight:700;cursor:pointer}
 details.tech p{margin:8px 0 0;color:var(--mut)}
 details.tech p b{color:var(--ink)}
+.pushc .row2{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.pushc .on{color:var(--pri);font-weight:700;margin:0 0 4px}
+.pushnudge{margin:12px 18px 0}
 .instc{display:flex;gap:12px;align-items:center;margin:12px 18px 0;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh)}
 .instc>div{flex:1;min-width:0}
 .instc b{display:block;font-size:15px}
@@ -387,6 +390,7 @@ details.tech p b{color:var(--ink)}
 // Fyll i från Supabase: Project Settings → API. Lämnas de tomma körs appen i demoläge.
 const SUPABASE_URL = 'https://lboomcqxksqahkugpxew.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxib29tY3F4a3NxYWhrdWdweGV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0NzM5MTMsImV4cCI6MjEwODA0OTkxM30.vo6fcyav5szOy9mkWJo3VbctQfVpbLlWL3UXVHfmoqo';
+const VAPID_PUBLIC_KEY = 'BLVqcUJiPOjVTvIMsEJ9LysWBYCiCofjDTgKPvp1RHjC9f1T1UF1AbhGEMCjD6y3SQKa9uKfhQ6YNPMHeW9FCOE';
 
 const DEMO = !SUPABASE_URL || !SUPABASE_ANON_KEY;
 const PLANTNET_KEY = '';  // nyckel från my.plantnet.org (tom = exempelresultat)
@@ -440,6 +444,8 @@ function art(cat, name) {
 
 // ===== Data: demoläge (sparas i webbläsaren) =====
 const demoApi = {
+  async savePush() {},
+  async deletePush() {},
   async plants() { return DEMO_PLANTS.concat(store.get('myPlants', [])); },
   async user() { return { id: 'demo', name: (store.get('profile', {}) || {}).display_name || 'Du' }; },
   async getProfile() { return Object.assign({ display_name: 'Du', city: '', interests: [] }, store.get('profile', {})); },
@@ -527,6 +533,8 @@ const demoApi = {
 // ===== Data: Supabase =====
 let sb;
 const sbApi = {
+  async savePush(sub) { const j = sub.toJSON(); const { error } = await sb.rpc('save_push', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth }); if (error) throw error; },
+  async deletePush(endpoint) { const { error } = await sb.from('push_subscriptions').delete().eq('endpoint', endpoint); if (error) throw error; },
   async plants() {
     const { data, error } = await sb.from('plants').select('*').neq('status', 'rejected').order('swedish_name');
     if (error) throw error; return data;
@@ -654,7 +662,7 @@ async function run(fn, ok) {
   catch (e) { toast(errMsg(e)); }
   render();
 }
-function go(t) { stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
+function go(t) { stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'mine' && S.user && !S.push) refreshPush(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
 function openPlant(id) { S.sel = id; render(); $('#main').scrollTop = 0; }
 function openModal(m, prefill, latin, ap) { S.modal = m; S.msg = ''; S.prefill = prefill || ''; S.prefillLatin = latin || ''; if (m === 'add' || m === 'addp') S.ap = ap || null; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
 function closeModal() { S.modal = null; S.msg = ''; S.limitHit = false; render(); }
@@ -950,6 +958,7 @@ function mineV() {
   }).join('');
   return `${topbar('Min samling')}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
+  ${S.mine.length && S.push === 'off' && !store.get('pushNudgeHidden', false) ? `<div class="instc pushnudge"><span class="tic">${ic(BELL, 'currentColor', 22)}</span><div><b>Få påminnelser i mobilen</b><span>En notis på morgonen när något behöver vattnas.</span></div><button class="btn sm" onclick="enablePush()">Slå på</button><button class="x" aria-label="Dölj" onclick="store.set('pushNudgeHidden', true); render()">✕</button></div>` : ''}
   <div class="sec"><h2>Dina växter</h2><button class="btn sm line" onclick="addCustomStart()">+ Egen växt</button></div>
   <div class="list" style="padding-top:0">${rows || `<div class="empty"><p>Tryck på hjärtat på en växt under Växter så hamnar den här, med vattningspåminnelser.</p><button class="btn sm" onclick="go('home')">Hitta växter</button></div>`}</div>`;
 }
@@ -1515,7 +1524,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.0';
+const APP_VERSION = '1.1';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
@@ -1532,6 +1541,7 @@ async function openSettings() {
   stopLight();
   S.tool = 'settings'; S.prof = null; S.del = null; S.pwMsg = '';
   render(); $('#main').scrollTop = 0;
+  refreshPush();
   if (S.user) {
     try { S.prof = await api.getProfile(); } catch (e) { S.prof = { display_name: S.user.name, city: '', interests: [] }; }
     S.prof.interests = S.prof.interests || [];
@@ -1607,6 +1617,7 @@ function settingsV() {
     <select id="szone" onchange="setPref('zone', +this.value)"><option value="0" ${!zone ? 'selected' : ''}>Vet inte</option>${[1, 2, 3, 4, 5, 6, 7, 8].map(z => `<option value="${z}" ${zone === z ? 'selected' : ''}>Zon ${z}${z === 1 ? ' (mildast, t.ex. Skåne)' : z === 8 ? ' (kallast, fjällen)' : ''}</option>`).join('')}</select>
     <p class="mut" style="margin:8px 0 0;font-size:13px">Sverige delas in i odlingszoner från 1 (mildast) till 8. Växtsidorna visar då om en trädgårdsväxt klarar vintern där du bor.</p>
   </div></div>
+  <div class="sec"><h2>Påminnelser</h2></div><div class="pad">${pushCard()}</div>
   ${account}
   <div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="sec"><h2>Om Roothood</h2></div><div class="pad"><div class="setcard about2">
@@ -1617,6 +1628,79 @@ function settingsV() {
 function settingsRow() {
   return `<div class="pad" style="padding-top:12px"><button class="setrow" onclick="openSettings()"><span class="tic">${ic(GEAR, 'currentColor', 20)}</span><span class="grow"><b>Inställningar</b><span>Profil, utseende, odlingszon och konto</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`;
 }
+
+// ===== Påminnelser i mobilen (push-notiser) =====
+const BELL = '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>';
+const pushOk = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && window.isSecureContext && location.protocol !== 'file:';
+const swReady = () => Promise.race([navigator.serviceWorker.ready, new Promise((_, no) => setTimeout(() => no(new Error('Appens bakgrundsdel startade inte. Ladda om sidan.')), 4000))]);
+const b64u = s => { const b = atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+async function refreshPush() {
+  let st = 'unsupported';
+  if (pushOk()) {
+    if (Notification.permission === 'denied') st = 'denied';
+    else if (DEMO) st = store.get('pushDemo', false) && Notification.permission === 'granted' ? 'on' : 'off';
+    else { try { const reg = await swReady(); st = (await reg.pushManager.getSubscription()) ? 'on' : 'off'; } catch (e) { st = 'unsupported'; } }
+  }
+  if (S.push !== st) { S.push = st; render(); }
+}
+async function enablePush() {
+  if (!S.user) return openModal('login');
+  if (!pushOk()) return toast('Notiser fungerar inte här. Öppna appen i Chrome.');
+  S.pushBusy = true; render();
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { toast(perm === 'denied' ? 'Notiser är blockerade i Chrome' : 'Tryck på Tillåt för att få påminnelser'); return; }
+    if (DEMO) { store.set('pushDemo', true); toast('Påminnelser är på (demoläge)'); return; }
+    const reg = await swReady();
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUBLIC_KEY) });
+    await api.savePush(sub);
+    toast('Påminnelser är på! 🌱');
+  } catch (e) { toast('Kunde inte slå på notiser: ' + (e.message || e)); }
+  finally { S.pushBusy = false; await refreshPush(); render(); }
+}
+async function disablePush() {
+  S.pushBusy = true; render();
+  try {
+    if (DEMO) { store.set('pushDemo', false); toast('Påminnelser är avstängda'); return; }
+    const reg = await swReady(), sub = await reg.pushManager.getSubscription();
+    if (sub) { const ep = sub.endpoint; await sub.unsubscribe(); try { await api.deletePush(ep); } catch (e) {} }
+    toast('Påminnelser är avstängda');
+  } catch (e) { toast('Något gick fel: ' + (e.message || e)); }
+  finally { S.pushBusy = false; await refreshPush(); render(); }
+}
+async function testPush() {
+  S.pushBusy = true; render();
+  try {
+    if (DEMO) {
+      const names = S.mine.filter(m => left(m) === 0).map(m => m.name);
+      const reg = await swReady();
+      await reg.showNotification('Notiserna fungerar! 🌱', { body: names.length ? 'Just nu behöver ' + names.join(', ') + ' vattnas.' : 'Inga växter behöver vattnas just nu.', icon: 'icon-192.png', tag: 'roothood-water', data: { url: './?tab=mine' } });
+      toast('Testnotis visad (demoläge)');
+      return;
+    }
+    const { data } = await sb.auth.getSession();
+    const res = await fetch(SUPABASE_URL + '/functions/v1/send-reminders', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + (data.session ? data.session.access_token : '') }, body: '{"test":true}' });
+    if (res.status === 404) throw new Error('notisfunktionen finns inte i Supabase än');
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(out.error || out.msg || 'fel ' + res.status);
+    toast(out.sent ? 'Testnotis skickad! Den kommer om några sekunder.' : 'Hittade ingen mobil. Stäng av och slå på igen.');
+  } catch (e) { toast('Kunde inte skicka: ' + (e.message || e)); }
+  finally { S.pushBusy = false; render(); }
+}
+function pushCard() {
+  const st = S.push, busy = S.pushBusy ? ' disabled' : '';
+  let inner;
+  if (!S.user) inner = `<p class="mut" style="margin:0 0 12px">Logga in för att få påminnelser i mobilen.</p><button class="btn sm" onclick="openModal('login')">Logga in eller skapa konto</button>`;
+  else if (!st) inner = '<p class="mut" style="margin:0">Kollar…</p>';
+  else if (st === 'unsupported') inner = '<p class="mut" style="margin:0">Notiser fungerar inte här. Öppna appen i Chrome: armbowscarman.github.io/roothood</p>';
+  else if (st === 'denied') inner = '<p style="margin:0 0 6px"><b>Notiser är blockerade</b></p><p class="mut" style="margin:0">Tryck på ikonen till vänster om adressen i Chrome, välj <b>Behörigheter</b> och slå på <b>Aviseringar</b>. Ladda sedan om sidan.</p>';
+  else if (st === 'on') inner = `<p class="on">✓ Påminnelser är på</p><p class="mut" style="margin:0">Du får en notis på morgonen när en växt behöver vattnas, även när appen är stängd.</p><div class="row2"><button class="btn sm"${busy} onclick="testPush()">Skicka testnotis</button><button class="btn sm line"${busy} onclick="disablePush()">Stäng av</button></div>`;
+  else inner = `<p class="mut" style="margin:0">Få en notis på morgonen när en växt behöver vattnas, även när appen är stängd.</p><div class="row2"><button class="btn sm"${busy} onclick="enablePush()">${ic(BELL, 'currentColor', 16)} Slå på påminnelser</button></div>`;
+  return `<div class="setcard pushc">${inner}</div>`;
+}
+// Notisen öppnar Min samling
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.tab) go(e.data.tab); });
 
 // ===== Installera som app =====
 let installEvt = null;
@@ -1660,7 +1744,11 @@ async function init() {
     S.pro = S.user ? await api.getPro() : false;
     if (S.user) { try { applyInterests((await api.getProfile()).interests); } catch (e) {} }
   } catch (e) { S.err = e; }
-  S.loading = false; render();
+  S.loading = false;
+  const startTab = new URLSearchParams(location.search).get('tab');
+  if (startTab === 'mine') { S.tab = 'mine'; try { history.replaceState(null, '', location.pathname); } catch (e) {} }
+  render();
+  if (S.user) refreshPush();
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.modal) closeModal(); });
 init();
