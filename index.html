@@ -246,6 +246,50 @@ form label.check input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-co
 .tmeta{display:flex;gap:14px;font-size:13px;font-weight:700;color:var(--pri);margin-top:4px}
 .tmeta span{display:flex;align-items:center;gap:4px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 18px 0}
+.tool{position:relative;border:0;background:var(--surf);border-radius:22px;padding:14px;text-align:left;font:inherit;color:inherit;cursor:pointer;box-shadow:var(--sh);display:flex;flex-direction:column;gap:2px}
+.tool b{font-size:15px;margin-top:8px}
+.tool>span:not(.tic):not(.protag){font-size:12.5px;color:var(--mut)}
+.tic{width:44px;height:44px;border-radius:14px;background:var(--soft);color:var(--pri);display:grid;place-items:center;flex:none}
+.tic.sun{background:#FFF1D6;color:#D99A12}
+.tic.big{width:72px;height:72px;border-radius:22px}
+.protag{position:absolute;top:12px;right:12px;background:var(--ink);color:var(--bg);font-size:11px;font-weight:800;border-radius:999px;padding:3px 8px}
+.probadge{display:inline-block;vertical-align:middle;margin-left:6px;background:linear-gradient(135deg,#7CB342,#4C8C1E);color:#fff;font-size:10.5px;font-weight:800;border-radius:6px;padding:2px 6px}
+.profeats{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.pf{display:flex;gap:12px;align-items:flex-start;background:var(--surf);border-radius:18px;padding:12px 14px}
+.pfi{flex:none;width:40px;height:40px;border-radius:12px;background:var(--soft);color:var(--pri);display:grid;place-items:center}
+.pf b{display:block;font-size:15px}
+.pf span{font-size:13.5px;color:var(--mut)}
+.price{display:flex;justify-content:space-between;align-items:baseline;margin:4px 4px 12px}
+.price b{font-size:22px;font-weight:800}
+.price span{color:var(--mut);font-size:13.5px}
+.procard{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;margin:12px 18px 0;width:calc(100% - 36px);background:linear-gradient(120deg,#4C8C1E,#7CB342);color:#fff;border-radius:22px;padding:16px;cursor:pointer;box-shadow:var(--sh)}
+.procard:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+.procard .tic{background:rgba(255,255,255,.2);color:#fff}
+.procard .grow{flex:1;display:flex;flex-direction:column}
+.procard b{font-size:16px}
+.procard .grow span{font-size:13px;opacity:.9}
+.procard .protag{position:static;background:#fff;color:#4C8C1E}
+.shot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:240px;border:2px dashed var(--pri2);border-radius:28px;background:var(--surf);text-align:center;padding:20px;cursor:pointer;position:relative;overflow:hidden;margin-top:10px}
+.shot b{font-size:17px}
+.shot>span:not(.tic){font-size:13.5px;color:var(--mut)}
+.shot.has{padding:0;border-style:solid;min-height:0}
+.shot img{width:100%;max-height:340px;object-fit:cover;display:block}
+.chips2{display:flex;gap:8px;flex-wrap:wrap}
+.chips2 button{border:0;background:var(--surf);color:var(--ink);font:inherit;font-size:14px;font-weight:600;border-radius:999px;padding:8px 14px;cursor:pointer;box-shadow:var(--sh)}
+.chips2 button.on{background:var(--pri);color:var(--onpri)}
+.idr{display:flex;gap:12px;align-items:center;background:var(--surf);border-radius:20px;padding:14px;box-shadow:var(--sh)}
+.idr .grow{flex:1;min-width:0}
+.idr b{display:block}
+.idr i{display:block;color:var(--mut);font-size:13px}
+.idr small{color:var(--pri);font-weight:700;font-size:12px}
+.lightbox{position:relative;background:var(--surf);border-radius:28px;padding:18px;box-shadow:var(--sh);overflow:hidden}
+.lightbox video{width:100%;height:150px;object-fit:cover;border-radius:18px;display:block;margin-bottom:14px}
+.luxv b{display:block;font-size:30px;font-weight:800;color:var(--pri)}
+.luxv span{color:var(--mut);font-size:14px}
+.lscale{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:14px}
+.lscale span{text-align:center;font-size:12px;font-weight:700;color:var(--mut);background:var(--bg);border-radius:999px;padding:7px 2px}
+.lscale span.on{background:var(--pri);color:var(--onpri)}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
@@ -265,11 +309,13 @@ const SUPABASE_URL = 'https://lboomcqxksqahkugpxew.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxib29tY3F4a3NxYWhrdWdweGV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0NzM5MTMsImV4cCI6MjEwODA0OTkxM30.vo6fcyav5szOy9mkWJo3VbctQfVpbLlWL3UXVHfmoqo';
 
 const DEMO = !SUPABASE_URL || !SUPABASE_ANON_KEY;
+const PLANTNET_KEY = '';  // nyckel från my.plantnet.org (tom = exempelresultat)
+const FREE_LIMIT = 10;  // max antal växter utan Pro
 const DEMO_PLANTS = [{"id": 1, "swedish_name": "Monstera", "latin_name": "Monstera deliciosa", "category": "Krukväxt", "light_level": 2, "water_level": 2, "light_text": "Starkt, indirekt ljus", "water_text": "Vattna när de översta 3–5 cm jord är torra", "water_interval_days": 7, "soil": "Luftig krukjord med bark eller perlit", "temperature": "18–27 °C, undvik drag", "humidity": "Medel till hög", "pet_safe": false, "toxicity_text": "Giftig för katter och hundar", "propagation": "Stamstickling med en nod, rotas i vatten eller jord", "common_problems": "Gula blad vid för mycket vatten, bruna kanter vid torr luft", "tips": "Ge stammen stöd med en mossepinne", "hardiness_zone": null}, {"id": 2, "swedish_name": "Svärmors tunga", "latin_name": "Dracaena trifasciata", "category": "Krukväxt", "light_level": 1, "water_level": 1, "light_text": "Klarar allt från skugga till sol", "water_text": "Låt jorden torka helt mellan vattningarna, mindre på vintern", "water_interval_days": 14, "soil": "Kaktusjord, väldränerad", "temperature": "15–30 °C", "humidity": "Låg till normal", "pet_safe": false, "toxicity_text": "Lätt giftig för katter och hundar", "propagation": "Bladstickling eller delning av skott", "common_problems": "Rötterna ruttnar vid för mycket vatten", "tips": "Vattna hellre för lite än för mycket", "hardiness_zone": null}, {"id": 3, "swedish_name": "Gullranka", "latin_name": "Epipremnum aureum", "category": "Krukväxt", "light_level": 2, "water_level": 2, "light_text": "Ljust till halvskugga, ej stark sol", "water_text": "Vattna när de översta centimetrarna är torra", "water_interval_days": 7, "soil": "Vanlig krukjord", "temperature": "16–28 °C", "humidity": "Normal", "pet_safe": false, "toxicity_text": "Giftig för katter och hundar", "propagation": "Stickling med en nod i vatten", "common_problems": "Gula blad vid för mycket vatten, blekta blad i stark sol", "tips": "Klipp tillbaka toppen för en yvigare växt", "hardiness_zone": null}, {"id": 4, "swedish_name": "Fredskalla", "latin_name": "Spathiphyllum", "category": "Krukväxt", "light_level": 2, "water_level": 3, "light_text": "Halvskugga till ljust, ej direkt sol", "water_text": "Håll jorden jämnt fuktig, hängande blad visar törst", "water_interval_days": 5, "soil": "Mullrik krukjord", "temperature": "18–26 °C", "humidity": "Hög", "pet_safe": false, "toxicity_text": "Giftig för katter och hundar", "propagation": "Delning av rotklumpen vid omplantering", "common_problems": "Bruna bladspetsar vid torr luft eller kalkhaltigt vatten", "tips": "Blommar bäst i ett ljust läge", "hardiness_zone": null}, {"id": 5, "swedish_name": "Gummifikus", "latin_name": "Ficus elastica", "category": "Krukväxt", "light_level": 2, "water_level": 2, "light_text": "Starkt, indirekt ljus", "water_text": "Vattna när de översta 3–4 cm är torra", "water_interval_days": 10, "soil": "Luftig krukjord", "temperature": "16–27 °C", "humidity": "Normal", "pet_safe": false, "toxicity_text": "Lätt giftig för katter och hundar, mjölksaften irriterar", "propagation": "Luftavläggare eller toppstickling", "common_problems": "Tappar blad vid flytt, drag eller för lite ljus", "tips": "Torka av bladen och flytta den inte i onödan", "hardiness_zone": null}, {"id": 6, "swedish_name": "Pilea", "latin_name": "Pilea peperomioides", "category": "Krukväxt", "light_level": 2, "water_level": 2, "light_text": "Ljust, ej direkt sol", "water_text": "Vattna när de översta 2–3 cm är torra", "water_interval_days": 7, "soil": "Lucker krukjord med perlit", "temperature": "15–25 °C", "humidity": "Normal", "pet_safe": true, "toxicity_text": "Ofarlig för katter och hundar", "propagation": "Avläggare vid foten, ta bort och plantera", "common_problems": "Växer snett mot ljuset", "tips": "Vrid krukan en kvarts varv varje vecka", "hardiness_zone": null}, {"id": 7, "swedish_name": "ZZ-planta", "latin_name": "Zamioculcas zamiifolia", "category": "Krukväxt", "light_level": 1, "water_level": 1, "light_text": "Klarar lågt ljus, växer bättre med mer", "water_text": "Vattna sparsamt, jorden ska torka mellan gångerna", "water_interval_days": 14, "soil": "Kaktusjord eller lucker jord", "temperature": "16–28 °C", "humidity": "Låg till normal", "pet_safe": false, "toxicity_text": "Giftig för katter och hundar", "propagation": "Bladstickling eller delning, går långsamt", "common_problems": "Gula blad och mjuka stammar vid för mycket vatten", "tips": "Tål försummelse och passar den som ofta glömmer", "hardiness_zone": null}, {"id": 8, "swedish_name": "Grönlilja", "latin_name": "Chlorophytum comosum", "category": "Krukväxt", "light_level": 2, "water_level": 2, "light_text": "Ljust till halvskugga", "water_text": "Vattna när de översta centimetrarna är torra", "water_interval_days": 7, "soil": "Vanlig krukjord", "temperature": "15–25 °C", "humidity": "Normal", "pet_safe": true, "toxicity_text": "Ofarlig för katter och hundar", "propagation": "Plantera de små dottplantorna från de långa utlöparna", "common_problems": "Bruna bladspetsar vid torr luft eller kranvatten", "tips": "Bra första växt", "hardiness_zone": null}, {"id": 9, "swedish_name": "Pelargon", "latin_name": "Pelargonium × hortorum", "category": "Krukväxt", "light_level": 3, "water_level": 2, "light_text": "Full sol, gärna sydläge", "water_text": "Vattna när jorden är torr på ytan", "water_interval_days": 5, "soil": "Näringsrik krukjord med bra dränering", "temperature": "15–25 °C, övervintras svalt", "humidity": "Låg till normal", "pet_safe": false, "toxicity_text": "Giftig för katter och hundar", "propagation": "Toppstickling i augusti", "common_problems": "Gänglig växt vid för lite ljus, gula blad vid för mycket vatten", "tips": "Övervintra ljust och svalt (5–10 °C)", "hardiness_zone": null}, {"id": 10, "swedish_name": "Julstjärna", "latin_name": "Euphorbia pulcherrima", "category": "Krukväxt", "light_level": 2, "water_level": 2, "light_text": "Ljust, ej direkt sol", "water_text": "Vattna när översta centimetern är torr, låt inte vatten stå i fatet", "water_interval_days": 7, "soil": "Vanlig krukjord", "temperature": "16–22 °C", "humidity": "Normal", "pet_safe": false, "toxicity_text": "Lätt giftig för katter och hundar, mjölksaften irriterar", "propagation": "Stickling, svårt för nybörjare", "common_problems": "Tappar blad vid kyla, drag eller för mycket vatten", "tips": "Skydda den mot kyla på hemvägen från butiken", "hardiness_zone": null}, {"id": 11, "swedish_name": "Vaxblomma", "latin_name": "Hoya carnosa", "category": "Krukväxt", "light_level": 2, "water_level": 1, "light_text": "Ljust, gärna lite morgonsol", "water_text": "Vattna när jorden torkat helt, mindre på vintern", "water_interval_days": 12, "soil": "Luftig jord med bark", "temperature": "16–26 °C", "humidity": "Normal", "pet_safe": true, "toxicity_text": "Ofarlig för katter och hundar", "propagation": "Stickling med ett par blad", "common_problems": "Blommar inte om den står för mörkt", "tips": "Klipp inte bort de gamla blomspetsarna, den blommar där igen", "hardiness_zone": null}, {"id": 12, "swedish_name": "Saintpaulia", "latin_name": "Saintpaulia ionantha", "category": "Krukväxt", "light_level": 2, "water_level": 2, "light_text": "Ljust, ej direkt sol", "water_text": "Vattna underifrån med rumsvarmt vatten och undvik bladen", "water_interval_days": 7, "soil": "Speciell saintpauliajord", "temperature": "18–24 °C", "humidity": "Medel", "pet_safe": true, "toxicity_text": "Ofarlig för katter och hundar", "propagation": "Bladstickling i vatten eller jord", "common_problems": "Fläckar på bladen av kallt vatten", "tips": "Ta bort vissna blommor för att få nya", "hardiness_zone": null}, {"id": 13, "swedish_name": "Fjärilsorkidé", "latin_name": "Phalaenopsis", "category": "Orkidé", "light_level": 2, "water_level": 2, "light_text": "Ljust fönster utan direkt sol", "water_text": "Doppa rötterna i 15 minuter en gång i veckan", "water_interval_days": 7, "soil": "Orkidébark, ingen vanlig jord", "temperature": "18–26 °C, svalare natt ger nya blommor", "humidity": "Medel till hög", "pet_safe": true, "toxicity_text": "Ofarlig för katter och hundar", "propagation": "Barnplantor (kindel) på blomstjälken", "common_problems": "Skrumpna blad vid törst, mjuka rötter vid övervattning", "tips": "Klipp stjälken ovanför ett öga efter blomningen", "hardiness_zone": null}, {"id": 14, "swedish_name": "Cymbidium", "latin_name": "Cymbidium", "category": "Orkidé", "light_level": 3, "water_level": 2, "light_text": "Mycket ljust, gärna lite sol", "water_text": "Håll jämnt fuktig under tillväxten, torrare på vintern", "water_interval_days": 7, "soil": "Orkidéjord för cymbidium", "temperature": "12–25 °C, kalla nätter på hösten ger knoppar", "humidity": "Medel", "pet_safe": true, "toxicity_text": "Ofarlig för katter och hundar", "propagation": "Delning av pseudobulber vid omplantering", "common_problems": "Blommar inte utan en kall höstperiod", "tips": "Ställ den svalt (8–12 °C) på hösten för att få blommor", "hardiness_zone": null}, {"id": 15, "swedish_name": "Julkaktus", "latin_name": "Schlumbergera", "category": "Kaktus", "light_level": 2, "water_level": 2, "light_text": "Ljust, ej direkt sol", "water_text": "Vattna när de översta centimetrarna är torra", "water_interval_days": 10, "soil": "Kaktusjord med lite kompost", "temperature": "15–22 °C, svalt (12–16 °C) för att sätta knoppar", "humidity": "Medel", "pet_safe": true, "toxicity_text": "Ofarlig för katter och hundar", "propagation": "Stickling av ledade skott", "common_problems": "Tappar knoppar vid flytt eller drag", "tips": "Flytta inte krukan när knopparna har kommit", "hardiness_zone": null}, {"id": 16, "swedish_name": "Aloe vera", "latin_name": "Aloe vera", "category": "Kaktus", "light_level": 3, "water_level": 1, "light_text": "Fullt ljus, gärna sydfönster", "water_text": "Vattna djupt men sällan, låt jorden torka helt", "water_interval_days": 14, "soil": "Kaktusjord blandad med sand", "temperature": "15–30 °C, tål inte frost", "humidity": "Låg", "pet_safe": false, "toxicity_text": "Giftig för katter och hundar", "propagation": "Avläggare vid foten", "common_problems": "Mjuka, bruna blad vid för mycket vatten", "tips": "Tål inte frost eller stående vatten", "hardiness_zone": null}, {"id": 17, "swedish_name": "Echeveria", "latin_name": "Echeveria elegans", "category": "Kaktus", "light_level": 3, "water_level": 1, "light_text": "Fullt ljus, minst 4 timmar sol", "water_text": "Vattna sparsamt och undvik vatten i rosetten", "water_interval_days": 14, "soil": "Kaktusjord blandad med sand", "temperature": "10–30 °C, svalt och torrt på vintern", "humidity": "Låg", "pet_safe": true, "toxicity_text": "Ofarlig för katter och hundar", "propagation": "Bladstickling, låt såret torka först", "common_problems": "Långsträckt växt vid för lite ljus", "tips": "Ställ den ljust och svalt över vintern", "hardiness_zone": null}, {"id": 18, "swedish_name": "Pengaträd", "latin_name": "Crassula ovata", "category": "Kaktus", "light_level": 3, "water_level": 1, "light_text": "Fullt ljus, gärna sol", "water_text": "Vattna när jorden torkat helt", "water_interval_days": 14, "soil": "Kaktusjord", "temperature": "10–28 °C, svalt på vintern", "humidity": "Låg", "pet_safe": false, "toxicity_text": "Giftig för katter och hundar", "propagation": "Bladstickling eller toppstickling", "common_problems": "Rynkiga blad vid törst, mjuka blad vid för mycket vatten", "tips": "En sval vinter ger vackra blommor", "hardiness_zone": null}, {"id": 19, "swedish_name": "Tomat", "latin_name": "Solanum lycopersicum", "category": "Köksträdgård", "light_level": 3, "water_level": 3, "light_text": "Full sol, minst 6 timmar", "water_text": "Vattna regelbundet vid roten för jämn fuktighet", "water_interval_days": 3, "soil": "Näringsrik jord blandad med kompost", "temperature": "Ut efter sista frosten, trivs över 15 °C", "humidity": "Normal", "pet_safe": false, "toxicity_text": "Blad och omogna frukter är giftiga för katter och hundar", "propagation": "Sås inomhus i mars", "common_problems": "Spruckna frukter vid ojämn vattning", "tips": "Nyp bort sidoskott på höga sorter", "hardiness_zone": null}, {"id": 20, "swedish_name": "Gurka", "latin_name": "Cucumis sativus", "category": "Köksträdgård", "light_level": 3, "water_level": 3, "light_text": "Full sol", "water_text": "Vattna ofta och rikligt", "water_interval_days": 2, "soil": "Näringsrik, mullrik jord", "temperature": "Trivs över 18 °C, känslig för kyla", "humidity": "Hög", "pet_safe": true, "toxicity_text": "Ofarlig för katter och hundar", "propagation": "Sås inomhus i april", "common_problems": "Mjöldagg och bitter frukt vid stress", "tips": "Ge den något att klättra på", "hardiness_zone": null}, {"id": 21, "swedish_name": "Basilika", "latin_name": "Ocimum basilicum", "category": "Köksträdgård", "light_level": 3, "water_level": 2, "light_text": "Ljust och soligt", "water_text": "Vattna när översta centimetern är torr", "water_interval_days": 3, "soil": "Lucker, näringsrik jord", "temperature": "18–28 °C, känslig för kyla", "humidity": "Normal", "pet_safe": true, "toxicity_text": "Ofarlig för katter och hundar", "propagation": "Sås inomhus året runt", "common_problems": "Svartnar vid kyla eller drag", "tips": "Nyp av blomknopparna så blir plantan yvigare", "hardiness_zone": null}, {"id": 22, "swedish_name": "Persilja", "latin_name": "Petroselinum crispum", "category": "Köksträdgård", "light_level": 2, "water_level": 2, "light_text": "Ljust till halvskugga", "water_text": "Håll jorden jämnt fuktig", "water_interval_days": 5, "soil": "Djup, näringsrik jord", "temperature": "10–22 °C", "humidity": "Normal", "pet_safe": false, "toxicity_text": "Lätt giftig för katter och hundar i stora mängder, ofarlig som krydda", "propagation": "Sås, gror långsamt (3–4 veckor)", "common_problems": "Gula blad vid för torr eller för blöt jord", "tips": "Skörda de yttre bladen först", "hardiness_zone": null}, {"id": 23, "swedish_name": "Sallat", "latin_name": "Lactuca sativa", "category": "Köksträdgård", "light_level": 2, "water_level": 2, "light_text": "Sol till halvskugga", "water_text": "Vattna jämnt och håll jorden lätt fuktig", "water_interval_days": 3, "soil": "Lucker, mullrik jord", "temperature": "8–20 °C, skjuter i höjden vid värme", "humidity": "Normal", "pet_safe": true, "toxicity_text": "Ofarlig för katter och hundar", "propagation": "Sås direkt, gärna serievis varannan vecka", "common_problems": "Skjuter i blom vid värme och torka", "tips": "Skörda plockblad så växer den vidare", "hardiness_zone": null}, {"id": 24, "swedish_name": "Potatis", "latin_name": "Solanum tuberosum", "category": "Köksträdgård", "light_level": 3, "water_level": 2, "light_text": "Full sol", "water_text": "Vattna vid torka, särskilt efter blomningen", "water_interval_days": 5, "soil": "Lucker, sandig och mullrik jord", "temperature": "Sätts i maj, tål inte frost", "humidity": "Normal", "pet_safe": false, "toxicity_text": "Gröna knölar, groddar och blast är giftiga", "propagation": "Sättpotatis som förgrotts", "common_problems": "Potatisbladmögel i fuktiga somrar", "tips": "Kupa jord runt plantorna så att knölarna inte blir gröna", "hardiness_zone": null}, {"id": 25, "swedish_name": "Jordgubbe", "latin_name": "Fragaria × ananassa", "category": "Köksträdgård", "light_level": 3, "water_level": 2, "light_text": "Full sol", "water_text": "Vattna regelbundet, särskilt under blomning och mognad", "water_interval_days": 4, "soil": "Mullrik, lätt sur jord", "temperature": "Härdig, plantera på våren eller sensommaren", "humidity": "Normal", "pet_safe": true, "toxicity_text": "Ofarlig för katter och hundar", "propagation": "Utlöpare som rotas i kruka", "common_problems": "Gråmögel i fuktigt väder", "tips": "Lägg halm under bären så hålls de rena", "hardiness_zone": "1–6"}, {"id": 26, "swedish_name": "Lavendel", "latin_name": "Lavandula angustifolia", "category": "Trädgård", "light_level": 3, "water_level": 1, "light_text": "Full sol", "water_text": "Sparsamt när den har rotat sig", "water_interval_days": null, "soil": "Mager, kalkrik och väldränerad jord", "temperature": "Tål torka, skydda mot vinterväta", "humidity": "Låg", "pet_safe": false, "toxicity_text": "Lätt giftig för katter och hundar i större mängder", "propagation": "Toppstickling på sommaren", "common_problems": "Dör av vinterväta eller för näringsrik jord", "tips": "Klipp tillbaka efter blomningen, men inte ner i gammalt trä", "hardiness_zone": "1–3"}, {"id": 27, "swedish_name": "Hortensia", "latin_name": "Hydrangea macrophylla", "category": "Trädgård", "light_level": 2, "water_level": 3, "light_text": "Halvskugga, skydd för middagssolen", "water_text": "Vattna rikligt, jorden ska vara jämnt fuktig", "water_interval_days": null, "soil": "Mullrik, fuktighetshållande jord", "temperature": "Skydda mot hård vinterkyla", "humidity": "Normal", "pet_safe": false, "toxicity_text": "Giftig för katter och hundar", "propagation": "Toppstickling på sommaren", "common_problems": "Fryser ner vid hård vinter och blommar då dåligt", "tips": "Klipp inte tillbaka på hösten, vänta till våren", "hardiness_zone": "1–3"}, {"id": 28, "swedish_name": "Syren", "latin_name": "Syringa vulgaris", "category": "Trädgård", "light_level": 3, "water_level": 2, "light_text": "Sol till ljus halvskugga", "water_text": "Vattna vid långvarig torka", "water_interval_days": null, "soil": "Kalkrik, väldränerad jord", "temperature": "Mycket härdig", "humidity": "Normal", "pet_safe": true, "toxicity_text": "Ofarlig för katter och hundar", "propagation": "Rotskott och sticklingar", "common_problems": "Blommar dåligt i skugga eller efter hård beskärning", "tips": "Beskär direkt efter blomningen", "hardiness_zone": "1–7"}, {"id": 29, "swedish_name": "Rhododendron", "latin_name": "Rhododendron", "category": "Trädgård", "light_level": 2, "water_level": 2, "light_text": "Halvskugga med skydd mot vind", "water_text": "Jämn fuktighet, undvik kalkrikt vatten", "water_interval_days": null, "soil": "Sur, mullrik jord (pH 4,5–5,5)", "temperature": "Välj sorter som är härdiga för din zon", "humidity": "Normal", "pet_safe": false, "toxicity_text": "Mycket giftig för katter och hundar", "propagation": "Sticklingar och avläggare, går långsamt", "common_problems": "Gula blad (kloros) i kalkrik jord", "tips": "Använd regnvatten och rhododendronjord", "hardiness_zone": "1–5"}, {"id": 30, "swedish_name": "Tulpan", "latin_name": "Tulipa", "category": "Trädgård", "light_level": 3, "water_level": 1, "light_text": "Sol", "water_text": "Vattna vid torr vår, annars sparsamt", "water_interval_days": null, "soil": "Väldränerad jord som inte är för blöt", "temperature": "Sätts som lök på hösten (sep–okt) och behöver kyla", "humidity": "Låg", "pet_safe": false, "toxicity_text": "Giftig för katter och hundar, mest löken", "propagation": "Delning av lökar", "common_problems": "Löken ruttnar i blöt jord", "tips": "Sätt löken 10–15 cm djupt på hösten", "hardiness_zone": "1–7"}];
 const CATS = ['Krukväxt','Köksträdgård','Trädgård','Orkidé','Kaktus'];
 const LIGHT = ['Skugga','Halvskugga','Full sol'], WATER = ['Lite','Måttligt','Mycket'];
 const S = {loading:true, err:null, tab:'home', sel:null, cat:'Alla', q:'', modal:null, prefill:'',
-  authMode:'in', env:'all', ctab:'q', threads:null, forum:null, newThread:false, tt:'', tb:'', msg:'', feed:null, feedErr:null, post:null, draft:'', adraft:'', qcat:'Allmänt', rep:null, msgOk:false, busy:false, del:null, liked:{}, plants:[], user:null, mine:[]};
+  authMode:'in', env:'all', ctab:'q', pro:false, tool:null, idImg:null, idFile:null, idOrgan:'auto', idRes:null, idErr:null, idBusy:false, idDemo:false, light:null, limitHit:false, prefillLatin:'', threads:null, forum:null, newThread:false, tt:'', tb:'', msg:'', feed:null, feedErr:null, post:null, draft:'', adraft:'', qcat:'Allmänt', rep:null, msgOk:false, busy:false, del:null, liked:{}, plants:[], user:null, mine:[]};
 
 // ===== Hjälpfunktioner =====
 const $ = s => document.querySelector(s);
@@ -341,6 +387,8 @@ const demoApi = {
   async water(id) { const m = await this.mine(); m.find(x => x.id === id).last_watered = today(); await this.save(m); },
   async setWatered(id, date) { const m = await this.mine(); m.find(x => x.id === id).last_watered = date; await this.save(m); },
   async remove(id) { await this.save((await this.mine()).filter(x => x.id !== id)); },
+  async getPro() { return store.get('pro', false); },
+  async setPro(on) { store.set('pro', on); },
   _feed() {
     let f = store.get('feed', null);
     if (!f) {
@@ -348,7 +396,7 @@ const demoApi = {
       f = [
         { id: 3, kind: 'question', user_id: 'maja', author: 'Maja', category: 'Orkidé', body: 'Orkidén blommar inte efter vintern. Tips?', created_at: t(2), best_answer_id: null, likers: ['a', 'b'], answers: [] },
         { id: 2, kind: 'question', user_id: 'karim', author: 'Karim', category: 'Köksträdgård', body: 'När kan tomatplantorna stå ute i Västsverige?', created_at: t(20), best_answer_id: 21, likers: ['a', 'b', 'c', 'd', 'e'],
-          answers: [{ id: 21, user_id: 'lena', author: 'Lena', body: 'Vänta tills nätterna ligger över 10 grader, oftast i början av juni.', created_at: t(18) }] },
+          answers: [{ id: 21, user_id: 'lena', author: 'Lena', author_pro: true, body: 'Vänta tills nätterna ligger över 10 grader, oftast i början av juni.', created_at: t(18) }] },
         { id: 1, kind: 'question', user_id: 'elin', author: 'Elin', category: 'Krukväxt', body: 'Mina monsterablad blir gula. Vad gör jag?', created_at: t(50), best_answer_id: 11, likers: ['a', 'b', 'c'],
           answers: [{ id: 11, user_id: 'sara', author: 'Sara', body: 'Troligen för mycket vatten. Låt jorden torka mellan vattningarna.', created_at: t(48) },
                     { id: 12, user_id: 'omar', author: 'Omar', body: 'Kolla också att krukan har hål i botten.', created_at: t(40) }] }];
@@ -357,7 +405,7 @@ const demoApi = {
     if (!store.get('forumSeeded', false)) {
       const h = 36e5, t = n => new Date(Date.now() - n * h).toISOString();
       f.push(
-        { id: 101, kind: 'thread', user_id: 'lena', author: 'Lena', category: 'Byten och sticklingar', title: 'Byter monsterasticklingar mot pilea', body: 'Jag har tre rotade sticklingar av monstera. Någon i Göteborg som vill byta mot en pilea eller gullranka?', created_at: t(5), best_answer_id: null, likers: ['a', 'b'],
+        { id: 101, kind: 'thread', user_id: 'lena', author: 'Lena', author_pro: true, category: 'Byten och sticklingar', title: 'Byter monsterasticklingar mot pilea', body: 'Jag har tre rotade sticklingar av monstera. Någon i Göteborg som vill byta mot en pilea eller gullranka?', created_at: t(5), best_answer_id: null, likers: ['a', 'b'],
           answers: [{ id: 1011, user_id: 'omar', author: 'Omar', body: 'Jag har en pilea med massor av småplantor! Skickar ett meddelande.', created_at: t(3) }] },
         { id: 102, kind: 'thread', user_id: 'sara', author: 'Sara', category: 'Krukväxter', title: 'Bästa växtlampan för mörka vintrar?', body: 'Mina växter blir långa och bleka från november. Vilka växtlampor använder ni, och hur många timmar om dagen?', created_at: t(30), best_answer_id: null, likers: ['a', 'b', 'c', 'd'],
           answers: [{ id: 1021, user_id: 'karim', author: 'Karim', body: 'Jag kör en vanlig LED-växtlampa 12 timmar med timer. Stor skillnad!', created_at: t(26) },
@@ -368,7 +416,7 @@ const demoApi = {
     return f;
   },
   _save(f) { store.set('feed', f); },
-  async feed(kind) { kind = kind || 'question'; return JSON.parse(JSON.stringify(this._feed().filter(p => (p.kind || 'question') === kind))); },
+  async feed(kind) { kind = kind || 'question'; const pro = store.get('pro', false); return JSON.parse(JSON.stringify(this._feed().filter(p => (p.kind || 'question') === kind))).map(p => { if (p.user_id === 'demo') p.author_pro = pro; p.answers.forEach(a => { if (a.user_id === 'demo') a.author_pro = pro; }); return p; }); },
   async newThread(cat, title, body) { const f = this._feed(); f.unshift({ id: Date.now(), kind: 'thread', user_id: 'demo', author: 'Du', category: cat, title, body, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
   async ask(cat, body) { const f = this._feed(); f.unshift({ id: Date.now(), kind: 'question', user_id: 'demo', author: 'Du', category: cat, body, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
   async answer(pid, body) { const f = this._feed(); f.find(p => p.id === pid).answers.push({ id: Date.now(), user_id: 'demo', author: 'Du', body, created_at: new Date().toISOString() }); this._save(f); },
@@ -422,6 +470,16 @@ const sbApi = {
   async water(id) { const { error } = await sb.from('user_plants').update({ last_watered: today() }).eq('id', id); if (error) throw error; },
   async setWatered(id, date) { const { error } = await sb.from('user_plants').update({ last_watered: date }).eq('id', id); if (error) throw error; },
   async remove(id) { const { error } = await sb.from('user_plants').delete().eq('id', id); if (error) throw error; },
+  async getPro() {
+    const { data: s } = await sb.auth.getSession(); const uid = s.session && s.session.user.id; if (!uid) return false;
+    const { data, error } = await sb.from('profiles').select('is_pro').eq('id', uid);
+    return !error && !!(data && data[0] && data[0].is_pro);
+  },
+  async setPro(on) {
+    const { data, error } = await sb.from('profiles').update({ is_pro: on, pro_since: on ? new Date().toISOString() : null }).eq('id', S.user.id).select('id');
+    if (error) throw /is_pro|pro_since/.test(error.message || '') ? new Error('PRO_NOT_READY') : error;
+    if (Array.isArray(data) && !data.length) throw new Error('Kunde inte spara. Logga ut och in igen.');
+  },
   async feed(kind) {
     kind = kind || 'question';
     let res = await sb.from('posts').select('*').eq('kind', kind).order('created_at', { ascending: false }).limit(kind === 'thread' ? 200 : 50);
@@ -439,11 +497,14 @@ const sbApi = {
     if (a.error) throw a.error;
     if (l.error) throw l.error;
     const uids = [...new Set(posts.map(p => p.user_id).concat(a.data.map(x => x.user_id)))];
-    const { data: profs, error: e3 } = await sb.from('profiles').select('id,display_name').in('id', uids);
-    if (e3) throw e3;
+    let pr = await sb.from('profiles').select('id,display_name,is_pro').in('id', uids);
+    if (pr.error && /is_pro/.test(pr.error.message || '')) pr = await sb.from('profiles').select('id,display_name').in('id', uids);
+    if (pr.error) throw pr.error;
+    const profs = pr.data;
+    const isPro = id => !!(profs.find(p => p.id === id) || {}).is_pro;
     const name = id => (profs.find(p => p.id === id) || {}).display_name || 'Okänd';
-    return posts.map(p => ({ ...p, author: name(p.user_id),
-      answers: a.data.filter(x => x.post_id === p.id).map(x => ({ ...x, author: name(x.user_id) })),
+    return posts.map(p => ({ ...p, author: name(p.user_id), author_pro: isPro(p.user_id),
+      answers: a.data.filter(x => x.post_id === p.id).map(x => ({ ...x, author: name(x.user_id), author_pro: isPro(x.user_id) })),
       likers: l.data.filter(x => x.post_id === p.id).map(x => x.user_id) }));
   },
   async ask(cat, body) { const { error } = await sb.from('posts').insert({ user_id: S.user.id, category: cat, body }); if (error) throw error; },
@@ -469,16 +530,17 @@ async function run(fn, ok) {
   catch (e) { toast(errMsg(e)); }
   render();
 }
-function go(t) { S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
+function go(t) { stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
 function openPlant(id) { S.sel = id; render(); $('#main').scrollTop = 0; }
-function openModal(m, prefill) { S.modal = m; S.msg = ''; S.prefill = prefill || ''; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
-function closeModal() { S.modal = null; S.msg = ''; render(); }
+function openModal(m, prefill, latin) { S.modal = m; S.msg = ''; S.prefill = prefill || ''; S.prefillLatin = latin || ''; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
+function closeModal() { S.modal = null; S.msg = ''; S.limitHit = false; render(); }
 function addPlant(id) {
   if (!S.user) return openModal('login');
+  if (overLimit()) { S.limitHit = true; return openModal('pro'); }
   const p = S.plants.find(x => x.id === id);
   run(() => api.addMine(p), p.swedish_name + ' finns nu i din samling');
 }
-function addCustomStart() { if (!S.user) return openModal('login'); openModal('add', S.q); }
+function addCustomStart() { if (!S.user) return openModal('login'); if (overLimit()) { S.limitHit = true; return openModal('pro'); } openModal('add', S.q); }
 function water(id) { const m = S.mine.find(x => x.id === id); run(() => api.water(id), m.name + ' är vattnad'); }
 function removeMine(id) {
   if (S.del !== id) { S.del = id; render(); return; }
@@ -506,11 +568,11 @@ async function doAuth(form) {
       const active = await api.signUp(d.email.trim(), d.pw, d.name.trim());
       if (!active) { S.busy = false; S.authMode = 'in'; S.msgOk = true; S.msg = 'Vi har skickat en länk till ' + d.email + '. Klicka på den och logga sedan in här.'; return render(); }
     } else await api.signIn(d.email.trim(), d.pw);
-    S.user = await api.user(); S.mine = await api.mine();
+    S.user = await api.user(); S.mine = await api.mine(); S.pro = await api.getPro();
     S.busy = false; S.modal = null; render(); toast('Välkommen, ' + S.user.name + '!');
   } catch (e) { S.busy = false; S.msgOk = false; S.msg = errMsg(e); render(); }
 }
-async function signOut() { await api.signOut(); S.user = null; S.mine = []; render(); toast('Du är utloggad'); }
+async function signOut() { await api.signOut(); S.user = null; S.mine = []; S.pro = false; render(); toast('Du är utloggad'); }
 
 // ===== Foton från Wikipedia (illustration visas om inget foto finns) =====
 const IMG = store.get('imgs', {});
@@ -588,10 +650,11 @@ function render() {
   if (S.loading) m.innerHTML = '<div class="center mut">Hämtar växter…</div>';
   else if (S.err) m.innerHTML = `<div class="center"><h2>Kunde inte hämta växterna</h2><p class="mut">Kontrollera internetanslutningen och försök igen.</p><p class="mut">${esc(S.err.message || S.err)}</p></div>`;
   else {
-    m.innerHTML = S.sel ? detail() : S.tab === 'home' ? home() : S.tab === 'mine' ? mineV() : S.tab === 'me' ? meV() : comm();
-    if (!S.sel && S.tab === 'home') renderList();
+    m.innerHTML = S.sel ? detail() : S.tool ? toolV() : S.tab === 'home' ? home() : S.tab === 'mine' ? mineV() : S.tab === 'me' ? meV() : comm();
+    if (!S.sel && !S.tool && S.tab === 'home') renderList();
   }
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : addV()}</div></div>` : '';
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'pro' ? proV() : addV()}</div></div>` : '';
+  const lv = $('#lv'); if (lv && lightStream) { lv.srcObject = lightStream; lv.hidden = false; lv.play().catch(() => {}); }
   loadPhotos();
 }
 const INDOOR = ['Krukväxt', 'Orkidé', 'Kaktus'], OUTDOOR = ['Köksträdgård', 'Trädgård'];
@@ -614,9 +677,10 @@ function home() {
   const intro = `<div class="hero">${ph(fp.latin_name, fp.category, fp.swedish_name || 'x')}<div class="shade"></div><div class="hero-t">${S.user
     ? `<h2>Börja din samling</h2><p>Tryck på hjärtat på en växt du har, så påminner vi dig när den behöver vatten.</p><button class="pillbtn" onclick="$('.search input').focus()">Sök växter</button>`
     : `<h2>Ditt grannskap för växter</h2><p>Spara dina växter, få vattningspåminnelser och fråga andra.</p><button class="pillbtn" onclick="openModal('login')">Kom igång</button>`}</div></div>`;
-  return `<div class="hello"><div class="logo">${ic(I.leaf, 'var(--onpri)', 22)}</div><div class="grow"><b>Hej${name ? ' ' + esc(name) : ''}!</b><span>${sub}</span></div>${bell}</div>
+  return `<div class="hello"><div class="logo">${ic(I.leaf, 'var(--onpri)', 22)}</div><div class="grow"><b>Hej${name ? ' ' + esc(name) : ''}!</b><span>${sub}</span></div><button class="circ" onclick="openTool('id')" aria-label="Identifiera växt med kameran">${ic(SCAN, null, 22)}</button>${bell}</div>
   ${DEMO ? '<p style="text-align:center;margin:4px 0 0"><span class="badge" title="Ingen databas kopplad. Det du gör sparas bara i den här webbläsaren.">Demoläge</span></p>' : ''}
   <div class="seg2" role="tablist">${[['all', 'Båda'], ['in', 'Inomhus'], ['out', 'Utomhus']].map(([k, t]) => `<button class="${S.env === k ? 'on' : ''}" role="tab" aria-selected="${S.env === k}" onclick="setEnv('${k}')">${t}</button>`).join('')}</div>
+  ${toolsRow()}
   ${S.user && S.mine.length ? `<div class="sec"><h2>Mina växter</h2><button class="viewall" onclick="go('mine')">Visa alla</button></div><div class="mycards">${S.mine.map(myCard).join('')}</div>` : intro}
   <div class="searchrow" style="padding-top:${S.user && S.mine.length ? 4 : 16}px"><div class="search">${ic(I.search, null, 20)}<input type="search" placeholder="Sök växt eller latinskt namn" value="${esc(S.q)}" oninput="S.q=this.value;renderList()" aria-label="Sök växter"></div></div>
   <div class="sec"><h2>Alla växter</h2><span class="mut" id="count"></span></div>
@@ -694,14 +758,15 @@ function mineV() {
       <div class="side">${d !== null ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
   }).join('');
   return `${topbar('Min samling')}
-  ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
+  ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
   <div class="sec"><h2>Dina växter</h2><button class="btn sm line" onclick="addCustomStart()">+ Egen växt</button></div>
   <div class="list" style="padding-top:0">${rows || `<div class="empty"><p>Tryck på hjärtat på en växt under Växter så hamnar den här, med vattningspåminnelser.</p><button class="btn sm" onclick="go('home')">Hitta växter</button></div>`}</div>`;
 }
 function meV() {
   if (!S.user) return `${topbar('Profil')}<div class="prof"><div class="bigav">?</div><h2>Välkommen till Roothood</h2><p class="mut">Skapa ett konto för att spara växter och vara med i communityn.</p><button class="btn" onclick="openModal('login')">Logga in eller skapa konto</button></div>`;
   const posts = S.feed ? S.feed.filter(p => p.user_id === S.user.id).length : null;
-  return `${topbar('Profil')}<div class="prof"><div class="bigav" style="background:hsl(${hueOf(S.user.name)} 40% 38%)">${esc((S.user.name || '?')[0].toUpperCase())}</div><h2>${esc(S.user.name)}</h2>${DEMO ? '<p class="mut">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}</div>
+  return `${topbar('Profil')}<div class="prof"><div class="bigav" style="background:hsl(${hueOf(S.user.name)} 40% 38%)">${esc((S.user.name || '?')[0].toUpperCase())}</div><h2>${esc(S.user.name)}${S.pro ? ' ' + proBadge() : ''}</h2>${DEMO ? '<p class="mut">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}</div>
+  ${proCard()}
   <div class="stats"><div class="stat"><b>${S.mine.length}</b><span class="mut">växter i samlingen</span></div><div class="stat"><b>${posts === null ? '–' : posts}</b><span class="mut">frågor i communityn</span></div></div>
   ${DEMO ? '' : `<div class="addbar"><button class="btn wide line" onclick="signOut()">Logga ut</button></div>`}
   <p class="about">Roothood: växtfolk som hjälper varandra.</p>`;
@@ -722,7 +787,7 @@ function addV() {
   return `<div class="mh"><h2>Lägg till egen växt</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <form onsubmit="event.preventDefault();saveCustom(this)">
   <label>Namn<input name="name" required maxlength="60" value="${esc(S.prefill)}" placeholder="t.ex. Elefantöra"></label>
-  <label>Latinskt namn (valfritt)<input name="latin" maxlength="80" placeholder="t.ex. Alocasia"></label>
+  <label>Latinskt namn (valfritt)<input name="latin" maxlength="80" placeholder="t.ex. Alocasia" value="${esc(S.prefillLatin)}"></label>
   <div class="row2"><label>Kategori<select name="cat">${CATS.map(c => `<option>${c}</option>`).join('')}</select></label>
   <label>Vattna var … dag<input name="interval" type="number" min="1" max="90" value="7" required></label></div>
   <label>Anteckningar (valfritt)<textarea name="notes" rows="2" maxlength="300" placeholder="t.ex. Står i köksfönstret"></textarea></label>
@@ -820,8 +885,9 @@ function sendReport(form) {
   S.modal = null;
   commRun(() => api.report(S.rep.kind, S.rep.id, r), 'Tack! Rapporten är skickad.');
 }
-function who(name, sub, pill) {
-  return `<div class="who"><div class="av" style="background:hsl(${hueOf(name)} 40% 38%)">${esc((name || '?')[0])}</div><div><b>${esc(name)}</b><br><span class="mut">${esc(sub)}</span></div>${pill || ''}</div>`;
+function whoP(o, sub, pill) { return who(o.author, sub, pill, o.author_pro); }
+function who(name, sub, pill, pro) {
+  return `<div class="who"><div class="av" style="background:hsl(${hueOf(name)} 40% 38%)">${esc((name || '?')[0])}</div><div><b>${esc(name)}</b>${pro ? proBadge() : ''}<br><span class="mut">${esc(sub)}</span></div>${pill || ''}</div>`;
 }
 function likeBtn(p) {
   const on = !!(S.user && p.likers.includes(S.user.id));
@@ -848,7 +914,7 @@ function answersV(p, allowBest) {
   const ans = allowBest ? [...p.answers].sort((a, b) => (b.id === p.best_answer_id) - (a.id === p.best_answer_id)) : p.answers;
   return ans.map(a => {
     const isBest = allowBest && a.id === p.best_answer_id, own = !!(S.user && a.user_id === S.user.id);
-    return `<div class="post ${isBest ? 'bestc' : ''}">${who(a.author, ago(a.created_at), isBest ? '<span class="pill ok">Bästa svar</span>' : '')}<p style="margin:0;white-space:pre-line">${esc(a.body)}</p>
+    return `<div class="post ${isBest ? 'bestc' : ''}">${whoP(a, ago(a.created_at), isBest ? '<span class="pill ok">Bästa svar</span>' : '')}<p style="margin:0;white-space:pre-line">${esc(a.body)}</p>
     <div class="prow">${allowBest && mine && !isBest ? `<button class="link2" onclick="markBest(${p.id},${a.id})">Markera som bästa svar</button>` : ''}<span class="grow"></span>${own ? delBtn('a', 'delAnswer', a.id) : `<button class="x" onclick="openReport('answer',${a.id})">Rapportera</button>`}</div></div>`;
   }).join('');
 }
@@ -856,7 +922,7 @@ function answersV(p, allowBest) {
 // --- Frågor ---
 function postCard(p) {
   const best = p.answers.find(a => a.id === p.best_answer_id);
-  return `<div class="post">${who(p.author, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>`)}
+  return `<div class="post">${whoP(p, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>`)}
   <h3><button class="plink" onclick="openPost(${p.id})">${esc(p.body)}</button></h3>
   ${best ? `<div class="ans"><b>Bästa svar</b>${esc(best.body)}</div>` : ''}
   <div class="prow">${likeBtn(p)}<button class="link2" onclick="openPost(${p.id})">${p.answers.length ? p.answers.length + ' svar' : 'Svara'}</button></div></div>`;
@@ -875,7 +941,7 @@ function postV() {
   if (!p) { S.post = null; return comm(); }
   const mine = !!(S.user && p.user_id === S.user.id);
   return `${topbar('Fråga', 'S.post=null;S.del=null;render()')}<div class="pad">
-  <div class="post" style="margin-top:10px">${who(p.author, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>`)}<h2 style="font-size:21px">${esc(p.body)}</h2>
+  <div class="post" style="margin-top:10px">${whoP(p, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>`)}<h2 style="font-size:21px">${esc(p.body)}</h2>
   <div class="prow">${likeBtn(p)}<span class="grow"></span>${mine ? delBtn('p', 'delPost', p.id) : `<button class="x" onclick="openReport('post',${p.id})">Rapportera</button>`}</div></div>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
   ${answersV(p, true)}${replyBox(p.id, 'Skriv ett svar')}</div>`;
@@ -910,7 +976,7 @@ function threadV() {
   if (!p) { S.post = null; return forumCatV(); }
   const mine = !!(S.user && p.user_id === S.user.id);
   return `${topbar(p.category, 'S.post=null;S.del=null;render()')}<div class="pad">
-  <div class="post" style="margin-top:10px">${who(p.author, ago(p.created_at))}<h2 style="font-size:21px;margin-bottom:8px">${esc(p.title || '')}</h2><p style="margin:0;white-space:pre-line">${esc(p.body)}</p>
+  <div class="post" style="margin-top:10px">${whoP(p, ago(p.created_at))}<h2 style="font-size:21px;margin-bottom:8px">${esc(p.title || '')}</h2><p style="margin:0;white-space:pre-line">${esc(p.body)}</p>
   <div class="prow">${likeBtn(p)}<span class="grow"></span>${mine ? delBtn('p', 'delPost', p.id) : `<button class="x" onclick="openReport('post',${p.id})">Rapportera</button>`}</div></div>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
   ${answersV(p, false)}${replyBox(p.id, 'Skriv ett svar i tråden')}</div>`;
@@ -921,6 +987,184 @@ function reportV() {
   <form onsubmit="event.preventDefault();sendReport(this)">${REASONS.map((r, i) => `<label class="check"><input type="radio" name="reason" value="${r}" ${i === 0 ? 'checked' : ''}><span>${r}</span></label>`).join('')}
   <button class="btn wide formbtn">Skicka rapport</button></form>`;
 }
+
+// ===== Pro =====
+const PRO_PRICE = '39 kr/månad';
+const CAM = '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>';
+const SCAN = '<path d="M4 9V5h4M16 5h4v4M20 15v4h-4M8 19H4v-4"/><path d="M12 15V10M12 10c0-2 1.5-3 3.5-3 0 2-1.5 3-3.5 3z"/>';
+function needPro() { if (needLogin()) return true; if (!S.pro) { openModal('pro'); return true; } return false; }
+function overLimit() { return !S.pro && S.mine.length >= FREE_LIMIT; }
+async function setPro(on) {
+  S.modal = null;
+  try { await api.setPro(on); S.pro = on; toast(on ? 'Välkommen som Pro! 🌱' : 'Pro är avslutat'); }
+  catch (e) { toast(e.message === 'PRO_NOT_READY' ? 'Pro är inte påslaget i databasen än.' : errMsg(e)); }
+  render();
+}
+function proV() {
+  const feats = [[CAM, 'Identifiera växter med kameran', 'Fota ett blad eller en blomma och få veta vad det är.'],
+    [I.sun, 'Ljusmätare', 'Mät ljuset där växten ska stå och få förslag på växter som trivs.'],
+    [I.leaf, 'Obegränsad samling', `Gratis kan du spara ${FREE_LIMIT} växter. Med Pro finns ingen gräns.`],
+    [I.check, 'Pro-märke i communityn', 'Visa att du är en riktig växtnörd.']];
+  return `<div class="mh"><h2>Roothood Pro</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  ${S.limitHit ? `<p class="formmsg ok">Du har ${FREE_LIMIT} växter, vilket är max för gratiskonton. Bli Pro för att spara fler.</p>` : ''}
+  <div class="profeats">${feats.map(f => `<div class="pf"><span class="pfi">${ic(f[0], 'currentColor', 22)}</span><div><b>${f[1]}</b><span>${f[2]}</span></div></div>`).join('')}</div>
+  ${S.pro ? `<p class="formmsg ok">Du är Pro. Tack för att du stöttar Roothood!</p><button class="btn wide line" onclick="setPro(false)">Avsluta Pro (testläge)</button>`
+    : `<div class="price"><b>${PRO_PRICE}</b><span>Avsluta när du vill</span></div><button class="btn wide formbtn" onclick="setPro(true)">Bli Pro</button><p class="mut" style="text-align:center;margin:10px 0 0">Testläge: ingen betalning görs.</p>`}`;
+}
+function proBadge() { return '<span class="probadge">PRO</span>'; }
+function toolsRow() {
+  const lock = S.pro ? '' : '<span class="protag">PRO</span>';
+  return `<div class="tools"><button class="tool" onclick="openTool('id')"><span class="tic">${ic(CAM, 'currentColor', 24)}</span><b>Identifiera växt</b><span>Fota och få svar</span>${lock}</button>
+  <button class="tool" onclick="openTool('light')"><span class="tic sun">${ic(I.sun, 'currentColor', 24)}</span><b>Ljusmätare</b><span>Mät ljuset hemma</span>${lock}</button></div>`;
+}
+function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
+function closeTool() { stopLight(); S.tool = null; render(); }
+function toolV() { return S.tool === 'id' ? idV() : lightV(); }
+
+// --- Identifiering (Pl@ntNet) ---
+function idV() {
+  const organs = [['auto', 'Automatiskt'], ['leaf', 'Blad'], ['flower', 'Blomma'], ['fruit', 'Frukt']];
+  let res = '';
+  if (S.idBusy) res = '<p class="mut" style="text-align:center">Identifierar…</p>';
+  else if (S.idErr) res = `<div class="formmsg">${esc(S.idErr)}</div>`;
+  else if (S.idRes) res = `${S.idDemo ? '<p class="formmsg ok">Exempelresultat: identifieringen är inte kopplad till Pl@ntNet än.</p>' : ''}<div class="flist">${S.idRes.map(idRow).join('')}</div>`;
+  return `${topbar('Identifiera växt', 'closeTool()')}<div class="pad">
+  <label class="shot ${S.idImg ? 'has' : ''}">${S.idImg ? `<img src="${S.idImg}" alt="Ditt foto">` : `<span class="tic big">${ic(CAM, 'currentColor', 34)}</span><b>Ta ett foto</b><span>Fota ett blad eller en blomma, nära och skarpt</span>`}
+  <input type="file" accept="image/*" capture="environment" onchange="pickPhoto(this)" class="sr"></label>
+  ${S.idImg ? `<p class="mut" style="margin:14px 0 8px">Vad är på bilden?</p><div class="chips2">${organs.map(([k, t]) => `<button class="${S.idOrgan === k ? 'on' : ''}" onclick="S.idOrgan='${k}';render()">${t}</button>`).join('')}</div>
+  <div class="cta" style="padding:16px 0 4px"><button class="btn" ${S.idBusy ? 'disabled' : ''} onclick="identify()">Identifiera</button></div>` : ''}
+  ${res}</div>`;
+}
+function idRow(r) {
+  const p = matchPlant(r.latin, r.genus);
+  return `<div class="idr"><div class="grow"><b>${esc(r.common || r.latin)}</b><i>${esc(r.latin)}</i><div class="bar"><i style="width:${Math.round(r.score * 100)}%"></i></div><small>${Math.round(r.score * 100)} % säker</small></div>
+  ${p ? `<button class="btn sm" onclick="S.tool=null;openPlant(${p.id})">Skötselråd</button>` : `<button class="btn sm line" onclick="addFromId('${esc(r.common || r.latin).replace(/'/g, '&#39;')}','${esc(r.latin).replace(/'/g, '&#39;')}')">Lägg till</button>`}</div>`;
+}
+function matchPlant(latin, genus) {
+  const l = (latin || '').toLowerCase(), g = (genus || '').toLowerCase();
+  return S.plants.find(p => p.latin_name.toLowerCase() === l)
+    || S.plants.find(p => l.startsWith(p.latin_name.toLowerCase() + ' '))
+    || S.plants.find(p => p.latin_name.toLowerCase() === g);
+}
+function addFromId(name, latin) { if (overLimit()) { S.limitHit = true; return openModal('pro'); } openModal('add', name, latin); }
+function pickPhoto(inp) {
+  const f = inp.files && inp.files[0]; if (!f) return;
+  S.idFile = f; S.idRes = null; S.idErr = null;
+  if (S.idImg) URL.revokeObjectURL(S.idImg);
+  S.idImg = URL.createObjectURL(f); render();
+}
+function shrink(file) {
+  return new Promise(ok => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 1280 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(b => ok(b || file), 'image/jpeg', .85);
+    };
+    img.onerror = () => ok(file);
+    img.src = S.idImg;
+  });
+}
+async function identify() {
+  S.idBusy = true; S.idErr = null; S.idRes = null; render();
+  try {
+    if (!PLANTNET_KEY) {
+      await new Promise(r => setTimeout(r, 700));
+      S.idDemo = true;
+      S.idRes = [{ latin: 'Monstera deliciosa', genus: 'Monstera', common: 'Monstera', score: .91 }, { latin: 'Epipremnum aureum', genus: 'Epipremnum', common: 'Gullranka', score: .05 }];
+    } else {
+      const fd = new FormData();
+      fd.append('images', await shrink(S.idFile), 'foto.jpg'); fd.append('organs', S.idOrgan);
+      const r = await fetch(`https://my-api.plantnet.org/v2/identify/all?api-key=${encodeURIComponent(PLANTNET_KEY)}&lang=sv&nb-results=3&include-related-images=false`, { method: 'POST', body: fd });
+      if (r.status === 404) throw new Error('Ingen växt hittades. Prova en skarpare bild, nära ett blad eller en blomma.');
+      if (r.status === 401 || r.status === 403) throw new Error('Nyckeln till Pl@ntNet fungerar inte. Kontrollera den och att din adress är godkänd.');
+      if (r.status === 429) throw new Error('Dagens gräns för identifieringar är nådd. Försök igen i morgon.');
+      if (!r.ok) throw new Error('Identifieringen misslyckades (fel ' + r.status + '). Försök igen.');
+      const j = await r.json();
+      S.idDemo = false;
+      S.idRes = (j.results || []).slice(0, 3).map(x => ({ latin: x.species.scientificNameWithoutAuthor, genus: x.species.genus && x.species.genus.scientificNameWithoutAuthor, common: (x.species.commonNames || [])[0], score: x.score }));
+      if (!S.idRes.length) throw new Error('Ingen växt hittades. Prova en annan bild.');
+    }
+  } catch (e) { S.idErr = /fetch|network/i.test(e.message) ? 'Ingen kontakt med identifieringstjänsten. Kontrollera internetanslutningen.' : e.message; }
+  S.idBusy = false; render();
+}
+
+// --- Ljusmätare ---
+let lightStream = null, lightSensor = null, lightTimer = null;
+const LEVELS = [
+  { max: 300, name: 'Mörkt', lvl: 0, tip: 'För mörkt för de flesta växter. Flytta närmare ett fönster eller använd en växtlampa.' },
+  { max: 1500, name: 'Skugga', lvl: 1, tip: 'Passar växter som klarar lite ljus.' },
+  { max: 8000, name: 'Halvskugga', lvl: 2, tip: 'Ljust men utan direkt sol. Passar många krukväxter.' },
+  { max: Infinity, name: 'Full sol', lvl: 3, tip: 'Mycket ljust. Passar solälskare som kaktusar och kryddor.' }];
+const curLevel = () => S.light ? LEVELS.find(x => S.light.lux < x.max) : null;
+function lightDyn() {
+  const L = S.light, lvl = curLevel();
+  return `${L ? `<div class="luxv"><b>${lvl.name}</b><span>${L.approx ? 'ungefär ' : 'cirka '}${Math.round(L.lux).toLocaleString('sv-SE')} lux</span></div>` : `<div class="luxv"><b>–</b><span>Tryck på Starta mätning</span></div>`}
+  <div class="lscale">${LEVELS.map(x => `<span class="${lvl && x.name === lvl.name ? 'on' : ''}">${x.name}</span>`).join('')}</div>`;
+}
+function lightRest() {
+  const L = S.light, lvl = curLevel();
+  const sugg = lvl && lvl.lvl ? S.plants.filter(p => p.light_level === lvl.lvl && ['Krukväxt', 'Orkidé', 'Kaktus', 'Köksträdgård'].includes(p.category)).slice(0, 8) : [];
+  return `<div class="pad">${L && L.note ? `<p class="mut" style="margin:10px 2px 0;font-size:13px">${L.note}</p>` : ''}
+  <div class="cta" style="padding:16px 0 4px">${lightStream || lightSensor ? '<button class="btn line" onclick="stopLight();render()">Stoppa mätning</button>' : '<button class="btn" onclick="startLight()">Starta mätning</button>'}</div>
+  ${lvl ? `<div class="tipr" style="margin-top:12px"><span class="ck">${ic(I.sun, 'currentColor', 16)}</span><div><b>${lvl.name}</b><span>${lvl.tip}</span></div></div>` : ''}</div>
+  ${sugg.length ? `<div class="sec"><h2>Växter som trivs här</h2></div><div class="similar">${sugg.map(s => `<button onclick="stopLight();S.tool=null;openPlant(${s.id})">${ph(s.latin_name, s.category, s.swedish_name)}<span>${esc(s.swedish_name)}</span></button>`).join('')}</div>` : ''}`;
+}
+function lightV() {
+  return `${topbar('Ljusmätare', 'closeTool()')}<div class="pad">
+  <p class="mut" style="margin:6px 0 14px">Ställ paddan där växten ska stå och rikta kameran mot ljuset, till exempel fönstret.</p>
+  <div class="lightbox"><video id="lv" muted playsinline autoplay ${lightStream ? '' : 'hidden'}></video><div id="ldyn">${lightDyn()}</div></div></div>
+  <div id="lrest">${lightRest()}</div>`;
+}
+function showLight(v) {
+  const prev = curLevel(); S.light = v;
+  if (S.tool !== 'light') return;
+  const a = $('#ldyn'), b = $('#lrest');
+  if (!a || !b) return render();
+  a.innerHTML = lightDyn();
+  if (!prev || prev.name !== curLevel().name || !b.querySelector('.tipr')) { b.innerHTML = lightRest(); loadPhotos(); }
+  else { const n = b.querySelector('p.mut'); if (n && v.note) n.textContent = v.note; }
+}
+async function startLight() {
+  if ('AmbientLightSensor' in window) {
+    try {
+      const s = new AmbientLightSensor({ frequency: 2 });
+      await new Promise((ok, fail) => { s.onreading = () => { lightSensor = s; showLight({ lux: s.illuminance, note: 'Mätt med paddans ljussensor.' }); ok(); }; s.onerror = e => fail(e.error); s.start(); setTimeout(() => fail(new Error('timeout')), 2500); });
+      return;
+    } catch (e) { if (lightSensor) lightSensor.stop(); lightSensor = null; }
+  }
+  try {
+    lightStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 640, height: 480 } });
+  } catch (e) { lightStream = null; return toast('Appen fick inte använda kameran. Tillåt kameran i Chrome och försök igen.'); }
+  render();
+  const track = lightStream.getVideoTracks()[0];
+  const c = document.createElement('canvas'); c.width = 64; c.height = 48; const g = c.getContext('2d', { willReadFrequently: true });
+  lightTimer = setInterval(() => {
+    const v = $('#lv'); if (!v || v.readyState < 2) return;
+    g.drawImage(v, 0, 0, 64, 48);
+    const d = g.getImageData(0, 0, 64, 48).data; let y = 0;
+    for (let i = 0; i < d.length; i += 4) y += .2126 * d[i] + .7152 * d[i + 1] + .0722 * d[i + 2];
+    y /= d.length / 4;
+    const st = track.getSettings ? track.getSettings() : {};
+    if (st.exposureTime && st.iso) {
+      const t = st.exposureTime * 1e-4, lum = 12.5 * 1.8 * 1.8 / (t * st.iso) * (y / 118);
+      showLight({ lux: Math.max(1, lum * Math.PI), note: 'Uppskattat med kameran. Värdet är ungefärligt.' });
+    } else {
+      const lux = Math.pow(Math.max(y, 1) / 255, 2.2) * 25000;
+      showLight({ lux, approx: true, note: 'Din kamera ställer in ljuset automatiskt, så mätningen blir grov. Jämför gärna olika platser med varandra.' });
+    }
+  }, 600);
+}
+function stopLight() {
+  if (lightTimer) clearInterval(lightTimer); lightTimer = null;
+  if (lightStream) lightStream.getTracks().forEach(t => t.stop()); lightStream = null;
+  if (lightSensor) lightSensor.stop(); lightSensor = null;
+}
+function proCard() {
+  return `<button class="procard" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 24)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Roothood Pro'}</b><span>${S.pro ? 'Kamera, ljusmätare och obegränsad samling' : 'Lås upp kamera, ljusmätare och mer'}</span></span>${S.pro ? '' : `<span class="protag">${PRO_PRICE}</span>`}</button>`;
+}
+
 
 // ===== Start =====
 function loadScript(src) { return new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fail(new Error('Kunde inte ladda ' + src)); document.head.appendChild(s); }); }
@@ -942,6 +1186,7 @@ async function init() {
     S.plants = await api.plants();
     S.user = await api.user();
     S.mine = S.user ? await api.mine() : [];
+    S.pro = S.user ? await api.getPro() : false;
   } catch (e) { S.err = e; }
   S.loading = false; render();
 }
