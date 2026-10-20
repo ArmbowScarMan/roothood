@@ -284,7 +284,7 @@ form label.check input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-co
 .idr i{display:block;color:var(--mut);font-size:13px}
 .idr small{color:var(--pri);font-weight:700;font-size:12px}
 .lightbox{position:relative;background:var(--surf);border-radius:28px;padding:18px;box-shadow:var(--sh);overflow:hidden}
-.lightbox video{width:100%;height:150px;object-fit:cover;border-radius:18px;display:block;margin-bottom:14px}
+.lightbox video{transform:scaleX(-1);width:100%;height:150px;object-fit:cover;border-radius:18px;display:block;margin-bottom:14px}
 .luxv b{display:block;font-size:30px;font-weight:800;color:var(--pri)}
 .luxv span{color:var(--mut);font-size:14px}
 .lscale{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:14px}
@@ -1113,7 +1113,7 @@ function lightRest() {
 }
 function lightV() {
   return `${topbar('Ljusmätare', 'closeTool()')}<div class="pad">
-  <p class="mut" style="margin:6px 0 14px">Ställ paddan där växten ska stå och rikta kameran mot ljuset, till exempel fönstret.</p>
+  <p class="mut" style="margin:6px 0 14px">Ställ paddan där växten ska stå, med skärmen vänd mot ljuset, till exempel fönstret. Mätningen görs med framkameran.</p>
   <div class="lightbox"><video id="lv" muted playsinline autoplay ${lightStream ? '' : 'hidden'}></video><div id="ldyn">${lightDyn()}</div></div></div>
   <div id="lrest">${lightRest()}</div>`;
 }
@@ -1135,7 +1135,7 @@ async function startLight() {
     } catch (e) { if (lightSensor) lightSensor.stop(); lightSensor = null; }
   }
   try {
-    lightStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 640, height: 480 } });
+    lightStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
   } catch (e) { lightStream = null; return toast('Appen fick inte använda kameran. Tillåt kameran i Chrome och försök igen.'); }
   render();
   const track = lightStream.getVideoTracks()[0];
