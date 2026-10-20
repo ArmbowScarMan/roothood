@@ -318,6 +318,20 @@ details.tech p b{color:var(--ink)}
 .instc b{display:block;font-size:15px}
 .instc span:not(.tic){font-size:13px;color:var(--mut)}
 .logoimg{width:40px;height:40px;border-radius:12px;display:block;flex:none}
+.setcard{background:var(--surf);border-radius:22px;padding:16px;box-shadow:var(--sh)}
+.fl{display:block;font-size:13px;font-weight:700;color:var(--mut);margin:14px 0 6px}
+.setcard>.fl:first-child{margin-top:0}
+.seg2.inset{margin:0;box-shadow:none;background:var(--bg)}
+.seg2.inset button{font-size:13.5px}
+.setrow{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;width:100%;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh);cursor:pointer}
+.setrow:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+.setrow .grow{flex:1;display:flex;flex-direction:column;min-width:0}
+.setrow b{font-size:15px}
+.setrow .grow span{font-size:13px;color:var(--mut)}
+.about2{display:flex;gap:14px;align-items:center}
+.about2 img{border-radius:14px;flex:none}
+.about2 b{display:block}
+.about2 span{display:block;font-size:13px;color:var(--mut)}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
@@ -389,7 +403,10 @@ function art(cat, name) {
 // ===== Data: demoläge (sparas i webbläsaren) =====
 const demoApi = {
   async plants() { return DEMO_PLANTS; },
-  async user() { return { id: 'demo', name: 'Du' }; },
+  async user() { return { id: 'demo', name: (store.get('profile', {}) || {}).display_name || 'Du' }; },
+  async getProfile() { return Object.assign({ display_name: 'Du', city: '', interests: [] }, store.get('profile', {})); },
+  async saveProfile(p) { store.set('profile', { display_name: p.display_name, city: p.city, interests: p.interests }); },
+  async changePassword() {},
   async mine() {
     let m = store.get('mine', null);
     if (!m) {
@@ -466,8 +483,20 @@ const sbApi = {
   async user() {
     const { data } = await sb.auth.getSession();
     const u = data.session && data.session.user;
-    return u ? { id: u.id, name: (u.user_metadata && u.user_metadata.display_name) || u.email } : null;
+    return u ? { id: u.id, name: (u.user_metadata && u.user_metadata.display_name) || u.email, email: u.email } : null;
   },
+  async getProfile() {
+    const { data, error } = await sb.from('profiles').select('display_name,city,interests').eq('id', S.user.id);
+    if (error) throw error;
+    return (data && data[0]) || { display_name: S.user.name, city: '', interests: [] };
+  },
+  async saveProfile(p) {
+    const { data, error } = await sb.from('profiles').update({ display_name: p.display_name, city: p.city || null, interests: p.interests }).eq('id', S.user.id).select('id');
+    if (error) throw error;
+    if (Array.isArray(data) && !data.length) throw new Error('Kunde inte spara profilen. Logga ut och in igen.');
+    await sb.auth.updateUser({ data: { display_name: p.display_name } });
+  },
+  async changePassword(pw) { const { error } = await sb.auth.updateUser({ password: pw }); if (error) throw error; },
   async signIn(email, pw) { const { error } = await sb.auth.signInWithPassword({ email, password: pw }); if (error) throw error; },
   async signUp(email, pw, name) {
     const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { display_name: name } } });
@@ -753,7 +782,7 @@ function detail() {
     <div><small>Husdjur</small><b class="${p.pet_safe ? '' : 'bad'}">${p.pet_safe ? 'Ofarlig' : 'Giftig'}</b></div>
   </div></div>${credit}
   <div class="sheet2">
-  <div class="dname"><h1>${esc(p.swedish_name)}</h1><i>${esc(p.latin_name)}</i><div class="tags">${status}<span class="tag lime">${esc(p.category)}</span></div></div>
+  <div class="dname"><h1>${esc(p.swedish_name)}</h1><i>${esc(p.latin_name)}</i><div class="tags">${status}<span class="tag lime">${esc(p.category)}</span>${zoneTag(p)}</div></div>
   <div class="sec"><h2>Så vattnar du</h2></div>
   <p class="howto">${esc(p.water_text)}.${p.soil ? ' Jord: ' + esc(p.soil.charAt(0).toLowerCase() + p.soil.slice(1)) + '.' : ''}</p>
   ${my && d === 0 ? `<div class="snooze">Är jorden fortfarande blöt? Skjut upp, så påminner vi dig om 2 dagar.<br><button onclick="snooze(${my.id})">Skjut upp 2 dagar</button></div>` : ''}
@@ -792,11 +821,12 @@ function mineV() {
   <div class="list" style="padding-top:0">${rows || `<div class="empty"><p>Tryck på hjärtat på en växt under Växter så hamnar den här, med vattningspåminnelser.</p><button class="btn sm" onclick="go('home')">Hitta växter</button></div>`}</div>`;
 }
 function meV() {
-  if (!S.user) return `${topbar('Profil')}<div class="prof"><img src="${LOGO}" alt="" width="96" height="96" style="display:block;margin:0 auto 12px;border-radius:24px"><h2>Välkommen till Roothood</h2><p class="mut">Skapa ett konto för att spara växter och vara med i communityn.</p><button class="btn" onclick="openModal('login')">Logga in eller skapa konto</button></div>${installCard()}`;
+  if (!S.user) return `${topbar('Profil')}<div class="prof"><img src="${LOGO}" alt="" width="96" height="96" style="display:block;margin:0 auto 12px;border-radius:24px"><h2>Välkommen till Roothood</h2><p class="mut">Skapa ett konto för att spara växter och vara med i communityn.</p><button class="btn" onclick="openModal('login')">Logga in eller skapa konto</button></div>${installCard()}${settingsRow()}`;
   const posts = S.feed ? S.feed.filter(p => p.user_id === S.user.id).length : null;
   return `${topbar('Profil')}<div class="prof"><div class="bigav" style="background:hsl(${hueOf(S.user.name)} 40% 38%)">${esc((S.user.name || '?')[0].toUpperCase())}</div><h2>${esc(S.user.name)}${S.pro ? ' ' + proBadge() : ''}</h2>${DEMO ? '<p class="mut">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}</div>
   ${proCard()}
   ${installCard()}
+  ${settingsRow()}
   <div class="stats"><div class="stat"><b>${S.mine.length}</b><span class="mut">växter i samlingen</span></div><div class="stat"><b>${posts === null ? '–' : posts}</b><span class="mut">frågor i communityn</span></div></div>
   ${DEMO ? '' : `<div class="addbar"><button class="btn wide line" onclick="signOut()">Logga ut</button></div>`}
   <p class="about">Roothood: växtfolk som hjälper varandra.</p>`;
@@ -1049,7 +1079,7 @@ function toolsRow() {
 }
 function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { stopLight(); S.tool = null; render(); }
-function toolV() { return S.tool === 'id' ? idV() : lightV(); }
+function toolV() { return S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : lightV(); }
 
 // --- Identifiering (Pl@ntNet) ---
 function idV() {
@@ -1284,6 +1314,111 @@ function proCard() {
 }
 
 
+// ===== Inställningar =====
+const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
+const APP_VERSION = '1.0';
+function applyPrefs() {
+  const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
+  if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
+  const app = $('#app'); if (app) app.style.zoom = ts;
+}
+function applyInterests(list) {
+  const ints = list || [];
+  if (!ints.length) return;
+  if (ints.every(c => INDOOR.includes(c))) S.env = 'in';
+  else if (ints.every(c => OUTDOOR.includes(c))) S.env = 'out';
+  if (ints.length === 1) S.qcat = ints[0];
+}
+async function openSettings() {
+  stopLight();
+  S.tool = 'settings'; S.prof = null; S.del = null; S.pwMsg = '';
+  render(); $('#main').scrollTop = 0;
+  if (S.user) {
+    try { S.prof = await api.getProfile(); } catch (e) { S.prof = { display_name: S.user.name, city: '', interests: [] }; }
+    S.prof.interests = S.prof.interests || [];
+    if (S.tool === 'settings') render();
+  }
+}
+function toggleInterest(c, btn) {
+  const i = S.prof.interests.indexOf(c);
+  if (i >= 0) S.prof.interests.splice(i, 1); else S.prof.interests.push(c);
+  btn.classList.toggle('on', i < 0); btn.setAttribute('aria-pressed', i < 0);
+}
+async function saveProfile() {
+  const name = ($('#sname').value || '').trim(), city = ($('#scity').value || '').trim();
+  if (name.length < 2) return toast('Namnet måste ha minst 2 tecken.');
+  S.prof.display_name = name; S.prof.city = city;
+  try {
+    await api.saveProfile(S.prof);
+    S.user.name = name; applyInterests(S.prof.interests);
+    toast('Profilen är sparad');
+  } catch (e) { toast(errMsg(e)); }
+  render();
+}
+async function changePw() {
+  const a = $('#pw1').value, b = $('#pw2').value;
+  if (a.length < 6) { S.pwMsg = 'Lösenordet måste vara minst 6 tecken.'; return render(); }
+  if (a !== b) { S.pwMsg = 'Lösenorden är inte lika.'; return render(); }
+  try { await api.changePassword(a); S.pwMsg = ''; toast('Lösenordet är bytt'); }
+  catch (e) { S.pwMsg = errMsg(e); }
+  render();
+}
+function setPref(k, v) { store.set(k, v); applyPrefs(); render(); }
+function resetDemo() {
+  if (S.del !== 'reset') { S.del = 'reset'; return render(); }
+  ['mine', 'feed', 'forumSeeded', 'pro', 'profile', 'suggestions', 'zone', 'theme', 'textsize'].forEach(k => { try { localStorage.removeItem('gronska_' + k); } catch (e) {} });
+  location.reload();
+}
+function zoneOf(p) {
+  const m = /(\d)\s*[–-]\s*(\d)/.exec(p.hardiness_zone || '') || /(\d)/.exec(p.hardiness_zone || '');
+  return m ? [+m[1], +(m[2] || m[1])] : null;
+}
+function zoneTag(p) {
+  const z = store.get('zone', 0), r = zoneOf(p);
+  if (!z || !r) return '';
+  return z <= r[1] ? `<span class="tag green">Härdig i din zon ${z}</span>` : `<span class="tag warn">Inte härdig i zon ${z}</span>`;
+}
+function seg3(items, cur, fn) {
+  return `<div class="seg2 inset">${items.map(([v, t]) => `<button class="${cur === v ? 'on' : ''}" aria-pressed="${cur === v}" onclick="${fn}(${JSON.stringify(v).replace(/"/g, '&quot;')})">${t}</button>`).join('')}</div>`;
+}
+function settingsV() {
+  const th = store.get('theme', 'system'), ts = store.get('textsize', 1), zone = store.get('zone', 0);
+  const P = S.prof;
+  const profile = !S.user ? `<div class="setcard"><p class="mut" style="margin:0 0 12px">Logga in för att ändra din profil.</p><button class="btn sm" onclick="openModal('login')">Logga in eller skapa konto</button></div>`
+    : !P ? '<div class="setcard"><p class="mut" style="margin:0">Hämtar profilen…</p></div>'
+    : `<div class="setcard"><label class="fl" for="sname">Namn som andra ser</label><input id="sname" maxlength="40" value="${esc(P.display_name || '')}">
+      <label class="fl" for="scity">Ort (valfritt)</label><input id="scity" maxlength="60" placeholder="t.ex. Uppsala" value="${esc(P.city || '')}">
+      <label class="fl">Mina intressen</label><div class="chips2">${CATS.map(c => `<button class="${P.interests.includes(c) ? 'on' : ''}" aria-pressed="${P.interests.includes(c)}" onclick="toggleInterest('${c}',this)">${c}</button>`).join('')}</div>
+      <p class="mut" style="margin:8px 0 0;font-size:13px">Intressena styr vad appen visar först.</p>
+      <div style="margin-top:14px"><button class="btn sm" onclick="saveProfile()">Spara profil</button></div></div>`;
+  const account = S.user && !DEMO ? `<div class="sec"><h2>Konto</h2></div><div class="pad"><div class="setcard">
+      ${S.user.email ? `<label class="fl">E-post</label><p style="margin:0 0 4px">${esc(S.user.email)}</p>` : ''}
+      <label class="fl" for="pw1">Nytt lösenord</label><input id="pw1" type="password" minlength="6" autocomplete="new-password">
+      <label class="fl" for="pw2">Upprepa nytt lösenord</label><input id="pw2" type="password" minlength="6" autocomplete="new-password">
+      ${S.pwMsg ? `<p class="formmsg" style="margin:10px 0 0">${esc(S.pwMsg)}</p>` : ''}
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn sm" onclick="changePw()">Byt lösenord</button><button class="btn sm line" onclick="signOut().then(() => { S.tool = null; render(); })">Logga ut</button></div></div></div>` : '';
+  return `${topbar('Inställningar', 'closeTool()')}
+  <div class="sec" style="padding-top:8px"><h2>Profil</h2></div><div class="pad">${profile}</div>
+  <div class="sec"><h2>Utseende</h2></div><div class="pad"><div class="setcard">
+    <label class="fl">Tema</label>${seg3([['system', 'Auto'], ['light', 'Ljust'], ['dark', 'Mörkt']], th, "(v=>setPref('theme',v))")}
+    <label class="fl" style="margin-top:14px">Textstorlek</label>${seg3([[1, 'Normal'], [1.1, 'Större'], [1.2, 'Störst']], ts, "(v=>setPref('textsize',v))")}
+  </div></div>
+  <div class="sec"><h2>Trädgård</h2></div><div class="pad"><div class="setcard">
+    <label class="fl" for="szone">Min odlingszon</label>
+    <select id="szone" onchange="setPref('zone', +this.value)"><option value="0" ${!zone ? 'selected' : ''}>Vet inte</option>${[1, 2, 3, 4, 5, 6, 7, 8].map(z => `<option value="${z}" ${zone === z ? 'selected' : ''}>Zon ${z}${z === 1 ? ' (mildast, t.ex. Skåne)' : z === 8 ? ' (kallast, fjällen)' : ''}</option>`).join('')}</select>
+    <p class="mut" style="margin:8px 0 0;font-size:13px">Sverige delas in i odlingszoner från 1 (mildast) till 8. Växtsidorna visar då om en trädgårdsväxt klarar vintern där du bor.</p>
+  </div></div>
+  ${account}
+  <div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
+  <div class="sec"><h2>Om Roothood</h2></div><div class="pad"><div class="setcard about2">
+    <img src="${LOGO}" alt="" width="56" height="56"><div><b>Roothood ${APP_VERSION}</b><span>Växtfolk som hjälper varandra.</span><span>Foton: Wikipedia. Identifiering: Pl@ntNet.</span></div></div>
+    ${DEMO ? `<button class="btn wide line" style="margin-top:12px" onclick="resetDemo()">${S.del === 'reset' ? 'Tryck igen för att börja om' : 'Återställ demodata'}</button>` : ''}
+  </div>`;
+}
+function settingsRow() {
+  return `<div class="pad" style="padding-top:12px"><button class="setrow" onclick="openSettings()"><span class="tic">${ic(GEAR, 'currentColor', 20)}</span><span class="grow"><b>Inställningar</b><span>Profil, utseende, odlingszon och konto</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`;
+}
+
 // ===== Installera som app =====
 let installEvt = null;
 const isInstalled = () => window.matchMedia && matchMedia('(display-mode: standalone)').matches;
@@ -1305,6 +1440,7 @@ if ('serviceWorker' in navigator && window.isSecureContext && location.protocol 
 // ===== Start =====
 function loadScript(src) { return new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fail(new Error('Kunde inte ladda ' + src)); document.head.appendChild(s); }); }
 async function init() {
+  applyPrefs();
   render();
   try {
     if (!DEMO) {
@@ -1323,6 +1459,7 @@ async function init() {
     S.user = await api.user();
     S.mine = S.user ? await api.mine() : [];
     S.pro = S.user ? await api.getPro() : false;
+    if (S.user) { try { applyInterests((await api.getProfile()).interests); } catch (e) {} }
   } catch (e) { S.err = e; }
   S.loading = false; render();
 }
