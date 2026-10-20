@@ -284,12 +284,31 @@ form label.check input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-co
 .idr i{display:block;color:var(--mut);font-size:13px}
 .idr small{color:var(--pri);font-weight:700;font-size:12px}
 .lightbox{position:relative;background:var(--surf);border-radius:28px;padding:18px;box-shadow:var(--sh);overflow:hidden}
-.lightbox video{transform:scaleX(-1);width:100%;height:150px;object-fit:cover;border-radius:18px;display:block;margin-bottom:14px}
+.lightbox video{transform:scaleX(-1);width:100%;height:110px;object-fit:cover;border-radius:18px;display:block;margin-bottom:14px}
 .luxv b{display:block;font-size:30px;font-weight:800;color:var(--pri)}
 .luxv span{color:var(--mut);font-size:14px}
 .lscale{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:14px}
 .lscale span{text-align:center;font-size:12px;font-weight:700;color:var(--mut);background:var(--bg);border-radius:999px;padding:7px 2px}
 .lscale span.on{background:var(--pri);color:var(--onpri)}
+.gwrap{position:relative;max-width:250px;margin:0 auto}
+.gauge{width:100%;display:block}
+.gval{position:absolute;left:0;right:0;bottom:2px;text-align:center}
+.gval b{display:block;font-size:42px;font-weight:800;line-height:1}
+.gval span{font-size:12px;color:var(--mut);font-weight:700}
+.lclass{text-align:center;font-weight:800;color:var(--pri);font-size:18px;margin:10px 0 12px}
+.lstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lstats div{background:var(--bg);border-radius:16px;padding:10px 4px;text-align:center}
+.lstats b{display:block;font-size:17px;font-weight:800}
+.lstats span{font-size:11px;color:var(--mut);font-weight:700}
+.lctl{background:var(--surf);border-radius:22px;padding:14px;margin-top:12px;box-shadow:var(--sh)}
+.lctl label{display:block;font-size:13px;font-weight:700;color:var(--mut);margin-bottom:8px}
+.lctl input[type=range]{width:100%;accent-color:var(--pri);padding:0;border:0;background:none}
+.lctl .chips2 button{box-shadow:none;background:var(--bg)}
+.lctl .chips2 button.on{background:var(--pri)}
+details.tech{margin-top:12px;background:var(--surf);border-radius:18px;padding:12px 14px;box-shadow:var(--sh);font-size:13.5px}
+details.tech summary{font-weight:700;cursor:pointer}
+details.tech p{margin:8px 0 0;color:var(--mut)}
+details.tech p b{color:var(--ink)}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
@@ -315,7 +334,7 @@ const DEMO_PLANTS = [{"id": 1, "swedish_name": "Monstera", "latin_name": "Monste
 const CATS = ['Krukväxt','Köksträdgård','Trädgård','Orkidé','Kaktus'];
 const LIGHT = ['Skugga','Halvskugga','Full sol'], WATER = ['Lite','Måttligt','Mycket'];
 const S = {loading:true, err:null, tab:'home', sel:null, cat:'Alla', q:'', modal:null, prefill:'',
-  authMode:'in', env:'all', ctab:'q', pro:false, tool:null, idImg:null, idFile:null, idOrgan:'auto', idRes:null, idErr:null, idBusy:false, idDemo:false, light:null, limitHit:false, prefillLatin:'', threads:null, forum:null, newThread:false, tt:'', tb:'', msg:'', feed:null, feedErr:null, post:null, draft:'', adraft:'', qcat:'Allmänt', rep:null, msgOk:false, busy:false, del:null, liked:{}, plants:[], user:null, mine:[]};
+  authMode:'in', env:'all', ctab:'q', pro:false, tool:null, idImg:null, idFile:null, idOrgan:'auto', idRes:null, idErr:null, idBusy:false, idDemo:false, light:null, lsrc:'sun', lhours:12, lhold:false, limitHit:false, prefillLatin:'', threads:null, forum:null, newThread:false, tt:'', tb:'', msg:'', feed:null, feedErr:null, post:null, draft:'', adraft:'', qcat:'Allmänt', rep:null, msgOk:false, busy:false, del:null, liked:{}, plants:[], user:null, mine:[]};
 
 // ===== Hjälpfunktioner =====
 const $ = s => document.querySelector(s);
@@ -1091,74 +1110,138 @@ async function identify() {
 }
 
 // --- Ljusmätare ---
-let lightStream = null, lightSensor = null, lightTimer = null;
-const LEVELS = [
-  { max: 300, name: 'Mörkt', lvl: 0, tip: 'För mörkt för de flesta växter. Flytta närmare ett fönster eller använd en växtlampa.' },
-  { max: 1500, name: 'Skugga', lvl: 1, tip: 'Passar växter som klarar lite ljus.' },
-  { max: 8000, name: 'Halvskugga', lvl: 2, tip: 'Ljust men utan direkt sol. Passar många krukväxter.' },
-  { max: Infinity, name: 'Full sol', lvl: 3, tip: 'Mycket ljust. Passar solälskare som kaktusar och kryddor.' }];
-const curLevel = () => S.light ? LEVELS.find(x => S.light.lux < x.max) : null;
+let lightStream = null, lightSensor = null, lightTimer = null, lightTrack = null;
+const LSRC = [['sun', 'Dagsljus', 0.0185], ['led', 'Vanlig lampa', 0.0135], ['grow', 'Växtlampa vit', 0.016], ['purple', 'Växtlampa lila', 0.03]];
+const PCLASS = [
+  { max: 25, name: 'Mörkt', lvl: 0, tip: 'För mörkt för de flesta växter. Flytta närmare ett fönster eller använd en växtlampa.' },
+  { max: 75, name: 'Lite ljus', lvl: 1, tip: 'Passar tåliga växter som ZZ-planta och svärmors tunga.' },
+  { max: 200, name: 'Medelljus', lvl: 2, tip: 'Bra för de flesta krukväxter, till exempel monstera och gullranka.' },
+  { max: 600, name: 'Mycket ljus', lvl: 3, tip: 'Passar ljusälskare som kaktusar, kryddor och tomater.' },
+  { max: Infinity, name: 'Direkt sol', lvl: 3, tip: 'Starkt solljus. Bra för kaktusar och solälskare, men kan bränna känsliga blad.' }];
+const lfac = () => (LSRC.find(s => s[0] === S.lsrc) || LSRC[0])[2];
+const ppfd = () => S.light && S.light.lux != null ? S.light.lux * lfac() : 0;
+const dli = () => ppfd() * S.lhours * 0.0036;
+const pclass = () => S.light && S.light.lux != null ? PCLASS.find(c => ppfd() < c.max) : null;
+const fmt = (n, d) => Number(n).toLocaleString('sv-SE', { maximumFractionDigits: d || 0, minimumFractionDigits: d || 0 });
+function gauge() {
+  const v = ppfd(), f = S.light && S.light.lux != null ? Math.min(1, Math.log10(1 + v) / Math.log10(1 + 1500)) : 0, C = Math.PI * 80;
+  return `<svg viewBox="0 0 200 112" class="gauge" aria-hidden="true"><defs><linearGradient id="gg" x1="0" x2="1"><stop offset="0" stop-color="#4C6B2E"/><stop offset=".55" stop-color="#7CB342"/><stop offset="1" stop-color="#F0A92B"/></linearGradient></defs>
+  <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="var(--line)" stroke-width="15" stroke-linecap="round"/>
+  <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="url(#gg)" stroke-width="15" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - f)}"/></svg>`;
+}
 function lightDyn() {
-  const L = S.light, lvl = curLevel();
-  return `${L ? `<div class="luxv"><b>${lvl.name}</b><span>${L.approx ? 'ungefär ' : 'cirka '}${Math.round(L.lux).toLocaleString('sv-SE')} lux</span></div>` : `<div class="luxv"><b>–</b><span>Tryck på Starta mätning</span></div>`}
-  <div class="lscale">${LEVELS.map(x => `<span class="${lvl && x.name === lvl.name ? 'on' : ''}">${x.name}</span>`).join('')}</div>`;
+  const L = S.light, c = pclass(), has = L && L.lux != null;
+  if (L && L.lux == null) return `<div class="gwrap">${gauge()}<div class="gval"><b>${fmt(L.rel)}</b><span>ljusindex 0–100</span></div></div>
+  <div class="lclass">Bara jämförelse</div><p class="mut" style="text-align:center;margin:0">Din kamera tillåter inte att appen räknar ut exakta värden. Högre index betyder mer ljus. Se tipset nedan.</p>`;
+  return `<div class="gwrap">${gauge()}<div class="gval"><b>${has ? fmt(ppfd()) : '–'}</b><span>PPFD µmol/m²/s</span></div></div>
+  <div class="lclass">${c ? c.name : 'Tryck på Starta mätning'}${S.lhold ? ' (låst)' : ''}</div>
+  <div class="lstats"><div><b>${has ? fmt(L.lux) : '–'}</b><span>lux</span></div><div><b>${has ? fmt(L.lux / 10.764) : '–'}</b><span>fotcandle</span></div><div><b>${has ? fmt(dli(), 1) : '–'}</b><span>DLI mol/m²/dag</span></div></div>`;
 }
 function lightRest() {
-  const L = S.light, lvl = curLevel();
-  const sugg = lvl && lvl.lvl ? S.plants.filter(p => p.light_level === lvl.lvl && ['Krukväxt', 'Orkidé', 'Kaktus', 'Köksträdgård'].includes(p.category)).slice(0, 8) : [];
-  return `<div class="pad">${L && L.note ? `<p class="mut" style="margin:10px 2px 0;font-size:13px">${L.note}</p>` : ''}
-  <div class="cta" style="padding:16px 0 4px">${lightStream || lightSensor ? '<button class="btn line" onclick="stopLight();render()">Stoppa mätning</button>' : '<button class="btn" onclick="startLight()">Starta mätning</button>'}</div>
-  ${lvl ? `<div class="tipr" style="margin-top:12px"><span class="ck">${ic(I.sun, 'currentColor', 16)}</span><div><b>${lvl.name}</b><span>${lvl.tip}</span></div></div>` : ''}</div>
+  const L = S.light, c = pclass(), running = !!(lightStream || lightSensor);
+  const sugg = c && c.lvl ? S.plants.filter(p => p.light_level === c.lvl && ['Krukväxt', 'Orkidé', 'Kaktus', 'Köksträdgård'].includes(p.category)).slice(0, 8) : [];
+  const r = (L && L.raw) || {};
+  return `<div class="pad">
+  <div class="cta" style="padding:14px 0 0;display:flex;gap:10px">${running ? `<button class="btn line" style="flex:1" onclick="stopLight();render()">Stoppa</button><button class="btn" style="flex:1" onclick="S.lhold=!S.lhold;showLight(S.light,true)">${S.lhold ? 'Lås upp' : 'Lås värdet'}</button>` : '<button class="btn" onclick="startLight()">Starta mätning</button>'}</div>
+  ${c ? `<div class="tipr" style="margin-top:14px"><span class="ck">${ic(I.sun, 'currentColor', 16)}</span><div><b>${c.name}</b><span>${c.tip}</span></div></div>` : ''}
+  ${L && L.lux == null ? `<div class="tipr" style="margin-top:14px"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>Få exakta värden</b><span>Slå på paddans ljussensor i Chrome: skriv <b style="display:inline;color:inherit">chrome://flags</b> i adressfältet, sök på "Generic Sensor Extra Classes", välj Enabled och starta om Chrome.</span></div></div>` : ''}
+  <details class="tech"><summary>Vad betyder värdena?</summary>
+  <p><b>PPFD</b> är hur mycket ljus växten kan använda som träffar bladen varje sekund. Krukväxter vill oftast ha 75–200, ljusälskare 200–600.</p>
+  <p><b>DLI</b> är ljuset under en hel dag. Det beror på hur många timmar ljuset är på.</p>
+  <p><b>Lux</b> är hur ljust det är för ögat (lumen per kvadratmeter). <b>Fotcandle</b> är samma sak i amerikanska mått.</p>
+  <p>Mobilkameror är inte riktiga ljusmätare, så värdena är uppskattningar. Använd dem för att jämföra platser hemma.</p></details>
+  ${L ? `<details class="tech"><summary>Tekniska värden</summary><p>Metod: ${esc(L.method || '')}${r.y != null ? '<br>Ljusstyrka i bilden: ' + fmt(r.y) + ' av 255' : ''}${r.t != null ? '<br>Exponeringstid: ' + fmt(r.t / 10, 2) + ' ms' : ''}${r.iso != null ? '<br>ISO: ' + fmt(r.iso) : ''}${r.caps ? '<br>Kameran: ' + esc(r.caps) : ''}</p></details>` : ''}
+  </div>
   ${sugg.length ? `<div class="sec"><h2>Växter som trivs här</h2></div><div class="similar">${sugg.map(s => `<button onclick="stopLight();S.tool=null;openPlant(${s.id})">${ph(s.latin_name, s.category, s.swedish_name)}<span>${esc(s.swedish_name)}</span></button>`).join('')}</div>` : ''}`;
 }
 function lightV() {
   return `${topbar('Ljusmätare', 'closeTool()')}<div class="pad">
-  <p class="mut" style="margin:6px 0 14px">Ställ paddan där växten ska stå, med skärmen vänd mot ljuset, till exempel fönstret. Mätningen görs med framkameran.</p>
-  <div class="lightbox"><video id="lv" muted playsinline autoplay ${lightStream ? '' : 'hidden'}></video><div id="ldyn">${lightDyn()}</div></div></div>
+  <p class="mut" style="margin:6px 0 12px">Ställ paddan där växten ska stå, med skärmen vänd mot ljuset. Mätningen görs med framkameran. Ett tunt vitt papper över kameran ger jämnare värden.</p>
+  <div class="lightbox"><video id="lv" muted playsinline autoplay ${lightStream ? '' : 'hidden'}></video><div id="ldyn">${lightDyn()}</div></div>
+  <div class="lctl"><label>Ljuskälla</label><div class="chips2">${LSRC.map(s => `<button class="${S.lsrc === s[0] ? 'on' : ''}" onclick="S.lsrc='${s[0]}';this.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===this));showLight(S.light,true)">${s[1]}</button>`).join('')}</div>
+  <label style="margin-top:14px" for="lh">Ljus per dag: <span id="lhv">${S.lhours}</span> timmar</label><input id="lh" type="range" min="4" max="18" step="1" value="${S.lhours}" oninput="S.lhours=+this.value;$('#lhv').textContent=this.value;showLight(S.light,true)"></div></div>
   <div id="lrest">${lightRest()}</div>`;
 }
-function showLight(v) {
-  const prev = curLevel(); S.light = v;
-  if (S.tool !== 'light') return;
+function showLight(v, force) {
+  const prev = pclass();
+  if (v && (!S.lhold || force)) S.light = v;
+  if (S.tool !== 'light' || !S.light) return;
   const a = $('#ldyn'), b = $('#lrest');
   if (!a || !b) return render();
   a.innerHTML = lightDyn();
-  if (!prev || prev.name !== curLevel().name || !b.querySelector('.tipr')) { b.innerHTML = lightRest(); loadPhotos(); }
-  else { const n = b.querySelector('p.mut'); if (n && v.note) n.textContent = v.note; }
+  const now = pclass();
+  if (force || !b.querySelector('.cta button') || (prev && now ? prev.name !== now.name : prev !== now) || (b.querySelector('details.tech') && b.querySelectorAll('details.tech').length < 2)) {
+    const open = [...b.querySelectorAll('details.tech')].map(d => d.open);
+    b.innerHTML = lightRest(); loadPhotos();
+    b.querySelectorAll('details.tech').forEach((d, i) => { if (open[i]) d.open = true; });
+  } else {
+    const tech = b.querySelectorAll('details.tech')[1];
+    if (tech && tech.open) { const r = S.light.raw || {}; tech.querySelector('p').innerHTML = `Metod: ${esc(S.light.method || '')}${r.y != null ? '<br>Ljusstyrka i bilden: ' + fmt(r.y) + ' av 255' : ''}${r.t != null ? '<br>Exponeringstid: ' + fmt(r.t / 10, 2) + ' ms' : ''}${r.iso != null ? '<br>ISO: ' + fmt(r.iso) : ''}${r.caps ? '<br>Kameran: ' + esc(r.caps) : ''}`; }
+  }
+}
+// Ljusstyrka från kamerabild: exponeringstid i 100 µs-enheter (Chrome), bländare ca f/2.
+function luxFrom(y, tUnits, iso) {
+  const tSec = tUnits * 1e-4, ylin = Math.pow(Math.max(y, 1) / 255, 2.2);
+  const L = 12.5 * 4 / (tSec * iso) * (ylin / 0.18);
+  return L * 10;
 }
 async function startLight() {
+  S.lhold = false; S.light = null;
   if ('AmbientLightSensor' in window) {
     try {
       const s = new AmbientLightSensor({ frequency: 2 });
-      await new Promise((ok, fail) => { s.onreading = () => { lightSensor = s; showLight({ lux: s.illuminance, note: 'Mätt med paddans ljussensor.' }); ok(); }; s.onerror = e => fail(e.error); s.start(); setTimeout(() => fail(new Error('timeout')), 2500); });
-      return;
+      let avg = null;
+      await new Promise((ok, fail) => {
+        s.onreading = () => { lightSensor = s; avg = avg == null ? s.illuminance : avg * .6 + s.illuminance * .4; showLight({ lux: avg, method: 'Paddans ljussensor', raw: {} }); ok(); };
+        s.onerror = e => fail(e.error); s.start(); setTimeout(() => fail(new Error('timeout')), 2500);
+      });
+      render(); return;
     } catch (e) { if (lightSensor) lightSensor.stop(); lightSensor = null; }
   }
   try {
-    lightStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
+    lightStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } });
   } catch (e) { lightStream = null; return toast('Appen fick inte använda kameran. Tillåt kameran i Chrome och försök igen.'); }
+  lightTrack = lightStream.getVideoTracks()[0];
   render();
-  const track = lightStream.getVideoTracks()[0];
-  const c = document.createElement('canvas'); c.width = 64; c.height = 48; const g = c.getContext('2d', { willReadFrequently: true });
-  lightTimer = setInterval(() => {
-    const v = $('#lv'); if (!v || v.readyState < 2) return;
-    g.drawImage(v, 0, 0, 64, 48);
-    const d = g.getImageData(0, 0, 64, 48).data; let y = 0;
+  let caps = {}; try { caps = lightTrack.getCapabilities ? lightTrack.getCapabilities() : {}; } catch (e) {}
+  const capTxt = [caps.exposureMode ? 'exponering: ' + caps.exposureMode.join('/') : 'ingen exponeringsstyrning', caps.exposureTime ? 'tid ' + caps.exposureTime.min + '–' + caps.exposureTime.max : '', caps.iso ? 'ISO ' + caps.iso.min + '–' + caps.iso.max : ''].filter(Boolean).join(', ');
+  let manual = false, t = null, iso = null, isoGuess = false;
+  const setExp = () => lightTrack.applyConstraints({ advanced: [Object.assign({ exposureMode: 'manual', exposureTime: t }, caps.iso ? { iso } : {})] });
+  if (caps.exposureMode && caps.exposureMode.includes('manual') && caps.exposureTime) {
+    t = Math.max(caps.exposureTime.min, Math.min(caps.exposureTime.max, 100));
+    if (caps.iso) iso = Math.max(caps.iso.min, Math.min(caps.iso.max, 100));
+    try { await setExp(); manual = true; } catch (e) { manual = false; }
+  }
+  const c = document.createElement('canvas'); c.width = 48; c.height = 36; const g = c.getContext('2d', { willReadFrequently: true });
+  let settle = 2, avg = null;
+  lightTimer = setInterval(async () => {
+    const v = $('#lv'); if (!v || v.readyState < 2 || !v.videoWidth) return;
+    g.drawImage(v, v.videoWidth * .2, v.videoHeight * .2, v.videoWidth * .6, v.videoHeight * .6, 0, 0, 48, 36);
+    const d = g.getImageData(0, 0, 48, 36).data; let y = 0;
     for (let i = 0; i < d.length; i += 4) y += .2126 * d[i] + .7152 * d[i + 1] + .0722 * d[i + 2];
     y /= d.length / 4;
-    const st = track.getSettings ? track.getSettings() : {};
-    if (st.exposureTime && st.iso) {
-      const t = st.exposureTime * 1e-4, lum = 12.5 * 1.8 * 1.8 / (t * st.iso) * (y / 118);
-      showLight({ lux: Math.max(1, lum * Math.PI), note: 'Uppskattat med kameran. Värdet är ungefärligt.' });
+    let lux = null, method, raw = { y, caps: capTxt };
+    if (manual) {
+      if (settle > 0) { settle--; return; }
+      const nt = y > 225 ? t / 3 : y < 30 ? t * 3 : t;
+      const ct = Math.max(caps.exposureTime.min, Math.min(caps.exposureTime.max, nt));
+      if (ct !== t) { t = ct; avg = null; settle = 2; try { await setExp(); } catch (e) {} return; }
+      let useIso = iso;
+      if (!caps.iso) { const st = lightTrack.getSettings ? lightTrack.getSettings() : {}; useIso = st.iso || 100; isoGuess = !st.iso; }
+      lux = luxFrom(y, t, useIso); method = 'Kameran med låst exponering' + (isoGuess ? ' (ISO uppskattad)' : ''); raw.t = t; raw.iso = useIso;
     } else {
-      const lux = Math.pow(Math.max(y, 1) / 255, 2.2) * 25000;
-      showLight({ lux, approx: true, note: 'Din kamera ställer in ljuset automatiskt, så mätningen blir grov. Jämför gärna olika platser med varandra.' });
+      const st = lightTrack.getSettings ? lightTrack.getSettings() : {};
+      if (st.exposureTime && st.iso) { lux = luxFrom(y, st.exposureTime, st.iso); method = 'Kameran med automatisk exponering'; raw.t = st.exposureTime; raw.iso = st.iso; }
+      else method = 'Bara jämförelse (kameran ställer in ljuset själv)';
     }
-  }, 600);
+    if (lux == null) { avg = avg == null ? y : avg * .7 + y * .3; return showLight({ lux: null, rel: Math.round(avg / 2.55), method, raw }); }
+    avg = avg == null ? lux : avg * .7 + lux * .3;
+    showLight({ lux: avg, method, raw });
+  }, 500);
 }
 function stopLight() {
   if (lightTimer) clearInterval(lightTimer); lightTimer = null;
-  if (lightStream) lightStream.getTracks().forEach(t => t.stop()); lightStream = null;
+  if (lightStream) lightStream.getTracks().forEach(t => t.stop()); lightStream = null; lightTrack = null;
   if (lightSensor) lightSensor.stop(); lightSensor = null;
 }
 function proCard() {
