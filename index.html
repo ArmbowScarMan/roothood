@@ -2,6 +2,10 @@
 <html lang="sv"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Roothood</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#4C8C1E">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F3F6EF;--surf:#FFFFFF;--ink:#1B2116;--mut:#7C8576;--line:#E3E9DD;--pri:#4C8C1E;--pri2:#7CB342;--onpri:#FFFFFF;--acc:#D64545;--soft:#EAF3DF;--sun:#F0A92B;--wat:#2F9AD3;--glow:rgba(150,205,80,.28);--sh:0 6px 18px rgba(60,90,30,.08)}
@@ -309,6 +313,10 @@ details.tech{margin-top:12px;background:var(--surf);border-radius:18px;padding:1
 details.tech summary{font-weight:700;cursor:pointer}
 details.tech p{margin:8px 0 0;color:var(--mut)}
 details.tech p b{color:var(--ink)}
+.instc{display:flex;gap:12px;align-items:center;margin:12px 18px 0;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh)}
+.instc>div{flex:1;min-width:0}
+.instc b{display:block;font-size:15px}
+.instc span:not(.tic){font-size:13px;color:var(--mut)}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
@@ -782,10 +790,11 @@ function mineV() {
   <div class="list" style="padding-top:0">${rows || `<div class="empty"><p>Tryck på hjärtat på en växt under Växter så hamnar den här, med vattningspåminnelser.</p><button class="btn sm" onclick="go('home')">Hitta växter</button></div>`}</div>`;
 }
 function meV() {
-  if (!S.user) return `${topbar('Profil')}<div class="prof"><div class="bigav">?</div><h2>Välkommen till Roothood</h2><p class="mut">Skapa ett konto för att spara växter och vara med i communityn.</p><button class="btn" onclick="openModal('login')">Logga in eller skapa konto</button></div>`;
+  if (!S.user) return `${topbar('Profil')}<div class="prof"><div class="bigav">?</div><h2>Välkommen till Roothood</h2><p class="mut">Skapa ett konto för att spara växter och vara med i communityn.</p><button class="btn" onclick="openModal('login')">Logga in eller skapa konto</button></div>${installCard()}`;
   const posts = S.feed ? S.feed.filter(p => p.user_id === S.user.id).length : null;
   return `${topbar('Profil')}<div class="prof"><div class="bigav" style="background:hsl(${hueOf(S.user.name)} 40% 38%)">${esc((S.user.name || '?')[0].toUpperCase())}</div><h2>${esc(S.user.name)}${S.pro ? ' ' + proBadge() : ''}</h2>${DEMO ? '<p class="mut">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}</div>
   ${proCard()}
+  ${installCard()}
   <div class="stats"><div class="stat"><b>${S.mine.length}</b><span class="mut">växter i samlingen</span></div><div class="stat"><b>${posts === null ? '–' : posts}</b><span class="mut">frågor i communityn</span></div></div>
   ${DEMO ? '' : `<div class="addbar"><button class="btn wide line" onclick="signOut()">Logga ut</button></div>`}
   <p class="about">Roothood: växtfolk som hjälper varandra.</p>`;
@@ -1272,6 +1281,24 @@ function proCard() {
   return `<button class="procard" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 24)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Roothood Pro'}</b><span>${S.pro ? 'Kamera, ljusmätare och obegränsad samling' : 'Lås upp kamera, ljusmätare och mer'}</span></span>${S.pro ? '' : `<span class="protag">${PRO_PRICE}</span>`}</button>`;
 }
 
+
+// ===== Installera som app =====
+let installEvt = null;
+const isInstalled = () => window.matchMedia && matchMedia('(display-mode: standalone)').matches;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (S.tab === 'me') render(); });
+window.addEventListener('appinstalled', () => { installEvt = null; toast('Roothood är installerad på startskärmen!'); render(); });
+async function installApp() {
+  if (!installEvt) return;
+  installEvt.prompt();
+  try { await installEvt.userChoice; } catch (e) {}
+  installEvt = null; render();
+}
+function installCard() {
+  if (isInstalled()) return `<div class="instc"><span class="tic">${ic(I.check, 'currentColor', 22)}</span><div><b>Appen är installerad</b><span>Du använder Roothood som app.</span></div></div>`;
+  if (installEvt) return `<div class="instc"><span class="tic">${ic('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', 'currentColor', 22)}</span><div><b>Installera Roothood</b><span>Få appen på startskärmen och öppna den i helskärm.</span></div><button class="btn sm" onclick="installApp()">Installera</button></div>`;
+  return `<div class="instc"><span class="tic">${ic('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', 'currentColor', 22)}</span><div><b>Installera Roothood</b><span>Tryck på Chromes meny ⋮ uppe till höger och välj <b style="display:inline;font-size:inherit">Installera app</b> eller <b style="display:inline;font-size:inherit">Lägg till på startskärmen</b>.</span></div></div>`;
+}
+if ('serviceWorker' in navigator && window.isSecureContext && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 // ===== Start =====
 function loadScript(src) { return new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fail(new Error('Kunde inte ladda ' + src)); document.head.appendChild(s); }); }
