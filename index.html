@@ -352,6 +352,17 @@ details.tech p b{color:var(--ink)}
 .mopen .bar,.mopen .note,.mopen .mini{display:block}
 .mopen .mini{display:inline-block}
 .mname{display:block;font-size:16px;font-weight:700}
+.gallery{display:flex;gap:10px;overflow-x:auto;padding:2px 18px 4px;scrollbar-width:none}
+.gimg{position:relative;flex:none;width:96px;height:96px}
+.gpick{all:unset;display:block;width:96px;height:96px;border-radius:18px;overflow:hidden;cursor:pointer;box-shadow:var(--sh)}
+.gpick:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+.gpick img{width:100%;height:100%;object-fit:cover;display:block}
+.gimg.on .gpick{box-shadow:0 0 0 3px var(--pri)}
+.gsel{position:absolute;left:6px;top:6px;width:22px;height:22px;border-radius:50%;background:var(--pri);color:var(--onpri);display:grid;place-items:center}
+.gdel{position:absolute;right:4px;top:4px;min-width:24px;height:24px;border-radius:12px;border:0;background:rgba(0,0,0,.55);color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:0 6px}
+.gdel.sure{background:var(--acc);font-size:11.5px}
+.gadd{flex:none;width:96px;height:96px;border-radius:18px;border:2px dashed var(--pri2);background:var(--surf);color:var(--pri);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:700;cursor:pointer;text-align:center}
+.gadd:focus-within{outline:2px solid var(--pri)}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
@@ -427,7 +438,7 @@ const demoApi = {
   async getProfile() { return Object.assign({ display_name: 'Du', city: '', interests: [] }, store.get('profile', {})); },
   async saveProfile(p) { store.set('profile', { display_name: p.display_name, city: p.city, interests: p.interests }); },
   async changePassword() {},
-  async mine() {
+  _raw() {
     let m = store.get('mine', null);
     if (!m) {
       m = [[1, 7], [2, 5], [21, 1]].map(([id, ago], i) => {
@@ -436,12 +447,22 @@ const demoApi = {
       });
       store.set('mine', m);
     }
+    m.forEach(x => { if (x.photo && !x.photos) { x.photos = [x.photo]; x.showOwn = true; } });
     return m;
   },
+  async mine() { return this._raw().map(x => Object.assign({}, x, { own: x.photo || null, photos: x.photos || [], showOwn: x.showOwn !== false, photo: x.showOwn !== false && x.photo ? x.photo : null })); },
   async save(m) { store.set('mine', m); },
+  async uploadOwn(file) { return await fileShrink(file, 480, true); },
+  async setPhotos(id, patch) {
+    const m = this._raw(), x = m.find(y => y.id === id);
+    if ('photo_url' in patch) x.photo = patch.photo_url;
+    if ('photos' in patch) x.photos = patch.photos;
+    if ('show_own' in patch) x.showOwn = patch.show_own;
+    await this.save(m);
+  },
   async addMine(p, photo) {
-    const m = await this.mine(), ph_ = photo ? await fileShrink(photo, 480, true) : null;
-    m.push({ id: Date.now(), plant_id: p.id, name: p.swedish_name, latin: p.latin_name, category: p.category, interval: p.water_interval_days, last_watered: today(), custom: false, photo: ph_ });
+    const m = this._raw(), ph_ = photo ? await fileShrink(photo, 480, true) : null;
+    m.push({ id: Date.now(), plant_id: p.id, name: p.swedish_name, latin: p.latin_name, category: p.category, interval: p.water_interval_days, last_watered: today(), custom: false, photo: ph_, photos: ph_ ? [ph_] : [], showOwn: true });
     await this.save(m);
   },
   async addCustom(f) {
@@ -449,14 +470,13 @@ const demoApi = {
     const mine = store.get('myPlants', []);
     const plant = Object.assign(plantRow(f), { id: 1000 + mine.length + 1, photo_url: ph_ });
     store.set('myPlants', mine.concat([plant]));
-    const m = await this.mine();
-    m.push({ id: Date.now(), plant_id: plant.id, name: plant.swedish_name, latin: plant.latin_name, category: plant.category, interval: plant.water_interval_days, last_watered: today(), custom: false, photo: ph_ });
+    const m = this._raw();
+    m.push({ id: Date.now(), plant_id: plant.id, name: plant.swedish_name, latin: plant.latin_name, category: plant.category, interval: plant.water_interval_days, last_watered: today(), custom: false, photo: ph_, photos: ph_ ? [ph_] : [], showOwn: true });
     await this.save(m);
   },
-  async water(id) { const m = await this.mine(); m.find(x => x.id === id).last_watered = today(); await this.save(m); },
-  async setWatered(id, date) { const m = await this.mine(); m.find(x => x.id === id).last_watered = date; await this.save(m); },
-  async setPhoto(id, file) { const m = await this.mine(); m.find(x => x.id === id).photo = file ? await fileShrink(file, 480, true) : null; await this.save(m); },
-  async remove(id) { await this.save((await this.mine()).filter(x => x.id !== id)); },
+  async water(id) { const m = this._raw(); m.find(x => x.id === id).last_watered = today(); await this.save(m); },
+  async setWatered(id, date) { const m = this._raw(); m.find(x => x.id === id).last_watered = date; await this.save(m); },
+  async remove(id) { await this.save(this._raw().filter(x => x.id !== id)); },
   async getPro() { return store.get('pro', false); },
   async setPro(on) { store.set('pro', on); },
   _feed() {
@@ -529,17 +549,21 @@ const sbApi = {
   async signOut() { await sb.auth.signOut(); },
   async mine() {
     const cols = 'id,plant_id,last_watered,custom_name,custom_latin,custom_category,custom_water_interval_days,notes,plants(swedish_name,latin_name,category,water_interval_days)';
-    let res = await sb.from('user_plants').select(cols + ',photo_url').order('created_at');
+    let res = await sb.from('user_plants').select(cols + ',photo_url,photos,show_own').order('created_at');
+    if (res.error && /photos|show_own/.test(res.error.message || '')) res = await sb.from('user_plants').select(cols + ',photo_url').order('created_at');
     if (res.error && /photo_url/.test(res.error.message || '')) res = await sb.from('user_plants').select(cols).order('created_at');
     if (res.error) throw res.error;
-    return res.data.map(r => r.plants
-      ? { id: r.id, plant_id: r.plant_id, name: r.plants.swedish_name, latin: r.plants.latin_name, category: r.plants.category, interval: r.plants.water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: false, photo: r.photo_url || null }
-      : { id: r.id, plant_id: null, name: r.custom_name, latin: r.custom_latin, category: r.custom_category, interval: r.custom_water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: true, photo: r.photo_url || null });
+    return res.data.map(r => {
+      const own = r.photo_url || null, showOwn = r.show_own !== false;
+      const ph_ = { own, photos: r.photos && r.photos.length ? r.photos : own ? [own] : [], showOwn, photo: showOwn && own ? own : null };
+      return Object.assign(r.plants
+        ? { id: r.id, plant_id: r.plant_id, name: r.plants.swedish_name, latin: r.plants.latin_name, category: r.plants.category, interval: r.plants.water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: false }
+        : { id: r.id, plant_id: null, name: r.custom_name, latin: r.custom_latin, category: r.custom_category, interval: r.custom_water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: true }, ph_);
+    });
   },
   async addMine(p, photo) {
     const url = photo ? await uploadPhoto(photo) : null;
-    const { error } = await sb.from('user_plants').insert(Object.assign({ plant_id: p.id }, url ? { photo_url: url } : {}));
-    if (error) throw error;
+    await insertUP(Object.assign({ plant_id: p.id }, url ? { photo_url: url, photos: [url] } : {}));
   },
   async addCustom(f) {
     const url = f.photo ? await uploadPhoto(f.photo) : null;
@@ -548,17 +572,20 @@ const sbApi = {
     let r = await sb.from('plants').insert(row).select('id');
     if (r.error && /photo_url/.test(r.error.message || '')) { delete row.photo_url; r = await sb.from('plants').insert(row).select('id'); }
     if (r.error) throw r.error;
-    const r2 = await sb.from('user_plants').insert(Object.assign({ plant_id: r.data[0].id }, url ? { photo_url: url } : {}));
-    if (r2.error) throw r2.error;
+    await insertUP(Object.assign({ plant_id: r.data[0].id }, url ? { photo_url: url, photos: [url] } : {}));
   },
   async water(id) { const { error } = await sb.from('user_plants').update({ last_watered: today() }).eq('id', id); if (error) throw error; },
   async setWatered(id, date) { const { error } = await sb.from('user_plants').update({ last_watered: date }).eq('id', id); if (error) throw error; },
-  async setPhoto(id, file) {
-    let url = null;
-    if (file) { url = await uploadPhoto(file); if (!url) { S.photoWarn = false; throw new Error('Fotot kunde inte sparas. Har du kört den senaste SQL-koden i Supabase?'); } }
-    const { error } = await sb.from('user_plants').update({ photo_url: url }).eq('id', id);
-    if (error) throw /photo_url/.test(error.message || '') ? new Error('Foton är inte påslagna i databasen än.') : error;
+  async uploadOwn(file) {
+    const url = await uploadPhoto(file);
+    if (!url) { S.photoWarn = false; throw new Error('Fotot kunde inte sparas. Har du kört den senaste SQL-koden i Supabase?'); }
+    return url;
   },
+  async setPhotos(id, patch) {
+    const { error } = await sb.from('user_plants').update(patch).eq('id', id);
+    if (error) throw /photos|show_own|photo_url/.test(error.message || '') ? new Error('Fotogalleriet är inte påslaget i databasen än. Kör den senaste SQL-koden.') : error;
+  },
+
   async remove(id) { const { error } = await sb.from('user_plants').delete().eq('id', id); if (error) throw error; },
   async getPro() {
     const { data: s } = await sb.auth.getSession(); const uid = s.session && s.session.user.id; if (!uid) return false;
@@ -655,10 +682,27 @@ async function confirmAddp() {
   await run(() => api.addMine(p, photo), p.swedish_name + ' finns nu i din samling' + (photo ? ' med ditt foto' : ''));
   S.ap = null; photoWarnCheck();
 }
-async function setMyPhoto(id, inp) {
-  const f = inp && inp.files && inp.files[0]; if (inp && !f) return;
-  await run(() => api.setPhoto(id, f || null), f ? 'Ditt foto används nu för växten' : 'Databasens foto används nu');
-  photoWarnCheck();
+const myItem = id => S.mine.find(x => x.id === id);
+async function addMyPhoto(id, inp) {
+  const f = inp && inp.files && inp.files[0]; if (!f) return;
+  await run(async () => {
+    const url = await api.uploadOwn(f), m = myItem(id);
+    await api.setPhotos(id, { photo_url: url, show_own: true, photos: m.photos.concat([url]) });
+  }, 'Fotot är sparat och visas nu för växten');
+}
+function pickMyPhoto(id, i) { const m = myItem(id); S.del = null; run(() => api.setPhotos(id, { photo_url: m.photos[i], show_own: true }), 'Det fotot visas nu'); }
+function showDbPhoto(id) { S.del = null; run(() => api.setPhotos(id, { show_own: false }), 'Databasens foto visas nu. Dina foton finns kvar.'); }
+function delMyPhoto(id, i) {
+  if (S.del !== 'ph' + i) { S.del = 'ph' + i; return render(); }
+  S.del = null;
+  const m = myItem(id), url = m.photos[i], photos = m.photos.filter((_, j) => j !== i);
+  run(() => api.setPhotos(id, { photos, photo_url: m.own === url ? (photos[photos.length - 1] || null) : m.own }), 'Fotot är borttaget');
+}
+function galleryV(my) {
+  return `<div class="sec"><h2>Mina foton</h2>${my.photos.length ? (my.photo ? `<button class="link3" onclick="showDbPhoto(${my.id})">Visa databasens foto</button>` : '<span class="mut" style="font-size:13px">Databasens foto visas</span>') : ''}</div>
+  <div class="gallery">${my.photos.map((u, i) => `<div class="gimg ${my.photo === u ? 'on' : ''}"><button class="gpick" onclick="pickMyPhoto(${my.id},${i})" aria-label="Visa foto ${i + 1} för växten"><img src="${esc(u)}" alt="" loading="lazy"></button>${my.photo === u ? `<span class="gsel">${ic(I.check, 'currentColor', 13)}</span>` : ''}<button class="gdel ${S.del === 'ph' + i ? 'sure' : ''}" onclick="delMyPhoto(${my.id},${i})" aria-label="Ta bort foto ${i + 1}">${S.del === 'ph' + i ? 'Ta bort?' : '×'}</button></div>`).join('')}
+  <label class="gadd">${ic(CAM, 'currentColor', 22)}<span>Lägg till foto</span><input type="file" accept="image/*" capture="environment" class="sr" onchange="addMyPhoto(${my.id}, this)"></label></div>
+  ${my.photos.length ? '<p class="mut" style="font-size:13px;margin:8px 18px 0">Tryck på ett foto för att visa det för växten. Alla dina foton sparas.</p>' : ''}`;
 }
 function addpV() {
   const p = S.plants.find(x => x.id === S.addp); if (!p) return '';
@@ -863,7 +907,7 @@ function detail() {
     ${p.humidity ? `<div><small>Luftfuktighet</small><b>${esc(p.humidity)}</b></div>` : ''}
     <div><small>Husdjur</small><b class="${p.pet_safe ? '' : 'bad'}">${petWord(p)}</b></div>
   </div></div>${credit}
-  ${my ? `<div class="myphoto"><label class="link3">${ic(CAM, 'currentColor', 16)} ${my.photo ? 'Byt mitt foto' : 'Använd eget foto'}<input type="file" accept="image/*" capture="environment" class="sr" onchange="setMyPhoto(${my.id}, this)"></label>${my.photo ? `<button class="link3" onclick="setMyPhoto(${my.id}, null)">Visa databasens foto</button>` : ''}</div>` : ''}
+  ${my ? galleryV(my) : ''}
   <div class="sheet2">
   <div class="dname"><h1>${esc(p.swedish_name)}</h1><i>${esc(p.latin_name)}</i><div class="tags">${status}<span class="tag lime">${esc(p.category)}</span>${zoneTag(p)}${p.status === 'pending' ? '<span class="tag">Väntar på granskning</span>' : ''}</div></div>
   <div class="sec"><h2>Så vattnar du</h2></div>
@@ -895,7 +939,7 @@ function mineV() {
     const d = left(m), pct = m.interval ? Math.round((m.interval - d) / m.interval * 100) : 0;
     const status = d === null ? '<span class="mut">Växer ute, vattna vid torka</span>' : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
     return `<div class="mrow"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${esc(m.name)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
-      <div class="side"><label class="pbtn" title="Byt foto" aria-label="Byt foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" capture="environment" class="sr" onchange="setMyPhoto(${m.id}, this)"></label>${d !== null ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
+      <div class="side"><label class="pbtn" title="Ta ett foto" aria-label="Lägg till foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" capture="environment" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
   }).join('');
   return `${topbar('Min samling')}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
@@ -983,6 +1027,11 @@ function photoWarnCheck() { if (S.photoWarn) { S.photoWarn = false; toast('Växt
 const petWord = p => p.pet_safe ? 'Ofarlig' : /^Okänt/.test(p.toxicity_text || '') ? 'Okänt' : 'Giftig';
 function plantPh(p) { return p.photo_url ? `<div class="ph has-img" style="--h:0"><img src="${esc(p.photo_url)}" alt="" loading="lazy"></div>` : ph(p.latin_name, p.category, p.swedish_name); }
 function myPh(m) { return m.photo ? `<div class="ph has-img" style="--h:0"><img src="${esc(m.photo)}" alt="" loading="lazy"></div>` : ph(m.latin, m.category, m.name); }
+async function insertUP(row) {
+  let r = await sb.from('user_plants').insert(row);
+  if (r.error && /photos/.test(r.error.message || '')) { delete row.photos; r = await sb.from('user_plants').insert(row); }
+  if (r.error) throw r.error;
+}
 async function uploadPhoto(file) {
   try {
     const blob = (await fileShrink(file, 900)) || file;
