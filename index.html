@@ -1144,7 +1144,7 @@ function lightRest() {
   return `<div class="pad">
   <div class="cta" style="padding:14px 0 0;display:flex;gap:10px">${running ? `<button class="btn line" style="flex:1" onclick="stopLight();render()">Stoppa</button><button class="btn" style="flex:1" onclick="S.lhold=!S.lhold;showLight(S.light,true)">${S.lhold ? 'Lås upp' : 'Lås värdet'}</button>` : '<button class="btn" onclick="startLight()">Starta mätning</button>'}</div>
   ${c ? `<div class="tipr" style="margin-top:14px"><span class="ck">${ic(I.sun, 'currentColor', 16)}</span><div><b>${c.name}</b><span>${c.tip}</span></div></div>` : ''}
-  ${L && L.lux == null ? `<div class="tipr" style="margin-top:14px"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>Få exakta värden</b><span>Slå på paddans ljussensor i Chrome: skriv <b style="display:inline;color:inherit">chrome://flags</b> i adressfältet, sök på "Generic Sensor Extra Classes", välj Enabled och starta om Chrome.</span></div></div>` : ''}
+  ${L && L.method !== 'Paddans ljussensor' ? `<div class="tipr" style="margin-top:14px"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>Få exakta värden</b><span>Slå på paddans ljussensor i Chrome: skriv <b style="display:inline;color:inherit">chrome://flags</b> i adressfältet, sök på "Generic Sensor Extra Classes", välj Enabled och starta om Chrome.</span></div></div>` : ''}
   <details class="tech"><summary>Vad betyder värdena?</summary>
   <p><b>PPFD</b> är hur mycket ljus växten kan använda som träffar bladen varje sekund. Krukväxter vill oftast ha 75–200, ljusälskare 200–600.</p>
   <p><b>DLI</b> är ljuset under en hel dag. Det beror på hur många timmar ljuset är på.</p>
@@ -1213,6 +1213,30 @@ async function startLight() {
     try { await setExp(); manual = true; } catch (e) { manual = false; }
   }
   const c = document.createElement('canvas'); c.width = 48; c.height = 36; const g = c.getContext('2d', { willReadFrequently: true });
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const readY = async () => {
+    for (let i = 0; i < 20; i++) { const v = $('#lv'); if (v && v.readyState >= 2 && v.videoWidth) break; await sleep(150); }
+    const v = $('#lv'); if (!v || !v.videoWidth) return null;
+    g.drawImage(v, v.videoWidth * .2, v.videoHeight * .2, v.videoWidth * .6, v.videoHeight * .6, 0, 0, 48, 36);
+    const d = g.getImageData(0, 0, 48, 36).data; let y = 0;
+    for (let i = 0; i < d.length; i += 4) y += .2126 * d[i] + .7152 * d[i + 1] + .0722 * d[i + 2];
+    return y / (d.length / 4);
+  };
+  let probe = '';
+  if (manual) {
+    showLight({ lux: null, rel: 0, method: 'Testar kameran…', raw: { caps: capTxt } });
+    const clampT = x => Math.max(caps.exposureTime.min, Math.min(caps.exposureTime.max, x));
+    let tA = clampT(20), yA = null, yB = null;
+    for (let k = 0; k < 3; k++) { t = tA; try { await setExp(); } catch (e) {} await sleep(900); yA = await readY(); if (yA != null && yA >= 225 && tA > caps.exposureTime.min) tA = clampT(tA / 6); else break; }
+    let tB = clampT(tA * 4); if (tB === tA) tB = clampT(tA / 4);
+    t = tB; try { await setExp(); } catch (e) {} await sleep(900); yB = await readY();
+    const lo = tB > tA ? yA : yB, hi = tB > tA ? yB : yA;
+    const works = lo != null && hi != null && (hi > lo * 1.5 || (hi >= 220 && hi - lo > 25));
+    probe = `prov ${Math.round(yA || 0)} → ${Math.round(yB || 0)} (${works ? 'låsning fungerar' : 'låsning fungerar inte'})`;
+    if (!works) { manual = false; try { await lightTrack.applyConstraints({ advanced: [{ exposureMode: 'continuous' }] }); } catch (e) {} }
+    else { t = tA; try { await setExp(); } catch (e) {} }
+    if (!lightStream) return;
+  }
   let settle = 2, avg = null;
   lightTimer = setInterval(async () => {
     const v = $('#lv'); if (!v || v.readyState < 2 || !v.videoWidth) return;
@@ -1220,7 +1244,7 @@ async function startLight() {
     const d = g.getImageData(0, 0, 48, 36).data; let y = 0;
     for (let i = 0; i < d.length; i += 4) y += .2126 * d[i] + .7152 * d[i + 1] + .0722 * d[i + 2];
     y /= d.length / 4;
-    let lux = null, method, raw = { y, caps: capTxt };
+    let lux = null, method, raw = { y, caps: capTxt + (probe ? ', ' + probe : '') };
     if (manual) {
       if (settle > 0) { settle--; return; }
       const nt = y > 225 ? t / 3 : y < 30 ? t * 3 : t;
@@ -1231,7 +1255,7 @@ async function startLight() {
       lux = luxFrom(y, t, useIso); method = 'Kameran med låst exponering' + (isoGuess ? ' (ISO uppskattad)' : ''); raw.t = t; raw.iso = useIso;
     } else {
       const st = lightTrack.getSettings ? lightTrack.getSettings() : {};
-      if (st.exposureTime && st.iso) { lux = luxFrom(y, st.exposureTime, st.iso); method = 'Kameran med automatisk exponering'; raw.t = st.exposureTime; raw.iso = st.iso; }
+      if (st.exposureTime && st.iso && st.exposureMode !== 'manual') { lux = luxFrom(y, st.exposureTime, st.iso); method = 'Kameran med automatisk exponering (osäkrare)'; raw.t = st.exposureTime; raw.iso = st.iso; }
       else method = 'Bara jämförelse (kameran ställer in ljuset själv)';
     }
     if (lux == null) { avg = avg == null ? y : avg * .7 + y * .3; return showLight({ lux: null, rel: Math.round(avg / 2.55), method, raw }); }
