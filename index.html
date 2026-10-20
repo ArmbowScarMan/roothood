@@ -332,6 +332,15 @@ details.tech p b{color:var(--ink)}
 .about2 img{border-radius:14px;flex:none}
 .about2 b{display:block}
 .about2 span{display:block;font-size:13px;color:var(--mut)}
+.shot.small{min-height:0;padding:14px;margin:0;flex-direction:row;gap:12px;text-align:left;justify-content:flex-start}
+.shot.small .grow{display:flex;flex-direction:column;flex:1}
+.shot.small b{font-size:15px}
+.shot.small .grow span{font-size:13px;color:var(--mut)}
+#apbox{margin-bottom:14px}
+.apimg{position:relative}
+.apimg img{width:100%;max-height:220px;object-fit:cover;border-radius:20px;display:block}
+.apimg .x{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.92);color:#1B2116;border-radius:999px;padding:6px 12px}
+.modal .idr{box-shadow:none}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
@@ -402,7 +411,7 @@ function art(cat, name) {
 
 // ===== Data: demoläge (sparas i webbläsaren) =====
 const demoApi = {
-  async plants() { return DEMO_PLANTS; },
+  async plants() { return DEMO_PLANTS.concat(store.get('myPlants', [])); },
   async user() { return { id: 'demo', name: (store.get('profile', {}) || {}).display_name || 'Du' }; },
   async getProfile() { return Object.assign({ display_name: 'Du', city: '', interests: [] }, store.get('profile', {})); },
   async saveProfile(p) { store.set('profile', { display_name: p.display_name, city: p.city, interests: p.interests }); },
@@ -419,16 +428,19 @@ const demoApi = {
     return m;
   },
   async save(m) { store.set('mine', m); },
-  async addMine(p) {
-    const m = await this.mine();
-    m.push({ id: Date.now(), plant_id: p.id, name: p.swedish_name, latin: p.latin_name, category: p.category, interval: p.water_interval_days, last_watered: today(), custom: false });
+  async addMine(p, photo) {
+    const m = await this.mine(), ph_ = photo ? await fileShrink(photo, 480, true) : null;
+    m.push({ id: Date.now(), plant_id: p.id, name: p.swedish_name, latin: p.latin_name, category: p.category, interval: p.water_interval_days, last_watered: today(), custom: false, photo: ph_ });
     await this.save(m);
   },
   async addCustom(f) {
+    const ph_ = f.photo ? await fileShrink(f.photo, 480, true) : null;
+    const mine = store.get('myPlants', []);
+    const plant = Object.assign(plantRow(f), { id: 1000 + mine.length + 1, photo_url: ph_ });
+    store.set('myPlants', mine.concat([plant]));
     const m = await this.mine();
-    m.push({ id: Date.now(), plant_id: null, name: f.name, latin: f.latin, category: f.cat, interval: f.interval, notes: f.notes, last_watered: today(), custom: true });
+    m.push({ id: Date.now(), plant_id: plant.id, name: plant.swedish_name, latin: plant.latin_name, category: plant.category, interval: plant.water_interval_days, last_watered: today(), custom: false, photo: ph_ });
     await this.save(m);
-    if (f.suggest) store.set('suggestions', store.get('suggestions', []).concat([f]));
   },
   async water(id) { const m = await this.mine(); m.find(x => x.id === id).last_watered = today(); await this.save(m); },
   async setWatered(id, date) { const m = await this.mine(); m.find(x => x.id === id).last_watered = date; await this.save(m); },
@@ -477,7 +489,7 @@ const demoApi = {
 let sb;
 const sbApi = {
   async plants() {
-    const { data, error } = await sb.from('plants').select('*').eq('status', 'approved').order('swedish_name');
+    const { data, error } = await sb.from('plants').select('*').neq('status', 'rejected').order('swedish_name');
     if (error) throw error; return data;
   },
   async user() {
@@ -504,26 +516,28 @@ const sbApi = {
   },
   async signOut() { await sb.auth.signOut(); },
   async mine() {
-    const { data, error } = await sb.from('user_plants')
-      .select('id,plant_id,last_watered,custom_name,custom_latin,custom_category,custom_water_interval_days,notes,plants(swedish_name,latin_name,category,water_interval_days)')
-      .order('created_at');
-    if (error) throw error;
-    return data.map(r => r.plants
-      ? { id: r.id, plant_id: r.plant_id, name: r.plants.swedish_name, latin: r.plants.latin_name, category: r.plants.category, interval: r.plants.water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: false }
-      : { id: r.id, plant_id: null, name: r.custom_name, latin: r.custom_latin, category: r.custom_category, interval: r.custom_water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: true });
+    const cols = 'id,plant_id,last_watered,custom_name,custom_latin,custom_category,custom_water_interval_days,notes,plants(swedish_name,latin_name,category,water_interval_days)';
+    let res = await sb.from('user_plants').select(cols + ',photo_url').order('created_at');
+    if (res.error && /photo_url/.test(res.error.message || '')) res = await sb.from('user_plants').select(cols).order('created_at');
+    if (res.error) throw res.error;
+    return res.data.map(r => r.plants
+      ? { id: r.id, plant_id: r.plant_id, name: r.plants.swedish_name, latin: r.plants.latin_name, category: r.plants.category, interval: r.plants.water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: false, photo: r.photo_url || null }
+      : { id: r.id, plant_id: null, name: r.custom_name, latin: r.custom_latin, category: r.custom_category, interval: r.custom_water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: true, photo: r.photo_url || null });
   },
-  async addMine(p) { const { error } = await sb.from('user_plants').insert({ plant_id: p.id }); if (error) throw error; },
-  async addCustom(f) {
-    const { error } = await sb.from('user_plants').insert({ custom_name: f.name, custom_latin: f.latin || null, custom_category: f.cat, custom_water_interval_days: f.interval, notes: f.notes || null });
+  async addMine(p, photo) {
+    const url = photo ? await uploadPhoto(photo) : null;
+    const { error } = await sb.from('user_plants').insert(Object.assign({ plant_id: p.id }, url ? { photo_url: url } : {}));
     if (error) throw error;
-    if (f.suggest) {
-      const { error: e2 } = await sb.from('plants').insert({
-        swedish_name: f.name, latin_name: f.latin, category: f.cat, status: 'pending',
-        light_level: f.light, water_level: f.water, light_text: LIGHT[f.light - 1],
-        water_text: `Ungefär var ${f.interval}${ord(f.interval)} dag`, water_interval_days: f.interval,
-        pet_safe: f.pet === 'true', tips: f.notes || null });
-      if (e2) throw e2;
-    }
+  },
+  async addCustom(f) {
+    const url = f.photo ? await uploadPhoto(f.photo) : null;
+    const row = plantRow(f);
+    if (url) row.photo_url = url;
+    let r = await sb.from('plants').insert(row).select('id');
+    if (r.error && /photo_url/.test(r.error.message || '')) { delete row.photo_url; r = await sb.from('plants').insert(row).select('id'); }
+    if (r.error) throw r.error;
+    const r2 = await sb.from('user_plants').insert(Object.assign({ plant_id: r.data[0].id }, url ? { photo_url: url } : {}));
+    if (r2.error) throw r2.error;
   },
   async water(id) { const { error } = await sb.from('user_plants').update({ last_watered: today() }).eq('id', id); if (error) throw error; },
   async setWatered(id, date) { const { error } = await sb.from('user_plants').update({ last_watered: date }).eq('id', id); if (error) throw error; },
@@ -590,7 +604,7 @@ async function run(fn, ok) {
 }
 function go(t) { stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
 function openPlant(id) { S.sel = id; render(); $('#main').scrollTop = 0; }
-function openModal(m, prefill, latin) { S.modal = m; S.msg = ''; S.prefill = prefill || ''; S.prefillLatin = latin || ''; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
+function openModal(m, prefill, latin, ap) { S.modal = m; S.msg = ''; S.prefill = prefill || ''; S.prefillLatin = latin || ''; if (m === 'add') S.ap = ap || null; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
 function closeModal() { S.modal = null; S.msg = ''; S.limitHit = false; render(); }
 function addPlant(id) {
   if (!S.user) return openModal('login');
@@ -605,13 +619,24 @@ function removeMine(id) {
   S.del = null; const m = S.mine.find(x => x.id === id);
   run(() => api.remove(id), m.name + ' är borttagen');
 }
+function plantRow(f) {
+  return {
+    swedish_name: f.name, latin_name: f.latin || '', category: f.cat, status: 'pending',
+    light_level: f.light, water_level: f.water, light_text: LIGHT[f.light - 1],
+    water_text: `Ungefär var ${f.interval}${ord(f.interval)} dag`, water_interval_days: f.interval,
+    pet_safe: f.pet === 'true', toxicity_text: f.pet === 'true' ? 'Ofarlig för husdjur (enligt användaren)' : f.pet === 'false' ? 'Giftig för husdjur (enligt användaren)' : 'Okänt om den är giftig för husdjur',
+    tips: f.notes || null
+  };
+}
 async function saveCustom(form) {
   const d = Object.fromEntries(new FormData(form));
-  const f = { name: d.name.trim(), latin: (d.latin || '').trim(), cat: d.cat, interval: +d.interval, notes: (d.notes || '').trim(), suggest: !!d.suggest, light: +d.light, water: +d.water, pet: d.pet };
-  if (f.suggest && !f.latin) { S.msg = 'Fyll i latinskt namn för att föreslå växten.'; return renderModalKeep(form); }
-  if (f.suggest && !f.pet) { S.msg = 'Välj om växten är giftig för husdjur.'; return renderModalKeep(form); }
+  const f = { name: d.name.trim(), latin: (d.latin || '').trim(), cat: d.cat, interval: +d.interval, notes: (d.notes || '').trim(), light: +d.light, water: +d.water, pet: d.pet, photo: S.ap && S.ap.file };
+  const low = s => s.toLowerCase();
+  const dup = (f.latin && S.plants.find(p => low(p.latin_name) === low(f.latin))) || S.plants.find(p => low(p.swedish_name) === low(f.name));
   S.modal = null;
-  await run(() => api.addCustom(f), f.suggest ? f.name + ' är tillagd. Förslaget granskas innan det syns för andra.' : f.name + ' finns nu i din samling');
+  if (dup) await run(() => api.addMine(dup, f.photo), dup.swedish_name + ' fanns redan i databasen och finns nu i din samling');
+  else await run(async () => { await api.addCustom(f); S.plants = await api.plants(); }, f.name + ' finns nu i din samling och i databasen. Den granskas innan andra kan se den.');
+  S.ap = null; photoWarnCheck();
 }
 function renderModalKeep(form) {
   const p = form.querySelector('.formmsg') || document.createElement('p');
@@ -723,7 +748,7 @@ function myCard(m) {
   const water = d === null ? 'Ute' : d === 0 ? 'Idag' : d + ' d';
   const light = p ? LIGHT[p.light_level - 1].replace('Halvskugga', 'Halvsk.') : '–';
   const temp = p && p.temperature ? (/(\d+)\s*–\s*(\d+)/.exec(p.temperature) || [])[0] : null;
-  return `<button class="mycard" ${m.plant_id ? `onclick="openPlant(${m.plant_id})"` : `onclick="go('mine')"`} aria-label="${esc(m.name)}">${ph(m.latin, m.category, m.name)}<h3>${esc(m.name)}</h3>
+  return `<button class="mycard" ${m.plant_id ? `onclick="openPlant(${m.plant_id})"` : `onclick="go('mine')"`} aria-label="${esc(m.name)}">${myPh(m)}<h3>${esc(m.name)}</h3>
   <div class="mstats"><div><i class="${d === 0 ? 'due' : 'w'}">${ic(I.drop, 'currentColor', 15)}</i>${water}</div><div><i class="s">${ic(I.sun, 'currentColor', 15)}</i>${light}</div><div><i class="t">${ic(I.temp, 'currentColor', 15)}</i>${temp ? temp.replace(/\s/g, '') + '°' : '–'}</div></div></button>`;
 }
 function home() {
@@ -751,7 +776,7 @@ function renderList() {
   $('#count').textContent = r.length + (r.length === 1 ? ' växt' : ' växter');
   $('#list').innerHTML = r.map(p => {
     const has = S.mine.some(m => m.plant_id === p.id);
-    return `<div class="card"><button class="open" onclick="openPlant(${p.id})">${ph(p.latin_name, p.category, p.swedish_name)}<h3>${esc(p.swedish_name)}</h3><i>${esc(p.latin_name)}</i></button>
+    return `<div class="card"><button class="open" onclick="openPlant(${p.id})">${plantPh(p)}<h3>${esc(p.swedish_name)}</h3><i>${esc(p.latin_name)}</i></button>
     <button class="heart ${has ? 'on' : ''}" onclick="heart(${p.id})" aria-pressed="${has}" aria-label="${has ? 'Finns i din samling' : 'Lägg till i min samling'}">${ic(I.heart, 'currentColor', 20).replace('fill="none"', has ? 'fill="currentColor"' : 'fill="none"')}</button></div>`;
   }).join('') + `<div class="empty"><p>${r.length ? 'Saknas din växt?' : 'Ingen växt matchar sökningen.'} Lägg till den själv och föreslå den till databasen.</p><button class="btn sm" onclick="addCustomStart()">Lägg till egen växt</button></div>`;
   loadPhotos();
@@ -775,14 +800,14 @@ function detail() {
   const cta = !my ? `<button class="btn" onclick="addPlant(${p.id})">Lägg till i min samling</button>`
     : d !== null ? `<button class="btn" onclick="water(${my.id})">Markera som vattnad</button>` : '';
   return `${topbar(p.category, 'S.sel=null;render()')}
-  <div class="dtop">${ph(p.latin_name, p.category, p.swedish_name)}<div class="dstats">
+  <div class="dtop">${plantPh(p)}<div class="dstats">
     <div><small>Ljus</small><b>${LIGHT[p.light_level - 1]}</b></div>
     <div><small>Vatten</small><b>${water}</b></div>
     ${p.humidity ? `<div><small>Luftfuktighet</small><b>${esc(p.humidity)}</b></div>` : ''}
-    <div><small>Husdjur</small><b class="${p.pet_safe ? '' : 'bad'}">${p.pet_safe ? 'Ofarlig' : 'Giftig'}</b></div>
+    <div><small>Husdjur</small><b class="${p.pet_safe ? '' : 'bad'}">${petWord(p)}</b></div>
   </div></div>${credit}
   <div class="sheet2">
-  <div class="dname"><h1>${esc(p.swedish_name)}</h1><i>${esc(p.latin_name)}</i><div class="tags">${status}<span class="tag lime">${esc(p.category)}</span>${zoneTag(p)}</div></div>
+  <div class="dname"><h1>${esc(p.swedish_name)}</h1><i>${esc(p.latin_name)}</i><div class="tags">${status}<span class="tag lime">${esc(p.category)}</span>${zoneTag(p)}${p.status === 'pending' ? '<span class="tag">Väntar på granskning</span>' : ''}</div></div>
   <div class="sec"><h2>Så vattnar du</h2></div>
   <p class="howto">${esc(p.water_text)}.${p.soil ? ' Jord: ' + esc(p.soil.charAt(0).toLowerCase() + p.soil.slice(1)) + '.' : ''}</p>
   ${my && d === 0 ? `<div class="snooze">Är jorden fortfarande blöt? Skjut upp, så påminner vi dig om 2 dagar.<br><button onclick="snooze(${my.id})">Skjut upp 2 dagar</button></div>` : ''}
@@ -793,10 +818,10 @@ function detail() {
   ${p.temperature ? tile('Temperatur', shortTemp(p.temperature), p.temperature, I.temp, 'var(--acc)') : ''}
   ${p.humidity ? tile('Luftfuktighet', p.humidity, '', I.mist, 'var(--pri2)') : ''}
   ${p.soil ? tile('Jord', p.soil.split(',')[0], p.soil, I.soil, '#A0703F') : ''}
-  ${tile('Husdjur', p.pet_safe ? 'Ofarlig' : 'Giftig', p.toxicity_text, I.paw, p.pet_safe ? 'var(--pri2)' : 'var(--acc)', !p.pet_safe)}
+  ${tile('Husdjur', petWord(p), p.toxicity_text, I.paw, p.pet_safe ? 'var(--pri2)' : 'var(--acc)', !p.pet_safe)}
   </div>
   ${tips.length ? `<div class="sec"><h2>Skötseltips</h2></div><div class="tips">${tips.map(t => `<div class="tipr"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>${t[0]}</b><span>${esc(t[1])}</span></div></div>`).join('')}</div>` : ''}
-  ${similar.length ? `<div class="sec"><h2>Liknande växter</h2></div><div class="similar">${similar.map(s => `<button onclick="openPlant(${s.id})">${ph(s.latin_name, s.category, s.swedish_name)}<span>${esc(s.swedish_name)}</span></button>`).join('')}</div>` : ''}
+  ${similar.length ? `<div class="sec"><h2>Liknande växter</h2></div><div class="similar">${similar.map(s => `<button onclick="openPlant(${s.id})">${plantPh(s)}<span>${esc(s.swedish_name)}</span></button>`).join('')}</div>` : ''}
   ${cta ? `<div class="cta">${cta}</div>` : '<div style="height:16px"></div>'}
   </div>`;
 }
@@ -812,7 +837,7 @@ function mineV() {
     const d = left(m), pct = m.interval ? Math.round((m.interval - d) / m.interval * 100) : 0;
     const status = d === null ? '<span class="mut">Växer ute, vattna vid torka</span>' : d === 0 ? `<span class="due-t">Vattna idag</span> <button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
     const title = m.custom ? esc(m.name) : `<button onclick="openPlant(${m.plant_id})">${esc(m.name)}</button>`;
-    return `<div class="mrow">${ph(m.latin, m.category, m.name)}<div class="grow"><h3>${title}</h3>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${d !== null ? `<div class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></div>` : '<div style="height:6px"></div>'}${status}${m.notes ? `<div class="note">${esc(m.notes)}</div>` : ''}</div>
+    return `<div class="mrow">${myPh(m)}<div class="grow"><h3>${title}</h3>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${d !== null ? `<div class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></div>` : '<div style="height:6px"></div>'}${status}${m.notes ? `<div class="note">${esc(m.notes)}</div>` : ''}</div>
       <div class="side">${d !== null ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
   }).join('');
   return `${topbar('Min samling')}
@@ -845,17 +870,70 @@ function loginV() {
 function addV() {
   const opts = (arr, sel) => arr.map((t, i) => `<option value="${i + 1}" ${i + 1 === sel ? 'selected' : ''}>${t}</option>`).join('');
   return `<div class="mh"><h2>Lägg till egen växt</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <div id="apbox">${apBox()}</div>
   <form onsubmit="event.preventDefault();saveCustom(this)">
   <label>Namn<input name="name" required maxlength="60" value="${esc(S.prefill)}" placeholder="t.ex. Elefantöra"></label>
   <label>Latinskt namn (valfritt)<input name="latin" maxlength="80" placeholder="t.ex. Alocasia" value="${esc(S.prefillLatin)}"></label>
   <div class="row2"><label>Kategori<select name="cat">${CATS.map(c => `<option>${c}</option>`).join('')}</select></label>
   <label>Vattna var … dag<input name="interval" type="number" min="1" max="90" value="7" required></label></div>
-  <label>Anteckningar (valfritt)<textarea name="notes" rows="2" maxlength="300" placeholder="t.ex. Står i köksfönstret"></textarea></label>
-  <label class="check"><input type="checkbox" name="suggest" onchange="document.getElementById('sg').hidden=!this.checked"><span>Föreslå växten till databasen så att andra kan hitta den</span></label>
-  <div id="sg" class="sub" hidden><div class="row2"><label>Ljus<select name="light">${opts(LIGHT, 2)}</select></label><label>Vatten<select name="water">${opts(WATER, 2)}</select></label></div>
-  <label>Giftig för husdjur?<select name="pet"><option value="">Välj</option><option value="false">Ja, giftig</option><option value="true">Nej, ofarlig</option></select></label>
-  <p class="mut" style="margin:0 0 12px">Förslaget granskas innan det syns för andra.</p></div>
+  <div class="row2"><label>Ljus<select name="light">${opts(LIGHT, 2)}</select></label><label>Vatten<select name="water">${opts(WATER, 2)}</select></label></div>
+  <label>Giftig för husdjur?<select name="pet"><option value="">Vet inte</option><option value="false">Ja, giftig</option><option value="true">Nej, ofarlig</option></select></label>
+  <label>Tips och anteckningar (valfritt)<textarea name="notes" rows="2" maxlength="300" placeholder="t.ex. Trivs i köksfönstret"></textarea></label>
+  <p class="mut" style="margin:0 0 12px;font-size:13px">Växten läggs till i din samling och i Roothoods växtdatabas. Den granskas innan andra kan se den.</p>
   <button class="btn wide formbtn">Lägg till i min samling</button></form>`;
+}
+// --- Eget foto och identifiering i Egen växt ---
+function apBox() {
+  const A = S.ap;
+  if (!A || !A.img) return `<label class="shot small"><span class="tic">${ic(CAM, 'currentColor', 24)}</span><span class="grow"><b>Ta ett foto</b><span>Valfritt. Med Pro kan appen känna igen växten.</span></span><input type="file" accept="image/*" capture="environment" class="sr" onchange="apPick(this)"></label>`;
+  let res = '';
+  if (A.busy) res = '<p class="mut" style="margin:10px 0 0">Identifierar…</p>';
+  else if (A.err) res = `<p class="formmsg" style="margin:10px 0 0">${esc(A.err)}</p>`;
+  else if (A.res) res = `${A.demo ? '<p class="formmsg ok" style="margin:10px 0 0">Exempelresultat: identifieringen är inte kopplad till Pl@ntNet än.</p>' : ''}<div class="flist" style="margin-top:10px">${A.res.map(apRow).join('')}</div><p class="mut" style="font-size:13px;margin:10px 0 0">Stämmer inget? Fyll i namnet själv nedan, så sparas växten med ditt foto.</p>`;
+  return `<div class="apimg"><img src="${A.img}" alt="Ditt foto"><button type="button" class="x" onclick="apClear()">Ta bort foto</button></div>
+  ${A.res || A.busy ? '' : `<button type="button" class="btn sm" style="margin-top:10px" onclick="apIdentify()">Identifiera växten${S.pro ? '' : ' (Pro)'}</button>`}${res}`;
+}
+function apRow(r, i) {
+  const p = matchPlant(r.latin, r.genus);
+  return `<div class="idr"><div class="grow"><b>${esc(r.common || r.latin)}</b><i>${esc(r.latin)}</i><small>${Math.round(r.score * 100)} % säker</small></div>
+  ${p ? `<button type="button" class="btn sm" onclick="apAddDb(${p.id})">Lägg till ${esc(p.swedish_name)}</button>` : `<button type="button" class="btn sm line" onclick="apUse(${i})">Använd namnet</button>`}</div>`;
+}
+function apUpdate() { const b = $('#apbox'); if (b) b.innerHTML = apBox(); }
+function apPick(inp) {
+  const f = inp.files && inp.files[0]; if (!f) return;
+  S.ap = { file: f, img: URL.createObjectURL(f) }; apUpdate();
+}
+function apClear() { S.ap = null; apUpdate(); }
+async function apIdentify() {
+  if (!S.pro) { S.ap.err = 'Identifiering med kameran ingår i Roothood Pro. Du kan ändå spara växten med ditt foto.'; return apUpdate(); }
+  S.ap.busy = true; S.ap.err = null; apUpdate();
+  try { const r = await plantnetIdentify(S.ap.file, 'auto'); S.ap.res = r.res; S.ap.demo = r.demo; }
+  catch (e) { S.ap.err = idErrText(e); }
+  S.ap.busy = false; apUpdate();
+}
+function apUse(i) {
+  const r = S.ap.res[i], f = $('#ov form'); if (!f) return;
+  f.name.value = r.common || r.latin; f.latin.value = r.latin;
+  f.name.focus(); toast('Namnet är ifyllt. Kontrollera och tryck på Lägg till.');
+}
+async function apAddDb(id) {
+  const p = S.plants.find(x => x.id === id), photo = S.ap && S.ap.file;
+  S.modal = null;
+  await run(() => api.addMine(p, photo), p.swedish_name + ' finns nu i din samling');
+  S.ap = null; photoWarnCheck();
+}
+function photoWarnCheck() { if (S.photoWarn) { S.photoWarn = false; toast('Växten sparades, men fotot kunde inte sparas.'); } }
+const petWord = p => p.pet_safe ? 'Ofarlig' : /^Okänt/.test(p.toxicity_text || '') ? 'Okänt' : 'Giftig';
+function plantPh(p) { return p.photo_url ? `<div class="ph has-img" style="--h:0"><img src="${esc(p.photo_url)}" alt="" loading="lazy"></div>` : ph(p.latin_name, p.category, p.swedish_name); }
+function myPh(m) { return m.photo ? `<div class="ph has-img" style="--h:0"><img src="${esc(m.photo)}" alt="" loading="lazy"></div>` : ph(m.latin, m.category, m.name); }
+async function uploadPhoto(file) {
+  try {
+    const blob = (await fileShrink(file, 900)) || file;
+    const path = S.user.id + '/' + Date.now() + '.jpg';
+    const { error } = await sb.storage.from('plant-photos').upload(path, blob, { contentType: 'image/jpeg' });
+    if (error) throw error;
+    return sb.storage.from('plant-photos').getPublicUrl(path).data.publicUrl;
+  } catch (e) { S.photoWarn = true; return null; }
 }
 // ===== Community: frågor och forum =====
 const QCATS = ['Allmänt'].concat(CATS);
@@ -1106,47 +1184,53 @@ function matchPlant(latin, genus) {
     || S.plants.find(p => l.startsWith(p.latin_name.toLowerCase() + ' '))
     || S.plants.find(p => p.latin_name.toLowerCase() === g);
 }
-function addFromId(name, latin) { if (overLimit()) { S.limitHit = true; return openModal('pro'); } openModal('add', name, latin); }
+function addFromId(name, latin) { if (overLimit()) { S.limitHit = true; return openModal('pro'); } openModal('add', name, latin, S.idFile ? { file: S.idFile, img: S.idImg } : null); }
 function pickPhoto(inp) {
   const f = inp.files && inp.files[0]; if (!f) return;
   S.idFile = f; S.idRes = null; S.idErr = null;
   if (S.idImg) URL.revokeObjectURL(S.idImg);
   S.idImg = URL.createObjectURL(f); render();
 }
-function shrink(file) {
+function shrinkUrl(url, max, asDataUrl) {
   return new Promise(ok => {
     const img = new Image();
     img.onload = () => {
-      const k = Math.min(1, 1280 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      const k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas');
       c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      c.toBlob(b => ok(b || file), 'image/jpeg', .85);
+      if (asDataUrl) return ok(c.toDataURL('image/jpeg', .8));
+      c.toBlob(b => ok(b), 'image/jpeg', .85);
     };
-    img.onerror = () => ok(file);
-    img.src = S.idImg;
+    img.onerror = () => ok(null);
+    img.src = url;
   });
 }
+async function fileShrink(file, max, asDataUrl) {
+  const u = URL.createObjectURL(file);
+  try { return await shrinkUrl(u, max, asDataUrl); } finally { URL.revokeObjectURL(u); }
+}
+async function plantnetIdentify(file, organ) {
+  if (!PLANTNET_KEY) {
+    await new Promise(r => setTimeout(r, 700));
+    return { demo: true, res: [{ latin: 'Monstera deliciosa', genus: 'Monstera', common: 'Monstera', score: .91 }, { latin: 'Epipremnum aureum', genus: 'Epipremnum', common: 'Gullranka', score: .05 }] };
+  }
+  const fd = new FormData();
+  fd.append('images', (await fileShrink(file, 1280)) || file, 'foto.jpg'); fd.append('organs', organ || 'auto');
+  const r = await fetch(`https://my-api.plantnet.org/v2/identify/all?api-key=${encodeURIComponent(PLANTNET_KEY)}&lang=sv&nb-results=3&include-related-images=false`, { method: 'POST', body: fd });
+  if (r.status === 404) throw new Error('Ingen växt hittades. Prova en skarpare bild, nära ett blad eller en blomma.');
+  if (r.status === 401 || r.status === 403) throw new Error('Nyckeln till Pl@ntNet fungerar inte. Kontrollera den och att din adress är godkänd.');
+  if (r.status === 429) throw new Error('Dagens gräns för identifieringar är nådd. Försök igen i morgon.');
+  if (!r.ok) throw new Error('Identifieringen misslyckades (fel ' + r.status + '). Försök igen.');
+  const j = await r.json();
+  const res = (j.results || []).slice(0, 3).map(x => ({ latin: x.species.scientificNameWithoutAuthor, genus: x.species.genus && x.species.genus.scientificNameWithoutAuthor, common: (x.species.commonNames || [])[0], score: x.score }));
+  if (!res.length) throw new Error('Ingen växt hittades. Prova en annan bild.');
+  return { demo: false, res };
+}
+const idErrText = e => /fetch|network/i.test(e.message) ? 'Ingen kontakt med identifieringstjänsten. Kontrollera internetanslutningen.' : e.message;
 async function identify() {
   S.idBusy = true; S.idErr = null; S.idRes = null; render();
-  try {
-    if (!PLANTNET_KEY) {
-      await new Promise(r => setTimeout(r, 700));
-      S.idDemo = true;
-      S.idRes = [{ latin: 'Monstera deliciosa', genus: 'Monstera', common: 'Monstera', score: .91 }, { latin: 'Epipremnum aureum', genus: 'Epipremnum', common: 'Gullranka', score: .05 }];
-    } else {
-      const fd = new FormData();
-      fd.append('images', await shrink(S.idFile), 'foto.jpg'); fd.append('organs', S.idOrgan);
-      const r = await fetch(`https://my-api.plantnet.org/v2/identify/all?api-key=${encodeURIComponent(PLANTNET_KEY)}&lang=sv&nb-results=3&include-related-images=false`, { method: 'POST', body: fd });
-      if (r.status === 404) throw new Error('Ingen växt hittades. Prova en skarpare bild, nära ett blad eller en blomma.');
-      if (r.status === 401 || r.status === 403) throw new Error('Nyckeln till Pl@ntNet fungerar inte. Kontrollera den och att din adress är godkänd.');
-      if (r.status === 429) throw new Error('Dagens gräns för identifieringar är nådd. Försök igen i morgon.');
-      if (!r.ok) throw new Error('Identifieringen misslyckades (fel ' + r.status + '). Försök igen.');
-      const j = await r.json();
-      S.idDemo = false;
-      S.idRes = (j.results || []).slice(0, 3).map(x => ({ latin: x.species.scientificNameWithoutAuthor, genus: x.species.genus && x.species.genus.scientificNameWithoutAuthor, common: (x.species.commonNames || [])[0], score: x.score }));
-      if (!S.idRes.length) throw new Error('Ingen växt hittades. Prova en annan bild.');
-    }
-  } catch (e) { S.idErr = /fetch|network/i.test(e.message) ? 'Ingen kontakt med identifieringstjänsten. Kontrollera internetanslutningen.' : e.message; }
+  try { const r = await plantnetIdentify(S.idFile, S.idOrgan); S.idDemo = r.demo; S.idRes = r.res; }
+  catch (e) { S.idErr = idErrText(e); }
   S.idBusy = false; render();
 }
 
@@ -1193,7 +1277,7 @@ function lightRest() {
   <p>Mobilkameror är inte riktiga ljusmätare, så värdena är uppskattningar. Använd dem för att jämföra platser hemma.</p></details>
   ${L ? `<details class="tech"><summary>Tekniska värden</summary><p>Metod: ${esc(L.method || '')}${r.y != null ? '<br>Ljusstyrka i bilden: ' + fmt(r.y) + ' av 255' : ''}${r.t != null ? '<br>Exponeringstid: ' + fmt(r.t / 10, 2) + ' ms' : ''}${r.iso != null ? '<br>ISO: ' + fmt(r.iso) : ''}${r.caps ? '<br>Kameran: ' + esc(r.caps) : ''}</p></details>` : ''}
   </div>
-  ${sugg.length ? `<div class="sec"><h2>Växter som trivs här</h2></div><div class="similar">${sugg.map(s => `<button onclick="stopLight();S.tool=null;openPlant(${s.id})">${ph(s.latin_name, s.category, s.swedish_name)}<span>${esc(s.swedish_name)}</span></button>`).join('')}</div>` : ''}`;
+  ${sugg.length ? `<div class="sec"><h2>Växter som trivs här</h2></div><div class="similar">${sugg.map(s => `<button onclick="stopLight();S.tool=null;openPlant(${s.id})">${plantPh(s)}<span>${esc(s.swedish_name)}</span></button>`).join('')}</div>` : ''}`;
 }
 function lightV() {
   return `${topbar('Ljusmätare', 'closeTool()')}<div class="pad">
@@ -1366,7 +1450,7 @@ async function changePw() {
 function setPref(k, v) { store.set(k, v); applyPrefs(); render(); }
 function resetDemo() {
   if (S.del !== 'reset') { S.del = 'reset'; return render(); }
-  ['mine', 'feed', 'forumSeeded', 'pro', 'profile', 'suggestions', 'zone', 'theme', 'textsize'].forEach(k => { try { localStorage.removeItem('gronska_' + k); } catch (e) {} });
+  ['mine', 'feed', 'forumSeeded', 'pro', 'profile', 'suggestions', 'zone', 'theme', 'textsize', 'myPlants'].forEach(k => { try { localStorage.removeItem('gronska_' + k); } catch (e) {} });
   location.reload();
 }
 function zoneOf(p) {
