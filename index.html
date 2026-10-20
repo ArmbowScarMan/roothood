@@ -341,6 +341,11 @@ details.tech p b{color:var(--ink)}
 .apimg img{width:100%;max-height:220px;object-fit:cover;border-radius:20px;display:block}
 .apimg .x{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.92);color:#1B2116;border-radius:999px;padding:6px 12px}
 .modal .idr{box-shadow:none}
+.addpimg .ph{height:200px;border-radius:22px}
+.myphoto{display:flex;gap:16px;justify-content:center;padding:8px 18px 0;flex-wrap:wrap}
+.link3{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--pri);font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:4px 0}
+.pbtn{width:34px;height:34px;border-radius:50%;background:var(--bg);color:var(--mut);display:grid;place-items:center;cursor:pointer;margin-bottom:4px}
+.pbtn:focus-within{outline:2px solid var(--pri)}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
@@ -444,6 +449,7 @@ const demoApi = {
   },
   async water(id) { const m = await this.mine(); m.find(x => x.id === id).last_watered = today(); await this.save(m); },
   async setWatered(id, date) { const m = await this.mine(); m.find(x => x.id === id).last_watered = date; await this.save(m); },
+  async setPhoto(id, file) { const m = await this.mine(); m.find(x => x.id === id).photo = file ? await fileShrink(file, 480, true) : null; await this.save(m); },
   async remove(id) { await this.save((await this.mine()).filter(x => x.id !== id)); },
   async getPro() { return store.get('pro', false); },
   async setPro(on) { store.set('pro', on); },
@@ -541,6 +547,12 @@ const sbApi = {
   },
   async water(id) { const { error } = await sb.from('user_plants').update({ last_watered: today() }).eq('id', id); if (error) throw error; },
   async setWatered(id, date) { const { error } = await sb.from('user_plants').update({ last_watered: date }).eq('id', id); if (error) throw error; },
+  async setPhoto(id, file) {
+    let url = null;
+    if (file) { url = await uploadPhoto(file); if (!url) { S.photoWarn = false; throw new Error('Fotot kunde inte sparas. Har du kört den senaste SQL-koden i Supabase?'); } }
+    const { error } = await sb.from('user_plants').update({ photo_url: url }).eq('id', id);
+    if (error) throw /photo_url/.test(error.message || '') ? new Error('Foton är inte påslagna i databasen än.') : error;
+  },
   async remove(id) { const { error } = await sb.from('user_plants').delete().eq('id', id); if (error) throw error; },
   async getPro() {
     const { data: s } = await sb.auth.getSession(); const uid = s.session && s.session.user.id; if (!uid) return false;
@@ -604,13 +616,35 @@ async function run(fn, ok) {
 }
 function go(t) { stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
 function openPlant(id) { S.sel = id; render(); $('#main').scrollTop = 0; }
-function openModal(m, prefill, latin, ap) { S.modal = m; S.msg = ''; S.prefill = prefill || ''; S.prefillLatin = latin || ''; if (m === 'add') S.ap = ap || null; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
+function openModal(m, prefill, latin, ap) { S.modal = m; S.msg = ''; S.prefill = prefill || ''; S.prefillLatin = latin || ''; if (m === 'add' || m === 'addp') S.ap = ap || null; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
 function closeModal() { S.modal = null; S.msg = ''; S.limitHit = false; render(); }
-function addPlant(id) {
+function addPlant(id, quick) {
   if (!S.user) return openModal('login');
   if (overLimit()) { S.limitHit = true; return openModal('pro'); }
+  if (!quick) { S.addp = id; return openModal('addp'); }
   const p = S.plants.find(x => x.id === id);
   run(() => api.addMine(p), p.swedish_name + ' finns nu i din samling');
+}
+function addpPick(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.ap = { file: f, img: URL.createObjectURL(f) }; render(); }
+async function confirmAddp() {
+  const p = S.plants.find(x => x.id === S.addp), photo = S.ap && S.ap.file;
+  S.modal = null;
+  await run(() => api.addMine(p, photo), p.swedish_name + ' finns nu i din samling' + (photo ? ' med ditt foto' : ''));
+  S.ap = null; photoWarnCheck();
+}
+async function setMyPhoto(id, inp) {
+  const f = inp && inp.files && inp.files[0]; if (inp && !f) return;
+  await run(() => api.setPhoto(id, f || null), f ? 'Ditt foto används nu för växten' : 'Databasens foto används nu');
+  photoWarnCheck();
+}
+function addpV() {
+  const p = S.plants.find(x => x.id === S.addp); if (!p) return '';
+  const A = S.ap;
+  return `<div class="mh"><h2>Lägg till ${esc(p.swedish_name)}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <div class="addpimg">${A && A.img ? `<div class="ph has-img"><img src="${A.img}" alt="Ditt foto"></div>` : plantPh(p)}</div>
+  <label class="shot small" style="margin-top:12px"><span class="tic">${ic(CAM, 'currentColor', 24)}</span><span class="grow"><b>${A && A.img ? 'Byt foto' : 'Använd eget foto'}</b><span>Valfritt. Ditt foto visas för växten i din samling.</span></span><input type="file" accept="image/*" capture="environment" class="sr" onchange="addpPick(this)"></label>
+  ${A && A.img ? '<button type="button" class="x" style="margin-top:8px" onclick="S.ap=null;render()">Använd databasens foto i stället</button>' : ''}
+  <div class="cta" style="padding:16px 0 0"><button class="btn formbtn" onclick="confirmAddp()">Lägg till i min samling</button></div>`;
 }
 function addCustomStart() { if (!S.user) return openModal('login'); if (overLimit()) { S.limitHit = true; return openModal('pro'); } openModal('add', S.q); }
 function water(id) { const m = S.mine.find(x => x.id === id); run(() => api.water(id), m.name + ' är vattnad'); }
@@ -736,7 +770,7 @@ function render() {
     m.innerHTML = S.sel ? detail() : S.tool ? toolV() : S.tab === 'home' ? home() : S.tab === 'mine' ? mineV() : S.tab === 'me' ? meV() : comm();
     if (!S.sel && !S.tool && S.tab === 'home') renderList();
   }
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'pro' ? proV() : addV()}</div></div>` : '';
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'addp' ? addpV() : S.modal === 'pro' ? proV() : addV()}</div></div>` : '';
   const lv = $('#lv'); if (lv && lightStream) { lv.srcObject = lightStream; lv.hidden = false; lv.play().catch(() => {}); }
   loadPhotos();
 }
@@ -783,7 +817,7 @@ function renderList() {
 }
 function heart(id) {
   if (S.mine.some(m => m.plant_id === id)) return toast('Finns redan i din samling');
-  addPlant(id);
+  addPlant(id, true);
 }
 function shortTemp(t) { const m = /\d+\s*–\s*\d+\s*°C/.exec(t || ''); return m ? m[0] : (t || '').split(',')[0]; }
 function tile(label, value, desc, icon, color, bad) {
@@ -794,18 +828,19 @@ function detail() {
   const d = my ? left(my) : null;
   const water = p.water_interval_days ? `Var ${p.water_interval_days}${ord(p.water_interval_days)} dag` : WATER[p.water_level - 1];
   const tips = [['Tips', p.tips], ['Vanliga problem', p.common_problems], ['Förökning', p.propagation], ['Odlingszon', p.hardiness_zone && 'Härdig i zon ' + p.hardiness_zone]].filter(t => t[1]);
-  const credit = IMG[p.latin_name] ? `<span class="credit">Foto: <a href="${esc(IMG[p.latin_name].page)}" target="_blank" rel="noopener">Wikipedia</a></span>` : '';
+  const credit = my && my.photo ? '' : IMG[p.latin_name] ? `<span class="credit">Foto: <a href="${esc(IMG[p.latin_name].page)}" target="_blank" rel="noopener">Wikipedia</a></span>` : '';
   const similar = S.plants.filter(x => x.category === p.category && x.id !== p.id).slice(0, 8);
   const status = my ? `<span class="tag green">${d === null ? 'I din samling' : d === 0 ? 'Vattna idag' : 'Vattnas om ' + d + (d === 1 ? ' dag' : ' dagar')}</span>` : '';
   const cta = !my ? `<button class="btn" onclick="addPlant(${p.id})">Lägg till i min samling</button>`
     : d !== null ? `<button class="btn" onclick="water(${my.id})">Markera som vattnad</button>` : '';
   return `${topbar(p.category, 'S.sel=null;render()')}
-  <div class="dtop">${plantPh(p)}<div class="dstats">
+  <div class="dtop">${my && my.photo ? myPh(my) : plantPh(p)}<div class="dstats">
     <div><small>Ljus</small><b>${LIGHT[p.light_level - 1]}</b></div>
     <div><small>Vatten</small><b>${water}</b></div>
     ${p.humidity ? `<div><small>Luftfuktighet</small><b>${esc(p.humidity)}</b></div>` : ''}
     <div><small>Husdjur</small><b class="${p.pet_safe ? '' : 'bad'}">${petWord(p)}</b></div>
   </div></div>${credit}
+  ${my ? `<div class="myphoto"><label class="link3">${ic(CAM, 'currentColor', 16)} ${my.photo ? 'Byt mitt foto' : 'Använd eget foto'}<input type="file" accept="image/*" capture="environment" class="sr" onchange="setMyPhoto(${my.id}, this)"></label>${my.photo ? `<button class="link3" onclick="setMyPhoto(${my.id}, null)">Visa databasens foto</button>` : ''}</div>` : ''}
   <div class="sheet2">
   <div class="dname"><h1>${esc(p.swedish_name)}</h1><i>${esc(p.latin_name)}</i><div class="tags">${status}<span class="tag lime">${esc(p.category)}</span>${zoneTag(p)}${p.status === 'pending' ? '<span class="tag">Väntar på granskning</span>' : ''}</div></div>
   <div class="sec"><h2>Så vattnar du</h2></div>
@@ -838,7 +873,7 @@ function mineV() {
     const status = d === null ? '<span class="mut">Växer ute, vattna vid torka</span>' : d === 0 ? `<span class="due-t">Vattna idag</span> <button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
     const title = m.custom ? esc(m.name) : `<button onclick="openPlant(${m.plant_id})">${esc(m.name)}</button>`;
     return `<div class="mrow">${myPh(m)}<div class="grow"><h3>${title}</h3>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${d !== null ? `<div class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></div>` : '<div style="height:6px"></div>'}${status}${m.notes ? `<div class="note">${esc(m.notes)}</div>` : ''}</div>
-      <div class="side">${d !== null ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
+      <div class="side"><label class="pbtn" title="Byt foto" aria-label="Byt foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" capture="environment" class="sr" onchange="setMyPhoto(${m.id}, this)"></label>${d !== null ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
   }).join('');
   return `${topbar('Min samling')}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
