@@ -286,6 +286,11 @@ form label.check input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-co
 .mchips button{flex:none;border:0;background:var(--surf);color:var(--ink);font:inherit;font-size:14px;font-weight:600;border-radius:999px;padding:8px 14px;cursor:pointer;box-shadow:var(--sh)}
 .mchips button.on{background:var(--pri);color:var(--onpri)}
 .scard{margin:0 18px;background:var(--surf);border-radius:22px;padding:6px 16px;box-shadow:var(--sh)}
+.psheet{position:fixed;inset:0;z-index:60;background:rgba(10,25,18,.45);display:flex;align-items:flex-end;justify-content:center}
+.psheet[hidden]{display:none}
+.pbox{width:100%;max-width:440px;background:var(--bg);border-radius:28px 28px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom,0));display:flex;flex-direction:column;gap:10px;text-align:center}
+.pbox b{font-size:17px;margin-bottom:4px}
+.pbox .btn{display:flex;align-items:center;justify-content:center;gap:10px}
 .tools{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 18px 0}
 .tool{position:relative;border:0;background:var(--surf);border-radius:22px;padding:14px;text-align:left;font:inherit;color:inherit;cursor:pointer;box-shadow:var(--sh);display:flex;flex-direction:column;gap:2px}
 .tool b{font-size:15px;margin-top:8px}
@@ -972,7 +977,7 @@ async function saveDetails() {
 function galleryV(my) {
   return `<div class="sec"><h2>Mina foton</h2>${my.photos.length ? (my.photo ? `<button class="link3" onclick="showDbPhoto(${my.id})">Visa databasens foto</button>` : '<span class="mut" style="font-size:13px">Databasens foto visas</span>') : ''}</div>
   <div class="gallery">${my.photos.map((u, i) => `<div class="gimg ${my.photo === u ? 'on' : ''}"><button class="gpick" onclick="pickMyPhoto(${my.id},${i})" aria-label="Visa foto ${i + 1} för växten"><img src="${esc(u)}" alt="" loading="lazy"></button>${my.photo === u ? `<span class="gsel">${ic(I.check, 'currentColor', 13)}</span>` : ''}<button class="gdel ${S.del === 'ph' + i ? 'sure' : ''}" onclick="delMyPhoto(${my.id},${i})" aria-label="Ta bort foto ${i + 1}">${S.del === 'ph' + i ? 'Ta bort?' : '×'}</button></div>`).join('')}
-  <label class="gadd">${ic(CAM, 'currentColor', 22)}<span>Lägg till foto</span><input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${my.id}, this)"></label></div>
+  <label onclick="photoPick(event,this)" class="gadd">${ic(CAM, 'currentColor', 22)}<span>Lägg till foto</span><input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${my.id}, this)"></label></div>
   ${my.photos.length ? '<p class="mut" style="font-size:13px;margin:8px 18px 0">Tryck på ett foto för att visa det för växten. Alla dina foton sparas. Andra kan se dem under "Andras bilder" (ändra i Inställningar).</p>' : ''}`;
 }
 function addpV() {
@@ -980,7 +985,7 @@ function addpV() {
   const A = S.ap;
   return `<div class="mh"><h2>Lägg till ${esc(p.swedish_name)}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div class="addpimg">${A && A.img ? `<div class="ph has-img"><img src="${A.img}" alt="Ditt foto"></div>` : plantPh(p)}</div>
-  <label class="shot small" style="margin-top:12px"><span class="tic">${ic(CAM, 'currentColor', 24)}</span><span class="grow"><b>${A && A.img ? 'Byt foto' : 'Använd eget foto'}</b><span>Valfritt. Ditt foto visas för växten i din samling.</span></span><input type="file" accept="image/*" class="sr" onchange="addpPick(this)"></label>
+  <label onclick="photoPick(event,this)" class="shot small" style="margin-top:12px"><span class="tic">${ic(CAM, 'currentColor', 24)}</span><span class="grow"><b>${A && A.img ? 'Byt foto' : 'Använd eget foto'}</b><span>Valfritt. Ditt foto visas för växten i din samling.</span></span><input type="file" accept="image/*" class="sr" onchange="addpPick(this)"></label>
   ${A && A.img ? '<button type="button" class="x" style="margin-top:8px" onclick="S.ap=null;render()">Använd databasens foto i stället</button>' : ''}
   <div class="cta" style="padding:16px 0 0"><button class="btn formbtn" onclick="confirmAddp()">Lägg till i min samling</button></div>`;
 }
@@ -1275,7 +1280,7 @@ function mineV() {
     const d = left(m), pct = m.interval ? Math.round((m.interval - d) / m.interval * 100) : 0;
     const status = d === null ? '<span class="mut">Växer ute, vattna vid torka</span>' : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
     return `<div class="mrow"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${esc(m.name)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
-      <div class="side"><label class="pbtn" title="Ta eller välj ett foto" aria-label="Lägg till foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
+      <div class="side"><label onclick="photoPick(event,this)" class="pbtn" title="Ta eller välj ett foto" aria-label="Lägg till foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
   }).join('');
   return `${topbar('Min samling')}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
@@ -1323,7 +1328,7 @@ function addV() {
 // --- Eget foto och identifiering i Egen växt ---
 function apBox() {
   const A = S.ap;
-  if (!A || !A.img) return `<label class="shot small"><span class="tic">${ic(CAM, 'currentColor', 24)}</span><span class="grow"><b>Ta eller välj ett foto</b><span>Valfritt. Med Pro kan appen känna igen växten.</span></span><input type="file" accept="image/*" class="sr" onchange="apPick(this)"></label>`;
+  if (!A || !A.img) return `<label onclick="photoPick(event,this)" class="shot small"><span class="tic">${ic(CAM, 'currentColor', 24)}</span><span class="grow"><b>Ta eller välj ett foto</b><span>Valfritt. Med Pro kan appen känna igen växten.</span></span><input type="file" accept="image/*" class="sr" onchange="apPick(this)"></label>`;
   let res = '';
   if (A.busy) res = '<p class="mut" style="margin:10px 0 0">Identifierar…</p>';
   else if (A.err) res = `<p class="formmsg" style="margin:10px 0 0">${esc(A.err)}</p>`;
@@ -1574,7 +1579,7 @@ function newListingV() {
     <label class="fl" for="lci">Ort</label>
     <input id="lci" maxlength="60" placeholder="t.ex. Uppsala" value="${esc(S.lci || '')}" oninput="S.lci=this.value">
     ${S.lt !== 'Önskas' ? `<label class="fl">Foto (valfritt)</label>
-    ${S.lphoto ? `<img class="lbig" src="${esc(S.lphotoUrl)}" alt="Valt foto"><button class="btn sm line" onclick="S.lphoto=null;render()">Ta bort foto</button>` : `<label class="btn sm line" style="display:inline-flex;gap:8px;align-items:center;cursor:pointer">${ic(CAM, 'currentColor', 18)} Ta eller välj foto<input type="file" accept="image/*" class="sr" onchange="pickLPhoto(this)"></label>`}` : ''}
+    ${S.lphoto ? `<img class="lbig" src="${esc(S.lphotoUrl)}" alt="Valt foto"><button class="btn sm line" onclick="S.lphoto=null;render()">Ta bort foto</button>` : `<label onclick="photoPick(event,this)" class="btn sm line" style="display:inline-flex;gap:8px;align-items:center;cursor:pointer">${ic(CAM, 'currentColor', 18)} Ta eller välj foto<input type="file" accept="image/*" class="sr" onchange="pickLPhoto(this)"></label>`}` : ''}
     <p class="lnote">Annonsen och svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>
     <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap"><button class="btn sm" ${S.busy ? 'disabled' : ''} onclick="sendListing()">${S.busy ? 'Publicerar…' : 'Publicera annons'}</button><button class="btn sm line" onclick="S.newL=false;render()">Avbryt</button></div>
   </div></div>`;
@@ -1772,7 +1777,7 @@ function idV() {
   else if (S.idErr) res = `<div class="formmsg">${esc(S.idErr)}</div>`;
   else if (S.idRes) res = `${S.idDemo ? '<p class="formmsg ok">Exempelresultat: identifieringen är inte kopplad till Pl@ntNet än.</p>' : ''}<div class="flist">${S.idRes.map(idRow).join('')}</div>`;
   return `${topbar('Identifiera växt', 'closeTool()')}<div class="pad">
-  <label class="shot ${S.idImg ? 'has' : ''}">${S.idImg ? `<img src="${S.idImg}" alt="Ditt foto">` : `<span class="tic big">${ic(CAM, 'currentColor', 34)}</span><b>Ta eller välj ett foto</b><span>Fota ett blad eller en blomma nära och skarpt, eller välj en bild från galleriet</span>`}
+  <label onclick="photoPick(event,this)" class="shot ${S.idImg ? 'has' : ''}">${S.idImg ? `<img src="${S.idImg}" alt="Ditt foto">` : `<span class="tic big">${ic(CAM, 'currentColor', 34)}</span><b>Ta eller välj ett foto</b><span>Fota ett blad eller en blomma nära och skarpt, eller välj en bild från galleriet</span>`}
   <input type="file" accept="image/*" onchange="pickPhoto(this)" class="sr"></label>
   ${S.idImg ? `<p class="mut" style="margin:14px 0 8px">Vad är på bilden?</p><div class="chips2">${organs.map(([k, t]) => `<button class="${S.idOrgan === k ? 'on' : ''}" onclick="S.idOrgan='${k}';render()">${t}</button>`).join('')}</div>
   <div class="cta" style="padding:16px 0 4px"><button class="btn" ${S.idBusy ? 'disabled' : ''} onclick="identify()">Identifiera</button></div>` : ''}
@@ -2005,7 +2010,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.8.1';
+const APP_VERSION = '1.8.2';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
@@ -2183,6 +2188,32 @@ function pushCard() {
 }
 // Notisen öppnar Min samling
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.tab) go(e.data.tab); });
+
+// ===== Välj kamera eller galleri =====
+// Android öppnar annars bara kameran (med capture) eller bara galleriet (utan). Vi frågar själva.
+let pickInput = null;
+function photoPick(e, label) {
+  if (e.target && e.target.tagName === 'INPUT') return;
+  e.preventDefault();
+  pickInput = label.querySelector('input[type=file]'); if (!pickInput) return;
+  let sh = document.getElementById('psheet');
+  if (!sh) {
+    sh = document.createElement('div'); sh.id = 'psheet'; sh.className = 'psheet';
+    sh.innerHTML = `<div class="pbox" role="dialog" aria-label="Lägg till foto"><b>Lägg till foto</b>
+      <button class="btn wide" onclick="pickFrom(true)">${ic(CAM, 'currentColor', 20)} Ta foto med kameran</button>
+      <button class="btn wide line" onclick="pickFrom(false)">${ic('<rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/>', 'currentColor', 20)} Välj från galleriet</button>
+      <button class="x" style="margin-top:4px" onclick="closePick()">Avbryt</button></div>`;
+    sh.addEventListener('click', ev => { if (ev.target === sh) closePick(); });
+    document.body.appendChild(sh);
+  }
+  sh.hidden = false;
+}
+function closePick() { const sh = document.getElementById('psheet'); if (sh) sh.hidden = true; }
+function pickFrom(cam) {
+  const inp = pickInput; closePick(); if (!inp) return;
+  if (cam) inp.setAttribute('capture', 'environment'); else inp.removeAttribute('capture');
+  inp.click();
+}
 
 // ===== Installera som app =====
 let installEvt = null;
