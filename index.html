@@ -754,7 +754,11 @@ const sbApi = {
     if (error) throw error;
   },
   async best(pid, aid) { const { error } = await sb.from('posts').update({ best_answer_id: aid }).eq('id', pid); if (error) throw error; },
-  async report(kind, id, reason) { const { error } = await sb.from('reports').insert({ reporter_id: S.user.id, [kind === 'post' ? 'post_id' : 'answer_id']: id, reason }); if (error) throw error; },
+  async report(kind, id, reason) {
+    const { error } = await sb.from('reports').insert({ reporter_id: S.user.id, [kind === 'post' ? 'post_id' : kind === 'photo' ? 'photo_url' : 'answer_id']: id, reason });
+    if (error && kind === 'photo' && /duplicate|unique/.test(error.message || '')) return;
+    if (error) throw kind === 'photo' && /photo_url|target_check|reports_check/.test(error.message || '') ? new Error('REPORT_PHOTO_NOT_READY') : error;
+  },
   async delPost(id) { const { error } = await sb.from('posts').delete().eq('id', id); if (error) throw error; },
   async delAnswer(id) { const { error } = await sb.from('answers').delete().eq('id', id); if (error) throw error; }
 };
@@ -835,6 +839,20 @@ function othersV(p) {
     : `<div class="similar others">${list.map((x, i) => `<button onclick="openLb(${p.id},${i})" aria-label="Visa bild från ${esc(x.display_name || 'någon')}"><img src="${esc(x.url)}" alt="" loading="lazy"><span>${esc(x.display_name || 'Växtvän')}</span></button>`).join('')}</div>`;
   return `<div class="sec"><h2>Andras bilder på samma växt</h2>${list.length ? `<span class="mut" style="font-size:13px">${list.length} st</span>` : ''}</div>${body}`;
 }
+function reportPhoto() {
+  if (needLogin()) return;
+  const L = S.others[S.lb.pid] || [], x = L[S.lb.i]; if (!x) return;
+  S.rep = { kind: 'photo', id: x.url, pid: S.lb.pid }; openModal('report');
+}
+async function sendPhotoReport(reason) {
+  const { id, pid } = S.rep;
+  try {
+    await api.report('photo', id, reason);
+    if (Array.isArray(S.others[pid])) S.others[pid] = S.others[pid].filter(x => x.url !== id);
+    toast('Tack! Bilden är dold för dig och granskas.');
+  } catch (e) { toast(e.message === 'REPORT_PHOTO_NOT_READY' ? 'Rapportering av bilder är inte påslagen i databasen än.' : errMsg(e)); }
+  render();
+}
 function openLb(pid, i) { S.lb = { pid, i }; openModal('photo'); }
 function lbV() {
   const L = S.others[S.lb.pid] || [], x = L[S.lb.i], p = S.plants.find(y => y.id === S.lb.pid);
@@ -842,7 +860,7 @@ function lbV() {
   const nav = L.length > 1 ? `<div style="display:flex;gap:10px;justify-content:center;margin-top:12px"><button class="btn sm line" onclick="S.lb.i=(S.lb.i+${L.length - 1})%${L.length};render()">‹ Förra</button><span class="mut" style="align-self:center">${S.lb.i + 1} / ${L.length}</span><button class="btn sm line" onclick="S.lb.i=(S.lb.i+1)%${L.length};render()">Nästa ›</button></div>` : '';
   return `<div class="mh"><h2>${esc(p ? p.swedish_name : 'Bild')}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <img class="lbimg" src="${esc(x.url)}" alt="${esc((p ? p.swedish_name : 'Växt') + ' fotograferad av ' + (x.display_name || 'en växtvän'))}">
-  <p class="mut" style="margin:10px 0 0">Foto: <b>${esc(x.display_name || 'Växtvän')}</b></p>${nav}`;
+  <div style="display:flex;align-items:center;margin-top:10px"><p class="mut" style="margin:0;flex:1">Foto: <b>${esc(x.display_name || 'Växtvän')}</b></p><button class="x" onclick="reportPhoto()">Rapportera bild</button></div>${nav}`;
 }
 async function toggleShare(on) {
   try { await api.setShare(on); if (S.prof) S.prof.share_photos = on; toast(on ? 'Dina växtfoton visas för andra' : 'Dina växtfoton visas bara för dig'); }
@@ -1363,6 +1381,7 @@ async function uploadPhoto(file) {
 // ===== Community: frågor och forum =====
 const QCATS = ['Allmänt'].concat(CATS);
 const REASONS = ['Olämpligt eller elakt', 'Spam eller reklam', 'Farliga eller felaktiga råd', 'Annat'];
+const PHOTO_REASONS = ['Inte en bild på växten', 'Olämplig eller stötande bild', 'Visar personuppgifter (t.ex. ansikte, adress)', 'Annat'];
 const FORUMS = [
   { id: 'Krukväxter', d: 'Allt om växter inomhus', c: '#1F4D3A' },
   { id: 'Köksträdgård', d: 'Grönsaker, bär och kryddor', c: '#D8412F' },
@@ -1448,6 +1467,7 @@ function openReport(kind, id) { if (needLogin()) return; S.rep = { kind, id }; o
 function sendReport(form) {
   const r = new FormData(form).get('reason');
   S.modal = null;
+  if (S.rep.kind === 'photo') return sendPhotoReport(r);
   commRun(() => api.report(S.rep.kind, S.rep.id, r), 'Tack! Rapporten är skickad.');
 }
 function whoP(o, sub, pill) { return who(o.author, sub, pill, o.author_pro); }
@@ -1624,8 +1644,8 @@ function threadV() {
 }
 function reportV() {
   return `<div class="mh"><h2>Rapportera</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
-  <p class="mut" style="margin:0 0 14px">Vad är fel? Rapporten går till den som sköter appen.</p>
-  <form onsubmit="event.preventDefault();sendReport(this)">${REASONS.map((r, i) => `<label class="check"><input type="radio" name="reason" value="${r}" ${i === 0 ? 'checked' : ''}><span>${r}</span></label>`).join('')}
+  <p class="mut" style="margin:0 0 14px">${S.rep && S.rep.kind === 'photo' ? 'Vad är fel med bilden? Den döljs direkt för dig, och rapporten går till den som sköter appen.' : 'Vad är fel? Rapporten går till den som sköter appen.'}</p>
+  <form onsubmit="event.preventDefault();sendReport(this)">${(S.rep && S.rep.kind === 'photo' ? PHOTO_REASONS : REASONS).map((r, i) => `<label class="check"><input type="radio" name="reason" value="${r}" ${i === 0 ? 'checked' : ''}><span>${r}</span></label>`).join('')}
   <button class="btn wide formbtn">Skicka rapport</button></form>`;
 }
 
@@ -1985,7 +2005,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.7';
+const APP_VERSION = '1.8';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
