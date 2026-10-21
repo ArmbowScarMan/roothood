@@ -540,6 +540,7 @@ function art(cat, name) {
 
 // ===== Data: demoläge (sparas i webbläsaren) =====
 const demoApi = {
+  async setPushHour() {},
   async setRemind(id, on) { const m = this._raw(); m.find(x => x.id === id).remind = on; await this.save(m); },
   async saveDetails(id, d) { const m = this._raw(); m.find(x => x.id === id).details = d; await this.save(m); },
   async othersPhotos() { return []; },
@@ -654,6 +655,7 @@ const demoApi = {
 // ===== Data: Supabase =====
 let sb;
 const sbApi = {
+  async setPushHour(endpoint, h) { const { error } = await sb.from('push_subscriptions').update({ notify_hour: h }).eq('endpoint', endpoint); if (error) throw /notify_hour/.test(error.message || '') ? new Error('HOUR_NOT_READY') : error; },
   async setRemind(id, on) { const { error } = await sb.from('user_plants').update({ remind: on }).eq('id', id); if (error) throw /remind/.test(error.message || '') ? new Error('REMIND_NOT_READY') : error; },
   async saveDetails(id, d) { const { error } = await sb.from('user_plants').update({ details: d }).eq('id', id); if (error) throw /details/.test(error.message || '') ? new Error('DETAILS_NOT_READY') : error; },
   async othersPhotos(pid) { const { data, error } = await sb.rpc('plant_photos', { p_plant_id: pid }); if (error) throw error; return data || []; },
@@ -1423,7 +1425,7 @@ function mineV() {
   }).join('');
   return `${topbar('Min samling')}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
-  ${S.mine.length && S.push === 'off' && !store.get('pushNudgeHidden', false) ? `<div class="instc pushnudge"><span class="tic">${ic(BELL, 'currentColor', 22)}</span><div><b>Få påminnelser i mobilen</b><span>En notis på morgonen när något behöver vattnas.</span></div><button class="btn sm" onclick="enablePush()">Slå på</button><button class="x" aria-label="Dölj" onclick="store.set('pushNudgeHidden', true); render()">✕</button></div>` : ''}
+  ${S.mine.length && S.push === 'off' && !store.get('pushNudgeHidden', false) ? `<div class="instc pushnudge"><span class="tic">${ic(BELL, 'currentColor', 22)}</span><div><b>Få påminnelser i mobilen</b><span>En notis när något behöver vattnas, på tiden du väljer.</span></div><button class="btn sm" onclick="enablePush()">Slå på</button><button class="x" aria-label="Dölj" onclick="store.set('pushNudgeHidden', true); render()">✕</button></div>` : ''}
   <div class="sec"><h2>Dina växter</h2><button class="btn sm line" onclick="addCustomStart()">+ Egen växt</button></div>
   <div class="list" style="padding-top:0">${rows || `<div class="empty"><p>Tryck på hjärtat på en växt under Växter så hamnar den här, med vattningspåminnelser.</p><button class="btn sm" onclick="go('home')">Hitta växter</button></div>`}</div>`;
 }
@@ -2217,7 +2219,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.12';
+const APP_VERSION = '1.13';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
@@ -2349,9 +2351,17 @@ async function enablePush() {
     let sub = await reg.pushManager.getSubscription();
     if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUBLIC_KEY) });
     await api.savePush(sub);
+    try { await api.setPushHour(sub.endpoint, store.get('pushHour', 8)); } catch (e) {}
     toast('Påminnelser är på! 🌱');
   } catch (e) { toast('Kunde inte slå på notiser: ' + (e.message || e)); }
   finally { S.pushBusy = false; await refreshPush(); render(); }
+}
+async function setPushHour(h) {
+  store.set('pushHour', h);
+  try {
+    if (!DEMO) { const reg = await swReady(), sub = await reg.pushManager.getSubscription(); if (sub) await api.setPushHour(sub.endpoint, h); }
+    toast('Påminnelsen kommer kl ' + String(h).padStart(2, '0') + '.00');
+  } catch (e) { toast(e.message === 'HOUR_NOT_READY' ? 'Tidsval är inte påslaget i databasen än.' : errMsg(e)); }
 }
 async function disablePush() {
   S.pushBusy = true; render();
@@ -2389,8 +2399,9 @@ function pushCard() {
   else if (!st) inner = '<p class="mut" style="margin:0">Kollar…</p>';
   else if (st === 'unsupported') inner = '<p class="mut" style="margin:0">Notiser fungerar inte här. Öppna appen i Chrome: armbowscarman.github.io/roothood</p>';
   else if (st === 'denied') inner = '<p style="margin:0 0 6px"><b>Notiser är blockerade</b></p><p class="mut" style="margin:0">Tryck på ikonen till vänster om adressen i Chrome, välj <b>Behörigheter</b> och slå på <b>Aviseringar</b>. Ladda sedan om sidan.</p>';
-  else if (st === 'on') inner = `<p class="on">✓ Påminnelser är på</p><p class="mut" style="margin:0">Du får en notis på morgonen när en växt behöver vattnas, även när appen är stängd.</p><div class="row2"><button class="btn sm"${busy} onclick="testPush()">Skicka testnotis</button><button class="btn sm line"${busy} onclick="disablePush()">Stäng av</button></div>`;
-  else inner = `<p class="mut" style="margin:0">Få en notis på morgonen när en växt behöver vattnas, även när appen är stängd.</p><div class="row2"><button class="btn sm"${busy} onclick="enablePush()">${ic(BELL, 'currentColor', 16)} Slå på påminnelser</button></div>`;
+  else if (st === 'on') inner = `<p class="on">✓ Påminnelser är på</p><p class="mut" style="margin:0">Du får en notis när en växt behöver vattnas, även när appen är stängd.</p>
+  <label class="fl" for="phour">Tid för påminnelsen</label><select id="phour" onchange="setPushHour(+this.value)">${Array.from({ length: 17 }, (_, i) => i + 6).map(h => `<option value="${h}" ${store.get('pushHour', 8) === h ? 'selected' : ''}>kl ${String(h).padStart(2, '0')}.00</option>`).join('')}</select><div class="row2"><button class="btn sm"${busy} onclick="testPush()">Skicka testnotis</button><button class="btn sm line"${busy} onclick="disablePush()">Stäng av</button></div>`;
+  else inner = `<p class="mut" style="margin:0">Få en notis när en växt behöver vattnas, även när appen är stängd. Du väljer själv tiden.</p><div class="row2"><button class="btn sm"${busy} onclick="enablePush()">${ic(BELL, 'currentColor', 16)} Slå på påminnelser</button></div>`;
   const def = store.get('remindDefault', true);
   return `<div class="setcard pushc">${inner}</div>
   <label class="remrow" style="margin-top:10px"><input type="checkbox" ${def ? 'checked' : ''} onchange="store.set('remindDefault', this.checked);toast(this.checked ? 'Nya växter får påminnelser' : 'Nya växter får inga påminnelser')"><span><b>Påminnelser för nya växter</b><span class="mut">Bocka ur om du vill sköta vattningen själv. Du kan ändra för varje växt i skötseldagboken.</span></span></label>`;
