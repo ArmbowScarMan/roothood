@@ -1231,7 +1231,7 @@ function home() {
   ${toolsRow()}
   ${seasonCard()}
   ${S.user && S.mine.length ? `<div class="sec"><h2>Mina växter</h2><button class="viewall" onclick="go('mine')">Visa alla</button></div><div class="mycards">${S.mine.map(myCard).join('')}</div>` : intro}
-  <div class="searchrow" style="padding-top:${S.user && S.mine.length ? 4 : 16}px"><div class="search">${ic(I.search, null, 20)}<input type="search" placeholder="Sök växt eller latinskt namn" value="${esc(S.q)}" oninput="S.q=this.value;renderList()" aria-label="Sök växter"></div></div>
+  <div class="searchrow" style="padding-top:${S.user && S.mine.length ? 4 : 16}px"><div class="search">${ic(I.search, null, 20)}<input type="search" placeholder="Sök växt eller vetenskapligt namn" value="${esc(S.q)}" oninput="S.q=this.value;renderList()" aria-label="Sök växter"></div></div>
   <div class="sec"><h2>Alla växter</h2><span class="mut" id="count"></span></div>
   <div class="tabs" role="tablist">${['Alla'].concat(envCats()).map(c => `<button class="tab ${c === S.cat ? 'on' : ''}" role="tab" aria-selected="${c === S.cat}" onclick="S.cat='${c}';render()">${c}</button>`).join('')}</div>
   <div class="grid" id="list"></div>`;
@@ -1343,7 +1343,7 @@ function addV() {
   <div id="apbox">${apBox()}</div>
   <form onsubmit="event.preventDefault();saveCustom(this)">
   <label>Namn<input name="name" required maxlength="60" value="${esc(S.prefill)}" placeholder="t.ex. Elefantöra"></label>
-  <label>Latinskt namn (valfritt)<input name="latin" maxlength="80" placeholder="t.ex. Alocasia" value="${esc(S.prefillLatin)}"></label>
+  <label>Vetenskapligt namn (valfritt)<input name="latin" maxlength="80" placeholder="t.ex. Alocasia" value="${esc(S.prefillLatin)}"></label>
   <div class="row2"><label>Kategori<select name="cat">${CATS.map(c => `<option>${c}</option>`).join('')}</select></label>
   <label>Vattna var … dag<input name="interval" type="number" min="1" max="90" value="7" required></label></div>
   <div class="row2"><label>Ljus<select name="light">${opts(LIGHT, 2)}</select></label><label>Vatten<select name="water">${opts(WATER, 2)}</select></label></div>
@@ -2085,7 +2085,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.10';
+const APP_VERSION = '1.10.1';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
