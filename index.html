@@ -1857,7 +1857,8 @@ async function plantnetIdentify(file, organ) {
   fd.append('images', (await fileShrink(file, 1280)) || file, 'foto.jpg'); fd.append('organs', organ || 'auto');
   const r = await fetch(`https://my-api.plantnet.org/v2/identify/all?api-key=${encodeURIComponent(PLANTNET_KEY)}&lang=sv&nb-results=3&include-related-images=false`, { method: 'POST', body: fd });
   if (r.status === 404) throw new Error('Ingen växt hittades. Prova en skarpare bild, nära ett blad eller en blomma.');
-  if (r.status === 401 || r.status === 403) throw new Error('Nyckeln till Pl@ntNet fungerar inte. Kontrollera den och att din adress är godkänd.');
+  if (r.status === 401) throw new Error('Pl@ntNet känner inte igen nyckeln (fel 401). Kontrollera att hela nyckeln är rätt.');
+  if (r.status === 403) throw new Error('Pl@ntNet godkänner inte den här adressen (fel 403). Kontrollera "Expose my API key" och godkända domäner.');
   if (r.status === 429) throw new Error('Dagens gräns för identifieringar är nådd. Försök igen i morgon.');
   if (!r.ok) throw new Error('Identifieringen misslyckades (fel ' + r.status + '). Försök igen.');
   const j = await r.json();
