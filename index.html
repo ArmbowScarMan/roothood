@@ -1007,14 +1007,17 @@ function plantRow(f) {
   return {
     swedish_name: f.name, latin_name: f.latin || '', category: f.cat, status: 'pending',
     light_level: f.light, water_level: f.water, light_text: LIGHT[f.light - 1],
-    water_text: `Ungefär var ${f.interval}${ord(f.interval)} dag`, water_interval_days: f.interval,
-    pet_safe: f.pet === 'true', toxicity_text: f.pet === 'true' ? 'Ofarlig för husdjur (enligt användaren)' : f.pet === 'false' ? 'Giftig för husdjur (enligt användaren)' : 'Okänt om den är giftig för husdjur',
-    tips: f.notes || null
+    water_text: f.interval ? `Ungefär var ${f.interval}${ord(f.interval)} dag` : 'Vattna vid torka', water_interval_days: f.interval || null,
+    pet_safe: f.pet === 'true', toxicity_text: (f.pet === 'true' ? 'Ofarlig för husdjur (enligt användaren)' : f.pet === 'false' ? 'Giftig för husdjur (enligt användaren)' : 'Okänt om den är giftig för husdjur') + (f.toxtext ? '. ' + f.toxtext : ''),
+    tips: f.notes || null, soil: f.soil || null, temperature: f.temperature || null, humidity: f.humidity || null,
+    propagation: f.propagation || null, common_problems: f.problems || null, hardiness_zone: f.zone || null
   };
 }
 async function saveCustom(form) {
   const d = Object.fromEntries(new FormData(form));
-  const f = { name: d.name.trim(), latin: (d.latin || '').trim(), cat: d.cat, interval: +d.interval, notes: (d.notes || '').trim(), light: +d.light, water: +d.water, pet: d.pet, photo: S.ap && S.ap.file };
+  const t = k => (d[k] || '').trim() || null;
+  const f = { name: d.name.trim(), latin: (d.latin || '').trim(), cat: d.cat, interval: d.outdoor ? null : +d.interval, notes: (d.notes || '').trim(), light: +d.light, water: +d.water, pet: d.pet, photo: S.ap && S.ap.file,
+    soil: t('soil'), temperature: t('temperature'), humidity: t('humidity'), toxtext: t('toxtext'), propagation: t('propagation'), problems: t('problems'), zone: t('zone') };
   const low = s => s.toLowerCase();
   const dup = (f.latin && S.plants.find(p => low(p.latin_name) === low(f.latin))) || S.plants.find(p => low(p.swedish_name) === low(f.name));
   S.modal = null;
@@ -1330,6 +1333,16 @@ function addV() {
   <div class="row2"><label>Ljus<select name="light">${opts(LIGHT, 2)}</select></label><label>Vatten<select name="water">${opts(WATER, 2)}</select></label></div>
   <label>Giftig för husdjur?<select name="pet"><option value="">Vet inte</option><option value="false">Ja, giftig</option><option value="true">Nej, ofarlig</option></select></label>
   <label>Tips och anteckningar (valfritt)<textarea name="notes" rows="2" maxlength="300" placeholder="t.ex. Trivs i köksfönstret"></textarea></label>
+  <details class="tech more" ${S.prefill === '' && S.ap ? 'open' : ''} style="margin:0 0 14px"><summary>Mer om växten (valfritt)</summary>
+  <p class="mut" style="margin:6px 0 12px;font-size:13px">Fyll i det du vet. Allt hjälper andra som har samma växt.</p>
+  <label>Jord<input name="soil" maxlength="120" placeholder="t.ex. Luftig krukjord med perlit"></label>
+  <div class="row2"><label>Temperatur<input name="temperature" maxlength="80" placeholder="t.ex. 18–25 °C"></label><label>Luftfuktighet<select name="humidity"><option value="">Vet inte</option><option>Låg</option><option>Normal</option><option>Medel</option><option>Hög</option></select></label></div>
+  <label>Mer om giftighet<input name="toxtext" maxlength="160" placeholder="t.ex. Saften irriterar huden"></label>
+  <label>Förökning<input name="propagation" maxlength="160" placeholder="t.ex. Stickling i vatten"></label>
+  <label>Vanliga problem<input name="problems" maxlength="200" placeholder="t.ex. Gula blad vid för mycket vatten"></label>
+  <label>Härdig i odlingszon (för växter ute året runt)<select name="zone"><option value="">Vet inte / inomhus</option>${[1, 2, 3, 4, 5, 6, 7, 8].map(z => `<option value="1–${z}">Zon 1–${z}</option>`).join('')}</select></label>
+  <label>Vattna utomhus?<select name="outdoor"><option value="">Nej, enligt intervallet ovan</option><option value="1">Ja, vid torka (ingen påminnelse)</option></select></label>
+  </details>
   <p class="mut" style="margin:0 0 12px;font-size:13px">Växten läggs till i din samling och i Roothoods växtdatabas. Den granskas innan andra kan se den.</p>
   <button class="btn wide formbtn">Lägg till i min samling</button></form>`;
 }
@@ -1783,7 +1796,7 @@ function idV() {
   let res = '';
   if (S.idBusy) res = '<p class="mut" style="text-align:center">Identifierar…</p>';
   else if (S.idErr) res = `<div class="formmsg">${esc(S.idErr)}</div>`;
-  else if (S.idRes) res = `${S.idDemo ? '<p class="formmsg ok">Exempelresultat: identifieringen är inte kopplad till Pl@ntNet än.</p>' : ''}<div class="flist">${S.idRes.map(idRow).join('')}</div>`;
+  else if (S.idRes) res = `${S.idDemo ? '<div class="pdhint warn" style="margin:12px 0"><span class="ck">⚠️</span><span><b>Det här är bara ett exempel.</b> Identifieringen är inte kopplad till Pl@ntNet än, så appen visar alltid samma växter oavsett vad du fotar.</span></div>' : ''}<div class="flist">${S.idRes.map(idRow).join('')}</div>`;
   const gal = `<label class="btn sm line" style="display:inline-flex;gap:8px;align-items:center;cursor:pointer">${ic(GALLERY, 'currentColor', 18)} Välj från galleriet<input type="file" accept="image/*" onchange="pickPhoto(this)" class="sr"></label>`;
   const top = S.idLive ? `<div class="idcam"><video id="idvid" autoplay playsinline muted></video><span class="idframe"></span>
       <div class="idbar"><button class="x" style="color:#fff" onclick="stopIdCam();render()">Avbryt</button><button class="shutter" onclick="snapIdCam()" aria-label="Ta foto"></button><span style="width:60px"></span></div></div>
@@ -1796,11 +1809,12 @@ function idV() {
   ${S.idImg ? `<p class="mut" style="margin:14px 0 8px">Vad är på bilden?</p><div class="chips2">${organs.map(([k, t]) => `<button class="${S.idOrgan === k ? 'on' : ''}" onclick="S.idOrgan='${k}';render()">${t}</button>`).join('')}</div>
   <div class="cta" style="padding:16px 0 4px"><button class="btn" ${S.idBusy ? 'disabled' : ''} onclick="identify()">Identifiera</button></div>` : ''}
   ${res}
+  ${(S.idRes || S.idErr) && !S.idBusy ? `<div class="setcard" style="margin-top:14px;text-align:center"><b style="display:block;font-size:16px">Är det ingen av de här?</b><p class="mut" style="margin:4px 0 12px">Lägg till växten själv med ditt foto. Den hamnar i din samling och i databasen.</p><button class="btn sm" onclick="addFromId('','')">+ Lägg till växten själv</button></div>` : ''}
   ${!S.idImg && !S.idLive ? `<div class="pdhint" style="margin-top:18px"><span class="ck">💡</span><span><b>Snabbare nästa gång:</b> installera Roothood som app, håll fingret på Roothood-ikonen på startskärmen och dra ut <b>Identifiera växt</b> som en egen genväg. Då öppnas kameran direkt.</span></div>` : ''}</div>`;
 }
 function idRow(r) {
   const p = matchPlant(r.latin, r.genus);
-  return `<div class="idr"><div class="grow"><b>${esc(r.common || r.latin)}</b><i>${esc(r.latin)}</i><div class="bar"><i style="width:${Math.round(r.score * 100)}%"></i></div><small>${Math.round(r.score * 100)} % säker</small></div>
+  return `<div class="idr"><div class="grow"><b>${esc(r.common || r.latin)}</b><i>${esc(r.latin)}</i>${S.idDemo ? '<small style="color:var(--mut)">Exempel, inte ditt foto</small>' : `<div class="bar"><i style="width:${Math.round(r.score * 100)}%"></i></div><small>${Math.round(r.score * 100)} % säker</small>`}</div>
   ${p ? `<button class="btn sm" onclick="S.tool=null;openPlant(${p.id})">Skötselråd</button>` : `<button class="btn sm line" onclick="addFromId('${esc(r.common || r.latin).replace(/'/g, '&#39;')}','${esc(r.latin).replace(/'/g, '&#39;')}')">Lägg till</button>`}</div>`;
 }
 function matchPlant(latin, genus) {
@@ -2051,7 +2065,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.9';
+const APP_VERSION = '1.9.1';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
