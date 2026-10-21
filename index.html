@@ -418,6 +418,10 @@ details.tech p b{color:var(--ink)}
 .pdform .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .pdform .tog{display:flex;gap:12px;align-items:center;margin-top:14px;cursor:pointer}
 .pdform .tog input{width:22px;height:22px;flex:none;margin:0;accent-color:var(--pri)}
+.remrow{display:flex;gap:12px;align-items:flex-start;background:var(--surf);border-radius:16px;padding:12px 14px;box-shadow:var(--sh);margin-bottom:10px;cursor:pointer}
+.remrow input{width:22px;height:22px;flex:none;margin:2px 0 0;accent-color:var(--pri)}
+.remrow b{display:block;font-size:15px}
+.remrow .mut{font-size:13px}
 .diary{padding:0 18px}
 .diary.inm{padding:0;margin-top:18px}
 .diary h3{font-size:17px;margin:0 0 10px}
@@ -491,7 +495,8 @@ const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const today = () => new Date().toLocaleDateString('sv-SE');
 const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toLocaleDateString('sv-SE'); };
 const since = d => Math.round((Date.parse(today()) - Date.parse(d)) / 864e5);
-const left = m => m.interval ? Math.max(0, m.interval - since(m.last_watered)) : null;
+const left = m => m.interval && m.remind !== false ? Math.max(0, m.interval - since(m.last_watered)) : null;
+const newRemind = () => S.addRemind !== undefined ? S.addRemind : store.get('remindDefault', true);
 const ord = n => (n % 10 === 1 || n % 10 === 2) && n % 100 !== 11 && n % 100 !== 12 ? ':a' : ':e';
 const hueOf = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
 const store = {
@@ -527,6 +532,7 @@ function art(cat, name) {
 
 // ===== Data: demoläge (sparas i webbläsaren) =====
 const demoApi = {
+  async setRemind(id, on) { const m = this._raw(); m.find(x => x.id === id).remind = on; await this.save(m); },
   async saveDetails(id, d) { const m = this._raw(); m.find(x => x.id === id).details = d; await this.save(m); },
   async othersPhotos() { return []; },
   async setShare(on) { store.set('share', on); },
@@ -564,7 +570,7 @@ const demoApi = {
   },
   async addMine(p, photo) {
     const m = this._raw(), ph_ = photo ? await fileShrink(photo, 480, true) : null;
-    m.push({ id: Date.now(), plant_id: p.id, name: p.swedish_name, latin: p.latin_name, category: p.category, interval: p.water_interval_days, last_watered: today(), custom: false, photo: ph_, photos: ph_ ? [ph_] : [], showOwn: true });
+    m.push({ id: Date.now(), plant_id: p.id, name: p.swedish_name, latin: p.latin_name, category: p.category, interval: p.water_interval_days, last_watered: today(), custom: false, photo: ph_, photos: ph_ ? [ph_] : [], showOwn: true, remind: newRemind() });
     await this.save(m);
   },
   async addCustom(f) {
@@ -573,7 +579,7 @@ const demoApi = {
     const plant = Object.assign(plantRow(f), { id: 1000 + mine.length + 1, photo_url: ph_ });
     store.set('myPlants', mine.concat([plant]));
     const m = this._raw();
-    m.push({ id: Date.now(), plant_id: plant.id, name: plant.swedish_name, latin: plant.latin_name, category: plant.category, interval: plant.water_interval_days, last_watered: today(), custom: false, photo: ph_, photos: ph_ ? [ph_] : [], showOwn: true });
+    m.push({ id: Date.now(), plant_id: plant.id, name: plant.swedish_name, latin: plant.latin_name, category: plant.category, interval: plant.water_interval_days, last_watered: today(), custom: false, photo: ph_, photos: ph_ ? [ph_] : [], showOwn: true, remind: newRemind() });
     await this.save(m);
   },
   async water(id) { const m = this._raw(); m.find(x => x.id === id).last_watered = today(); await this.save(m); },
@@ -638,6 +644,7 @@ const demoApi = {
 // ===== Data: Supabase =====
 let sb;
 const sbApi = {
+  async setRemind(id, on) { const { error } = await sb.from('user_plants').update({ remind: on }).eq('id', id); if (error) throw /remind/.test(error.message || '') ? new Error('REMIND_NOT_READY') : error; },
   async saveDetails(id, d) { const { error } = await sb.from('user_plants').update({ details: d }).eq('id', id); if (error) throw /details/.test(error.message || '') ? new Error('DETAILS_NOT_READY') : error; },
   async othersPhotos(pid) { const { data, error } = await sb.rpc('plant_photos', { p_plant_id: pid }); if (error) throw error; return data || []; },
   async setShare(on) { const { error } = await sb.from('profiles').update({ share_photos: on }).eq('id', S.user.id); if (error) throw error; },
@@ -675,14 +682,15 @@ const sbApi = {
   async signOut() { await sb.auth.signOut(); },
   async mine() {
     const cols = 'id,plant_id,last_watered,custom_name,custom_latin,custom_category,custom_water_interval_days,notes,plants(swedish_name,latin_name,category,water_interval_days)';
-    let res = await sb.from('user_plants').select(cols + ',photo_url,photos,show_own,details').order('created_at');
+    let res = await sb.from('user_plants').select(cols + ',photo_url,photos,show_own,details,remind').order('created_at');
+    if (res.error && /remind/.test(res.error.message || '')) res = await sb.from('user_plants').select(cols + ',photo_url,photos,show_own,details').order('created_at');
     if (res.error && /details/.test(res.error.message || '')) res = await sb.from('user_plants').select(cols + ',photo_url,photos,show_own').order('created_at');
     if (res.error && /photos|show_own/.test(res.error.message || '')) res = await sb.from('user_plants').select(cols + ',photo_url').order('created_at');
     if (res.error && /photo_url/.test(res.error.message || '')) res = await sb.from('user_plants').select(cols).order('created_at');
     if (res.error) throw res.error;
     return res.data.map(r => {
       const own = r.photo_url || null, showOwn = r.show_own !== false;
-      const ph_ = { own, photos: r.photos && r.photos.length ? r.photos : own ? [own] : [], showOwn, photo: showOwn && own ? own : null, details: r.details || {} };
+      const ph_ = { own, photos: r.photos && r.photos.length ? r.photos : own ? [own] : [], showOwn, photo: showOwn && own ? own : null, details: r.details || {}, remind: r.remind !== false };
       return Object.assign(r.plants
         ? { id: r.id, plant_id: r.plant_id, name: r.plants.swedish_name, latin: r.plants.latin_name, category: r.plants.category, interval: r.plants.water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: false }
         : { id: r.id, plant_id: null, name: r.custom_name, latin: r.custom_latin, category: r.custom_category, interval: r.custom_water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: true }, ph_);
@@ -786,7 +794,7 @@ async function run(fn, ok) {
 }
 function go(t) { stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'mine' && S.user && !S.push) refreshPush(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
 function openPlant(id) { S.sel = id; S.logForm = null; S.logAll = null; render(); $('#main').scrollTop = 0; }
-function openModal(m, prefill, latin, ap) { S.modal = m; S.logForm = null; S.logAll = null; S.msg = ''; S.prefill = prefill || ''; S.prefillLatin = latin || ''; if (m === 'add' || m === 'addp') S.ap = ap || null; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
+function openModal(m, prefill, latin, ap) { S.modal = m; if (m === 'add' || m === 'addp') S.addRemind = undefined; S.logForm = null; S.logAll = null; S.msg = ''; S.prefill = prefill || ''; S.prefillLatin = latin || ''; if (m === 'add' || m === 'addp') S.ap = ap || null; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
 function closeModal() { S.modal = null; S.msg = ''; S.limitHit = false; render(); }
 function addPlant(id, quick) {
   if (!S.user) return openModal('login');
@@ -812,7 +820,7 @@ function myplantV() {
   ${detailsV(m, true)}
   ${diaryV(m, true)}
   <p class="mut" style="font-size:13px;margin:14px 0 0">Den här växten finns bara i din samling och har ingen egen sida i växtdatabasen.</p>
-  ${d !== null ? `<div class="cta" style="padding:16px 0 0"><button class="btn" onclick="S.modal=null;water(${m.id})">Markera som vattnad</button></div>` : ''}`;
+  ${m.interval ? `<div class="cta" style="padding:16px 0 0"><button class="btn" onclick="S.modal=null;water(${m.id})">Markera som vattnad</button></div>` : ''}`;
 }
 function addpPick(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.ap = { file: f, img: URL.createObjectURL(f) }; render(); }
 async function confirmAddp() {
@@ -987,6 +995,7 @@ function galleryV(my) {
   <label onclick="photoPick(event,this)" class="gadd">${ic(CAM, 'currentColor', 22)}<span>Lägg till foto</span><input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${my.id}, this)"></label></div>
   ${my.photos.length ? '<p class="mut" style="font-size:13px;margin:8px 18px 0">Tryck på ett foto för att visa det för växten. Alla dina foton sparas. Andra kan se dem under "Andras bilder" (ändra i Inställningar).</p>' : ''}`;
 }
+function remindCheck() { return `<label class="remrow" style="margin-top:12px;font-weight:400"><input type="checkbox" ${newRemind() ? 'checked' : ''} onchange="S.addRemind=this.checked"><span><b>Påminn mig när den behöver vatten</b><span class="mut">Bocka ur om du hellre sköter vattningen själv</span></span></label>`; }
 function addpV() {
   const p = S.plants.find(x => x.id === S.addp); if (!p) return '';
   const A = S.ap;
@@ -994,6 +1003,7 @@ function addpV() {
   <div class="addpimg">${A && A.img ? `<div class="ph has-img"><img src="${A.img}" alt="Ditt foto"></div>` : plantPh(p)}</div>
   <label onclick="photoPick(event,this)" class="shot small" style="margin-top:12px"><span class="tic">${ic(CAM, 'currentColor', 24)}</span><span class="grow"><b>${A && A.img ? 'Byt foto' : 'Använd eget foto'}</b><span>Valfritt. Ditt foto visas för växten i din samling.</span></span><input type="file" accept="image/*" class="sr" onchange="addpPick(this)"></label>
   ${A && A.img ? '<button type="button" class="x" style="margin-top:8px" onclick="S.ap=null;render()">Använd databasens foto i stället</button>' : ''}
+  ${p.water_interval_days ? remindCheck() : ''}
   <div class="cta" style="padding:16px 0 0"><button class="btn formbtn" onclick="confirmAddp()">Lägg till i min samling</button></div>`;
 }
 function addCustomStart() { if (!S.user) return openModal('login'); if (overLimit()) { S.limitHit = true; return openModal('pro'); } openModal('add', S.q); }
@@ -1123,6 +1133,11 @@ async function loadLog(id) {
   catch (e) { S.log[id] = []; toast(errMsg(e)); }
   render();
 }
+async function setRemind(id, on) {
+  try { await api.setRemind(id, on); S.mine = await api.mine(); toast(on ? 'Påminnelser är på för växten' : 'Inga påminnelser för växten'); }
+  catch (e) { toast(e.message === 'REMIND_NOT_READY' ? 'Det här är inte påslaget i databasen än.' : errMsg(e)); }
+  render();
+}
 function logOpen(kind) { S.logForm = S.logForm === kind ? null : kind; render(); const t = $('#lnote'); if (t && kind === 'note') t.focus(); }
 async function saveLog(id) {
   const kind = S.logForm, date = ($('#ldate') || {}).value || today(), note = (($('#lnote') || {}).value || '').trim();
@@ -1160,6 +1175,7 @@ function diaryV(m, inModal) {
     : `<div class="dlist">${list.slice(0, S.logAll === m.id ? 500 : 6).map(e => { const k = LOGK[e.kind] || LOGK.note; return `<div class="dent"><span class="dic" style="color:${k[2]}">${ic(k[1], 'currentColor', 18)}</span><div class="grow"><b>${k[0]}</b><small>${whenTxt(e.done_on)}</small>${e.note ? `<p>${esc(e.note)}</p>` : ''}</div><button class="x ${S.del === 'log' + e.id ? 'sure' : ''}" onclick="delLog(${m.id},${e.id})" aria-label="Ta bort">${S.del === 'log' + e.id ? 'Ta bort?' : '×'}</button></div>`; }).join('')}</div>
       ${list.length > 6 && S.logAll !== m.id ? `<button class="btn sm line" style="margin-top:10px" onclick="S.logAll=${m.id};render()">Visa alla ${list.length}</button>` : ''}`;
   return `${inModal ? '' : '<div class="sec"><h2>Skötseldagbok</h2></div>'}<div class="diary ${inModal ? 'inm' : ''}">${head}
+  ${m.interval ? `<label class="remrow"><input type="checkbox" ${m.remind !== false ? 'checked' : ''} onchange="setRemind(${m.id}, this.checked)"><span><b>Påminn mig när den behöver vatten</b><span class="mut">${m.remind !== false ? 'Var ' + m.interval + ':e dag, i appen och som notis' : 'Av. Du sköter vattningen själv'}</span></span></label>` : ''}
   <div class="dsum"><div><small>Vattnad</small><b>${agoTxt(lw)}</b></div><div><small>Gödslad</small><b>${agoTxt(last('feed'))}</b></div><div><small>Omplanterad</small><b>${agoTxt(last('repot'))}</b></div></div>
   <div class="dbtns">${Object.entries(LOGK).map(([k, v]) => `<button class="${S.logForm === k ? 'on' : ''}" onclick="logOpen('${k}')">${ic(v[1], 'currentColor', 16)} ${v[0]}</button>`).join('')}</div>
   ${form}${items}</div>`;
@@ -1248,7 +1264,7 @@ function detail() {
   const similar = S.plants.filter(x => x.category === p.category && x.id !== p.id).slice(0, 8);
   const status = my ? `<span class="tag green">${d === null ? 'I din samling' : d === 0 ? 'Vattna idag' : 'Vattnas om ' + d + (d === 1 ? ' dag' : ' dagar')}</span>` : '';
   const cta = !my ? `<button class="btn" onclick="addPlant(${p.id})">Lägg till i min samling</button>`
-    : d !== null ? `<button class="btn" onclick="water(${my.id})">Markera som vattnad</button>` : '';
+    : my.interval ? `<button class="btn" onclick="water(${my.id})">Markera som vattnad</button>` : '';
   return `${topbar(p.category, 'S.sel=null;render()')}
   <div class="dtop">${my && my.photo ? myPh(my) : plantPh(p)}<div class="dstats">
     <div><small>Ljus</small><b>${LIGHT[p.light_level - 1]}</b></div>
@@ -1289,9 +1305,9 @@ function mineV() {
   const due = S.mine.filter(m => left(m) === 0).length;
   const rows = S.mine.map(m => {
     const d = left(m), pct = m.interval ? Math.round((m.interval - d) / m.interval * 100) : 0;
-    const status = d === null ? '<span class="mut">Växer ute, vattna vid torka</span>' : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
+    const status = d === null ? `<span class="mut">${m.remind === false ? 'Ingen påminnelse, du sköter vattningen' : 'Växer ute, vattna vid torka'}</span>` : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
     return `<div class="mrow"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${esc(m.name)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
-      <div class="side"><label onclick="photoPick(event,this)" class="pbtn" title="Ta eller välj ett foto" aria-label="Lägg till foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
+      <div class="side"><label onclick="photoPick(event,this)" class="pbtn" title="Ta eller välj ett foto" aria-label="Lägg till foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
   }).join('');
   return `${topbar('Min samling')}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
@@ -1343,6 +1359,7 @@ function addV() {
   <label>Härdig i odlingszon (för växter ute året runt)<select name="zone"><option value="">Vet inte / inomhus</option>${[1, 2, 3, 4, 5, 6, 7, 8].map(z => `<option value="1–${z}">Zon 1–${z}</option>`).join('')}</select></label>
   <label>Vattna utomhus?<select name="outdoor"><option value="">Nej, enligt intervallet ovan</option><option value="1">Ja, vid torka (ingen påminnelse)</option></select></label>
   </details>
+  ${remindCheck()}
   <p class="mut" style="margin:0 0 12px;font-size:13px">Växten läggs till i din samling och i Roothoods växtdatabas. Den granskas innan andra kan se den.</p>
   <button class="btn wide formbtn">Lägg till i min samling</button></form>`;
 }
@@ -1391,7 +1408,9 @@ const petWord = p => p.pet_safe ? 'Ofarlig' : /^Okänt/.test(p.toxicity_text || 
 function plantPh(p) { return p.photo_url ? `<div class="ph has-img" style="--h:0"><img src="${esc(p.photo_url)}" alt="" loading="lazy"></div>` : ph(p.latin_name, p.category, p.swedish_name); }
 function myPh(m) { return m.photo ? `<div class="ph has-img" style="--h:0"><img src="${esc(m.photo)}" alt="" loading="lazy"></div>` : ph(m.latin, m.category, m.name); }
 async function insertUP(row) {
+  if (!newRemind()) row.remind = false;
   let r = await sb.from('user_plants').insert(row);
+  if (r.error && /remind/.test(r.error.message || '')) { delete row.remind; r = await sb.from('user_plants').insert(row); }
   if (r.error && /photos/.test(r.error.message || '')) { delete row.photos; r = await sb.from('user_plants').insert(row); }
   if (r.error) throw r.error;
 }
@@ -2066,7 +2085,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.9.1';
+const APP_VERSION = '1.10';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
@@ -2240,7 +2259,9 @@ function pushCard() {
   else if (st === 'denied') inner = '<p style="margin:0 0 6px"><b>Notiser är blockerade</b></p><p class="mut" style="margin:0">Tryck på ikonen till vänster om adressen i Chrome, välj <b>Behörigheter</b> och slå på <b>Aviseringar</b>. Ladda sedan om sidan.</p>';
   else if (st === 'on') inner = `<p class="on">✓ Påminnelser är på</p><p class="mut" style="margin:0">Du får en notis på morgonen när en växt behöver vattnas, även när appen är stängd.</p><div class="row2"><button class="btn sm"${busy} onclick="testPush()">Skicka testnotis</button><button class="btn sm line"${busy} onclick="disablePush()">Stäng av</button></div>`;
   else inner = `<p class="mut" style="margin:0">Få en notis på morgonen när en växt behöver vattnas, även när appen är stängd.</p><div class="row2"><button class="btn sm"${busy} onclick="enablePush()">${ic(BELL, 'currentColor', 16)} Slå på påminnelser</button></div>`;
-  return `<div class="setcard pushc">${inner}</div>`;
+  const def = store.get('remindDefault', true);
+  return `<div class="setcard pushc">${inner}</div>
+  <label class="remrow" style="margin-top:10px"><input type="checkbox" ${def ? 'checked' : ''} onchange="store.set('remindDefault', this.checked);toast(this.checked ? 'Nya växter får påminnelser' : 'Nya växter får inga påminnelser')"><span><b>Påminnelser för nya växter</b><span class="mut">Bocka ur om du vill sköta vattningen själv. Du kan ändra för varje växt i skötseldagboken.</span></span></label>`;
 }
 // Notisen öppnar Min samling
 if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.tab) go(e.data.tab); });
