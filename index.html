@@ -1115,7 +1115,7 @@ function sensorCard(m, inModal) {
   return `${inModal ? '' : '<div class="sec"><h2>Sensorer</h2></div>'}<div class="sens ${inModal ? 'inm' : ''}">${inModal ? '<div class="sh"><b>Sensorer</b></div>' : ''}${body}
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" ${busy ? 'disabled' : ''} onclick="readSensor(${m.id},'flower')">${ic(BTI, 'currentColor', 16)} ${sn ? 'Läs av växtsensorn' : 'Koppla växtsensor'}</button>
   <button class="btn sm line" ${busy ? 'disabled' : ''} onclick="readSensor(${m.id},'thermo')">${cl ? 'Läs av termometern' : '+ Termometer'}</button>
-  ${!btOk() || DEMO ? `<button class="x" onclick="readSensor(${m.id},'flower',true);setTimeout(()=>readSensor(${m.id},'thermo',true),400)">Prova med exempelvärden</button>` : ''}</div></div>`;
+  <button class="x" onclick="readSensor(${m.id},'flower',true);setTimeout(()=>readSensor(${m.id},'thermo',true),400)">Prova med exempelvärden</button></div></div>`;
 }
 function openSmart() { stopLight(); S.sel = null; S.tool = 'smart'; S.sm = S.sm || { ppfd: '', dli: '', start: '07:00', flow: '', ml: '', rh: '' }; render(); $('#main').scrollTop = 0; }
 function smUpd(k, v) { const [sec, f] = k.split('_'); if (f && f !== 'p' && f !== 'x') S.sm[f] = v; const r = $('#smres-' + sec); if (r) r.innerHTML = smResult(sec); }
@@ -2437,7 +2437,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.15';
+const APP_VERSION = '1.15.1';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
