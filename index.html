@@ -586,6 +586,31 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 .post{border-radius:22px}
 .bigav{box-shadow:0 10px 24px rgba(40,30,15,.15)}
 
+
+.hseg{margin:4px 18px 10px}
+.ptools{display:flex;gap:8px;overflow-x:auto;padding:2px 18px 6px;scrollbar-width:none}
+.ptools::-webkit-scrollbar{display:none}
+.ptools button{flex:none;border:0;background:var(--surf);color:var(--ink);font:inherit;font-size:14px;font-weight:700;border-radius:999px;padding:9px 14px;cursor:pointer;box-shadow:var(--sh)}
+.ptools button.on{background:var(--pri);color:var(--onpri)}
+.phint{margin:6px 18px 8px;font-size:13.5px;color:var(--mut);min-height:20px}
+.planbox{position:relative;margin:0 18px;height:min(62vh,560px);background:var(--bg);border-radius:24px;box-shadow:inset 0 0 0 1.5px var(--line);overflow:hidden;touch-action:none}
+#plan{display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+#plan [data-k]{cursor:pointer}
+.pnorth{position:absolute;top:10px;right:10px;border:0;background:var(--surf);border-radius:50%;width:52px;height:52px;display:grid;place-items:center;box-shadow:var(--sh);cursor:pointer;padding:0}
+.pnorth span{display:block;width:40px;height:40px;transition:transform .25s}
+.pzoom{position:absolute;bottom:10px;right:10px;display:flex;flex-direction:column;gap:6px}
+.pzoom button{border:0;background:var(--surf);color:var(--ink);width:40px;height:40px;border-radius:14px;box-shadow:var(--sh);font-size:20px;font-weight:700;cursor:pointer}
+.pmk{width:28px;height:28px;border-radius:50%;overflow:hidden}
+.pmk .ph{width:28px;height:28px;border-radius:50%}.pmk svg{width:100%;height:100%}.pmk img{width:100%;height:100%;object-fit:cover}
+.planbox .psel{position:absolute;left:10px;right:60px;bottom:10px;margin:0;max-height:55%;overflow:auto}
+.psel{margin:12px 18px 0;background:var(--surf);border-radius:20px;box-shadow:var(--sh);padding:12px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.psel.col{flex-direction:column;align-items:stretch}
+.psel .grow{flex:1;min-width:120px;display:flex;flex-direction:column}
+.psel .grow span{font-size:13px;color:var(--mut)}
+.psel .pdhint{margin:0}
+.devgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.devgrid button{border:0;background:var(--surf);box-shadow:var(--sh);border-radius:18px;padding:14px;font:inherit;font-weight:700;color:var(--ink);display:flex;gap:10px;align-items:center;cursor:pointer;text-align:left}
+.devgrid button span{font-size:24px}
 /* Mitt hem */
 .rooms{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 18px 0}
 .roomc{all:unset;box-sizing:border-box;cursor:pointer;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:3px;min-height:150px}
@@ -707,7 +732,7 @@ const demoApi = {
   async setRemind(id, on) { const m = this._raw(); m.find(x => x.id === id).remind = on; await this.save(m); },
   async saveDetails(id, d) { const m = this._raw(); m.find(x => x.id === id).details = d; await this.save(m); },
   async getHome() { return store.get('home', []); },
-  async saveHome(r) { store.set('home', r); },
+  async saveHome(r) { store.set('home', { rooms: r, plan: S.hplan || {} }); },
   async othersPhotos() { return []; },
   async setShare(on) { store.set('share', on); },
   async log(upId) { return store.get('log', []).filter(x => x.user_plant_id === upId); },
@@ -841,7 +866,7 @@ const sbApi = {
   async setRemind(id, on) { const { error } = await sb.from('user_plants').update({ remind: on }).eq('id', id); if (error) throw /remind/.test(error.message || '') ? new Error('REMIND_NOT_READY') : error; },
   async saveDetails(id, d) { const { error } = await sb.from('user_plants').update({ details: d }).eq('id', id); if (error) throw /details/.test(error.message || '') ? new Error('DETAILS_NOT_READY') : error; },
   async getHome() { const { data, error } = await sb.from('homes').select('rooms').eq('user_id', S.user.id); if (error) throw /homes/.test(error.message || '') ? new Error('HOME_NOT_READY') : error; return (data && data[0] && data[0].rooms) || []; },
-  async saveHome(r) { const { error } = await sb.from('homes').upsert({ user_id: S.user.id, rooms: r, updated_at: new Date().toISOString() }); if (error) throw /homes/.test(error.message || '') ? new Error('HOME_NOT_READY') : error; },
+  async saveHome(r) { const { error } = await sb.from('homes').upsert({ user_id: S.user.id, rooms: { rooms: r, plan: S.hplan || {} }, updated_at: new Date().toISOString() }); if (error) throw /homes/.test(error.message || '') ? new Error('HOME_NOT_READY') : error; },
   async othersPhotos(pid) { const { data, error } = await sb.rpc('plant_photos', { p_plant_id: pid }); if (error) throw error; return data || []; },
   async setShare(on) { const { error } = await sb.from('profiles').update({ share_photos: on }).eq('id', S.user.id); if (error) throw error; },
   async log(upId) { const { data, error } = await sb.from('care_log').select('id,user_plant_id,kind,done_on,note,created_at').eq('user_plant_id', upId).order('done_on', { ascending: false }); if (error) throw error; return data; },
@@ -1311,14 +1336,14 @@ function roomHints(p, r, win) {
   const v = roomSun(r, win), need = { 1: 0.8, 2: 1.6, 3: 2.4 }[p.light_level] || 1.6, nm = p.swedish_name;
   if (v < need) h.push(['warn', `${nm} vill ha ${LIGHT[p.light_level - 1].toLowerCase()} men ${win && win !== 'I fönstret' && roomSun(r) >= need ? 'står för långt från fönstret. Flytta den närmare' : `det är ${roomLightWord(r, win).toLowerCase()} i ${r.name.toLowerCase()}. Prova ${p.light_level === 3 ? 'ett fönster mot söder eller väster' : 'ett ljusare fönster'}${r.lamp ? '' : ' eller en växtlampa'}`}.`]);
   else if (p.light_level === 1 && v >= 2.5 && win !== '2 m eller mer' && !r.lamp) h.push(['warn', `${nm} trivs i skugga. Direkt sol från ${dirTxt(r).replace('Fönster mot ', '')} kan bränna bladen, ställ den en bit in i rummet.`]);
-  else h.push(['', `Bra plats! Det är ${roomLightWord(r, win).toLowerCase()} här, och det passar ${nm}.`]);
+  else h.push(['', p.light_level === 1 ? `Bra plats! ${nm} står skyddad från stark sol här.` : `Bra plats! Det är ${roomLightWord(r, win).toLowerCase()} här, och det passar ${nm}.`]);
   if (/hög/i.test(p.humidity || '') && r.hum === 'Torr luft') h.push(['warn', `${nm} vill ha fuktig luft. Rummet är torrt, så duscha bladen eller ställ den i ett fuktigare rum, till exempel badrummet om det har fönster.`]);
   if (p.category === 'Kaktus' && r.hum === 'Fuktig') h.push(['', 'Kaktusar gillar torr luft. Vattna extra sparsamt i ett fuktigt rum.']);
   if (r.temp === 'Svalt' && p.category !== 'Kaktus' && p.light_level >= 2 && /tropi|monstera|filodendron|philodendron|alokasia|alocasia|calathea/i.test((p.swedish_name || '') + (p.latin_name || ''))) h.push(['warn', `${nm} kommer från tropikerna och vill inte ha det kallare än cirka 16 °C.`]);
   return h;
 }
-async function loadHome() { if (!S.user) return; try { S.home = await api.getHome(); } catch (e) { S.home = []; S.homeErr = e.message; } S.homeLoaded = true; render(); }
-function openHouse(id) { if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'house'; S.room = id || null; render(); $('#main').scrollTop = 0; }
+async function loadHome() { if (!S.user) return; try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; render(); }
+function openHouse(id) { if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'house'; S.room = id || null; if (S.pl) { S.pl.sel = null; S.pl.mode = 'move'; S.pl.fit = true; } render(); $('#main').scrollTop = 0; }
 function compassSvg(dirs, size) {
   const sz = size || 44, c = sz / 2, R = c - 3;
   const arcs = (dirs || []).map(d => { const i = DIRS.findIndex(x => x[0] === d), a = (i * 45 - 90) * Math.PI / 180, a1 = a - 0.36, a2 = a + 0.36;
@@ -1330,7 +1355,10 @@ function houseV() {
   const rooms = S.home || [];
   if (S.room) { const r = rooms.find(x => x.id === S.room); if (r) return roomV(r); if (S.homeLoaded) S.room = null; else return `${topbar('Mitt hem', 'closeTool()')}<p class="mut" style="margin:0 18px">Hämtar dina rum…</p>`; }
   const noRoom = S.mine.filter(m => !roomOf(m));
-  return `${topbar('Mitt hem', 'closeTool()')}
+  const hv = S.hview || 'plan';
+  const seg = `<div class="seg2 hseg"><button class="${hv === 'plan' ? 'on' : ''}" onclick="S.hview='plan';render()">Ritning</button><button class="${hv === 'list' ? 'on' : ''}" onclick="S.hview='list';render()">Rum</button></div>`;
+  if (hv === 'plan') return `${topbar('Mitt hem', 'closeTool()')}${seg}${planV()}`;
+  return `${topbar('Mitt hem', 'closeTool()')}${seg}
   <p class="mut" style="margin:0 18px 4px">Lägg in dina rum och åt vilket väderstreck fönstren vetter. Då vet Roothood hur mycket ljus varje växt får och tipsar om bättre platser.</p>
   ${S.homeErr === 'HOME_NOT_READY' ? '<div class="instc" style="margin:12px 18px 0"><div><b>Mitt hem är inte påslaget i databasen än</b><span>Kör SQL-koden för steg 019 i Supabase.</span></div></div>' : ''}
   ${rooms.length ? `<div class="rooms">${rooms.map(r => { const ps = plantsIn(r.id); return `<button class="roomc" onclick="openHouse('${r.id}')"><span class="rtop">${compassSvg(r.dirs, 46)}<span class="rl ${roomSun(r) >= 2.5 ? 'hi' : roomSun(r) < 0.9 ? 'lo' : ''}">${roomLightWord(r)}</span></span><b>${esc(r.name)}</b><span class="mut rd">${esc(dirTxt(r))}${r.lamp ? ' · växtlampa' : ''}</span><span class="rps">${ps.slice(0, 4).map(m => `<span class="rp">${myPh(m)}</span>`).join('')}${ps.length > 4 ? `<span class="rp more">+${ps.length - 4}</span>` : ''}${ps.length ? '' : '<span class="mut" style="font-size:12.5px">Inga växter än</span>'}</span></button>`; }).join('')}
@@ -1369,7 +1397,7 @@ function roomV(r) {
   ${fit.length ? `<div class="sec"><h2>Skulle trivas här</h2></div><div class="mycards">${fit.map(p => `<button class="fitc" onclick="openPlant(${p.id})">${ph(p.latin_name, p.category, p.swedish_name)}<b>${esc(p.swedish_name)}</b><span>${LIGHT[p.light_level - 1]}</span></button>`).join('')}</div>` : ''}
   <div style="height:24px"></div>`;
 }
-function newRoom(back) { S.rf = { id: null, name: '', type: '', dirs: [], lamp: false, temp: 'Normalt', hum: 'Normal' }; S.rfBack = back || null; if (back === 'pdet') S.pdKeep = JSON.parse(JSON.stringify(S.pd)); openModal('room'); }
+function newRoom(back, rect) { S.rf = { id: null, name: '', type: '', dirs: [], lamp: false, temp: 'Normalt', hum: 'Normal' }; if (rect) S.rf.rect = rect; S.rfBack = back || null; if (back === 'pdet') S.pdKeep = JSON.parse(JSON.stringify(S.pd)); openModal('room'); }
 function editRoom(id) { const r = S.home.find(x => x.id === id); S.rf = JSON.parse(JSON.stringify(r)); S.rf.dirs = S.rf.dirs || []; S.rfBack = null; openModal('room'); }
 function rfType(t) { const was = S.rf.type; S.rf.type = was === t ? '' : t; if (!S.rf.name || S.rf.name === was) S.rf.name = S.rf.type; if (t === 'Badrum' && !S.rf.id) S.rf.hum = 'Fuktig'; keepScroll(); }
 function rfDir(d) { const a = S.rf.dirs; S.rf.dirs = a.includes(d) ? a.filter(x => x !== d) : a.concat(d).sort((x, y) => DIRS.findIndex(z => z[0] === x) - DIRS.findIndex(z => z[0] === y)); keepScroll(); }
@@ -1383,7 +1411,7 @@ function roomFormV() {
   <div class="chips2">${ROOM_TYPES.map(t => `<button class="${f.type === t ? 'on' : ''}" onclick="rfType('${t}')">${t}</button>`).join('')}</div>
   <label class="fl" for="rfname">Namn</label><input id="rfname" maxlength="30" placeholder="t.ex. Vardagsrummet" value="${esc(f.name)}" oninput="S.rf.name=this.value">
   <label class="fl">Åt vilket håll vetter fönstren?</label>
-  <p class="mut" style="font-size:13px;margin:-2px 0 8px">Tryck på ett eller flera väderstreck. Osäker? Öppna kompassen i mobilen och peka ut genom fönstret.</p>
+  <p class="mut" style="font-size:13px;margin:-2px 0 8px">${(f.wins || []).length ? 'Räknas fram från fönstren du ritat. Du kan ändra här, men det skrivs över när du ändrar fönstren.' : 'Tryck på ett eller flera väderstreck. Osäker? Öppna kompassen i mobilen och peka ut genom fönstret.' + (f.rect ? ' Du kan också rita in fönster i ritningen.' : '')}</p>
   <div class="cpick"><div class="cring"></div><div class="cmid">${f.dirs.length ? f.dirs.join(' + ') : 'Inget<br>fönster'}</div>${pts}</div>
   <p class="mut" style="text-align:center;font-size:14px;margin:4px 0 0"><b style="color:var(--ink)">${esc(roomLightWord(f))}</b> · ${esc(dirTxt(f))}</p>
   <label class="tog"><input type="checkbox" ${f.lamp ? 'checked' : ''} onchange="S.rf.lamp=this.checked;keepScroll()"><span><b>Växtlampa i rummet</b></span></label>
@@ -1392,18 +1420,20 @@ function roomFormV() {
   <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="saveRoom()">${S.busy ? 'Sparar…' : 'Spara rummet'}</button>
   ${f.id ? `<button class="x ${S.delRoom ? 'sure' : ''}" style="display:block;margin:12px auto 0" onclick="delRoom()">${S.delRoom ? 'Tryck igen för att ta bort' : 'Ta bort rummet'}</button>` : ''}</div>`;
 }
-function closeRoom() { S.delRoom = false; S.modal = null; if (S.rfBack === 'pdet') { S.pd = S.pdKeep || S.pd; S.modal = 'pdet'; } S.rfBack = null; render(); }
+function closeRoom() { S.delRoom = false; S.modal = null; if (S.rfBack === 'plan') { S.tool = 'house'; S.hview = 'plan'; } if (S.rfBack === 'pdet') { S.pd = S.pdKeep || S.pd; S.modal = 'pdet'; } S.rfBack = null; render(); }
 async function saveRoom() {
   const f = S.rf, name = (f.name || '').trim().slice(0, 30);
   if (!name) return toast('Ge rummet ett namn');
   const rooms = (S.home || []).slice();
   if (rooms.some(r => r.id !== f.id && r.name.toLowerCase() === name.toLowerCase())) return toast('Du har redan ett rum som heter så');
   const r = { id: f.id || 'r' + Date.now().toString(36), name, type: f.type || '', dirs: f.dirs, lamp: !!f.lamp, temp: f.temp, hum: f.hum };
+  if (f.rect) r.rect = f.rect; if (f.wins) r.wins = f.wins;
   const i = rooms.findIndex(x => x.id === r.id); if (i >= 0) rooms[i] = r; else rooms.push(r);
   S.busy = true; render();
   try {
     await api.saveHome(rooms); S.home = rooms; S.homeErr = null; S.busy = false;
     if (S.rfBack === 'pdet' && S.pdKeep) { S.pdKeep.room = r.id; }
+    if (S.rfBack === 'plan') { PL().sel = { k: 'room', id: r.id }; if (!f.id) setTimeout(() => toast('Tryck på + Fönster och sedan på väggen där fönstret sitter'), 2900); }
     toast(f.id ? 'Rummet är sparat' : name + ' är tillagt');
     closeRoom();
   } catch (e) { S.busy = false; render(); toast(e.message === 'HOME_NOT_READY' ? 'Mitt hem är inte påslaget i databasen än (steg 019).' : errMsg(e)); }
@@ -1416,6 +1446,191 @@ async function delRoom() {
     for (const m of plantsIn(id)) { const d = JSON.parse(JSON.stringify(m.details)); delete d.room; delete d.win; try { await api.saveDetails(m.id, d); } catch (e) {} }
     S.mine = await api.mine(); S.delRoom = false; S.modal = null; S.room = null; render(); toast('Rummet är borttaget');
   } catch (e) { toast(errMsg(e)); }
+}
+
+// ===== Planlösning: rita rum, fönster, växter och smarta saker =====
+const DEVS = { sensor: ['Växtsensor', '🌱'], thermo: ['Termometer', '🌡️'], plug: ['Smart uttag', '🔌'], grow: ['Växtlampa', '🔆'], lamp: ['Smart lampa', '💡'], humid: ['Luftfuktare', '💨'], speaker: ['Google Home', '🔊'], pump: ['Vattenpump', '💧'] };
+const PL = () => S.pl || (S.pl = { mode: 'move', sel: null, z: 34, ox: 20, oy: 20, fit: true });
+const r1 = v => Math.round(v * 10) / 10, snap = v => Math.round(v * 2) / 2;
+function planRooms() { return (S.home || []).filter(r => r.rect); }
+function planItems() { return (S.hplan && S.hplan.items) || []; }
+function northDeg() { return (S.hplan && S.hplan.north) || 0; }
+function wallSeg(r, w) { const { x, y, w: W, h: H } = r.rect;
+  return w.s === 't' ? [x + w.p, y, x + w.p + w.l, y] : w.s === 'b' ? [x + w.p, y + H, x + w.p + w.l, y + H] : w.s === 'l' ? [x, y + w.p, x, y + w.p + w.l] : [x + W, y + w.p, x + W, y + w.p + w.l]; }
+function winDir(s) { const a = { t: 0, r: 90, b: 180, l: 270 }[s], b = ((a - northDeg()) % 360 + 360) % 360; return DIRS[Math.round(b / 45) % 8][0]; }
+function syncDirs(r) { if (!r.wins || !r.wins.length) { if (r.rect && r.winsTouched) r.dirs = []; return; } const ds = [...new Set(r.wins.map(w => winDir(w.s)))]; r.dirs = DIRS.map(d => d[0]).filter(d => ds.includes(d)); }
+function segDist(px, py, [x1, y1, x2, y2]) { const dx = x2 - x1, dy = y2 - y1, L = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / L)); return Math.hypot(px - x1 - t * dx, py - y1 - t * dy); }
+function roomAt(x, y) { const rs = planRooms().filter(r => x >= r.rect.x && x <= r.rect.x + r.rect.w && y >= r.rect.y && y <= r.rect.y + r.rect.h); return rs.sort((a, b) => a.rect.w * a.rect.h - b.rect.w * b.rect.h)[0] || null; }
+function winWord(r, x, y) { if (!r || !(r.wins || []).length) return null; const d = Math.min(...r.wins.map(w => segDist(x, y, wallSeg(r, w)))); return d < 0.7 ? 'I fönstret' : d < 1.6 ? 'Ca 1 m bort' : '2 m eller mer'; }
+let homeSaveT = null;
+function saveHomeSoon() { clearTimeout(homeSaveT); homeSaveT = setTimeout(async () => { try { await api.saveHome(S.home); S.homeErr = null; } catch (e) { toast(e.message === 'HOME_NOT_READY' ? 'Mitt hem är inte påslaget i databasen än (steg 019).' : errMsg(e)); } }, 500); }
+function planFit() {
+  const P = PL(), rs = planRooms(), box = $('#planbox'); if (!box) return;
+  const W = box.clientWidth, H = box.clientHeight;
+  let x0 = 0, y0 = 0, x1 = 10, y1 = 8;
+  if (rs.length) { x0 = Math.min(...rs.map(r => r.rect.x)); y0 = Math.min(...rs.map(r => r.rect.y)); x1 = Math.max(...rs.map(r => r.rect.x + r.rect.w)); y1 = Math.max(...rs.map(r => r.rect.y + r.rect.h)); }
+  P.z = Math.max(12, Math.min(90, Math.min((W - 40) / (x1 - x0 || 1), (H - 40) / (y1 - y0 || 1))));
+  P.ox = (W - (x1 - x0) * P.z) / 2 - x0 * P.z; P.oy = (H - (y1 - y0) * P.z) / 2 - y0 * P.z; P.fit = false;
+}
+function plantMarkerOk(m) { const p = S.plants.find(x => x.id === m.plant_id), r = roomOf(m); if (!p || !r) return null; return !roomHints(p, r, (m.details || {}).win).some(x => x[0] === 'warn'); }
+function planInner() {
+  const P = PL(), z = P.z, sel = P.sel || {}, rs = planRooms();
+  const grid = `<defs><pattern id="g5" width="${z / 2}" height="${z / 2}" patternUnits="userSpaceOnUse" x="${P.ox}" y="${P.oy}"><path d="M${z / 2} 0V${z / 2}H0" fill="none" stroke="var(--line)" stroke-width=".6"/></pattern><pattern id="g1" width="${z}" height="${z}" patternUnits="userSpaceOnUse" x="${P.ox}" y="${P.oy}"><rect width="${z}" height="${z}" fill="url(#g5)"/><path d="M${z} 0V${z}H0" fill="none" stroke="var(--line)" stroke-width="1.2"/></pattern></defs><rect width="100%" height="100%" fill="url(#g1)"/>`;
+  const T = (x, y) => `${(P.ox + x * z).toFixed(1)},${(P.oy + y * z).toFixed(1)}`;
+  const X = x => (P.ox + x * z).toFixed(1), Y = y => (P.oy + y * z).toFixed(1);
+  let out = grid;
+  rs.forEach(r => { const { x, y, w, h } = r.rect, v = roomSun(r), on = sel.k === 'room' && sel.id === r.id;
+    out += `<rect data-k="room" data-id="${r.id}" x="${X(x)}" y="${Y(y)}" width="${(w * z).toFixed(1)}" height="${(h * z).toFixed(1)}" rx="2" fill="${v >= 2.5 ? 'rgba(212,154,46,.20)' : v >= 1.7 ? 'rgba(212,154,46,.10)' : 'var(--surf)'}" stroke="${on ? 'var(--acc)' : 'var(--ink)'}" stroke-width="${on ? 4 : 3.2}"/>`;
+    const fs = Math.max(10, Math.min(15, z * 0.38));
+    const lx = (P.ox + x * z + 9).toFixed(1), ly = P.oy + y * z + 8 + fs;
+    out += `<text x="${lx}" y="${ly.toFixed(1)}" font-size="${fs}" font-weight="800" fill="var(--ink)" pointer-events="none">${esc(r.name)}</text>${h * z > 60 ? `<text x="${lx}" y="${(ly + fs * 1.15).toFixed(1)}" font-size="${fs * 0.72}" font-weight="600" fill="var(--mut)" pointer-events="none">${w}×${h} m · ${roomLightWord(r)}${r.lamp ? ' · lampa' : ''}</text>` : ''}`;
+    (r.wins || []).forEach((wi, i) => { const [a, b, c, d] = wallSeg(r, wi), ws = sel.k === 'win' && sel.id === r.id && sel.i === i;
+      out += `<line data-k="win" data-id="${r.id}" data-i="${i}" x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="${ws ? 'var(--acc)' : 'var(--wat)'}" stroke-width="9" stroke-linecap="butt"/><line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="#fff" stroke-width="2" pointer-events="none"/>`;
+      const mx = (a + c) / 2, my = (b + d) / 2, off = { t: [0, -0.42], b: [0, 0.55], l: [-0.42, 0.12], r: [0.42, 0.12] }[wi.s];
+      out += `<text x="${X(mx + off[0])}" y="${Y(my + off[1])}" text-anchor="middle" font-size="10" font-weight="800" fill="var(--wat)" pointer-events="none">${winDir(wi.s)}</text>`; });
+    if (on) out += `<circle data-k="handle" data-id="${r.id}" cx="${X(x + w)}" cy="${Y(y + h)}" r="11" fill="var(--acc)" stroke="#fff" stroke-width="3"/><path d="M${(P.ox + (x + w) * z - 4).toFixed(1)} ${(P.oy + (y + h) * z + 4).toFixed(1)}l8 -8m-5 0h5v5" stroke="#fff" stroke-width="2" fill="none" pointer-events="none"/>`;
+  });
+  planItems().forEach(it => { const on = sel.k === 'dev' && sel.id === it.id, d = DEVS[it.t] || ['?', '•'];
+    out += `<g data-k="dev" data-id="${it.id}" transform="translate(${T(it.x, it.y)})">${on ? '<circle r="20" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>' : ''}<circle r="14" fill="var(--surf)" stroke="var(--pri)" stroke-width="2"/><text y="5" text-anchor="middle" font-size="14" pointer-events="none">${d[1]}</text></g>`; });
+  S.mine.filter(m => m.details && m.details.pos).forEach(m => { const { x, y } = m.details.pos, on = sel.k === 'plant' && sel.id === m.id, ok = plantMarkerOk(m);
+    const ring = ok === null ? 'var(--pri)' : ok ? 'var(--pri2)' : 'var(--cop)';
+    out += `<g data-k="plant" data-id="${m.id}" transform="translate(${T(x, y)})">${on ? '<circle r="23" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>' : ''}<circle r="17" fill="var(--surf)" stroke="${ring}" stroke-width="3"/><foreignObject x="-14" y="-14" width="28" height="28" pointer-events="none"><div xmlns="http://www.w3.org/1999/xhtml" class="pmk">${myPh(m)}</div></foreignObject>${ok === false ? '<circle cx="12" cy="-12" r="6" fill="var(--cop)" stroke="#fff" stroke-width="1.5"/>' : ''}</g>`;
+    if (z >= 30) out += `<text x="${X(x)}" y="${(P.oy + y * z + 30).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)" stroke="var(--bg)" stroke-width="3" paint-order="stroke" pointer-events="none">${esc(m.name.slice(0, 14))}</text>`; });
+  if (P.draft) { const d = P.draft; out += `<rect x="${X(Math.min(d.x0, d.x1))}" y="${Y(Math.min(d.y0, d.y1))}" width="${(Math.abs(d.x1 - d.x0) * z).toFixed(1)}" height="${(Math.abs(d.y1 - d.y0) * z).toFixed(1)}" fill="rgba(31,77,58,.12)" stroke="var(--pri)" stroke-width="2" stroke-dasharray="6 4"/><text x="${X((d.x0 + d.x1) / 2)}" y="${Y((d.y0 + d.y1) / 2)}" text-anchor="middle" font-size="13" font-weight="800" fill="var(--pri)">${Math.abs(d.x1 - d.x0)} × ${Math.abs(d.y1 - d.y0)} m</text>`; }
+  return out;
+}
+function planHint() {
+  const P = PL();
+  if (P.mode === 'room') return 'Dra med fingret där rummet ska vara. Ett tryck ger ett rum på 3 × 3 m.';
+  if (P.mode === 'win') return 'Tryck på en vägg där det sitter ett fönster. Tryck på Klar när du är färdig.';
+  if (P.mode === 'place') return P.pick && P.pick.k === 'plant' ? 'Tryck där ' + esc((S.mine.find(m => m.id === P.pick.id) || {}).name || 'växten') + ' står.' : 'Tryck där ' + esc((DEVS[P.pick.t] || [''])[0].toLowerCase()) + ' står.';
+  return planRooms().length ? 'Dra för att flytta. Tryck på något för att ändra det.' : 'Börja med att trycka på <b>+ Rum</b> och dra ut ditt första rum.';
+}
+function planV() {
+  const P = PL(), m = P.mode, unplaced = (S.home || []).filter(r => !r.rect);
+  return `<div class="ptools">${[['move', 'Flytta'], ['room', '+ Rum'], ['win', '+ Fönster']].map(([k, n]) => `<button class="${m === k ? 'on' : ''}" onclick="planMode('${k}')">${n}</button>`).join('')}<button onclick="planPick('plant')">+ Växt</button><button onclick="planPick('dev')">+ Smart sak</button></div>
+  <p class="phint" id="phint">${planHint()}${m !== 'move' ? ` <button class="link3" onclick="planMode('move')">${m === 'win' ? 'Klar' : 'Avbryt'}</button>` : ''}</p>
+  <div class="planbox" id="planbox"><svg id="plan" width="100%" height="100%" onpointerdown="planDown(event)" onpointermove="planMove(event)" onpointerup="planUp(event)" onpointercancel="planUp(event)" onwheel="planWheel(event)">${planInner()}</svg>
+    <button class="pnorth" onclick="rotNorth()" aria-label="Vrid norrpilen" title="Vrid norrpilen så den pekar mot norr"><span style="transform:rotate(${northDeg()}deg)">${compassSvg([], 40)}</span></button>
+    <div class="pzoom"><button onclick="planZoom(1.25)" aria-label="Zooma in">+</button><button onclick="planZoom(0.8)" aria-label="Zooma ut">−</button><button onclick="PL().fit=true;renderPlan()" aria-label="Visa allt" style="font-size:13px">⤢</button></div>${planSelV()}</div>
+  ${unplaced.length ? `<div class="sec"><h2>Rum som inte är ritade</h2></div><div class="pad"><div class="chips2">${unplaced.map(r => `<button onclick="drawIn('${r.id}')">+ ${esc(r.name)}</button>`).join('')}</div></div>` : ''}
+  <p class="mut" style="margin:14px 18px 24px;font-size:13px">Norrpilen uppe till höger: tryck för att vrida den tills den pekar mot norr i din bostad. Fönstrens väderstreck räknas om direkt.</p>`;
+}
+function planSelV() {
+  const sel = PL().sel; if (!sel) return '';
+  if (sel.k === 'room') { const r = S.home.find(x => x.id === sel.id); if (!r) return '';
+    return `<div class="psel"><div class="grow"><b>${esc(r.name)}</b><span>${esc(dirTxt(r))} · ${roomLightWord(r)}</span></div><button class="btn sm" onclick="openHouse('${r.id}')">Öppna</button><button class="btn sm line" onclick="editRoom('${r.id}')">Ändra</button><button class="x" onclick="unplanRoom('${r.id}')">Ta bort</button></div>`; }
+  if (sel.k === 'win') { const r = S.home.find(x => x.id === sel.id), w = r && r.wins[sel.i]; if (!w) return '';
+    return `<div class="psel"><div class="grow"><b>Fönster mot ${DIRS.find(d => d[0] === winDir(w.s))[1].toLowerCase()}</b><span>${esc(r.name)} · ${w.l} m brett</span></div><button class="btn sm line" onclick="winLen(-0.5)" aria-label="Smalare">−</button><button class="btn sm line" onclick="winLen(0.5)" aria-label="Bredare">+</button><button class="x" onclick="delWin()">Ta bort</button></div>`; }
+  if (sel.k === 'plant') { const m = S.mine.find(x => x.id === sel.id); if (!m) return ''; const r = roomOf(m), p = S.plants.find(x => x.id === m.plant_id), hs = r && p ? roomHints(p, r, (m.details || {}).win) : [];
+    return `<div class="psel col"><div style="display:flex;gap:10px;align-items:center;width:100%"><div class="grow"><b>${esc(m.name)}</b><span>${r ? esc(r.name) + ((m.details || {}).win ? ' · ' + m.details.win.toLowerCase() : '') : 'Inte i något rum'}</span></div><button class="btn sm" onclick="openMine(${m.id})">Öppna</button><button class="x" onclick="unplacePlant(${m.id})">Ta bort</button></div>${hs.map(x => `<div class="pdhint ${x[0]}"><span class="ck">${x[0] === 'warn' ? '⚠️' : '💡'}</span><span>${esc(x[1])}</span></div>`).join('')}</div>`; }
+  if (sel.k === 'dev') { const it = planItems().find(x => x.id === sel.id); if (!it) return ''; const r = roomAt(it.x, it.y);
+    return `<div class="psel"><span style="font-size:24px">${DEVS[it.t][1]}</span><div class="grow"><b>${DEVS[it.t][0]}</b><span>${r ? esc(r.name) : 'Utanför rummen'}</span></div>${['sensor', 'thermo', 'plug', 'grow', 'humid', 'pump'].includes(it.t) ? `<button class="btn sm line" onclick="openSmart()">Smarta hemmet</button>` : ''}<button class="x" onclick="delDev('${it.id}')">Ta bort</button></div>`; }
+  return '';
+}
+function renderPlan() {
+  const P = PL(), svg = $('#plan'); if (!svg) return render();
+  if (P.fit) planFit();
+  svg.innerHTML = planInner();
+}
+function planMode(k) { const P = PL(); P.mode = k; P.pick = null; P.draft = null; if (k !== 'move') P.sel = null; render(); }
+function planZoom(f) { const P = PL(), box = $('#planbox'), cx = box.clientWidth / 2, cy = box.clientHeight / 2, nz = Math.max(10, Math.min(120, P.z * f)); P.ox = cx - (cx - P.ox) * nz / P.z; P.oy = cy - (cy - P.oy) * nz / P.z; P.z = nz; renderPlan(); }
+function planWheel(e) { e.preventDefault(); planZoom(e.deltaY < 0 ? 1.1 : 0.9); }
+function rotNorth() { S.hplan = S.hplan || {}; S.hplan.north = (northDeg() + 45) % 360; planRooms().forEach(syncDirs); saveHomeSoon(); render(); toast('Norr pekar nu ' + ['uppåt', 'snett upp åt höger', 'åt höger', 'snett ner åt höger', 'nedåt', 'snett ner åt vänster', 'åt vänster', 'snett upp åt vänster'][northDeg() / 45]); }
+function planPt(e) { const b = $('#plan').getBoundingClientRect(), P = PL(); return { x: (e.clientX - b.left - P.ox) / P.z, y: (e.clientY - b.top - P.oy) / P.z, sx: e.clientX, sy: e.clientY }; }
+const ptrs = new Map();
+function planDown(e) {
+  const P = PL(), pt = planPt(e), t = e.target.closest('[data-k]');
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  try { $('#plan').setPointerCapture(e.pointerId); } catch (x) {}
+  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; P.drag = { k: 'pinch', d: Math.hypot(a.x - b.x, a.y - b.y), z: P.z }; return; }
+  if (P.mode === 'room') { P.drag = { k: 'draw' }; P.draft = { x0: snap(pt.x), y0: snap(pt.y), x1: snap(pt.x), y1: snap(pt.y) }; return; }
+  if (P.mode === 'win') { P.drag = { k: 'tapwin', pt }; return; }
+  if (P.mode === 'place') { P.drag = { k: 'tapplace', pt }; return; }
+  const k = t && t.dataset.k, id = t && t.dataset.id;
+  if (k === 'handle') { const r = S.home.find(x => x.id === id); P.drag = { k: 'resize', r, pt }; return; }
+  if (k === 'plant') { const m = S.mine.find(x => x.id === +id); P.drag = { k: 'plant', m, pt, o: { ...m.details.pos }, moved: false }; return; }
+  if (k === 'dev') { const it = planItems().find(x => x.id === id); P.drag = { k: 'dev', it, pt, o: { x: it.x, y: it.y }, moved: false }; return; }
+  if (k === 'win') { P.drag = { k: 'selwin', id, i: +t.dataset.i, pt }; return; }
+  if (k === 'room') { const r = S.home.find(x => x.id === id); P.drag = { k: 'room', r, pt, o: { ...r.rect }, moved: false,
+    kids: S.mine.filter(m => m.details && m.details.pos && roomAt(m.details.pos.x, m.details.pos.y) === r).map(m => [m, { ...m.details.pos }]),
+    devs: planItems().filter(it => roomAt(it.x, it.y) === r).map(it => [it, { x: it.x, y: it.y }]) }; return; }
+  P.drag = { k: 'pan', sx: e.clientX, sy: e.clientY, ox: P.ox, oy: P.oy, moved: false };
+}
+function planMove(e) {
+  const P = PL(), d = P.drag; if (!d) return;
+  if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (d.k === 'pinch' && ptrs.size === 2) { const [a, b] = [...ptrs.values()], nd = Math.hypot(a.x - b.x, a.y - b.y); planZoom(d.z * nd / d.d / P.z); return; }
+  const pt = planPt(e), dx = pt.x - (d.pt ? d.pt.x : 0), dy = pt.y - (d.pt ? d.pt.y : 0);
+  if (d.pt && Math.hypot(pt.sx - d.pt.sx, pt.sy - d.pt.sy) > 6) d.moved = true;
+  if (d.k === 'draw') { P.draft.x1 = snap(pt.x); P.draft.y1 = snap(pt.y); }
+  else if (d.k === 'pan') { if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 6) d.moved = true; P.ox = d.ox + e.clientX - d.sx; P.oy = d.oy + e.clientY - d.sy; }
+  else if (d.k === 'room' && d.moved) { const nx = snap(d.o.x + dx), ny = snap(d.o.y + dy), ddx = nx - d.o.x, ddy = ny - d.o.y; d.r.rect.x = nx; d.r.rect.y = ny; d.kids.forEach(([m, o]) => m.details.pos = { x: r1(o.x + ddx), y: r1(o.y + ddy) }); d.devs.forEach(([it, o]) => { it.x = r1(o.x + ddx); it.y = r1(o.y + ddy); }); }
+  else if (d.k === 'resize') { const R = d.r.rect; R.w = Math.max(1, snap(pt.x - R.x)); R.h = Math.max(1, snap(pt.y - R.y)); d.moved = true; }
+  else if (d.k === 'plant' && d.moved) d.m.details.pos = { x: r1(d.o.x + dx), y: r1(d.o.y + dy) };
+  else if (d.k === 'dev' && d.moved) { d.it.x = r1(d.o.x + dx); d.it.y = r1(d.o.y + dy); }
+  else return;
+  renderPlan();
+}
+async function planUp(e) {
+  const P = PL(), d = P.drag; ptrs.delete(e.pointerId); if (!d) return;
+  if (d.k === 'pinch') { if (!ptrs.size) P.drag = null; return; }
+  P.drag = null; const pt = planPt(e);
+  if (d.k === 'draw') { let { x0, y0, x1, y1 } = P.draft; P.draft = null;
+    let rect = { x: Math.min(x0, x1), y: Math.min(y0, y1), w: Math.abs(x1 - x0), h: Math.abs(y1 - y0) };
+    if (rect.w < 1 || rect.h < 1) rect = { x: snap(pt.x - 1.5), y: snap(pt.y - 1.5), w: 3, h: 3 };
+    P.mode = 'move'; renderPlan(); newRoom('plan', rect); return; }
+  if (d.k === 'tapwin') { addWin(pt); return; }
+  if (d.k === 'tapplace') { placeAt(pt); return; }
+  if (d.k === 'pan') { if (!d.moved && P.sel) { P.sel = null; render(); } return; }
+  if (d.k === 'selwin') { P.sel = { k: 'win', id: d.id, i: d.i }; render(); return; }
+  if (d.k === 'room' || d.k === 'resize') {
+    if (!d.moved) { P.sel = { k: 'room', id: d.r.id }; render(); return; }
+    if (d.k === 'resize') d.r.wins = (d.r.wins || []).filter(w => w.p + w.l <= (['t', 'b'].includes(w.s) ? d.r.rect.w : d.r.rect.h));
+    syncDirs(d.r); saveHomeSoon(); if (d.kids) for (const [m] of d.kids) await savePos(m, true); if (d.devs && d.devs.length) saveHomeSoon(); render(); return; }
+  if (d.k === 'plant') { if (!d.moved) { P.sel = { k: 'plant', id: d.m.id }; render(); return; } await savePos(d.m); return; }
+  if (d.k === 'dev') { if (!d.moved) { P.sel = { k: 'dev', id: d.it.id }; render(); return; } growLamp(d.it); saveHomeSoon(); render(); }
+}
+function growLamp(it) { if (it.t !== 'grow') return; const r = roomAt(it.x, it.y); if (r && !r.lamp) { r.lamp = true; toast(r.name + ' har nu växtlampa'); } }
+async function savePos(m, quiet) {
+  const d = JSON.parse(JSON.stringify(m.details || {})), r = d.pos ? roomAt(d.pos.x, d.pos.y) : null;
+  if (r) { d.room = r.id; const ww = winWord(r, d.pos.x, d.pos.y); if (ww) d.win = ww; else if (!(r.dirs || []).length) delete d.win; d.light = roomLightWord(r, d.win); }
+  else if (d.pos) { delete d.room; delete d.win; }
+  try { await api.saveDetails(m.id, d); S.mine = await api.mine(); if (!quiet) { const sel = PL().sel; PL().sel = { k: 'plant', id: m.id }; render(); if (r && !sel) {} } }
+  catch (e) { toast(e.message === 'DETAILS_NOT_READY' ? 'Uppgifterna är inte påslagna i databasen än.' : errMsg(e)); render(); }
+}
+function addWin(pt) {
+  let best = null;
+  planRooms().forEach(r => { const { x, y, w, h } = r.rect;
+    [['t', [x, y, x + w, y], w], ['b', [x, y + h, x + w, y + h], w], ['l', [x, y, x, y + h], h], ['r', [x + w, y, x + w, y + h], h]].forEach(([s, seg, L]) => {
+      const dd = segDist(pt.x, pt.y, seg); if (!best || dd < best.d) best = { d: dd, r, s, L, along: ['t', 'b'].includes(s) ? pt.x - x : pt.y - y }; }); });
+  if (!best || best.d > 0.8) return toast('Tryck närmare en vägg');
+  const l = Math.min(1, best.L), p = Math.max(0, Math.min(best.L - l, snap(best.along - l / 2)));
+  const r = best.r; r.wins = (r.wins || []).filter(w => !(w.s === best.s && w.p < p + l && p < w.p + w.l)).concat({ s: best.s, p, l });
+  r.winsTouched = true; syncDirs(r); saveHomeSoon(); renderPlan(); const h = $('#phint'); if (h) h.innerHTML = `Fönster mot ${DIRS.find(d => d[0] === winDir(best.s))[1].toLowerCase()} i ${esc(r.name.toLowerCase())}. Tryck på fler väggar eller <button class="link3" onclick="planMode('move')">Klar</button>`;
+  replaceWinWords(r);
+}
+async function replaceWinWords(r) { for (const m of S.mine.filter(m => m.details && m.details.pos && m.details.room === r.id)) { const ww = winWord(r, m.details.pos.x, m.details.pos.y); if (ww && ww !== m.details.win) await savePos(m, true); } }
+function winLen(dl) { const sel = PL().sel, r = S.home.find(x => x.id === sel.id), w = r.wins[sel.i], L = ['t', 'b'].includes(w.s) ? r.rect.w : r.rect.h; w.l = Math.max(0.5, Math.min(L - w.p, w.l + dl)); saveHomeSoon(); render(); }
+function delWin() { const sel = PL().sel, r = S.home.find(x => x.id === sel.id); r.wins.splice(sel.i, 1); r.winsTouched = true; syncDirs(r); PL().sel = null; saveHomeSoon(); render(); replaceWinWords(r); }
+function unplanRoom(id) { const r = S.home.find(x => x.id === id); delete r.rect; delete r.wins; PL().sel = null; saveHomeSoon(); render(); toast(r.name + ' finns kvar under Rum'); }
+async function unplacePlant(id) { const m = S.mine.find(x => x.id === id), d = JSON.parse(JSON.stringify(m.details || {})); delete d.pos; PL().sel = null; try { await api.saveDetails(id, d); S.mine = await api.mine(); } catch (e) { toast(errMsg(e)); } render(); }
+function delDev(id) { S.hplan.items = planItems().filter(x => x.id !== id); PL().sel = null; saveHomeSoon(); render(); }
+function drawIn(id) { const r = S.home.find(x => x.id === id), rs = planRooms(); const x = rs.length ? Math.max(...rs.map(q => q.rect.x + q.rect.w)) : 0; r.rect = { x, y: 0, w: 3, h: 3 }; PL().fit = true; PL().sel = { k: 'room', id }; saveHomeSoon(); render(); toast('Dra rummet på plats och ändra storleken med den orange pricken'); }
+function planPick(k) { if (!planRooms().length && k === 'plant') return toast('Rita först ett rum'); S.ppk = k; openModal('planpick'); }
+function planPickV() {
+  if (S.ppk === 'dev') return `<div class="mh"><h2>Vilken smart sak?</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div><div class="devgrid">${Object.entries(DEVS).map(([k, [n, e]]) => `<button onclick="startPlace({k:'dev',t:'${k}'})"><span>${e}</span>${n}</button>`).join('')}</div><div style="height:12px"></div>`;
+  const list = S.mine.slice().sort((a, b) => !!(a.details && a.details.pos) - !!(b.details && b.details.pos));
+  return `<div class="mh"><h2>Vilken växt?</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>${list.length ? `<div class="norm">${list.map(m => `<button class="nrow" onclick="startPlace({k:'plant',id:${m.id}})">${myPh(m)}<span class="grow">${esc(m.name)}<small class="mut">${m.details && m.details.pos ? 'Redan utplacerad, flytta den' : roomOf(m) ? 'I ' + esc(roomOf(m).name.toLowerCase()) : 'Inte utplacerad'}</small></span></button>`).join('')}</div>` : '<p class="mut">Lägg först till växter i din samling.</p>'}<div style="height:12px"></div>`;
+}
+function startPlace(pk) { S.modal = null; const P = PL(); P.mode = 'place'; P.pick = pk; P.sel = null; render(); }
+async function placeAt(pt) {
+  const P = PL(), pk = P.pick; P.mode = 'move'; P.pick = null;
+  if (pk.k === 'dev') { S.hplan = S.hplan || {}; const it = { id: 'd' + Date.now().toString(36), t: pk.t, x: r1(pt.x), y: r1(pt.y) }; S.hplan.items = planItems().concat(it); growLamp(it); P.sel = { k: 'dev', id: it.id }; saveHomeSoon(); render(); return; }
+  let m = S.mine.find(x => x.id === pk.id); if (!m) return render();
+  m.details = m.details || {}; m.details.pos = { x: r1(pt.x), y: r1(pt.y) };
+  await savePos(m);
+  const m2 = S.mine.find(x => x.id === pk.id) || m, r = roomOf(m2); m = m2; toast(r ? m.name + ' står i ' + r.name.toLowerCase() + ((m.details || {}).win ? ', ' + m.details.win.toLowerCase() : '') : m.name + ' står utanför rummen');
 }
 function openSmart() { stopLight(); S.sel = null; S.tool = 'smart'; S.sm = S.sm || { ppfd: '', dli: '', start: '07:00', flow: '', ml: '', rh: '' }; render(); $('#main').scrollTop = 0; }
 function smUpd(k, v) { const [sec, f] = k.split('_'); if (f && f !== 'p' && f !== 'x') S.sm[f] = v; const r = $('#smres-' + sec); if (r) r.innerHTML = smResult(sec); }
@@ -1641,7 +1856,7 @@ async function saveNewPw(form) {
   try { await api.changePassword(pw); S.modal = null; S.user = await api.user(); S.mine = await api.mine(); S.pro = await api.getPro(); render(); toast('Nytt lösenord sparat. Du är inloggad!'); }
   catch (e) { S.msgOk = false; S.msg = errMsg(e); render(); }
 }
-async function signOut() { await api.signOut(); S.user = null; S.mine = []; S.home = []; S.pro = false; render(); toast('Du är utloggad'); }
+async function signOut() { await api.signOut(); S.user = null; S.mine = []; S.home = []; S.hplan = {}; S.pro = false; render(); toast('Du är utloggad'); }
 
 // ===== Foton från Wikipedia (illustration visas om inget foto finns) =====
 const IMG = store.get('imgs', {});
@@ -1789,10 +2004,11 @@ function render() {
     m.innerHTML = S.sel ? detail() : S.tool ? toolV() : S.tab === 'home' ? home() : S.tab === 'mine' ? mineV() : S.tab === 'me' ? meV() : comm();
     if (!S.sel && !S.tool && S.tab === 'home') renderList();
   }
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'addp' ? addpV() : S.modal === 'pro' ? proV() : addV()}</div></div>` : '';
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'pro' ? proV() : addV()}</div></div>` : '';
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); }
   const lv = $('#lv'); if (lv && lightStream) { lv.srcObject = lightStream; lv.hidden = false; lv.play().catch(() => {}); }
   loadPhotos();
+  if ($('#plan') && PL().fit) renderPlan();
   trackView();
 }
 // ===== Kom ihåg var man var (och tillbaka-knappen) =====
@@ -2866,7 +3082,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.19';
+const APP_VERSION = '1.20';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
