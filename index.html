@@ -1581,6 +1581,8 @@ function finishPoly() {
   pushUndo(); S.hplan = S.hplan || {}; const a = { id: 'a' + Date.now().toString(36), t: uk, pts: u }; S.hplan.areas = planAreas().concat(a); P.upoly = []; saveHomeSoon();
   planMsg(UK_M[uk][1] + ', ' + polyArea(a.pts) + ' m². Rita fler eller välj något annat.');
 }
+function P_vsel(a) { const v = PL().vsel; return v != null && v < a.pts.length && a.pts.length > 3; }
+function delVtx(id) { pushUndo(); const a = planAreas().find(x => x.id === id); a.pts.splice(PL().vsel, 1); PL().vsel = null; saveHomeSoon(); render(); }
 function areaType(id, t) { pushUndo(); planAreas().find(a => a.id === id).t = t; saveHomeSoon(); render(); }
 function delArea(id) { pushUndo(); S.hplan.areas = planAreas().filter(a => a.id !== id); PL().sel = null; saveHomeSoon(); render(); }
 function gEdit(dv) { pushUndo(); const g = planGarden().find(x => x.id === PL().sel.id); g.r = Math.max(0.3, Math.min(12, r1(g.r + dv))); saveHomeSoon(); render(); }
@@ -1602,6 +1604,12 @@ function sideLen(r, s) { return ['t', 'b'].includes(s) ? r.rect.w : r.rect.h; }
 function bayPts(r, by) { const L = by.l, d = Math.min(by.d, L / 2 - 0.05); return [wallPt(r, by.s, by.p, 0), wallPt(r, by.s, by.p + d, d), wallPt(r, by.s, by.p + L - d, d), wallPt(r, by.s, by.p + L, 0)]; }
 function baySegs(r, by) { const q = bayPts(r, by), a = SIDE_A[by.s]; return [[[...q[0], ...q[1]], a - 45], [[...q[1], ...q[2]], a], [[...q[2], ...q[3]], a + 45]]; }
 function winSegs(r) { return (r.wins || []).filter(w => !w.k).map(w => [wallSeg(r, w), SIDE_A[w.s]]).concat(...(r.bays || []).map(b => baySegs(r, b))); }
+function sideGaps(r, s) { const L = sideLen(r, s);
+  const g = (r.wins || []).filter(w => w.s === s && (w.k === 'open' || w.k === 'door')).map(w => [w.p, w.p + w.l])
+    .concat((r.bays || []).filter(b => b.s === s).map(b => s === 't' || s === 'r' ? [b.p, b.p + b.l] : [L - b.p - b.l, L - b.p]));
+  g.sort((a, b) => a[0] - b[0]); const m = []; g.forEach(q => { if (m.length && q[0] <= m[m.length - 1][1] + 1e-6) m[m.length - 1][1] = Math.max(m[m.length - 1][1], q[1]); else m.push([...q]); }); return m; }
+function solidPieces(r, s) { const L = sideLen(r, s), out = []; let a = 0; sideGaps(r, s).forEach(([g0, g1]) => { if (g0 - a > 0.01) out.push([a, g0]); a = Math.max(a, g1); }); if (L - a > 0.01) out.push([a, L]); return out; }
+function wallPieces(r) { const o = []; ['t', 'r', 'b', 'l'].forEach(s => solidPieces(r, s).forEach(([a, b]) => o.push(wallSeg(r, { s, p: a, l: b - a })))); return o; }
 function roomPoly(r) { const pts = [];
   ['t', 'r', 'b', 'l'].forEach(s => { pts.push(wallPt(r, s, 0, 0)); (r.bays || []).filter(b => b.s === s).sort((a, b) => a.p - b.p).forEach(b => bayPts(r, b).forEach(q => pts.push(q))); });
   return pts; }
@@ -1639,12 +1647,14 @@ function planInner() {
   const X = x => (P.ox + x * z).toFixed(1), Y = y => (P.oy + y * z).toFixed(1);
   let out = mapTiles() + `<g transform="rotate(${viewRot()} ${P.ox.toFixed(1)} ${P.oy.toFixed(1)})">` + (z >= 6 ? grid : '') + gardenBelow();
   rs.forEach(r => { const v = roomSun(r), on = sel.k === 'room' && sel.id === r.id;
-    out += `<polygon data-k="room" data-id="${r.id}" points="${roomPoly(r).map(q => X(q[0]) + ',' + Y(q[1])).join(' ')}" stroke-linejoin="round" fill="${v >= 2.5 ? 'rgba(212,154,46,.20)' : v >= 1.7 ? 'rgba(212,154,46,.10)' : 'var(--surf)'}" fill-opacity="${mapOn() ? .45 : 1}" stroke="${on ? 'var(--acc)' : 'var(--ink)'}" stroke-width="${on ? 4 : 3.2}"/>`;
+    out += `<polygon data-k="room" data-id="${r.id}" points="${roomPoly(r).map(q => X(q[0]) + ',' + Y(q[1])).join(' ')}" stroke-linejoin="round" fill="${v >= 2.5 ? 'rgba(212,154,46,.20)' : v >= 1.7 ? 'rgba(212,154,46,.10)' : 'var(--surf)'}" fill-opacity="${mapOn() ? .45 : 1}" stroke="none"/>`;
   });
   rs.forEach(r => { const { x, y, w, h } = r.rect, v = roomSun(r), on = sel.k === 'room' && sel.id === r.id;
     const fs = Math.max(10, Math.min(15, z * 0.38));
     const lx = (P.ox + x * z + Math.max(9, 0.5 * z)).toFixed(1), ly = P.oy + y * z + 8 + fs;
     if (w * z > 44) out += `<text x="${lx}" y="${ly.toFixed(1)}" font-size="${fs}" font-weight="800" fill="var(--ink)" pointer-events="none">${esc(r.name)}</text>${h * z > 60 ? `<text x="${lx}" y="${(ly + fs * 1.15).toFixed(1)}" font-size="${fs * 0.72}" font-weight="600" fill="var(--mut)" pointer-events="none">${w}×${h} m · ${roomLightWord(r)}${r.lamp ? ' · lampa' : ''}</text>` : ''}`;
+    out += wallPieces(r).map(g => `<line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="var(--ink)" stroke-width="3.2" stroke-linecap="square" pointer-events="none"/>`).join('');
+    if (on) out += `<polygon points="${roomPoly(r).map(q => X(q[0]) + ',' + Y(q[1])).join(' ')}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-dasharray="7 5" stroke-linejoin="round" pointer-events="none"/>`;
     (r.wins || []).forEach((wi, i) => { const [a, b, c, d] = wallSeg(r, wi), ws = sel.k === 'win' && sel.id === r.id && sel.i === i, k = wkOf(wi), hit = `<line data-k="win" data-id="${r.id}" data-i="${i}" x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="transparent" stroke-width="28"/>`;
       const nx = { t: 0, b: 0, l: 1, r: -1 }[wi.s], ny = { t: 1, b: -1, l: 0, r: 0 }[wi.s];
       if (k === 'win') {
@@ -1652,10 +1662,9 @@ function planInner() {
         const mx = (a + c) / 2, my = (b + d) / 2, off = { t: [0, -0.42], b: [0, 0.55], l: [-0.42, 0.12], r: [0.42, 0.12] }[wi.s];
         out += `<text x="${X(mx + off[0])}" y="${Y(my + off[1])}" text-anchor="middle" font-size="10" font-weight="800" fill="var(--wat)" pointer-events="none">${winDir(wi.s)}</text>`;
       } else if (k === 'door' || k === 'open') {
-        out += `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="var(--bg)" stroke-width="6" pointer-events="none"/>`;
         if (k === 'door') { const L = wi.l, ex = a + nx * L, ey = b + ny * L, sw = (wi.s === 't' || wi.s === 'r') ? 1 : 0;
           out += `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(ex)}" y2="${Y(ey)}" stroke="${ws ? 'var(--acc)' : 'var(--ink)'}" stroke-width="2" pointer-events="none"/><path d="M${X(ex)} ${Y(ey)} A${(L * z).toFixed(1)} ${(L * z).toFixed(1)} 0 0 ${['b', 'l'].includes(wi.s) ? 1 : 0} ${X(c)} ${Y(d)}" fill="none" stroke="${ws ? 'var(--acc)' : 'var(--mut)'}" stroke-width="1.2" stroke-dasharray="3 3" pointer-events="none"/>`; }
-        else out += `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="${ws ? 'var(--acc)' : 'var(--mut)'}" stroke-width="1.4" stroke-dasharray="2 4" pointer-events="none"/>`;
+        else if (ws || PL().mode === 'win') out += `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="${ws ? 'var(--acc)' : 'var(--mut)'}" stroke-width="${ws ? 3 : 1}" stroke-dasharray="2 5" opacity="${ws ? 1 : .5}" pointer-events="none"/>`;
       } else if (k === 'rad') {
         const o = 0.16, x1 = a + nx * o, y1 = b + ny * o, x2 = c + nx * o, y2 = d + ny * o;
         out += `<line x1="${X(x1)}" y1="${Y(y1)}" x2="${X(x2)}" y2="${Y(y2)}" stroke="${ws ? 'var(--acc)' : '#D9825C'}" stroke-width="7" stroke-linecap="round" pointer-events="none"/><line x1="${X(x1)}" y1="${Y(y1)}" x2="${X(x2)}" y2="${Y(y2)}" stroke="#fff" stroke-width="5" stroke-dasharray="1.5 3" pointer-events="none" opacity=".8"/>`;
@@ -1665,7 +1674,7 @@ function planInner() {
       }
       out += hit; });
     (r.bays || []).forEach((by, i) => { const segs = baySegs(r, by), bs = sel.k === 'bay' && sel.id === r.id && sel.i === i, q = bayPts(r, by), pl = q.map(v => X(v[0]) + ',' + Y(v[1])).join(' ');
-      segs.forEach(([g]) => { out += `<line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="${bs ? 'var(--acc)' : 'var(--wat)'}" stroke-width="8" stroke-linecap="round" pointer-events="none"/><line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="#fff" stroke-width="2" pointer-events="none"/>`; });
+      segs.forEach(([g]) => { out += `<line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="var(--ink)" stroke-width="3.2" stroke-linecap="square" pointer-events="none"/><line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="${bs ? 'var(--acc)' : 'var(--wat)'}" stroke-width="8" stroke-linecap="round" pointer-events="none"/><line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="#fff" stroke-width="2" pointer-events="none"/>`; });
       out += `<polyline data-k="bay" data-id="${r.id}" data-i="${i}" points="${pl}" fill="none" stroke="transparent" stroke-width="28"/>`;
       const f = segs[1][0], ang = SIDE_A[by.s] * Math.PI / 180, lx = (f[0] + f[2]) / 2 + Math.sin(ang) * 0.42, ly = (f[1] + f[3]) / 2 - Math.cos(ang) * 0.42 + 0.12;
       out += `<text x="${X(lx)}" y="${Y(ly)}" text-anchor="middle" font-size="10" font-weight="800" fill="var(--wat)" pointer-events="none">${segs.map(g => angDir(g[1])).join(' ')}</text>`; });
@@ -1685,6 +1694,10 @@ function planInner() {
     out += `<g data-k="plant" data-id="${m.id}" transform="translate(${T(x, y)})">${on ? '<circle r="23" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>' : ''}<circle r="17" fill="var(--surf)" stroke="${ring}" stroke-width="3"/><foreignObject x="-14" y="-14" width="28" height="28" pointer-events="none"><div xmlns="http://www.w3.org/1999/xhtml" class="pmk">${myPh(m)}</div></foreignObject>${ok === false ? '<circle cx="12" cy="-12" r="6" fill="var(--cop)" stroke="#fff" stroke-width="1.5"/>' : ''}</g>`;
     if (z >= 30) out += `<text x="${X(x)}" y="${(P.oy + y * z + 30).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)" stroke="var(--bg)" stroke-width="3" paint-order="stroke" pointer-events="none">${esc(m.name.slice(0, 14))}</text>`; });
   if (P.draft) { const d = P.draft; out += `<rect x="${X(Math.min(d.x0, d.x1))}" y="${Y(Math.min(d.y0, d.y1))}" width="${(Math.abs(d.x1 - d.x0) * z).toFixed(1)}" height="${(Math.abs(d.y1 - d.y0) * z).toFixed(1)}" fill="rgba(31,77,58,.12)" stroke="var(--pri)" stroke-width="2" stroke-dasharray="6 4"/><text x="${X((d.x0 + d.x1) / 2)}" y="${Y((d.y0 + d.y1) / 2)}" text-anchor="middle" font-size="13" font-weight="800" fill="var(--pri)">${Math.abs(d.x1 - d.x0)} × ${Math.abs(d.y1 - d.y0)} m</text>`; }
+  if (sel.k === 'area') { const a = planAreas().find(x => x.id === sel.id); if (a) { const n = a.pts.length;
+    a.pts.forEach((q, i) => { const q2 = a.pts[(i + 1) % n], mx = (q[0] + q2[0]) / 2, my = (q[1] + q2[1]) / 2;
+      if (Math.hypot(q2[0] - q[0], q2[1] - q[1]) * z > 46) out += `<g data-k="mid" data-id="${a.id}" data-i="${i}" transform="translate(${X(mx)},${Y(my)})"><circle r="16" fill="transparent"/><circle r="9" fill="var(--surf)" stroke="var(--pri)" stroke-width="2"/><path d="M-4 0h8M0 -4v8" stroke="var(--pri)" stroke-width="2" stroke-linecap="round"/></g>`; });
+    a.pts.forEach((q, i) => { out += `<g data-k="vtx" data-id="${a.id}" data-i="${i}" transform="translate(${X(q[0])},${Y(q[1])})"><circle r="18" fill="transparent"/><circle r="10" fill="${P.vsel === i ? 'var(--acc)' : 'var(--pri)'}" stroke="#fff" stroke-width="3"/></g>`; }); } }
   out += '</g>';
   return out;
 }
@@ -1692,11 +1705,12 @@ function planHint() {
   const P = PL();
   if (P.mode === 'room') return 'Dra med fingret där rummet ska vara. Ett tryck ger ett rum på 3 × 3 m.';
   if (P.msg) return P.msg;
-  if (P.mode === 'ute') { const u = UK_M[P.ukind || 'lot']; return u[2] === 'poly' ? `Tryck ut hörnen på ${u[1].toLowerCase()}n ett i taget, eller dra ut en rektangel.`.replace('tomtn', 'tomten').replace('gräsmattan', 'gräsmattan').replace('rabattn', 'rabatten').replace('odlingslandn', 'odlingslandet').replace('gångn', 'gången').replace('altann', 'altanen').replace('dammn', 'dammen') : u[2] === 'line' ? 'Dra med fingret där häcken går.' : 'Tryck där ' + u[1].toLowerCase() + ' står.'; }
-  if (P.mode === 'win') return { win: 'Tryck på väggen där fönstret sitter.', bay: 'Tryck på väggen där burspråket sitter.', door: 'Tryck på väggen där dörren sitter.', open: 'Dra med fingret längs väggen över delen som ska bort. Ett tryck tar bort 1,5 m.', rad: 'Tryck på väggen där elementet sitter.', vent: 'Tryck på väggen där ventilen sitter.', wall: 'Dra med fingret för att rita en vägg. Den kan gå snett.', half: 'Dra med fingret för att rita en halvvägg, till exempel en bänk eller låg mur.' }[P.wkind || 'win'] + ' Tryck på något igen för att ta bort det.';
+  if (P.mode === 'ute') { const u = UK_M[P.ukind || 'lot']; return u[2] === 'poly' ? (u[0] === 'lot' && planRooms().length && !planAreas().some(a => a.t === 'lot') ? 'Tryck var som helst så läggs tomten runt huset, eller dra ut den med fingret.' : 'Dra ut en rektangel med fingret, eller tryck så läggs en färdig yta ut. Sedan formar du den med hörnen.') + ' Flytta dig med två fingrar.' : u[2] === 'line' ? 'Dra med fingret där häcken går.' : 'Tryck där ' + u[1].toLowerCase() + ' står.'; }
+  if (P.mode === 'win') return { win: 'Tryck på väggen där fönstret sitter.', bay: 'Tryck på väggen där burspråket sitter.', door: 'Tryck på väggen där dörren sitter.', open: 'Tryck på en vägg så tas hela väggbiten bort. Tryck på samma ställe igen för att sätta tillbaka den.', rad: 'Tryck på väggen där elementet sitter.', vent: 'Tryck på väggen där ventilen sitter.', wall: 'Dra med fingret för att rita en vägg. Den kan gå snett.', half: 'Dra med fingret för att rita en halvvägg, till exempel en bänk eller låg mur.' }[P.wkind || 'win'] + ' Tryck på något igen för att ta bort det.';
   if (P.mode === 'place' && P.pick && P.pick.k === 'furn') return 'Tryck där ' + esc(FURN_M[P.pick.t][1].toLowerCase()) + ' står.';
   if (P.mode === 'map') return S.hplan.map && S.hplan.map.lat != null ? 'Dra i kartan så att ditt hus hamnar under ritningen. Vrid ritningen med reglaget tills rummen ligger rätt.' : 'Sök på din adress eller använd din position.';
   if (P.mode === 'place') return P.pick && P.pick.k === 'plant' ? 'Tryck där ' + esc((S.mine.find(m => m.id === P.pick.id) || {}).name || 'växten') + ' står.' : 'Tryck där ' + esc((DEVS[P.pick.t] || [''])[0].toLowerCase()) + ' står.';
+  if (P.sel && P.sel.k === 'area') return 'Dra i hörnen för att forma ytan. Dra i + för att lägga till ett hörn. Dra mitt i ytan för att flytta den.';
   if (P.sel && ['room', 'plant', 'dev', 'furn', 'area', 'gitem'].includes(P.sel.k)) return 'Dra den valda för att flytta den. Tryck utanför för att avmarkera.';
   return planRooms().length ? 'Dra för att flytta dig. Tryck på något för att välja det, dra sedan för att flytta det.' : 'Börja med att trycka på <b>Rum</b> och dra ut ditt första rum.';
 }
@@ -1717,7 +1731,7 @@ function planSelV() {
   if (sel.k === 'room') { const r = S.home.find(x => x.id === sel.id); if (!r) return '';
     return `<div class="psel"><div class="grow"><b>${esc(r.name)}</b><span>${esc(dirTxt(r))} · ${roomLightWord(r)}</span></div><button class="btn sm" onclick="openHouse('${r.id}')">Öppna</button><button class="btn sm line" onclick="editRoom('${r.id}')">Ändra</button><button class="x" onclick="unplanRoom('${r.id}')">Ta bort</button></div>`; }
   if (sel.k === 'area') { const a = planAreas().find(x => x.id === sel.id); if (!a) return '';
-    return `<div class="psel"><div class="grow"><b>${UK_M[a.t][1]}</b><span>${polyArea(a.pts)} m² · ${a.pts.length} hörn</span></div><select class="asel" onchange="areaType('${a.id}',this.value)" aria-label="Typ av yta">${UK.filter(u => u[2] === 'poly').map(u => `<option value="${u[0]}" ${u[0] === a.t ? 'selected' : ''}>${u[1]}</option>`).join('')}</select><button class="x" onclick="delArea('${a.id}')">Ta bort</button></div>`; }
+    return `<div class="psel"><div class="grow"><b>${UK_M[a.t][1]}</b><span>${polyArea(a.pts)} m² · ${a.pts.length} hörn</span></div><select class="asel" onchange="areaType('${a.id}',this.value)" aria-label="Typ av yta">${UK.filter(u => u[2] === 'poly').map(u => `<option value="${u[0]}" ${u[0] === a.t ? 'selected' : ''}>${u[1]}</option>`).join('')}</select>${P_vsel(a) ? `<button class="btn sm line" onclick="delVtx('${a.id}')">Ta bort hörnet</button>` : ''}<button class="x" onclick="delArea('${a.id}')">Ta bort</button></div>`; }
   if (sel.k === 'gitem') { const g = planGarden().find(x => x.id === sel.id); if (!g) return '';
     return `<div class="psel"><span style="font-size:22px">${UK_M[g.t][3]}</span><div class="grow"><b>${UK_M[g.t][1]}</b><span>Krona ${r1(g.r * 2)} m</span></div><div class="stepr"><small>Storlek</small><button onclick="gEdit(-0.25)" aria-label="Mindre">−</button><button onclick="gEdit(0.25)" aria-label="Större">+</button></div><button class="x" onclick="delG('${g.id}')">Ta bort</button></div>`; }
   if (sel.k === 'furn') { const f = planFurn().find(x => x.id === sel.id); if (!f) return ''; const F = FURN_M[f.t] || [0, 'Möbel', 0, 0, '🪑'];
@@ -1728,7 +1742,7 @@ function planSelV() {
   if (sel.k === 'bay') { const r = S.home.find(x => x.id === sel.id), by = r && (r.bays || [])[sel.i]; if (!by) return '';
     return `<div class="psel"><div class="grow"><b>Burspråk</b><span>${esc(r.name)} · ${baySegs(r, by).map(g => angDir(g[1])).join(', ')} · ${by.l} × ${by.d} m</span></div><div class="stepr"><small>Bredd</small><button onclick="bayEdit('l',-0.5)" aria-label="Smalare">−</button><button onclick="bayEdit('l',0.5)" aria-label="Bredare">+</button></div><div class="stepr"><small>Djup</small><button onclick="bayEdit('d',-0.2)" aria-label="Grundare">−</button><button onclick="bayEdit('d',0.2)" aria-label="Djupare">+</button></div><button class="x" onclick="delBay()">Ta bort</button></div>`; }
   if (sel.k === 'win') { const r = S.home.find(x => x.id === sel.id), w = r && r.wins[sel.i]; if (!w) return '';
-    return `<div class="psel"><div class="grow"><b>${w.k ? WNAME[w.k] : 'Fönster mot ' + DIRS.find(d => d[0] === winDir(w.s))[1].toLowerCase()}</b><span>${esc(r.name)} · ${w.l} m ${w.k === 'door' || w.k === 'open' ? 'bred' : 'brett'}</span></div><button class="btn sm line" onclick="winLen(-0.5)" aria-label="Smalare">−</button><button class="btn sm line" onclick="winLen(0.5)" aria-label="Bredare">+</button><button class="x" onclick="delWin()">Ta bort</button></div>`; }
+    return `<div class="psel"><div class="grow"><b>${w.k ? WNAME[w.k] : 'Fönster mot ' + DIRS.find(d => d[0] === winDir(w.s))[1].toLowerCase()}</b><span>${esc(r.name)} · ${w.l} m ${w.k === 'door' || w.k === 'open' ? 'bred' : 'brett'}</span></div><div class="stepr"><small>Bredd</small><button onclick="winLen(-0.25)" aria-label="Smalare">−</button><button onclick="winLen(0.25)" aria-label="Bredare">+</button></div><div class="stepr"><small>Flytta</small><button onclick="winShift(-0.25)" aria-label="Flytta åt ena hållet">‹</button><button onclick="winShift(0.25)" aria-label="Flytta åt andra hållet">›</button></div><button class="x" onclick="delWin()">${w.k === 'open' ? 'Sätt tillbaka väggen' : 'Ta bort'}</button></div>`; }
   if (sel.k === 'plant') { const m = S.mine.find(x => x.id === sel.id); if (!m) return ''; const r = roomOf(m), p = S.plants.find(x => x.id === m.plant_id), hs = (r && p ? roomHints(p, r, (m.details || {}).win) : []).concat(posHints(m));
     return `<div class="psel col"><div style="display:flex;gap:10px;align-items:center;width:100%"><div class="grow"><b>${esc(m.name)}</b><span>${r ? esc(r.name) + ((m.details || {}).win ? ' · ' + m.details.win.toLowerCase() : '') : 'Inte i något rum'}</span></div><button class="btn sm" onclick="openMine(${m.id})">Öppna</button><button class="x" onclick="unplacePlant(${m.id})">Ta bort</button></div>${hs.map(x => `<div class="pdhint ${x[0]}"><span class="ck">${x[0] === 'warn' ? '⚠️' : '💡'}</span><span>${esc(x[1])}</span></div>`).join('')}</div>`; }
   if (sel.k === 'dev') { const it = planItems().find(x => x.id === sel.id); if (!it) return ''; const r = roomAt(it.x, it.y);
@@ -1764,6 +1778,7 @@ function planDown(e) {
   if (P.mode === 'win') { P.drag = { k: 'tapwin', pt }; return; }
   if (P.mode === 'place') { P.drag = { k: 'tapplace', pt }; return; }
   const k = t && t.dataset.k, id = t && t.dataset.id;
+  if (k === 'vtx' || k === 'mid') { const a = planAreas().find(x => x.id === id), i = +t.dataset.i, sn = snapState(); if (k === 'mid') { const p0 = a.pts[i], p1 = a.pts[(i + 1) % a.pts.length]; a.pts.splice(i + 1, 0, [(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2]); } P.drag = { k: 'vtx', a, i: k === 'mid' ? i + 1 : i, pt, snap: sn, moved: k === 'mid' }; return; }
   const sk = { room: 'room', plant: 'plant', dev: 'dev', furn: 'furn', area: 'area', gitem: 'gitem' }[k], isSel = sk && P.sel && P.sel.k === sk && String(P.sel.id) === String(id);
   if (sk && !isSel) { P.drag = { k: 'pan', sx: e.clientX, sy: e.clientY, ox: P.ox, oy: P.oy, moved: false, tapSel: { k: sk, id: sk === 'plant' ? +id : id } }; return; }
   if (k === 'handle') { const r = S.home.find(x => x.id === id); P.drag = { k: 'resize', r, pt, snap: snapState() }; return; }
@@ -1790,7 +1805,8 @@ function planMove(e) {
   const pt = planPt(e), dx = pt.x - (d.pt ? d.pt.x : 0), dy = pt.y - (d.pt ? d.pt.y : 0);
   if (d.pt && Math.hypot(pt.sx - d.pt.sx, pt.sy - d.pt.sy) > 6) d.moved = true;
   if (d.k === 'draw') { P.draft.x1 = snap(pt.x); P.draft.y1 = snap(pt.y); }
-  else if (d.k === 'utepoly') { if (d.moved && !(P.upoly || []).length) P.draft = { x0: d.x0, y0: d.y0, x1: snap(pt.x), y1: snap(pt.y) }; }
+  else if (d.k === 'utepoly') { if (d.moved) P.draft = { x0: d.x0, y0: d.y0, x1: snap(pt.x), y1: snap(pt.y) }; }
+  else if (d.k === 'vtx') { d.a.pts[d.i] = [Math.round(pt.x * 4) / 4, Math.round(pt.y * 4) / 4]; d.moved = true; }
   else if (d.k === 'area' && d.moved) { d.a.pts = d.o.map(q => [r1(q[0] + dx), r1(q[1] + dy)]); }
   else if (d.k === 'gitem' && d.moved) { d.g.x = r1(d.o.x + dx); d.g.y = r1(d.o.y + dy); }
   else if (d.k === 'dragopen') { P.ldraft.x1 = pt.x; P.ldraft.y1 = pt.y; }
@@ -1814,14 +1830,16 @@ async function planUp(e) {
     if (rect.w < 1 || rect.h < 1) rect = { x: snap(pt.x - 1.5), y: snap(pt.y - 1.5), w: 3, h: 3 };
     P.mode = 'move'; renderPlan(); newRoom('plan', rect); return; }
   if (d.k === 'tapwin') { addWin(pt); return; }
-  if (d.k === 'utepoly') { const uk = P.ukind || 'lot';
-    if (P.draft) { const { x0, y0, x1, y1 } = P.draft; P.draft = null; if (Math.abs(x1 - x0) >= 0.5 && Math.abs(y1 - y0) >= 0.5) { P.upoly = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]; return finishPoly(); } return renderPlan(); }
-    const q = [Math.round(pt.x * 4) / 4, Math.round(pt.y * 4) / 4], u = P.upoly = P.upoly || [];
-    if (u.length >= 3 && Math.hypot(q[0] - u[0][0], q[1] - u[0][1]) * P.z < 22) return finishPoly();
-    u.push(q); return planMsg(u.length < 3 ? `${UK_M[uk][1]}: ${u.length} ${u.length === 1 ? 'hörn' : 'hörn'}. Tryck ut nästa hörn.` : `${UK_M[uk][1]}: ${u.length} hörn, ${polyArea(u)} m². Tryck på första hörnet eller Klar för att stänga.`); }
+  if (d.k === 'utepoly') { const uk = P.ukind || 'lot'; let pts;
+    if (P.draft) { const { x0, y0, x1, y1 } = P.draft; P.draft = null; if (Math.abs(x1 - x0) >= 0.5 && Math.abs(y1 - y0) >= 0.5) pts = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]; }
+    if (!pts) { if (uk === 'lot' && planRooms().length && !planAreas().some(a => a.t === 'lot')) { const q = [].concat(...planRooms().map(roomPoly)), x0 = Math.floor(Math.min(...q.map(v => v[0]))) - 5, y0 = Math.floor(Math.min(...q.map(v => v[1]))) - 5, x1 = Math.ceil(Math.max(...q.map(v => v[0]))) + 5, y1 = Math.ceil(Math.max(...q.map(v => v[1]))) + 5; pts = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]; }
+      else { const sz = { lot: [20, 15], lawn: [5, 4], bed: [3, 1], veg: [3, 2], path: [1, 5], patio: [3, 3], pond: [2, 1.5] }[uk] || [3, 2], cx = snap(pt.x), cy = snap(pt.y); pts = [[cx - sz[0] / 2, cy - sz[1] / 2], [cx + sz[0] / 2, cy - sz[1] / 2], [cx + sz[0] / 2, cy + sz[1] / 2], [cx - sz[0] / 2, cy + sz[1] / 2]]; } }
+    pushUndo(); S.hplan = S.hplan || {}; const a = { id: 'a' + Date.now().toString(36), t: uk, pts }; S.hplan.areas = planAreas().concat(a);
+    P.mode = 'move'; P.sel = { k: 'area', id: a.id }; P.vsel = null; saveHomeSoon(); render(); return; }
   if (d.k === 'tapute') { const uk = P.ukind || 'tree', ty = UK_M[uk][2];
     if (ty === 'pt') { pushUndo(); S.hplan = S.hplan || {}; const g = { id: 'g' + Date.now().toString(36), t: uk, x: r1(pt.x), y: r1(pt.y), r: GR[uk] }; S.hplan.garden = planGarden().concat(g); saveHomeSoon(); return planMsg(UK_M[uk][1] + ' utplacerad. Ändra storlek på kronan under Flytta.'); }
     pushUndo(); S.hplan = S.hplan || {}; const F = FURN_M[uk], f = { id: 'f' + Date.now().toString(36), t: uk, x: r1(pt.x), y: r1(pt.y), w: F[2], h: F[3], rot: 0 }; S.hplan.furn = planFurn().concat(f); saveHomeSoon(); return planMsg(F[1] + ' utplacerat. Ändra storlek under Flytta.'); }
+  if (d.k === 'vtx') { if (d.moved) { pushUndo(d.snap); saveHomeSoon(); P.vsel = d.i; } else P.vsel = d.i; render(); return; }
   if (d.k === 'area' || d.k === 'gitem') { if (d.moved) { pushUndo(d.snap); saveHomeSoon(); } render(); return; }
   if (d.k === 'dragopen') { P.ldraft = null; if (d.moved) addWin(d.pt, pt); else addWin(pt); return; }
   if (d.k === 'drawline') { const L = P.ldraft; P.ldraft = null; const len = Math.hypot(L.x1 - L.x0, L.y1 - L.y0);
@@ -1830,7 +1848,7 @@ async function planUp(e) {
     pushUndo(); S.hplan = S.hplan || {}; S.hplan.walls = planWalls().concat({ id: 'w' + Date.now().toString(36), x1: L.x0, y1: L.y0, x2: L.x1, y2: L.y1, h: lk === 'hedge' ? 'hedge' : lk === 'half' ? 'half' : 'full' }); saveHomeSoon();
     return planMsg(({ half: 'Halvvägg', hedge: 'Häck' }[lk] || 'Vägg') + ', ' + r1(len) + ' m. Rita fler eller tryck på en för att ta bort den.'); }
   if (d.k === 'tapplace') { placeAt(pt); return; }
-  if (d.k === 'pan') { if (!d.moved && d.tapSel) { P.sel = d.tapSel; render(); } else if (!d.moved && P.sel) { P.sel = null; render(); } return; }
+  if (d.k === 'pan') { if (!d.moved) P.vsel = null; if (!d.moved && d.tapSel) { P.sel = d.tapSel; render(); } else if (!d.moved && P.sel) { P.sel = null; render(); } return; }
   if (d.k === 'selwin') { P.sel = { k: 'win', id: d.id, i: d.i }; render(); return; }
   if (d.k === 'selbay') { P.sel = { k: 'bay', id: d.id, i: d.i }; render(); return; }
   if (d.k === 'selfw') { P.sel = { k: 'fwall', id: d.id }; render(); return; }
@@ -1864,7 +1882,8 @@ function addWin(pt, pt2) {
     const bi = kind !== 'bay' ? -1 : (r.bays || []).findIndex(b => baySegs(r, b).some(g => segDist(pt.x, pt.y, g[0]) < 0.4));
     if (bi >= 0) { pushUndo(); r.bays.splice(bi, 1); r.winsTouched = true; syncDirs(r); saveHomeSoon(); replaceWinWords(r); return planMsg('Burspråket är borttaget.'); }
     const wi = (r.wins || []).findIndex(w => (wkOf(w) === kind || (kind === 'door' && w.k === 'open' && w.pair) || (kind === 'open' && w.k === 'door' && w.pair)) && segDist(pt.x, pt.y, wallSeg(r, w)) < 0.4);
-    if (wi >= 0) { pushUndo(); const w = r.wins.splice(wi, 1)[0]; if (w.pair) planRooms().forEach(o => { if (o.wins) o.wins = o.wins.filter(x => x.pair !== w.pair); }); r.winsTouched = true; syncDirs(r); saveHomeSoon(); replaceWinWords(r); return planMsg({ win: 'Fönstret', door: 'Dörren', open: 'Öppningen', rad: 'Elementet', vent: 'Ventilen' }[wkOf(w)] + ' är borttaget.'.replace('borttaget', ['door', 'vent', 'open'].includes(wkOf(w)) ? 'borttagen' : 'borttaget')); }
+    if (wi >= 0) { pushUndo(); const w = r.wins.splice(wi, 1)[0]; if (w.pair) planRooms().forEach(o => { if (o.wins) o.wins = o.wins.filter(x => x.pair !== w.pair); }); r.winsTouched = true; syncDirs(r); saveHomeSoon(); replaceWinWords(r); if (w.k === 'open') return planMsg('Väggen är tillbaka.');
+      return planMsg({ win: 'Fönstret', door: 'Dörren', open: 'Öppningen', rad: 'Elementet', vent: 'Ventilen' }[wkOf(w)] + ' är borttaget.'.replace('borttaget', ['door', 'vent', 'open'].includes(wkOf(w)) ? 'borttagen' : 'borttaget')); }
   }
   let best = null;
   planRooms().forEach(r => { const { x, y, w, h } = r.rect;
@@ -1881,23 +1900,18 @@ function addWin(pt, pt2) {
     return planMsg('Burspråk med fönster mot ' + baySegs(r, r.bays[r.bays.length - 1]).map(g => DIRS.find(d => d[0] === angDir(g[1]))[1].toLowerCase()).join(', ') + '. Tryck på det igen för att ta bort det.');
   }
   let l = Math.min(WL[kind] || 1, L), step = kind === 'vent' ? 0.1 : 0.25, p = Math.max(0, Math.min(L - l, Math.round((best.along - l / 2) / step) * step));
+  if (kind === 'open' && !pt2) { const pc = solidPieces(r, best.s).find(q => best.along >= q[0] - 0.05 && best.along <= q[1] + 0.05); if (!pc) return toast('Här finns ingen vägg att ta bort'); p = r1(pc[0]); l = r1(pc[1] - pc[0]); }
   if (pt2) { const a1 = ['t', 'b'].includes(best.s) ? pt2.x - r.rect.x : pt2.y - r.rect.y, s0 = Math.round(Math.max(0, Math.min(best.along, a1)) * 4) / 4, s1 = Math.round(Math.min(L, Math.max(best.along, a1)) * 4) / 4; if (s1 - s0 >= 0.25) { p = s0; l = s1 - s0; } }
   const el = { s: best.s, p: r1(p), l }; if (kind !== 'win') el.k = kind;
-  const overlaps = w => w.s === best.s && w.p < el.p + l && el.p < w.p + w.l && (kind === 'vent' || kind === 'rad' ? ['vent', 'rad'].includes(wkOf(w)) : !['vent', 'rad'].includes(wkOf(w)));
+  const overlaps = w => w.s === best.s && w.p < el.p + l && el.p < w.p + w.l && (kind === 'open' || (kind === 'vent' || kind === 'rad' ? ['vent', 'rad'].includes(wkOf(w)) : !['vent', 'rad'].includes(wkOf(w))));
   r.wins = (r.wins || []).filter(w => !overlaps(w)).concat(el);
-  if (kind === 'door' || kind === 'open') { // öppen planlösning: samma öppning i rummet på andra sidan väggen
-    const [ax, ay, bx, by] = wallSeg(r, el), opp = { t: 'b', b: 't', l: 'r', r: 'l' }[el.s];
-    planRooms().filter(o => o !== r).forEach(o => { const os = wallSeg(o, { s: opp, p: 0, l: sideLen(o, opp) });
-      const horiz = ['t', 'b'].includes(el.s); if (horiz ? Math.abs(os[1] - ay) > 0.01 : Math.abs(os[0] - ax) > 0.01) return;
-      const o0 = horiz ? os[0] : os[1], o1 = horiz ? os[2] : os[3], e0 = horiz ? ax : ay, e1 = horiz ? bx : by, a0 = Math.max(o0, e0), a1 = Math.min(o1, e1);
-      if (a1 - a0 < 0.2) return; el.pair = el.pair || 'p' + Date.now().toString(36);
-      o.wins = (o.wins || []).filter(w => !(w.s === opp && w.p < a1 - o0 && a0 - o0 < w.p + w.l && !['vent', 'rad'].includes(wkOf(w)))).concat({ s: opp, p: r1(a0 - o0), l: r1(a1 - a0), k: 'open', pair: el.pair }); o.winsTouched = true; syncDirs(o); });
-  }
+  if (kind === 'door' || kind === 'open') pairOpen(r, el);
+
   r.winsTouched = true; syncDirs(r); saveHomeSoon(); replaceWinWords(r);
-  planMsg(kind === 'win' ? `Fönster mot ${DIRS.find(d => d[0] === winDir(best.s))[1].toLowerCase()} i ${esc(r.name.toLowerCase())}.` : `${WNAME[kind]} i ${esc(r.name.toLowerCase())}. Tryck på den igen för att ta bort den.`);
+  planMsg(kind === 'open' ? `Väggen är borttagen (${l} m). Tryck på samma ställe för att sätta tillbaka den, eller välj Flytta och tryck på öppningen för att göra den smalare.` : kind === 'win' ? `Fönster mot ${DIRS.find(d => d[0] === winDir(best.s))[1].toLowerCase()} i ${esc(r.name.toLowerCase())}.` : `${WNAME[kind]} i ${esc(r.name.toLowerCase())}. Tryck på den igen för att ta bort den.`);
 }
 async function replaceWinWords(r) { for (const m of S.mine.filter(m => m.details && m.details.pos && m.details.room === r.id)) { const ww = winWord(r, m.details.pos.x, m.details.pos.y); if (ww && ww !== m.details.win) await savePos(m, true); } }
-function winLen(dl) { pushUndo(); const sel = PL().sel, r = S.home.find(x => x.id === sel.id), w = r.wins[sel.i], L = ['t', 'b'].includes(w.s) ? r.rect.w : r.rect.h; w.l = Math.max(w.k === 'vent' ? 0.2 : 0.5, Math.min(L - w.p, r1(w.l + (w.k === 'vent' ? dl / 2.5 : dl)))); saveHomeSoon(); render(); }
+function winLen(dl) { pushUndo(); const sel = PL().sel, r = S.home.find(x => x.id === sel.id), w = r.wins[sel.i], L = ['t', 'b'].includes(w.s) ? r.rect.w : r.rect.h; w.l = Math.max(w.k === 'vent' ? 0.2 : 0.5, Math.min(L - w.p, r1(w.l + (w.k === 'vent' ? dl / 2.5 : dl)))); if (w.k === 'open' || w.k === 'door') pairOpen(r, w); saveHomeSoon(); render(); }
 function bayEdit(k, dv) { pushUndo(); const sel = PL().sel, r = S.home.find(x => x.id === sel.id), b = r.bays[sel.i], L = sideLen(r, b.s);
   if (k === 'l') { b.l = Math.max(1, Math.min(L - b.p, r1(b.l + dv))); if (b.l === L - b.p && dv > 0 && b.p > 0) { b.p = Math.max(0, r1(b.p - 0.25)); b.l = Math.min(L - b.p, r1(b.l + 0.5)); } } else b.d = Math.max(0.2, Math.min(b.l / 2 - 0.05, r1(b.d + dv)));
   saveHomeSoon(); render(); replaceWinWords(r); }
@@ -1907,7 +1921,17 @@ function furnRot() { pushUndo(); const f = planFurn().find(x => x.id === PL().se
 function delFurn(id) { pushUndo(); S.hplan.furn = planFurn().filter(x => x.id !== id); PL().sel = null; saveHomeSoon(); render(); }
 function toggleHalf(id) { pushUndo(); const wl = planWalls().find(x => x.id === id); wl.h = wl.h === 'half' ? 'full' : 'half'; saveHomeSoon(); render(); }
 function delFWall(id) { pushUndo(); S.hplan.walls = planWalls().filter(x => x.id !== id); PL().sel = null; saveHomeSoon(); render(); }
-function delWin() { pushUndo(); const sel = PL().sel, r = S.home.find(x => x.id === sel.id); r.wins.splice(sel.i, 1); r.winsTouched = true; syncDirs(r); PL().sel = null; saveHomeSoon(); render(); replaceWinWords(r); }
+function pairOpen(r, el) { // öppen planlösning: samma öppning i rummet på andra sidan väggen
+  if (el.pair) planRooms().forEach(o => { if (o !== r && o.wins) o.wins = o.wins.filter(x => x.pair !== el.pair); });
+    const [ax, ay, bx, by] = wallSeg(r, el), opp = { t: 'b', b: 't', l: 'r', r: 'l' }[el.s];
+    planRooms().filter(o => o !== r).forEach(o => { const os = wallSeg(o, { s: opp, p: 0, l: sideLen(o, opp) });
+      const horiz = ['t', 'b'].includes(el.s); if (horiz ? Math.abs(os[1] - ay) > 0.01 : Math.abs(os[0] - ax) > 0.01) return;
+      const o0 = horiz ? os[0] : os[1], o1 = horiz ? os[2] : os[3], e0 = horiz ? ax : ay, e1 = horiz ? bx : by, a0 = Math.max(o0, e0), a1 = Math.min(o1, e1);
+      if (a1 - a0 < 0.2) return; el.pair = el.pair || 'p' + Date.now().toString(36);
+      o.wins = (o.wins || []).filter(w => !(w.s === opp && w.p < a1 - o0 && a0 - o0 < w.p + w.l && !['vent', 'rad'].includes(wkOf(w)))).concat({ s: opp, p: r1(a0 - o0), l: r1(a1 - a0), k: 'open', pair: el.pair }); o.winsTouched = true; syncDirs(o); });
+}
+function winShift(dp) { pushUndo(); const sel = PL().sel, r = S.home.find(x => x.id === sel.id), w = r.wins[sel.i], L = sideLen(r, w.s); w.p = Math.max(0, Math.min(L - w.l, r1(w.p + dp))); if (w.k === 'open' || w.k === 'door') pairOpen(r, w); saveHomeSoon(); render(); replaceWinWords(r); }
+function delWin() { pushUndo(); const sel = PL().sel, r = S.home.find(x => x.id === sel.id), w0 = r.wins.splice(sel.i, 1)[0]; if (w0 && w0.pair) planRooms().forEach(o => { if (o.wins) o.wins = o.wins.filter(x => x.pair !== w0.pair); }); r.winsTouched = true; syncDirs(r); PL().sel = null; saveHomeSoon(); render(); replaceWinWords(r); }
 function unplanRoom(id) { pushUndo(); const r = S.home.find(x => x.id === id); delete r.rect; delete r.wins; delete r.bays; PL().sel = null; saveHomeSoon(); render(); toast(r.name + ' finns kvar under Rum'); }
 async function unplacePlant(id) { const m = S.mine.find(x => x.id === id), d = JSON.parse(JSON.stringify(m.details || {})); delete d.pos; PL().sel = null; try { await api.saveDetails(id, d); S.mine = await api.mine(); } catch (e) { toast(errMsg(e)); } render(); }
 function delDev(id) { pushUndo(); S.hplan.items = planItems().filter(x => x.id !== id); PL().sel = null; saveHomeSoon(); render(); }
@@ -3379,7 +3403,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.26';
+const APP_VERSION = '1.28';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
