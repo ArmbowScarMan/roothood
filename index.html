@@ -563,6 +563,28 @@ nav button span{display:block}
 nav button.on{width:auto;padding:6px 0;background:none;color:var(--pri)}
 nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box-sizing:content-box}
 #main{padding-bottom:96px}
+
+/* --- Utseende 1.18: samma stil på alla sidor --- */
+.top{display:flex;align-items:center;gap:10px;padding:18px 18px 8px}
+.top h1{flex:1;min-width:0;font-size:28px;font-weight:800;text-align:left;color:var(--pri);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top.hasback h1{font-size:22px}
+.sec h2{font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--mut)}
+.dtop{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:6px 18px 0}
+.dtop .ph{aspect-ratio:auto;height:290px;width:100%;border-radius:30px;box-shadow:0 12px 28px rgba(40,30,15,.12)}
+.dstats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.dstats>div{background:var(--surf);border-radius:18px;padding:10px 14px;box-shadow:var(--sh)}
+.dstats small{text-transform:uppercase;letter-spacing:.07em;font-size:11px!important;font-weight:800}
+.dstats b{font-size:16px}
+.sheet2{border-radius:30px 30px 0 0}
+.dname h1{font-size:30px;color:var(--pri)}
+.wbtn.due{background:var(--cop)}
+.mrow{border-radius:22px}
+.mrow .ph{width:78px;height:78px;border-radius:18px}
+.summary{background:var(--card)!important;color:#F4EEE3!important}
+.bar.due i{background:var(--cop)}
+.due-t{color:var(--cop)}
+.post{border-radius:22px}
+.bigav{box-shadow:0 10px 24px rgba(40,30,15,.15)}
 </style></head><body>
 <div id="app"><div id="main"></div>
 <nav aria-label="Huvudmeny">
@@ -1567,7 +1589,7 @@ function topbar(title, backFn) {
     ? `<button class="circ" onclick="${backFn}" aria-label="Tillbaka">${ic(I.back, null, 22)}</button>`
     : `<img class="logoimg" src="${LOGO}" alt="Roothood" width="40" height="40">`;
   const right = `<button class="circ" onclick="go('mine')" aria-label="${due ? due + ' växter behöver vatten' : 'Vattningspåminnelser'}">${ic(I.bell, null, 22)}${due ? `<span class="dot">${due}</span>` : ''}</button>`;
-  return `<div class="top">${left_}<h1>${esc(title)}</h1>${right}</div>`;
+  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1>${esc(title)}</h1>${right}</div>`;
 }
 
 // ===== Vyer =====
@@ -2652,7 +2674,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.17';
+const APP_VERSION = '1.18';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
