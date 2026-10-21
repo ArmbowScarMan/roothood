@@ -188,6 +188,9 @@ form label.check{display:flex;gap:10px;align-items:flex-start;font-weight:600;ba
 form label.check input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-color:var(--pri)}
 .modal label.check{margin-bottom:8px}
 .modal label.check+.formbtn{margin-top:8px}
+.sameln{display:flex!important;gap:10px;align-items:center;font-weight:600!important;margin:-6px 0 14px!important;cursor:pointer}
+.sameln input{width:20px!important;height:20px;margin:0!important;flex:none;accent-color:var(--pri)}
+input.ro{opacity:.65}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .sub{background:var(--surf);border-radius:18px;padding:14px 14px 2px;margin-bottom:14px}
 .seg{display:flex;background:var(--surf);border-radius:999px;padding:4px;margin-bottom:16px;box-shadow:var(--sh)}
@@ -996,6 +999,11 @@ function galleryV(my) {
   ${my.photos.length ? '<p class="mut" style="font-size:13px;margin:8px 18px 0">Tryck på ett foto för att visa det för växten. Alla dina foton sparas. Andra kan se dem under "Andras bilder" (ändra i Inställningar).</p>' : ''}`;
 }
 function remindCheck() { return `<label class="remrow" style="margin-top:12px;font-weight:400"><input type="checkbox" ${newRemind() ? 'checked' : ''} onchange="S.addRemind=this.checked"><span><b>Påminn mig när den behöver vatten</b><span class="mut">Bocka ur om du hellre sköter vattningen själv</span></span></label>`; }
+function sameLatin(on) {
+  const l = $('#clatin'), n = $('#cname'); if (!l || !n) return;
+  if (on) { l.dataset.prev = l.value; l.value = n.value; l.readOnly = true; l.classList.add('ro'); }
+  else { l.value = l.dataset.prev || ''; l.readOnly = false; l.classList.remove('ro'); l.focus(); }
+}
 function addpV() {
   const p = S.plants.find(x => x.id === S.addp); if (!p) return '';
   const A = S.ap;
@@ -1342,8 +1350,9 @@ function addV() {
   return `<div class="mh"><h2>Lägg till egen växt</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div id="apbox">${apBox()}</div>
   <form onsubmit="event.preventDefault();saveCustom(this)">
-  <label>Namn<input name="name" required maxlength="60" value="${esc(S.prefill)}" placeholder="t.ex. Elefantöra"></label>
-  <label>Vetenskapligt namn (valfritt)<input name="latin" maxlength="80" placeholder="t.ex. Alocasia" value="${esc(S.prefillLatin)}"></label>
+  <label>Namn<input name="name" id="cname" required maxlength="60" value="${esc(S.prefill)}" placeholder="t.ex. Elefantöra" oninput="const c=$('#samelat');if(c&&c.checked)$('#clatin').value=this.value"></label>
+  <label>Vetenskapligt namn (valfritt)<input name="latin" id="clatin" maxlength="80" placeholder="t.ex. Alocasia" value="${esc(S.prefillLatin)}"></label>
+  <label class="sameln"><input type="checkbox" id="samelat" onchange="sameLatin(this.checked)"><span>Samma som namnet</span></label>
   <div class="row2"><label>Kategori<select name="cat">${CATS.map(c => `<option>${c}</option>`).join('')}</select></label>
   <label>Vattna var … dag<input name="interval" type="number" min="1" max="90" value="7" required></label></div>
   <div class="row2"><label>Ljus<select name="light">${opts(LIGHT, 2)}</select></label><label>Vatten<select name="water">${opts(WATER, 2)}</select></label></div>
@@ -2085,7 +2094,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.10.1';
+const APP_VERSION = '1.10.2';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
