@@ -2062,7 +2062,7 @@ function lightRest() {
   return `<div class="pad">
   <div class="cta" style="padding:14px 0 0;display:flex;gap:10px">${running ? `<button class="btn line" style="flex:1" onclick="stopLight();render()">Stoppa</button><button class="btn" style="flex:1" onclick="S.lhold=!S.lhold;showLight(S.light,true)">${S.lhold ? 'Lås upp' : 'Lås värdet'}</button>` : '<button class="btn" onclick="startLight()">Starta mätning</button>'}</div>
   ${c ? `<div class="tipr" style="margin-top:14px"><span class="ck">${ic(I.sun, 'currentColor', 16)}</span><div><b>${c.name}</b><span>${c.tip}</span></div></div>` : ''}
-  ${L && L.method !== 'Paddans ljussensor' ? `<div class="tipr" style="margin-top:14px"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>Få exakta värden</b><span>Slå på paddans ljussensor i Chrome: skriv <b style="display:inline;color:inherit">chrome://flags</b> i adressfältet, sök på "Generic Sensor Extra Classes", välj Enabled och starta om Chrome.</span></div></div>` : ''}
+  ${L && L.method !== 'Paddans ljussensor' ? `<div class="tipr" style="margin-top:14px"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>Få exakta värden</b><span>Slå på mobilens eller plattans ljussensor i Chrome: skriv <b style="display:inline;color:inherit">chrome://flags</b> i adressfältet, sök på "Generic Sensor Extra Classes", välj Enabled och starta om Chrome.</span></div></div>` : ''}
   <details class="tech"><summary>Vad betyder värdena?</summary>
   <p><b>PPFD</b> är hur mycket ljus växten kan använda som träffar bladen varje sekund. Krukväxter vill oftast ha 75–200, ljusälskare 200–600.</p>
   <p><b>DLI</b> är ljuset under en hel dag. Det beror på hur många timmar ljuset är på.</p>
@@ -2074,7 +2074,7 @@ function lightRest() {
 }
 function lightV() {
   return `${topbar('Ljusmätare', 'closeTool()')}<div class="pad">
-  <p class="mut" style="margin:6px 0 12px">Ställ paddan där växten ska stå, med skärmen vänd mot ljuset. Mätningen görs med framkameran. Ett tunt vitt papper över kameran ger jämnare värden.</p>
+  <p class="mut" style="margin:6px 0 12px">Ställ mobilen eller plattan där växten ska stå, med skärmen vänd mot ljuset. Mätningen görs med framkameran. Ett tunt vitt papper över kameran ger jämnare värden.</p>
   <div class="lightbox"><video id="lv" muted playsinline autoplay ${lightStream ? '' : 'hidden'}></video><div id="ldyn">${lightDyn()}</div></div>
   <div class="lctl"><label>Ljuskälla</label><div class="chips2">${LSRC.map(s => `<button class="${S.lsrc === s[0] ? 'on' : ''}" onclick="S.lsrc='${s[0]}';this.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===this));showLight(S.light,true)">${s[1]}</button>`).join('')}</div>
   <label style="margin-top:14px" for="lh">Ljus per dag: <span id="lhv">${S.lhours}</span> timmar</label><input id="lh" type="range" min="4" max="18" step="1" value="${S.lhours}" oninput="S.lhours=+this.value;$('#lhv').textContent=this.value;showLight(S.light,true)"></div></div>
@@ -2110,7 +2110,7 @@ async function startLight() {
       const s = new AmbientLightSensor({ frequency: 2 });
       let avg = null;
       await new Promise((ok, fail) => {
-        s.onreading = () => { lightSensor = s; avg = avg == null ? s.illuminance : avg * .6 + s.illuminance * .4; showLight({ lux: avg, method: 'Paddans ljussensor', raw: {} }); ok(); };
+        s.onreading = () => { lightSensor = s; avg = avg == null ? s.illuminance : avg * .6 + s.illuminance * .4; showLight({ lux: avg, method: 'Ljussensorn (exakt)', raw: {} }); ok(); };
         s.onerror = e => fail(e.error); s.start(); setTimeout(() => fail(new Error('timeout')), 2500);
       });
       render(); return;
