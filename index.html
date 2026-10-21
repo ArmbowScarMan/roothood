@@ -428,6 +428,32 @@ details.tech p b{color:var(--ink)}
 .remrow input{width:22px;height:22px;flex:none;margin:2px 0 0;accent-color:var(--pri)}
 .remrow b{display:block;font-size:15px}
 .remrow .mut{font-size:13px}
+.sens{margin:0 18px;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh)}
+.sens.inm{margin:18px 0 0}
+.sens .sh{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sens .sh b{flex:1;font-size:16px}
+.sgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.sgrid div{background:var(--bg);border-radius:14px;padding:10px 12px}
+.sgrid small{display:block;color:var(--mut);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.sgrid b{display:block;font-size:20px;margin-top:2px}
+.sgrid b.dry{color:var(--acc)}
+.mbar{height:8px;border-radius:99px;background:var(--line);margin-top:6px;overflow:hidden}
+.mbar i{display:block;height:100%;background:var(--wat);border-radius:99px}
+.smcard{margin:12px 18px 0;background:var(--surf);border-radius:22px;padding:16px;box-shadow:var(--sh)}
+.smcard h3{font-size:17px;margin:0 0 4px;display:flex;gap:10px;align-items:center}
+.smcard .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.smres{background:var(--soft);border-radius:16px;padding:12px 14px;margin-top:12px;font-size:14.5px;line-height:1.5}
+.smres b{font-size:18px}
+.steps{margin:10px 0 0;padding-left:20px;font-size:14px;line-height:1.55}
+.steps li{margin-bottom:4px}
+.devrow{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.devrow:first-child{border-top:0}
+.devrow .grow{flex:1;min-width:0}
+.devrow b{display:block;font-size:15px}
+.devrow span{font-size:13px;color:var(--mut)}
+.flow{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.flow div{background:var(--bg);border-radius:14px;padding:10px 12px;font-size:14px}
+.flow .arr{background:none;text-align:center;padding:0;color:var(--mut)}
 .diary{padding:0 18px}
 .diary.inm{padding:0;margin-top:18px}
 .diary h3{font-size:17px;margin:0 0 10px}
@@ -501,7 +527,7 @@ const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const today = () => new Date().toLocaleDateString('sv-SE');
 const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toLocaleDateString('sv-SE'); };
 const since = d => Math.round((Date.parse(today()) - Date.parse(d)) / 864e5);
-const left = m => m.interval && m.remind !== false ? Math.max(0, m.interval - since(m.last_watered)) : null;
+const left = m => { if (m.remind !== false && sensorDry(m)) return 0; return m.interval && m.remind !== false ? Math.max(0, m.interval - since(m.last_watered)) : null; };
 const newRemind = () => S.addRemind !== undefined ? S.addRemind : store.get('remindDefault', true);
 const ord = n => (n % 10 === 1 || n % 10 === 2) && n % 100 !== 11 && n % 100 !== 12 ? ':a' : ':e';
 const hueOf = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
@@ -834,6 +860,7 @@ function myplantV() {
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><span class="tag lime">${esc(m.category || 'Egen växt')}</span><span class="tag green">${d === null ? 'Vattna vid torka' : d === 0 ? 'Vattna idag' : 'Vattnas om ' + d + (d === 1 ? ' dag' : ' dagar')}</span></div>
   ${m.interval ? `<p style="margin:14px 0 0">Vattna ungefär var ${m.interval}${ord(m.interval)} dag.</p>` : ''}
   ${m.notes ? `<div class="tipr" style="margin-top:12px;box-shadow:none"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>Anteckningar</b><span>${esc(m.notes)}</span></div></div>` : ''}
+  ${sensorCard(m, true)}
   ${detailsV(m, true)}
   ${diaryV(m, true)}
   <p class="mut" style="font-size:13px;margin:14px 0 0">Den här växten finns bara i din samling och har ingen egen sida i växtdatabasen.</p>
@@ -1004,6 +1031,177 @@ async function saveDetails() {
     S.busy = false; closeDetails(); return;
   } catch (e) { toast(e.message === 'DETAILS_NOT_READY' ? 'Uppgifterna är inte påslagna i databasen än.' : errMsg(e)); }
   S.busy = false; render();
+}
+
+// ===== Smarta hemmet: Bluetooth-sensorer, växtlampa, bevattning, luftfukt =====
+const HOMEI = '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M12 20v-5"/><path d="M12 15c-2.5 0-4-1.5-4-4 2.5 0 4 1.5 4 4zM12 15c2.5 0 4-1.5 4-4-2.5 0-4 1.5-4 4z"/>';
+const BTI = '<path d="M7 7l10 10-5 5V2l5 5L7 17"/>';
+const DRY_AT = { 1: 10, 2: 20, 3: 30 };
+const plantOf = m => S.plants.find(p => p.id === m.plant_id) || null;
+function sensorDry(m) {
+  const sn = m.details && m.details.sensor; if (!sn || sn.moist == null || !sn.at) return false;
+  if (Date.now() - Date.parse(sn.at) > 36 * 3600e3) return false;
+  const p = plantOf(m), lvl = p ? p.water_level : 2;
+  return sn.moist < (DRY_AT[lvl] || 20);
+}
+const agoShort = iso => { const min = Math.round((Date.now() - Date.parse(iso)) / 6e4); return min < 1 ? 'nyss' : min < 60 ? min + ' min sedan' : min < 1440 ? Math.round(min / 60) + ' tim sedan' : Math.round(min / 1440) + ' dagar sedan'; };
+const btOk = () => !!(navigator.bluetooth && navigator.bluetooth.requestDevice);
+const uuid16 = n => '0000' + n.toString(16).padStart(4, '0') + '-0000-1000-8000-00805f9b34fb';
+// Xiaomi Flower Care (MiFlora): jordfukt, temperatur, ljus, näring
+async function readFlowerCare() {
+  const dev = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: 'Flower' }, { services: [0xfe95] }], optionalServices: [uuid16(0x1204), 0xfe95] });
+  const gatt = await dev.gatt.connect();
+  try {
+    const svc = await gatt.getPrimaryService(uuid16(0x1204));
+    let battery = null;
+    try { const b = await (await svc.getCharacteristic(uuid16(0x1a02))).readValue(); battery = b.getUint8(0); } catch (e) {}
+    await (await svc.getCharacteristic(uuid16(0x1a00))).writeValue(new Uint8Array([0xa0, 0x1f]));
+    await new Promise(r => setTimeout(r, 300));
+    const v = await (await svc.getCharacteristic(uuid16(0x1a01))).readValue();
+    return { kind: 'flower', name: dev.name || 'Flower Care', temp: v.getInt16(0, true) / 10, lux: v.getUint32(3, true), moist: v.getUint8(7), ec: v.getUint16(8, true), battery, at: new Date().toISOString() };
+  } finally { try { gatt.disconnect(); } catch (e) {} }
+}
+// Xiaomi termometer/hygrometer LYWSD03MMC
+async function readThermo() {
+  const SV = 'ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6', CH = 'ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6';
+  const dev = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: 'LYWSD' }, { namePrefix: 'MJ_HT' }], optionalServices: [SV] });
+  const gatt = await dev.gatt.connect();
+  try {
+    const ch = await (await gatt.getPrimaryService(SV)).getCharacteristic(CH);
+    const v = await new Promise((ok, fail) => {
+      const t = setTimeout(() => fail(new Error('Termometern svarade inte. Försök igen.')), 12000);
+      ch.addEventListener('characteristicvaluechanged', e => { clearTimeout(t); ok(e.target.value); }, { once: true });
+      ch.startNotifications().catch(fail);
+    });
+    return { kind: 'thermo', name: dev.name || 'Termometer', temp: v.getInt16(0, true) / 100, hum: v.getUint8(2), at: new Date().toISOString() };
+  } finally { try { gatt.disconnect(); } catch (e) {} }
+}
+function demoReading(kind) {
+  const r = (a, b) => Math.round(a + Math.random() * (b - a));
+  return kind === 'thermo' ? { kind, name: 'Exempeltermometer', temp: r(19, 24), hum: r(30, 55), at: new Date().toISOString(), demo: true }
+    : { kind, name: 'Exempelsensor', temp: r(19, 24), lux: r(800, 6000), moist: r(8, 45), ec: r(150, 900), battery: r(60, 100), at: new Date().toISOString(), demo: true };
+}
+async function readSensor(id, kind, demo) {
+  const m = S.mine.find(x => x.id === id); if (!m) return;
+  if (!demo && !btOk()) return toast('Bluetooth fungerar bara i Chrome på Android och dator. Tryck på "Prova med exempelvärden".');
+  S.sbusy = id + kind; render();
+  try {
+    const r = demo ? demoReading(kind) : kind === 'thermo' ? await readThermo() : await readFlowerCare();
+    const d = JSON.parse(JSON.stringify(m.details || {})), key = kind === 'thermo' ? 'climate' : 'sensor';
+    d[key] = r; d[key + 'Hist'] = (d[key + 'Hist'] || []).concat({ at: r.at, moist: r.moist, temp: r.temp, hum: r.hum, lux: r.lux }).slice(-30);
+    await api.saveDetails(id, d);
+    S.mine = await api.mine();
+    toast(kind === 'thermo' ? 'Klimatet är avläst' : sensorDry(S.mine.find(x => x.id === id)) ? 'Jorden är torr, dags att vattna!' : 'Sensorn är avläst');
+  } catch (e) {
+    toast(e && e.name === 'NotFoundError' ? 'Ingen sensor valdes' : e && e.name === 'NotAllowedError' ? 'Tillåt Bluetooth och plats i Chrome' : e && e.message === 'DETAILS_NOT_READY' ? 'Uppgifter är inte påslaget i databasen än.' : 'Kunde inte läsa sensorn: ' + ((e && e.message) || e));
+  }
+  S.sbusy = null; render();
+}
+function sensorCard(m, inModal) {
+  const d = m.details || {}, sn = d.sensor, cl = d.climate, p = plantOf(m), lvl = p ? p.water_level : 2, dry = sensorDry(m);
+  const busy = S.sbusy === m.id + 'flower' || S.sbusy === m.id + 'thermo';
+  const ppfdE = sn && sn.lux != null ? Math.round(sn.lux * 0.0185) : null;
+  const body = sn || cl ? `<div class="sgrid">
+    ${sn ? `<div><small>Jordfukt</small><b class="${dry ? 'dry' : ''}">${sn.moist} %</b><div class="mbar"><i style="width:${Math.min(100, sn.moist * 1.6)}%"></i></div></div>
+    <div><small>Ljus</small><b>${fmt(sn.lux)} lux</b><span class="mut" style="font-size:12px">≈ ${ppfdE} PPFD</span></div>
+    <div><small>Temperatur</small><b>${fmt(sn.temp, 1)} °C</b></div>
+    <div><small>Näring</small><b>${fmt(sn.ec)}</b><span class="mut" style="font-size:12px">µS/cm${sn.ec < 200 ? ', lite näring' : ''}</span></div>` : ''}
+    ${cl ? `<div><small>Luftfukt</small><b>${cl.hum} %</b></div><div><small>Rummet</small><b>${fmt(cl.temp, 1)} °C</b></div>` : ''}
+  </div>
+  ${dry ? `<div class="pdhint warn" style="margin-top:10px"><span class="ck">💧</span><span>Jorden är torr för ${esc(m.name.toLowerCase())}. Dags att vattna! Under ${DRY_AT[lvl]} % räknas som torrt för den här växten.</span></div>` : ''}
+  ${cl && p && /hög/i.test(p.humidity || '') && cl.hum < 50 ? `<div class="pdhint warn" style="margin-top:8px"><span class="ck">💨</span><span>Växten vill ha hög luftfuktighet (50–70 %) men rummet har ${cl.hum} %. En luftfuktare hjälper, se Smarta hemmet.</span></div>` : ''}
+  <p class="mut" style="font-size:12.5px;margin:8px 0 0">${sn ? 'Sensor avläst ' + agoShort(sn.at) + (sn.battery != null ? ', batteri ' + sn.battery + ' %' : '') + (sn.demo ? ' (exempelvärden)' : '') : ''}${sn && cl ? ' · ' : ''}${cl ? 'Klimat ' + agoShort(cl.at) + (cl.demo ? ' (exempel)' : '') : ''}</p>`
+    : '<p class="mut" style="margin:0 0 4px;font-size:14px">Koppla en Bluetooth-sensor i krukan så ser du jordfukt, ljus och temperatur, och appen säger till när jorden är torr.</p>';
+  return `${inModal ? '' : '<div class="sec"><h2>Sensorer</h2></div>'}<div class="sens ${inModal ? 'inm' : ''}">${inModal ? '<div class="sh"><b>Sensorer</b></div>' : ''}${body}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" ${busy ? 'disabled' : ''} onclick="readSensor(${m.id},'flower')">${ic(BTI, 'currentColor', 16)} ${sn ? 'Läs av växtsensorn' : 'Koppla växtsensor'}</button>
+  <button class="btn sm line" ${busy ? 'disabled' : ''} onclick="readSensor(${m.id},'thermo')">${cl ? 'Läs av termometern' : '+ Termometer'}</button>
+  ${!btOk() || DEMO ? `<button class="x" onclick="readSensor(${m.id},'flower',true);setTimeout(()=>readSensor(${m.id},'thermo',true),400)">Prova med exempelvärden</button>` : ''}</div></div>`;
+}
+function openSmart() { stopLight(); S.sel = null; S.tool = 'smart'; S.sm = S.sm || { ppfd: '', dli: '', start: '07:00', flow: '', ml: '', rh: '' }; render(); $('#main').scrollTop = 0; }
+function smUpd(k, v) { const [sec, f] = k.split('_'); if (f && f !== 'p' && f !== 'x') S.sm[f] = v; const r = $('#smres-' + sec); if (r) r.innerHTML = smResult(sec); }
+const DLI_T = { 1: [3, 5], 2: [6, 10], 3: [12, 20] };
+function smResult(sec) {
+  const s = S.sm;
+  if (sec === 'lamp') {
+    const ppfdV = +s.ppfd, p = S.plants.find(x => x.id === +s.plant), dli = +s.dli || (p ? DLI_T[p.light_level][0] + (DLI_T[p.light_level][1] - DLI_T[p.light_level][0]) / 2 : 0);
+    if (!(ppfdV > 0) || !(dli > 0)) return '<span class="mut">Fyll i lampans PPFD och välj en växt eller ett DLI-mål.</span>';
+    let h = dli * 1e6 / (ppfdV * 3600); const tooMuch = h > 18; h = Math.min(18, Math.max(1, h));
+    const hh = Math.floor(h), mm = Math.round((h - hh) * 60 / 15) * 15, [sh, sm] = (s.start || '07:00').split(':').map(Number);
+    const end = new Date(2000, 0, 1, sh, sm + hh * 60 + mm), endTxt = String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
+    return `Tänd lampan <b>${hh} tim${mm ? ' ' + mm + ' min' : ''}</b> om dagen: <b>${esc(s.start || '07:00')}–${endTxt}</b><br><span class="mut">Ger cirka ${fmt(dli, 1)} mol/m²/dag (DLI) med ${fmt(ppfdV)} PPFD.${tooMuch ? ' Lampan är för svag för det här målet, flytta den närmare växten.' : ''}${h < 8 ? ' Lampan är stark, du kan också höja den en bit.' : ''}</span>`;
+  }
+  if (sec === 'water') {
+    const flow = +s.flow, ml = +s.ml, m = S.mine.find(x => x.id === +s.wplant);
+    const need = ml || (m && m.details && m.details.cm ? Math.round(Math.PI * Math.pow(m.details.cm / 2, 2) * m.details.cm * 0.8 * 0.15) : 0);
+    if (!(flow > 0) || !(need > 0)) return '<span class="mut">Mät hur många ml pumpen ger på 10 sekunder och fyll i hur mycket vatten växten behöver.</span>';
+    const sec10 = Math.max(1, Math.round(need / flow * 10)), every = m && m.interval ? m.interval : 7;
+    return `Kör pumpen <b>${sec10} sekunder</b> var <b>${every}:e dag</b><br><span class="mut">Ger cirka ${need} ml per gång${!ml && m ? ' (räknat på krukans storlek)' : ''}. Börja med lite mindre och kolla jorden första veckan.</span>`;
+  }
+  if (sec === 'hum') {
+    const rh = +s.rh, p = S.plants.find(x => x.id === +s.hplant);
+    const want = p ? (/hög/i.test(p.humidity || '') ? [55, 70] : /medel/i.test(p.humidity || '') ? [45, 60] : /låg/i.test(p.humidity || '') ? [30, 45] : [40, 55]) : [45, 60];
+    if (!(rh > 0)) return `<span class="mut">Målet för ${p ? esc(p.swedish_name.toLowerCase()) : 'de flesta krukväxter'} är <b>${want[0]}–${want[1]} %</b>. Fyll i vad din mätare visar.</span>`;
+    return rh < want[0] ? `Luften är <b>för torr</b> (${rh} %, mål ${want[0]}–${want[1]} %).<br><span class="mut">Kör luftfuktaren 30 min varannan timme på dagen via ett smart uttag, eller ställ växterna närmare varandra.</span>`
+      : rh > want[1] + 10 ? `Luften är <b>fuktig</b> (${rh} %).<br><span class="mut">Stäng av luftfuktaren och vädra, annars kan det bli mögel.</span>` : `<b>Perfekt luftfuktighet</b> (${rh} %) för ${p ? esc(p.swedish_name.toLowerCase()) : 'dina växter'}.`;
+  }
+  return '';
+}
+function smartV() {
+  const s = S.sm, mine = S.mine, withSensor = mine.filter(m => m.details && (m.details.sensor || m.details.climate));
+  const plantOpts = sel => `<option value="">Välj växt…</option>` + S.plants.slice().sort((a, b) => a.swedish_name.localeCompare(b.swedish_name, 'sv')).map(p => `<option value="${p.id}" ${+sel === p.id ? 'selected' : ''}>${esc(p.swedish_name)}</option>`).join('');
+  const mineOpts = sel => `<option value="">Välj växt i samlingen…</option>` + mine.map(m => `<option value="${m.id}" ${+sel === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('');
+  const lastPpfd = S.light && S.light.lux != null ? Math.round(ppfd()) : null;
+  return `${topbar('Smarta hemmet', 'closeTool()')}
+  <p class="mut" style="margin:0 18px">Koppla sensorer och smarta uttag till dina växter. Fungerar med Tapo, Philips Hue, IKEA och Google Home.</p>
+
+  <div class="smcard"><h3>${ic(BTI, 'currentColor', 20)} Växtsensorer</h3>
+  <p class="mut" style="margin:0 0 6px;font-size:14px">Stick ner en Bluetooth-sensor i krukan, till exempel <b>Xiaomi Flower Care</b> (jordfukt, ljus, temperatur, näring). Termometern <b>Xiaomi LYWSD03MMC</b> mäter luftfukt. Kopplas och läses av på varje växts sida.</p>
+  ${withSensor.length ? withSensor.map(m => { const sn = m.details.sensor, cl = m.details.climate; return `<div class="devrow"><span class="tic">${ic(BTI, 'currentColor', 18)}</span><div class="grow"><b>${esc(m.name)}</b><span>${sn ? 'Jordfukt ' + sn.moist + ' %' + (sensorDry(m) ? ' · torr!' : '') : ''}${sn && cl ? ' · ' : ''}${cl ? 'Luftfukt ' + cl.hum + ' %' : ''} · ${agoShort((sn || cl).at)}</span></div><button class="btn sm line" onclick="openMine(${m.id})">Öppna</button></div>`; }).join('')
+    : `<p style="margin:8px 0 0;font-size:14px">${mine.length ? 'Öppna en växt i Min samling och tryck på <b>Koppla växtsensor</b>.' : 'Lägg först till en växt i Min samling.'}</p>`}
+  ${btOk() ? '' : '<p class="mut" style="font-size:12.5px;margin:8px 0 0">Bluetooth fungerar i Chrome på Android och dator, inte på iPhone.</p>'}</div>
+
+  <div class="smcard"><h3>${ic(I.sun, 'currentColor', 20)} Schema för växtlampan</h3>
+  <p class="mut" style="margin:0;font-size:14px">Räkna ut hur länge lampan ska vara tänd för att växten ska få rätt mängd ljus per dag (DLI).</p>
+  <label class="fl" for="smp">Växt</label><select id="smp" onchange="S.sm.plant=this.value;S.sm.dli='';smUpd('lamp_p',this.value)">${plantOpts(s.plant)}</select>
+  <div class="two"><div><label class="fl" for="smpp">Lampans PPFD vid växten</label><input id="smpp" type="number" inputmode="numeric" placeholder="${lastPpfd ? 'Senast uppmätt: ' + lastPpfd : 't.ex. 150'}" value="${esc(s.ppfd)}" oninput="smUpd('lamp_ppfd',this.value)"></div>
+  <div><label class="fl" for="smst">Tänds kl</label><input id="smst" type="time" value="${esc(s.start)}" oninput="smUpd('lamp_start',this.value)"></div></div>
+  ${lastPpfd ? `<button class="x" onclick="S.sm.ppfd='${lastPpfd}';render()">Använd ljusmätarens värde (${lastPpfd})</button>` : '<p class="mut" style="font-size:12.5px;margin:6px 0 0">Mät PPFD med ljusmätaren under lampan.</p>'}
+  <div class="smres" id="smres-lamp">${smResult('lamp')}</div>
+  <details class="tech"><summary>Lägg in schemat i din app</summary>
+  <p><b>Tapo:</b> öppna uttaget → <b>Schema</b> → lägg till en tid för PÅ och en för AV.</p>
+  <p><b>Philips Hue:</b> <b>Automationer</b> → <b>Ny automation</b> → välj tider och lampan.</p>
+  <p><b>IKEA Home smart:</b> <b>Automationer</b> → <b>Schemalagd</b> → välj lampan eller uttaget.</p>
+  <p><b>Google Home:</b> <b>Automatiseringar</b> → <b>+</b> → <b>Tid på dagen</b> → <b>Slå på</b> enheten. Gör en till för att stänga av.</p></details></div>
+
+  <div class="smcard"><h3>${ic(I.drop, 'currentColor', 20)} Bevattning med smart uttag</h3>
+  <p class="mut" style="margin:0;font-size:14px">En liten pump i en vattenbehållare, kopplad till ett smart uttag (t.ex. Tapo P100), vattnar åt dig.</p>
+  <label class="fl" for="smw">Växt i samlingen</label><select id="smw" onchange="smUpd('water_p',this.value);S.sm.wplant=this.value;smUpd('water_x','')">${mineOpts(s.wplant)}</select>
+  <div class="two"><div><label class="fl" for="smfl">Pumpen ger (ml på 10 s)</label><input id="smfl" type="number" inputmode="numeric" placeholder="t.ex. 50" value="${esc(s.flow)}" oninput="smUpd('water_flow',this.value)"></div>
+  <div><label class="fl" for="smml">Vatten per gång (ml)</label><input id="smml" type="number" inputmode="numeric" placeholder="Räknas från krukan" value="${esc(s.ml)}" oninput="smUpd('water_ml',this.value)"></div></div>
+  <div class="smres" id="smres-water">${smResult('water')}</div>
+  <details class="tech"><summary>Så bygger du det säkert</summary><ol class="steps">
+  <li>Använd en <b>pump för 5 V (USB) eller 12 V</b>, aldrig 230 V nära vatten.</li>
+  <li>Sätt pumpens strömadapter i det smarta uttaget, och ställ behållaren <b>lägre än krukan</b> så att den inte kan hävert-tömmas.</li>
+  <li>Mät flödet: kör pumpen 10 sekunder i ett måttglas.</li>
+  <li>Lägg in schemat i Tapo-, IKEA- eller Google Home-appen: PÅ på tiden, AV efter rätt antal sekunder (eller använd "Timer").</li>
+  <li>Ha alltid ett fat under krukan och kolla jorden första veckan.</li></ol></details></div>
+
+  <div class="smcard"><h3>${ic(I.mist, 'currentColor', 20)} Luftfuktighet och temperatur</h3>
+  <p class="mut" style="margin:0;font-size:14px">Tropiska växter vill ha fuktig luft. En luftfuktare på ett smart uttag och en termometer med hygrometer håller koll.</p>
+  <label class="fl" for="smh">Växt</label><select id="smh" onchange="S.sm.hplant=this.value;smUpd('hum_p',this.value)">${plantOpts(s.hplant)}</select>
+  <label class="fl" for="smrh">Luftfuktighet just nu (%)</label><input id="smrh" type="number" inputmode="numeric" placeholder="${(() => { const c = mine.map(m => m.details && m.details.climate).filter(Boolean).sort((a, b) => b.at.localeCompare(a.at))[0]; return c ? 'Senast uppmätt: ' + c.hum : 't.ex. 35'; })()}" value="${esc(s.rh)}" oninput="smUpd('hum_rh',this.value)">
+  <div class="smres" id="smres-hum">${smResult('hum')}</div>
+  <details class="tech"><summary>Tips för luftfuktaren</summary><ol class="steps">
+  <li>Koppla luftfuktaren till ett smart uttag (Tapo, IKEA eller ett uttag i Google Home).</li>
+  <li>Schema på vintern när elementen torkar luften: 30 min på, 90 min av, kl 08–20.</li>
+  <li>Använd gärna avkalkat eller kokat och avsvalnat vatten, annars blir det vita fläckar.</li>
+  <li>Sikta på 50–60 %. Över 70 % länge kan ge mögel.</li></ol></details></div>
+
+  <div class="smcard"><h3>${ic(I.leaf, 'currentColor', 20)} Så blir det vid lansering</h3>
+  <p class="mut" style="margin:0;font-size:14px">Med en egen server kan Roothood styra lampor och uttag själv, helt automatiskt:</p>
+  <div class="flow"><div>🌱 Sensorn i krukan mäter att jorden är torr</div><div class="arr">↓</div><div>☁️ Roothoods server får värdet</div><div class="arr">↓</div><div>🔌 Servern säger åt Tapo, Hue, IKEA eller Google Home att starta pumpen eller tända lampan</div><div class="arr">↓</div><div>📱 Du får en notis: "Monsteran fick 200 ml vatten"</div></div>
+  <p class="mut" style="font-size:12.5px;margin:10px 0 0">Kräver att varje företag godkänner appen (Google kräver certifiering), därför är det steget planerat till efter skolprojektet.</p></div>
+  <div style="height:20px"></div>`;
 }
 
 function galleryV(my) {
@@ -1295,7 +1493,7 @@ function applyView(h) {
   stopLight(); S.sel = null; S.tool = null; S.post = null; S.forum = null; S.del = null; S.newL = false;
   if (a[0] === 'v' && S.plants.some(p => p.id === +a[1])) S.sel = +a[1];
   else if (a[0] === 't' && a[1] === 'settings') { openSettings(); return true; }
-  else if (a[0] === 't' && a[1] === 'season') S.tool = 'season';
+  else if (a[0] === 't' && (a[1] === 'season' || a[1] === 'smart')) S.tool = a[1];
   else if (a[0] === 't' && ['id', 'light'].includes(a[1]) && S.pro) S.tool = a[1];
   else if (a[0] === 'c') {
     S.tab = 'comm'; S.ctab = ['q', 'forum', 'swap'].includes(a[1]) ? a[1] : 'q';
@@ -1343,6 +1541,7 @@ function home() {
   ${DEMO ? '<p style="text-align:center;margin:4px 0 0"><span class="badge" title="Ingen databas kopplad. Det du gör sparas bara i den här webbläsaren.">Demoläge</span></p>' : ''}
   <div class="seg2" role="tablist">${[['all', 'Båda'], ['in', 'Inomhus'], ['out', 'Utomhus']].map(([k, t]) => `<button class="${S.env === k ? 'on' : ''}" role="tab" aria-selected="${S.env === k}" onclick="setEnv('${k}')">${t}</button>`).join('')}</div>
   ${toolsRow()}
+  <div class="pad" style="padding-top:12px"><button class="setrow" onclick="openSmart()"><span class="tic">${ic(HOMEI, 'currentColor', 20)}</span><span class="grow"><b>Smarta hemmet</b><span>Växtsensorer, växtlampa, bevattning och luftfukt</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   ${seasonCard()}
   ${S.user && S.mine.length ? `<div class="sec"><h2>Mina växter</h2><button class="viewall" onclick="go('mine')">Visa alla</button></div><div class="mycards">${S.mine.map(myCard).join('')}</div>` : intro}
   <div class="searchrow" style="padding-top:${S.user && S.mine.length ? 4 : 16}px"><div class="search">${ic(I.search, null, 20)}<input type="search" placeholder="Sök växt eller vetenskapligt namn" value="${esc(S.q)}" oninput="S.q=this.value;renderList()" aria-label="Sök växter"></div></div>
@@ -1392,6 +1591,7 @@ function detail() {
   <div class="sec"><h2>Så vattnar du</h2></div>
   <p class="howto">${esc(p.water_text)}.${p.soil ? ' Jord: ' + esc(p.soil.charAt(0).toLowerCase() + p.soil.slice(1)) + '.' : ''}</p>
   ${my && d === 0 ? `<div class="snooze">Är jorden fortfarande blöt? Skjut upp, så påminner vi dig om 2 dagar.<br><button onclick="snooze(${my.id})">Skjut upp 2 dagar</button></div>` : ''}
+  ${my ? sensorCard(my) : ''}
   ${my ? detailsV(my) : ''}
   ${my ? diaryV(my) : ''}
   <div class="sec"><h2>Skötsel</h2></div>
@@ -1436,6 +1636,7 @@ function meV() {
   ${proCard()}
   ${installCard()}
   ${settingsRow()}
+  <div class="pad" style="padding-top:12px"><button class="setrow" onclick="openSmart()"><span class="tic">${ic(HOMEI, 'currentColor', 20)}</span><span class="grow"><b>Smarta hemmet</b><span>Sensorer, växtlampa, bevattning och luftfukt</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="stats"><div class="stat"><b>${S.mine.length}</b><span class="mut">växter i samlingen</span></div><div class="stat"><b>${posts === null ? '–' : posts}</b><span class="mut">frågor i communityn</span></div></div>
   ${DEMO ? '' : `<div class="addbar"><button class="btn wide line" onclick="signOut()">Logga ut</button></div>`}
   <p class="about">Roothood: växtfolk som hjälper varandra.</p>`;
@@ -1855,7 +2056,7 @@ function toolsRow() {
 }
 function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { stopLight(); S.tool = null; render(); }
-function toolV() { return S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : lightV(); }
+function toolV() { return S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'smart' ? smartV() : lightV(); }
 
 // --- Säsongstips ---
 // Varje tips: [typ, rubrik, text, månader i zon 1–2, zon 3–5, zon 6–8]. En lista gäller alla zoner.
@@ -2236,7 +2437,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.14';
+const APP_VERSION = '1.15';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
