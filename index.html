@@ -514,7 +514,9 @@ function errMsg(e) {
   if (/Invalid login/i.test(m)) return 'Fel e-post eller lösenord.';
   if (/already registered/i.test(m)) return 'Det finns redan ett konto med den e-postadressen. Logga in i stället.';
   if (/Password should be/i.test(m)) return 'Lösenordet måste vara minst 6 tecken.';
-  if (/Email not confirmed/i.test(m)) return 'Bekräfta din e-post via länken vi skickade, och logga sedan in.';
+  if (/Email not confirmed/i.test(m)) return 'Du behöver bekräfta din e-post först. Leta efter mejlet från Roothood (kolla även skräpposten) och klicka på länken.';
+  if (m === 'ALREADY_EXISTS') return 'Det finns redan ett konto med den här adressen. Logga in i stället, eller tryck på "Glömt lösenordet?".';
+  if (/rate limit|only request this after|security purposes/i.test(m)) return 'Vänta en minut innan du försöker igen.';
   if (/Failed to fetch|NetworkError/i.test(m)) return 'Ingen kontakt med servern. Kontrollera internetanslutningen.';
   return 'Något gick fel: ' + m;
 }
@@ -548,6 +550,8 @@ const demoApi = {
   async savePush() {},
   async deletePush() {},
   async plants() { return DEMO_PLANTS.concat(store.get('myPlants', [])); },
+  async resend() {},
+  async resetPw() {},
   async user() { return { id: 'demo', name: (store.get('profile', {}) || {}).display_name || 'Du' }; },
   async getProfile() { return Object.assign({ display_name: 'Du', city: '', interests: [], share_photos: store.get('share', true) }, store.get('profile', {})); },
   async saveProfile(p) { store.set('profile', { display_name: p.display_name, city: p.city, interests: p.interests }); },
@@ -683,8 +687,12 @@ const sbApi = {
   async signIn(email, pw) { const { error } = await sb.auth.signInWithPassword({ email, password: pw }); if (error) throw error; },
   async signUp(email, pw, name) {
     const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { display_name: name }, emailRedirectTo: location.origin + location.pathname } });
-    if (error) throw error; return !!data.session;
+    if (error) throw error;
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) throw new Error('ALREADY_EXISTS');
+    return !!data.session;
   },
+  async resend(email) { const { error } = await sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: location.origin + location.pathname } }); if (error) throw error; },
+  async resetPw(email) { const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }); if (error) throw error; },
   async signOut() { await sb.auth.signOut(); },
   async mine() {
     const cols = 'id,plant_id,last_watered,custom_name,custom_latin,custom_category,custom_water_interval_days,notes,plants(swedish_name,latin_name,category,water_interval_days)';
@@ -1069,7 +1077,7 @@ function renderModalKeep(form) {
 async function doAuth(form) {
   const d = Object.fromEntries(new FormData(form));
   S.authEmail = d.email; S.authName = d.name || '';
-  S.busy = true; S.msg = ''; render();
+  S.busy = true; S.msg = ''; S.needConfirm = false; render();
   try {
     if (S.authMode === 'up') {
       const active = await api.signUp(d.email.trim(), d.pw, d.name.trim());
@@ -1077,7 +1085,37 @@ async function doAuth(form) {
     } else await api.signIn(d.email.trim(), d.pw);
     S.user = await api.user(); S.mine = await api.mine(); S.pro = await api.getPro();
     S.busy = false; S.modal = null; render(); toast('Välkommen, ' + S.user.name + '!');
-  } catch (e) { S.busy = false; S.msgOk = false; S.msg = errMsg(e); render(); }
+  } catch (e) {
+    S.busy = false; S.msgOk = false; S.msg = errMsg(e);
+    if (e.message === 'ALREADY_EXISTS') S.authMode = 'in';
+    S.needConfirm = /Email not confirmed/i.test(e.message || '');
+    render();
+  }
+}
+function authEmailNow() { const f = $('#ov input[name=email]'); return ((f && f.value) || S.authEmail || '').trim(); }
+async function resendConfirm() {
+  const email = authEmailNow(); if (!email) return toast('Skriv din e-post först');
+  try { await api.resend(email); S.msgOk = true; S.msg = 'Nytt bekräftelsemejl skickat till ' + email + '. Kolla även skräpposten.'; S.needConfirm = false; }
+  catch (e) { S.msgOk = false; S.msg = errMsg(e); }
+  render();
+}
+async function forgotPw() {
+  const email = authEmailNow(); S.authEmail = email;
+  if (!email || !/@/.test(email)) { S.msgOk = false; S.msg = 'Skriv din e-post ovanför och tryck på "Glömt lösenordet?" igen.'; return render(); }
+  try { await api.resetPw(email); S.msgOk = true; S.msg = 'Vi har skickat en länk till ' + email + '. Klicka på den för att välja ett nytt lösenord.'; }
+  catch (e) { S.msgOk = false; S.msg = errMsg(e); }
+  render();
+}
+function newPwV() {
+  return `<div class="mh"><h2>Välj nytt lösenord</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <form onsubmit="event.preventDefault();saveNewPw(this)"><label>Nytt lösenord<input name="pw" type="password" required minlength="6" autocomplete="new-password"></label>
+  ${S.msg ? `<p class="formmsg ${S.msgOk ? 'ok' : ''}">${esc(S.msg)}</p>` : ''}
+  <button class="btn wide formbtn">Spara lösenordet</button></form>`;
+}
+async function saveNewPw(form) {
+  const pw = new FormData(form).get('pw');
+  try { await api.changePassword(pw); S.modal = null; S.user = await api.user(); S.mine = await api.mine(); S.pro = await api.getPro(); render(); toast('Nytt lösenord sparat. Du är inloggad!'); }
+  catch (e) { S.msgOk = false; S.msg = errMsg(e); render(); }
 }
 async function signOut() { await api.signOut(); S.user = null; S.mine = []; S.pro = false; render(); toast('Du är utloggad'); }
 
@@ -1227,10 +1265,57 @@ function render() {
     m.innerHTML = S.sel ? detail() : S.tool ? toolV() : S.tab === 'home' ? home() : S.tab === 'mine' ? mineV() : S.tab === 'me' ? meV() : comm();
     if (!S.sel && !S.tool && S.tab === 'home') renderList();
   }
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'pdet' ? pdetV() : S.modal === 'addp' ? addpV() : S.modal === 'pro' ? proV() : addV()}</div></div>` : '';
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'addp' ? addpV() : S.modal === 'pro' ? proV() : addV()}</div></div>` : '';
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); }
   const lv = $('#lv'); if (lv && lightStream) { lv.srcObject = lightStream; lv.hidden = false; lv.play().catch(() => {}); }
   loadPhotos();
+  trackView();
+}
+// ===== Kom ihåg var man var (och tillbaka-knappen) =====
+let curHash = null, navFromPop = false, scrollT = null;
+function viewHash() {
+  if (S.sel) return '#v/' + S.sel;
+  if (S.tool) return '#t/' + S.tool;
+  if (S.tab === 'comm') return '#c/' + S.ctab + (S.forum ? '/f/' + encodeURIComponent(S.forum) : '') + (S.post ? '/p/' + S.post : '') + (S.newL ? '/new' : '');
+  return '#' + S.tab;
+}
+function trackView() {
+  if (S.loading || S.err) return;
+  const h = viewHash();
+  if (h !== curHash) {
+    try { if (navFromPop || curHash === null) history.replaceState(null, '', h); else history.pushState(null, '', h); } catch (e) {}
+    curHash = h; navFromPop = false; saveView();
+  }
+}
+function saveView() { store.set('lastView', { h: curHash, y: ($('#main') || {}).scrollTop || 0, q: S.q, cat: S.cat, t: Date.now() }); }
+function applyView(h) {
+  const a = String(h || '').replace(/^#/, '').split('/').map(x => { try { return decodeURIComponent(x); } catch (e) { return x; } });
+  stopLight(); S.sel = null; S.tool = null; S.post = null; S.forum = null; S.del = null; S.newL = false;
+  if (a[0] === 'v' && S.plants.some(p => p.id === +a[1])) S.sel = +a[1];
+  else if (a[0] === 't' && a[1] === 'settings') { openSettings(); return true; }
+  else if (a[0] === 't' && a[1] === 'season') S.tool = 'season';
+  else if (a[0] === 't' && ['id', 'light'].includes(a[1]) && S.pro) S.tool = a[1];
+  else if (a[0] === 'c') {
+    S.tab = 'comm'; S.ctab = ['q', 'forum', 'swap'].includes(a[1]) ? a[1] : 'q';
+    for (let i = 2; i < a.length; i++) { if (a[i] === 'f') S.forum = a[++i]; else if (a[i] === 'p') S.post = +a[++i]; else if (a[i] === 'new' && S.user) S.newL = true; }
+    loadFeed();
+  } else if (['home', 'mine', 'me'].includes(a[0])) S.tab = a[0];
+  else return false;
+  return true;
+}
+window.addEventListener('popstate', () => {
+  if (S.modal) { S.modal = null; }
+  if (document.getElementById('psheet') && !document.getElementById('psheet').hidden) closePick();
+  navFromPop = true; curHash = location.hash; applyView(location.hash); render(); $('#main').scrollTop = 0;
+});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && curHash) saveView(); });
+function restoreView() {
+  const h = location.hash;
+  if (h && !/access_token|error=|type=/.test(h) && applyView(h)) return null;
+  const v = store.get('lastView', null);
+  if (!v || Date.now() - v.t > 12 * 3600e3) return null;
+  if (typeof v.q === 'string') S.q = v.q; if (v.cat) S.cat = v.cat;
+  return applyView(v.h) ? v.y : null;
 }
 const INDOOR = ['Krukväxt', 'Orkidé', 'Kaktus'], OUTDOOR = ['Köksträdgård', 'Trädgård'];
 const envCats = () => S.env === 'in' ? INDOOR : S.env === 'out' ? OUTDOOR : CATS;
@@ -1362,7 +1447,9 @@ function loginV() {
   <label>E-post<input name="email" type="email" required autocomplete="email" value="${esc(S.authEmail)}"></label>
   <label>Lösenord<input name="pw" type="password" required minlength="6" autocomplete="${up ? 'new-password' : 'current-password'}"></label>
   ${S.msg ? `<p class="formmsg ${S.msgOk ? 'ok' : ''}">${esc(S.msg)}</p>` : ''}
-  <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''}>${S.busy ? 'Vänta…' : up ? 'Skapa konto' : 'Logga in'}</button></form>`;
+  ${S.needConfirm ? `<button type="button" class="btn sm line" style="margin:-4px 0 12px" onclick="resendConfirm()">Skicka bekräftelsemejlet igen</button>` : ''}
+  <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''}>${S.busy ? 'Vänta…' : up ? 'Skapa konto' : 'Logga in'}</button>
+  ${up ? '' : '<button type="button" class="x" style="display:block;margin:12px auto 0" onclick="forgotPw()">Glömt lösenordet?</button>'}</form>`;
 }
 function addV() {
   const T = S.prefillTax || {};
@@ -2130,7 +2217,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.11';
+const APP_VERSION = '1.12';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
@@ -2371,6 +2458,7 @@ async function init() {
         return fetch(input, opts);
       };
       sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { fetch: plainFetch } });
+      if (sb.auth.onAuthStateChange) sb.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY') setTimeout(() => { S.msg = ''; openModal('newpw'); }, 300); });
       api = sbApi;
     }
     S.plants = await api.plants();
@@ -2380,11 +2468,15 @@ async function init() {
     if (S.user) { try { applyInterests((await api.getProfile()).interests); } catch (e) {} }
   } catch (e) { S.err = e; }
   S.loading = false;
+  let restoreY = null;
+  try { restoreY = restoreView(); } catch (e) {}
   const startTab = new URLSearchParams(location.search).get('tab');
   if (startTab === 'mine') { S.tab = 'mine'; try { history.replaceState(null, '', location.pathname); } catch (e) {} }
   const startTool = new URLSearchParams(location.search).get('tool');
   if (startTool === 'id') { try { history.replaceState(null, '', location.pathname); } catch (e) {} setTimeout(() => { openTool('id'); if (S.tool === 'id') startIdCam(); }); }
   render();
+  if (restoreY) setTimeout(() => { const m = $('#main'); if (m) m.scrollTop = restoreY; }, 350);
+  $('#main').addEventListener('scroll', () => { clearTimeout(scrollT); scrollT = setTimeout(saveView, 400); }, { passive: true });
   if (S.user) refreshPush();
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.modal) closeModal(); });
