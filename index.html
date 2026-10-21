@@ -2036,6 +2036,8 @@ const PCLASS = [
   { max: 200, name: 'Medelljus', lvl: 2, tip: 'Bra för de flesta krukväxter, till exempel monstera och gullranka.' },
   { max: 600, name: 'Mycket ljus', lvl: 3, tip: 'Passar ljusälskare som kaktusar, kryddor och tomater.' },
   { max: Infinity, name: 'Direkt sol', lvl: 3, tip: 'Starkt solljus. Bra för kaktusar och solälskare, men kan bränna känsliga blad.' }];
+const lmode = () => store.get('lmode', 'paper');
+const lcal = () => { const c = store.get('lcal', {}); return c[lmode()] || 1; };
 const lfac = () => (LSRC.find(s => s[0] === S.lsrc) || LSRC[0])[2];
 const ppfd = () => S.light && S.light.lux != null ? S.light.lux * lfac() : 0;
 const dli = () => ppfd() * S.lhours * 0.0036;
@@ -2062,7 +2064,10 @@ function lightRest() {
   return `<div class="pad">
   <div class="cta" style="padding:14px 0 0;display:flex;gap:10px">${running ? `<button class="btn line" style="flex:1" onclick="stopLight();render()">Stoppa</button><button class="btn" style="flex:1" onclick="S.lhold=!S.lhold;showLight(S.light,true)">${S.lhold ? 'Lås upp' : 'Lås värdet'}</button>` : '<button class="btn" onclick="startLight()">Starta mätning</button>'}</div>
   ${c ? `<div class="tipr" style="margin-top:14px"><span class="ck">${ic(I.sun, 'currentColor', 16)}</span><div><b>${c.name}</b><span>${c.tip}</span></div></div>` : ''}
-  ${L && L.method !== 'Paddans ljussensor' ? `<div class="tipr" style="margin-top:14px"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>Få exakta värden</b><span>Slå på mobilens eller plattans ljussensor i Chrome: skriv <b style="display:inline;color:inherit">chrome://flags</b> i adressfältet, sök på "Generic Sensor Extra Classes", välj Enabled och starta om Chrome.</span></div></div>` : ''}
+  ${L && L.lux != null && !/sensor/i.test(L.method || '') ? `<details class="tech" ${S.lcalOpen ? 'open' : ''}><summary>Kalibrera mot en riktig mätare</summary>
+  <p>Har du en ljusmätare eller appen Photone? Mät på exakt samma ställe och skriv in deras PPFD-värde. Roothood räknar sedan om alla mätningar på den här mobilen.</p>
+  <div style="display:flex;gap:8px;margin-top:10px"><input id="lcalv" type="number" inputmode="decimal" min="1" max="3000" placeholder="Rätt PPFD, t.ex. 350" style="flex:1"><button class="btn sm" onclick="calibrateLight()">Kalibrera</button></div>
+  ${lcal() !== 1 ? `<p style="margin-top:8px">Kalibrerad (×${fmt(lcal(), 2)}). <button class="link3" onclick="resetCal()">Återställ</button></p>` : ''}</details>` : ''}
   <details class="tech"><summary>Vad betyder värdena?</summary>
   <p><b>PPFD</b> är hur mycket ljus växten kan använda som träffar bladen varje sekund. Krukväxter vill oftast ha 75–200, ljusälskare 200–600.</p>
   <p><b>DLI</b> är ljuset under en hel dag. Det beror på hur många timmar ljuset är på.</p>
@@ -2074,12 +2079,24 @@ function lightRest() {
 }
 function lightV() {
   return `${topbar('Ljusmätare', 'closeTool()')}<div class="pad">
-  <p class="mut" style="margin:6px 0 12px">Ställ mobilen eller plattan där växten ska stå, med skärmen vänd mot ljuset. Mätningen görs med framkameran. Ett tunt vitt papper över kameran ger jämnare värden.</p>
+  <div class="chips2" style="margin:6px 0 10px">${[['paper', 'Med vitt papper (bäst)'], ['bare', 'Utan papper']].map(([k, t]) => `<button class="${lmode() === k ? 'on' : ''}" onclick="setLmode('${k}')">${t}</button>`).join('')}</div>
+  <p class="mut" style="margin:0 0 12px">${lmode() === 'paper'
+    ? 'Lägg en bit vanligt vitt skrivarpapper över <b>framkameran</b>. Ställ mobilen där växten ska stå, med skärmen mot ljuset, och håll den still.'
+    : 'Ställ mobilen där växten ska stå, med skärmen mot ljuset. Utan papper blir värdena mer osäkra, särskilt om lampan syns i bilden.'}</p>
   <div class="lightbox"><video id="lv" muted playsinline autoplay ${lightStream ? '' : 'hidden'}></video><div id="ldyn">${lightDyn()}</div></div>
   <div class="lctl"><label>Ljuskälla</label><div class="chips2">${LSRC.map(s => `<button class="${S.lsrc === s[0] ? 'on' : ''}" onclick="S.lsrc='${s[0]}';this.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===this));showLight(S.light,true)">${s[1]}</button>`).join('')}</div>
   <label style="margin-top:14px" for="lh">Ljus per dag: <span id="lhv">${S.lhours}</span> timmar</label><input id="lh" type="range" min="4" max="18" step="1" value="${S.lhours}" oninput="S.lhours=+this.value;$('#lhv').textContent=this.value;showLight(S.light,true)"></div></div>
   <div id="lrest">${lightRest()}</div>`;
 }
+function setLmode(m) { store.set('lmode', m); const run = !!lightStream; stopLight(); S.light = null; render(); if (run) startLight(); }
+function calibrateLight() {
+  const want = +(($('#lcalv') || {}).value || 0), now = ppfd();
+  if (!(want > 0) || !(now > 0)) return toast('Skriv in ett PPFD-värde och mät först');
+  const c = store.get('lcal', {}), f = Math.max(0.05, Math.min(50, lcal() * want / now));
+  S.light.lux = S.light.lux * f / lcal(); c[lmode()] = f; store.set('lcal', c); S.lcalOpen = false;
+  showLight(S.light, true); toast('Kalibrerad! Mätningen räknas nu om med ×' + fmt(f, 2));
+}
+function resetCal() { const c = store.get('lcal', {}), f = lcal(); delete c[lmode()]; store.set('lcal', c); if (S.light && S.light.lux != null) S.light.lux /= f; showLight(S.light, true); toast('Kalibreringen är borttagen'); }
 function showLight(v, force) {
   const prev = pclass();
   if (v && (!S.lhold || force)) S.light = v;
@@ -2170,10 +2187,10 @@ async function startLight() {
       if (ct !== t) { t = ct; avg = null; settle = 2; try { await setExp(); } catch (e) {} return; }
       let useIso = iso;
       if (!caps.iso) { const st = lightTrack.getSettings ? lightTrack.getSettings() : {}; useIso = st.iso || 100; isoGuess = !st.iso; }
-      lux = luxFrom(y, t, useIso); method = 'Kameran med låst exponering' + (isoGuess ? ' (ISO uppskattad)' : ''); raw.t = t; raw.iso = useIso;
+      lux = luxFrom(y, t, useIso) * (lmode() === 'paper' ? 1.09 : 1) * lcal(); method = 'Kameran med låst exponering' + (lmode() === 'paper' ? ', vitt papper' : '') + (lcal() !== 1 ? ', kalibrerad' : '') + (isoGuess ? ' (ISO uppskattad)' : ''); raw.t = t; raw.iso = useIso;
     } else {
       const st = lightTrack.getSettings ? lightTrack.getSettings() : {};
-      if (st.exposureTime && st.iso && st.exposureMode !== 'manual') { lux = luxFrom(y, st.exposureTime, st.iso); method = 'Kameran med automatisk exponering (osäkrare)'; raw.t = st.exposureTime; raw.iso = st.iso; }
+      if (st.exposureTime && st.iso && st.exposureMode !== 'manual') { lux = luxFrom(y, st.exposureTime, st.iso) * (lmode() === 'paper' ? 1.09 : 1) * lcal(); method = 'Kameran med automatisk exponering (osäkrare)'; raw.t = st.exposureTime; raw.iso = st.iso; }
       else method = 'Bara jämförelse (kameran ställer in ljuset själv)';
     }
     if (lux == null) { avg = avg == null ? y : avg * .7 + y * .3; return showLight({ lux: null, rel: Math.round(avg / 2.55), method, raw }); }
@@ -2219,7 +2236,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.13';
+const APP_VERSION = '1.14';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
