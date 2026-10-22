@@ -689,6 +689,23 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 
 
 
+
+/* Växtexperter */
+.cbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.peopleb.xb{background:linear-gradient(120deg,var(--surf),#EFE6F7)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .peopleb.xb{background:linear-gradient(120deg,var(--surf),#2C2740)}}
+.tic.xp{background:#E7E1F2;color:#4F4377}
+.xcard{background:var(--surf);border-radius:20px;box-shadow:var(--sh);padding:14px}
+.xtop{display:flex;gap:12px;align-items:center}.xtop .av{width:46px;height:46px;font-size:19px;flex:none}
+.xtop .grow{flex:1;display:flex;flex-direction:column}.xtitle{font-size:13px;color:#4F4377;font-weight:700}
+.xans{display:flex;flex-direction:column;align-items:center;font-weight:800;font-size:17px;color:var(--pri)}.xans small{font-size:11px;color:var(--mut);font-weight:600}
+.xcard p{margin:10px 0 8px;font-size:14px;line-height:1.45}
+.xpro{margin:14px 18px 0;background:linear-gradient(140deg,#EFE6F7,var(--surf));border-radius:24px;padding:18px;display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;box-shadow:var(--sh)}
+.xpro b{font-size:18px}.xpro>span:not(:first-child){font-size:14px;color:var(--mut);max-width:300px}.xpro .btn{margin-top:8px}
+.xq{background:var(--surf);border-radius:18px;box-shadow:var(--sh);padding:12px 14px;margin-bottom:10px}
+.xq p{margin:6px 0;font-size:14.5px;line-height:1.45}.xq textarea{width:100%}
+.xa{background:var(--soft);border-radius:14px;padding:10px 12px;margin-top:8px}.xa p{margin:4px 0}
+.xwait{display:inline-block;font-size:12.5px;font-weight:800;color:#7A5300;background:#FBE7C6;border-radius:999px;padding:4px 10px;margin-top:4px}
 /* Hitta användare */
 .peopleb{display:flex;align-items:center;gap:10px;width:100%;border:0;background:var(--surf);color:var(--ink);font:inherit;font-size:14.5px;font-weight:700;border-radius:18px;padding:12px 14px;box-shadow:var(--sh);cursor:pointer;text-align:left}
 .peopleb .grow{flex:1}
@@ -912,6 +929,16 @@ const demoApi = {
   async setRemind(id, on) { const m = this._raw(); m.find(x => x.id === id).remind = on; await this.save(m); },
   async saveDetails(id, d) { const m = this._raw(); m.find(x => x.id === id).details = d; await this.save(m); },
   async getHome() { return store.get('home', []); },
+  _experts() { return [
+    { id: 'x-karin', display_name: 'Karin Lund', expert_title: 'Trädgårdsmästare', expert_bio: 'Över 30 år med perenner, fruktträd och odling i kallt klimat.', expert_tags: ['Trädgård', 'Fruktträd', 'Zon 5–8'], answered: 128 },
+    { id: 'x-erik', display_name: 'Erik Holm', expert_title: 'Krukväxtexpert', expert_bio: 'Jobbar på en handelsträdgård och kan det mesta om aroider, orkidéer och ovanliga krukväxter.', expert_tags: ['Krukväxt', 'Monstera', 'Orkidé'], answered: 214 },
+    { id: 'x-sofia', display_name: 'Sofia Berg', expert_title: 'Växtskyddsrådgivare', expert_bio: 'Agronom som hjälper dig med skadedjur och sjukdomar, gärna med ekologiska metoder.', expert_tags: ['Skadedjur', 'Sjukdomar', 'Ekologiskt'], answered: 96 }]; },
+  async experts() { return this._experts(); },
+  async isExpert() { return false; },
+  async myExpertQs() { if (!store.get('xqSeeded', false)) { store.set('xq', [{ id: 1, expert: 'x-erik', category: 'Krukväxt', body: 'Min monstera får bruna fläckar med gul kant på de nedre bladen. Vad kan det vara?', photo_url: null, created_at: new Date(Date.now() - 2 * 864e5).toISOString(), answer: 'Bruna fläckar med gul ring brukar vara bladfläcksjuka, och det kommer oftast av att jorden varit blöt länge. Klipp bort de värsta bladen, låt jorden torka ordentligt mellan vattningarna och vattna aldrig på bladen. Om det inte blir bättre på tre veckor kan du plantera om i luftigare jord med bark.', answered_by: 'x-erik', answered_at: new Date(Date.now() - 864e5).toISOString() }]); store.set('xqSeeded', true); } return store.get('xq', []); },
+  async askExpert(q, photo) { const l = store.get('xq', []), url = photo ? await fileShrink(photo, 720, true) : null; l.unshift(Object.assign({ id: Date.now(), created_at: new Date().toISOString(), answer: null, photo_url: url }, q)); store.set('xq', l); },
+  async expertInbox() { return []; },
+  async answerExpert() {},
   _people() { return [
     { id: 'u-lena', display_name: 'Lena', city: S.city || 'Piteå', interests: ['Krukväxt', 'Orkidé'], plants: 34, posts: 12, followers: 8, share: true, plant_list: [{ name: 'Monstera Thai Constellation' }, { name: 'Phalaenopsis' }, { name: 'Hoya kerrii' }] },
     { id: 'u-ahmed', display_name: 'Ahmed', city: 'Luleå', interests: ['Köksträdgård'], plants: 18, posts: 5, followers: 3, share: true, plant_list: [{ name: 'Chili' }, { name: 'Tomat' }] },
@@ -1056,6 +1083,12 @@ const sbApi = {
   async setPushHour(endpoint, h) { const { error } = await sb.from('push_subscriptions').update({ notify_hour: h }).eq('endpoint', endpoint); if (error) throw /notify_hour/.test(error.message || '') ? new Error('HOUR_NOT_READY') : error; },
   async setRemind(id, on) { const { error } = await sb.from('user_plants').update({ remind: on }).eq('id', id); if (error) throw /remind/.test(error.message || '') ? new Error('REMIND_NOT_READY') : error; },
   async saveDetails(id, d) { const { error } = await sb.from('user_plants').update({ details: d }).eq('id', id); if (error) throw /details/.test(error.message || '') ? new Error('DETAILS_NOT_READY') : error; },
+  async experts() { const { data, error } = await sb.rpc('list_experts'); if (error) throw /list_experts/.test(error.message || '') ? new Error('EXPERTS_NOT_READY') : error; return data || []; },
+  async isExpert() { const { data } = await sb.from('profiles').select('is_expert').eq('id', S.user.id); return !!(data && data[0] && data[0].is_expert); },
+  async myExpertQs() { const { data, error } = await sb.from('expert_questions').select('*').eq('asker', S.user.id).order('created_at', { ascending: false }); if (error) throw /expert_questions/.test(error.message || '') ? new Error('EXPERTS_NOT_READY') : error; return data || []; },
+  async askExpert(q, photo) { const url = photo ? await uploadPhoto(photo) : null; const { error } = await sb.from('expert_questions').insert(Object.assign({ asker: S.user.id, photo_url: url }, q)); if (error) throw /row-level|policy/.test(error.message || '') ? new Error('Bara Pro-medlemmar kan fråga experterna.') : error; },
+  async expertInbox() { const { data, error } = await sb.from('expert_questions').select('*').is('answer', null).or('expert.is.null,expert.eq.' + S.user.id).order('created_at'); if (error) throw error; const ids = [...new Set((data || []).map(x => x.asker))]; const pr = ids.length ? await sb.from('profiles').select('id,display_name').in('id', ids) : { data: [] }; return (data || []).map(x => Object.assign(x, { asker_name: ((pr.data || []).find(p => p.id === x.asker) || {}).display_name || 'Okänd' })); },
+  async answerExpert(id, text) { const { error } = await sb.from('expert_questions').update({ answer: text, answered_by: S.user.id, answered_at: new Date().toISOString() }).eq('id', id); if (error) throw error; },
   async findUsers(q) { const { data, error } = await sb.rpc('find_users', { q: q || '' }); if (error) throw /find_users/.test(error.message || '') ? new Error('USERS_NOT_READY') : error; return data || []; },
   async userCard(id) { const { data, error } = await sb.rpc('user_card', { p_id: id }); if (error) throw /user_card/.test(error.message || '') ? new Error('USERS_NOT_READY') : error; return (data && data[0]) || null; },
   async userPosts(id) { const { data, error } = await sb.from('posts').select('id,kind,title,body,category,created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(20); if (error) throw error; return data || []; },
@@ -1332,7 +1365,7 @@ function pdHints(m, d) {
   if (d.mat === 'Terrakotta') h.push(['', 'Terrakotta andas och torkar snabbare än plast. Känn på jorden lite oftare.']);
   if (d.mat === 'Ytterkruka') h.push(['', 'Med ytterkruka: kolla att inget vatten blir stående i botten efter vattning.']);
   if (d.place === 'Semi-hydro' || soil.includes('Leca') || soil.includes('Pon')) h.push(['', 'I leca, pon eller semi-hydro: håll vattnet på ungefär en tredjedel av krukans höjd och använd näring för hydrokultur.']);
-  const rmH = roomOf(m, d); if (rmH) roomHints(p, rmH, d.win).forEach(x => h.push(x)); if (d.pos) posHints({ details: d }).forEach(x => h.push(x));
+  const rmH = S.pro ? roomOf(m, d) : null; if (rmH) roomHints(p, rmH, d.win).forEach(x => h.push(x)); if (d.pos) posHints({ details: d }).forEach(x => h.push(x));
   else if (p && p.light_level === 3 && ['Norr', 'Inget fönster', 'Ute i skugga'].includes(d.light)) h.push(['warn', `${p.swedish_name} vill ha mycket ljus. ${d.light === 'Norr' ? 'Ett norrfönster' : 'Den platsen'} kan bli för mörk, prova en ljusare plats eller en växtlampa.`]);
   if (!rmH && p && p.light_level === 1 && ['Söder', 'Ute i sol'].includes(d.light)) h.push(['warn', `${p.swedish_name} trivs i skugga. Stark sol kan bränna bladen, ställ den en bit från fönstret.`]);
   if (cat === 'Kaktus' && soil.length && !soil.some(x => ['Kaktusjord', 'Pimpsten', 'Perlit', 'Leca'].includes(x))) h.push(['warn', 'Suckulenter vill ha luftig jord som torkar snabbt. Blanda gärna i perlit eller pimpsten.']);
@@ -1355,7 +1388,7 @@ function detailsV(m, inModal) {
   if (d.drain && !d.self) items.push(['Dräneringshål', d.drain]);
   if (d.soil && d.soil.length) items.push(['Jord', d.soil.join(', ')]);
   if (d.h) items.push(['Höjd/längd', d.h + ' cm', growthTxt(d)]);
-  const rm = roomOf(m);
+  const rm = S.pro ? roomOf(m) : null;
   if (rm) items.push(['Rum', rm.name, [dirTxt(rm), d.win].filter(Boolean).join(' · ')]);
   else if (d.light) items.push(['Plats', d.light]);
   if (d.since) items.push(['Har haft sedan', whenTxt(d.since)]);
@@ -1392,10 +1425,10 @@ function pdetV() {
   ${d.self ? '' : `<label class="fl">Dräneringshål i botten?</label>${pdChips('drain')}`}`
   : `<label class="fl" for="pdh">Höjd/längd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="2000" value="${d.h || ''}" oninput="S.pd.h=+this.value||null">`}
   <label class="fl">Jord och substrat (välj flera)</label>${pdChips('soil', true)}
-  <label class="fl">Vilket rum står den i?</label>
+  ${S.pro ? `<label class="fl">Vilket rum står den i?</label>
   <div class="chips2">${(S.home || []).map(r => `<button class="${d.room === r.id ? 'on' : ''}" aria-pressed="${d.room === r.id}" onclick="pdSet('room','${r.id}')">${esc(r.name)}</button>`).join('')}<button class="addroom" onclick="newRoom('pdet')">+ Nytt rum</button></div>
   ${d.room && roomOf(null, d) ? `${(roomOf(null, d).dirs || []).length ? `<label class="fl">Hur nära fönstret?</label><div class="chips2">${WIN.map(v => `<button class="${d.win === v ? 'on' : ''}" aria-pressed="${d.win === v}" onclick="pdSet('win','${v}')">${v}</button>`).join('')}</div>` : ''}`
-   : `<label class="fl">${(S.home || []).length ? 'Eller välj plats' : 'Var står den?'}</label>${pdChips('light')}`}
+   : `<label class="fl">${(S.home || []).length ? 'Eller välj plats' : 'Var står den?'}</label>${pdChips('light')}`}` : `<label class="fl">Var står den?</label>${pdChips('light')}<p class="mut" style="font-size:12.5px;margin:6px 0 0">Med Pro kan du rita ditt hem och välja rum och avstånd till fönstret.</p>`}
   <div class="two"><div><label class="fl" for="pdsince">Har haft den sedan</label><input id="pdsince" type="date" max="${today()}" value="${d.since || ''}" oninput="S.pd.since=this.value||null"></div>
   <div><label class="fl" for="pdfrom">Kommer från</label><input id="pdfrom" maxlength="80" placeholder="t.ex. stickling från mormor" value="${esc(d.from || '')}" oninput="S.pd.from=this.value"></div></div>
   <p class="mut" style="font-size:13px;margin:12px 0 0">Ändrar du höjden sparas den i skötseldagboken, så ser du hur växten växer.</p>
@@ -1539,7 +1572,7 @@ function roomHints(p, r, win) {
   return h;
 }
 async function loadHome() { if (!S.user) return; try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; render(); }
-function openHouse(id) { if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'house'; S.room = id || null; if (S.pl) { S.pl.sel = null; S.pl.mode = 'move'; S.pl.fit = true; } render(); $('#main').scrollTop = 0; }
+function openHouse(id) { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'house'; S.room = id || null; if (S.pl) { S.pl.sel = null; S.pl.mode = 'move'; S.pl.fit = true; } render(); $('#main').scrollTop = 0; }
 function compassSvg(dirs, size) {
   const sz = size || 44, c = sz / 2, R = c - 3;
   const arcs = (dirs || []).map(d => { const i = DIRS.findIndex(x => x[0] === d), a = (i * 45 - 90) * Math.PI / 180, a1 = a - 0.36, a2 = a + 0.36;
@@ -1655,6 +1688,7 @@ const AREA3 = { lot: '#A9C98C', lawn: '#7FB35B', bed: '#8A5A34', veg: '#6B4A2A',
 function home3dV(sz) {
   sz = sz || 'm';
   if (!S.user) return '';
+  if (!S.pro) return `<div class="sec cap2"><h2>Mitt hem ${proBadge()}</h2></div><div class="h3card"><div class="h3empty"><span style="font-size:40px">🏡</span><b>Ditt hem i 3D</b><span>Rita rum, fönster och trädgård, se hemmet i 3D och få veta var varje växt trivs bäst. Ingår i Roothood Pro.</span><button class="btn sm" onclick="openModal('pro')">Prova Pro gratis</button></div></div>`;
   const has = (S.home || []).some(r => r.rect) || ((S.hplan && S.hplan.areas) || []).length;
   if (!S.homeLoaded) return `<div class="sec cap2"><h2>Mitt hem</h2></div><div class="h3card"><div class="h3empty"><p class="mut">Hämtar ditt hem…</p></div></div>`;
   if (!has) return `<div class="sec cap2"><h2>Mitt hem</h2></div><div class="h3card"><div class="h3empty"><span style="font-size:40px">🏡</span><b>Rita ditt hem</b><span>Rita rum, fönster och trädgård, så ser du hemmet i 3D här och får tips om var växterna trivs.</span><button class="btn sm" onclick="openHouse();S.hview='plan';render()">Börja rita</button></div></div>`;
@@ -1765,6 +1799,7 @@ function label3d(txt) {
 }
 // ===== Planlösning: rita rum, fönster, växter och smarta saker =====
 const WKI = {"win": "<rect x=\"5\" y=\"4\" width=\"14\" height=\"16\" rx=\"1.5\"/><path d=\"M12 4v16M5 12h14\"/>", "bay": "<path d=\"M2 17h4l3-6h6l3 6h4\"/>", "door": "<path d=\"M4 20h16\"/><path d=\"M6 20V5h6v15\"/><path d=\"M12 5a9 9 0 0 1 7 9\"/>", "open": "<path d=\"M3 12h5M16 12h5\"/><path d=\"M8 9v6M16 9v6\" opacity=\".5\"/>", "rad": "<rect x=\"3\" y=\"8\" width=\"18\" height=\"10\" rx=\"2\"/><path d=\"M7.5 8v10M12 8v10M16.5 8v10\"/>", "vent": "<rect x=\"5\" y=\"5\" width=\"14\" height=\"14\" rx=\"3\"/><path d=\"M8 9.5h8M8 12h8M8 14.5h8\"/>", "wall": "<path d=\"M4 20L20 4\"/>", "half": "<path d=\"M4 20L20 4\" stroke-dasharray=\"2 3.5\"/>"};
+const XPI = '<path d="M3 9l9-5 9 5-9 5z"/><path d="M7 11v4c0 1.5 2.2 3 5 3s5-1.5 5-3v-4"/><path d="M21 9v5"/>';
 const DOCI = '<path d="M12 21c-4.5-2.6-8-6.2-8-10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 3.5c0 4.3-3.5 7.9-8 10.5z"/><path d="M12 10.5v5M9.5 13h5"/>';
 const PTI = {
   ute: '<path d="M12 21v-6"/><path d="M12 15c-3.6 0-6-2.3-6-5.3C6 6.5 8.7 3 12 3s6 3.5 6 6.7c0 3-2.4 5.3-6 5.3z"/><path d="M4 21h16"/>',
@@ -2711,8 +2746,9 @@ function applyView(h) {
   else if (a[0] === 't' && a[1] === 'settings') { openSettings(); return true; }
   else if (a[0] === 't' && (a[1] === 'season' || a[1] === 'smart' || a[1] === 'doc' || a[1] === 'db')) S.tool = a[1];
   else if (a[0] === 't' && a[1] === 'people' && S.user) { S.tool = 'people'; loadPeople(); }
+  else if (a[0] === 't' && a[1] === 'experts' && S.user) { S.tool = 'experts'; loadExperts(); }
   else if (a[0] === 't' && a[1] === 'user' && a[2] && S.user) { openUser(a[2], true); }
-  else if (a[0] === 't' && a[1] === 'house' && S.user) { S.tool = 'house'; S.room = a[2] || null; }
+  else if (a[0] === 't' && a[1] === 'house' && S.user && S.pro) { S.tool = 'house'; S.room = a[2] || null; }
   else if (a[0] === 't' && ['id', 'light'].includes(a[1]) && S.pro) S.tool = a[1];
   else if (a[0] === 'c') {
     S.tab = 'comm'; S.ctab = ['q', 'forum', 'swap', 'detect'].includes(a[1]) ? a[1] : 'q';
@@ -2835,6 +2871,52 @@ function dbV() {
   <div class="grid" id="list"></div>`;
 }
 
+
+// ===== Växtexperter (Pro) =====
+const XCATS = ['Krukväxt', 'Trädgård', 'Köksträdgård', 'Orkidé', 'Kaktus', 'Skadedjur och sjukdomar', 'Mitt hem och ljus', 'Annat'];
+async function loadExperts() {
+  try { const [ex, isx] = await Promise.all([api.experts(), S.user ? api.isExpert() : false]); S.experts = ex; S.isExpertMe = isx;
+    S.xq = S.user && S.pro ? await api.myExpertQs() : []; S.xin = isx ? await api.expertInbox() : []; S.xErr = null; }
+  catch (e) { S.experts = S.experts || []; S.xq = S.xq || []; S.xErr = e.message; }
+  if (S.tool === 'experts') { const y = $('#main').scrollTop; render(); $('#main').scrollTop = y; }
+}
+function openExperts(pick) { if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'experts'; if (pick) S.xpick = pick; render(); $('#main').scrollTop = 0; loadExperts(); if (pick && S.pro) setTimeout(() => { const t = $('#xbody'); if (t) { t.scrollIntoView({ block: 'center' }); t.focus(); } }, 120); }
+function xPhoto(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.xph = f; S.xphUrl = URL.createObjectURL(f); const y = $('#main').scrollTop; render(); $('#main').scrollTop = y; }
+async function sendExpertQ() {
+  if (needPro()) return; const body = (S.xbody || '').trim(); if (body.length < 10) return toast('Beskriv problemet med minst några ord.');
+  S.busy = true; render();
+  try { await api.askExpert({ expert: S.xpick && S.xpick !== 'any' ? S.xpick : null, category: S.xcat || XCATS[0], body }, S.xph); S.xbody = ''; S.xph = null; S.xphUrl = null; S.xpick = null; toast('Din fråga är skickad till experterna'); await loadExperts(); }
+  catch (e) { toast(e.message === 'EXPERTS_NOT_READY' ? 'Växtexperterna är inte påslagna i databasen än (steg 023).' : errMsg(e)); }
+  S.busy = false; render();
+}
+async function sendExpertAnswer(id) { const t = ($('#xa' + id) || {}).value || ''; if (t.trim().length < 10) return toast('Skriv ett lite längre svar.'); try { await api.answerExpert(id, t.trim()); toast('Svaret är skickat'); await loadExperts(); } catch (e) { toast(errMsg(e)); } }
+function expertName(id) { const x = (S.experts || []).find(e => e.id === id); return x ? x.display_name : null; }
+function expertCard(x) {
+  return `<div class="xcard"><div class="xtop">${avBig(x.display_name)}<div class="grow"><b>${esc(x.display_name)}</b><span class="xtitle">🎓 ${esc(x.expert_title || 'Växtexpert')}</span></div><span class="xans">${x.answered || 0}<small>svar</small></span></div>
+    ${x.expert_bio ? `<p>${esc(x.expert_bio)}</p>` : ''}${(x.expert_tags || []).length ? `<div class="chips2">${x.expert_tags.map(t => `<span class="tag lime">${esc(t)}</span>`).join('')}</div>` : ''}
+    <button class="btn sm ${S.pro ? '' : 'line'}" style="margin-top:10px" onclick="${S.pro ? `S.xpick='${esc(x.id)}';openExperts('${esc(x.id)}')` : "openModal('pro')"}">Fråga ${esc(x.display_name.split(' ')[0])}${S.pro ? '' : ' ' + proBadge()}</button></div>`;
+}
+function expertsV() {
+  const ex = S.experts, qs = S.xq || [], waiting = qs.filter(q => !q.answer).length;
+  if (S.xErr === 'EXPERTS_NOT_READY') return `${topbar('Växtexperter', 'closeTool()')}<div class="instc" style="margin:12px 18px 0"><div><b>Växtexperterna är inte påslagna i databasen än</b><span>Kör SQL-koden för steg 023 i Supabase.</span></div></div>`;
+  const form = S.pro ? `<div class="sec"><h2>Ställ en fråga</h2></div><div class="pad"><div class="setcard xform">
+      <label class="fl" style="margin-top:0">Till</label><div class="chips2">${[['any', 'Första lediga expert']].concat((ex || []).map(x => [x.id, x.display_name.split(' ')[0]])).map(([id, n]) => `<button class="${(S.xpick || 'any') === id ? 'on' : ''}" onclick="S.xpick='${esc(id)}';keepMain()">${esc(n)}</button>`).join('')}</div>
+      <label class="fl" for="xcat">Ämne</label><select id="xcat" onchange="S.xcat=this.value">${XCATS.map(c => `<option ${c === (S.xcat || XCATS[0]) ? 'selected' : ''}>${c}</option>`).join('')}</select>
+      <label class="fl" for="xbody">Din fråga</label><textarea id="xbody" rows="4" maxlength="2000" placeholder="Berätta vilken växt det gäller, vad du ser och hur du sköter den" oninput="S.xbody=this.value">${esc(S.xbody || '')}</textarea>
+      ${S.xph ? `<img class="lbig" src="${esc(S.xphUrl)}" alt="Ditt foto"><button class="btn sm line" onclick="S.xph=null;keepMain()">Ta bort foto</button>` : `<label onclick="photoPick(event,this)" class="shot small"><span class="tic">${ic(CAM, 'currentColor', 22)}</span><span class="grow"><b>Lägg till foto</b><span>En bild hjälper experten mycket</span></span><input type="file" accept="image/*" class="sr" onchange="xPhoto(this)"></label>`}
+      <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="sendExpertQ()">${S.busy ? 'Skickar…' : 'Skicka till experten'}</button>
+      <p class="mut" style="font-size:12.5px;margin:8px 0 0">Bara du och experterna ser frågan. Svaret visas här under Mina frågor.</p></div></div>`
+    : `<div class="xpro"><span style="font-size:34px">🎓</span><b>Fråga en riktig växtexpert</b><span>Med Roothood Pro kan du ställa egna frågor till våra experter, med foto, och få ett personligt svar.</span><button class="btn" onclick="openModal('pro')">Prova Pro gratis i 7 dagar</button></div>`;
+  return `${topbar('Växtexperter', 'closeTool()')}
+  <p class="mut" style="margin:0 18px">Trädgårdsmästare och specialister som svarar på dina frågor.</p>
+  ${S.isExpertMe ? `<div class="sec"><h2>Frågor till dig (${(S.xin || []).length})</h2></div><div class="pad">${(S.xin || []).length ? S.xin.map(q => `<div class="xq"><small class="mut">${esc(q.asker_name || '')} · ${esc(q.category || '')} · ${ago(q.created_at)}${q.expert ? '' : ' · till alla experter'}</small><p>${esc(q.body)}</p>${q.photo_url ? `<img class="lbig" src="${esc(q.photo_url)}" alt="">` : ''}<textarea id="xa${q.id}" rows="3" placeholder="Skriv ditt svar"></textarea><button class="btn sm" style="margin-top:8px" onclick="sendExpertAnswer(${q.id})">Skicka svar</button></div>`).join('') : '<p class="mut" style="margin:0">Inga obesvarade frågor just nu.</p>'}</div>` : ''}
+  ${form}
+  ${S.pro && qs.length ? `<div class="sec"><h2>Mina frågor${waiting ? ' (' + waiting + ' väntar)' : ''}</h2></div><div class="pad">${qs.map(q => `<div class="xq ${q.answer ? 'done' : ''}"><small class="mut">${esc(q.category || '')} · ${ago(q.created_at)} · ${q.expert ? 'till ' + esc(expertName(q.expert) || 'expert') : 'till alla experter'}</small><p>${esc(q.body)}</p>${q.photo_url ? `<img class="lbig" src="${esc(q.photo_url)}" alt="">` : ''}
+      ${q.answer ? `<div class="xa"><b>🎓 Svar från ${esc(expertName(q.answered_by) || 'en expert')}</b><p>${esc(q.answer)}</p><small class="mut">${ago(q.answered_at)}</small></div>` : '<span class="xwait">⏳ Väntar på svar</span>'}</div>`).join('')}</div>` : ''}
+  <div class="sec"><h2>Våra experter</h2></div><div class="pad">${ex == null ? '<p class="mut">Hämtar…</p>' : ex.length ? `<div class="norm">${ex.map(expertCard).join('')}</div>` : '<p class="mut" style="margin:0">Inga experter är registrerade än.</p>'}</div>
+  <div style="height:24px"></div>`;
+}
+function keepMain() { const y = $('#main').scrollTop; render(); $('#main').scrollTop = y; }
 // ===== Hitta andra användare =====
 let peopleT = null;
 async function loadPeople() {
@@ -2910,6 +2992,7 @@ const HB = [
   ['id', 'Identifiera växt', 'Fota och få svar', 'tool'],
   ['light', 'Ljusmätare', 'Mät ljuset hemma', 'tool'],
   ['doc', 'Växtdoktorn', 'Skador, sjukdomar och ohyra', 'tool'],
+  ['expert', 'Växtexperter', 'Fråga en riktig expert', 'tool'],
   ['house', 'Mitt hem', 'Rum, väderstreck och ritning', 'tool'],
   ['smart', 'Smarta hemmet', 'Sensorer, lampa och bevattning', 'tool'],
   ['season', 'Säsongstips', 'Vad du kan göra just nu'],
@@ -2927,7 +3010,7 @@ const SZN = [['s', 'Liten'], ['m', 'Mellan'], ['l', 'Stor']];
 function sizeOf(x) { return x.sz || (HB_M[x.k] && HB_M[x.k][3] === 'tool' ? (x.w === 'w' ? 'l' : 'm') : 'm'); }
 function toolTile(k, size) {
   const lock = S.pro ? '' : '<span class="protag">PRO</span>';
-  const T = { db: [I.search, 'db', 'openDb()', `<span class="dbcount">${S.plants.length} växter</span>`], id: [CAM, '', "openTool('id')", lock], light: [I.sun, 'sun', "openTool('light')", lock], doc: [DOCI, 'doc', 'openDoc()', ''], house: [DOORI, 'house', 'openHouse()', ''], smart: [HOMEI, 'smart', 'openSmart()', ''] }[k];
+  const T = { db: [I.search, 'db', 'openDb()', `<span class="dbcount">${S.plants.length} växter</span>`], id: [CAM, '', "openTool('id')", lock], light: [I.sun, 'sun', "openTool('light')", lock], doc: [DOCI, 'doc', 'openDoc()', ''], house: [DOORI, 'house', 'openHouse()', lock], expert: [XPI, 'xp', 'openExperts()', lock], smart: [HOMEI, 'smart', 'openSmart()', ''] }[k];
   const b = HB_M[k];
   if (size === 's') return `<button class="tool compact t-${k}" onclick="${T[2]}"><span class="tic ${T[1]}">${ic(T[0], 'currentColor', 20)}</span><b>${b[1]}</b></button>`;
   return size === 'l' ? `<button class="tool wide t-${k}" onclick="${T[2]}"><span class="tic ${T[1]}">${ic(T[0], 'currentColor', 24)}</span><span class="grow"><b>${b[1]}</b><span>${b[2]}</span></span>${T[3]}</button>`
@@ -3049,8 +3132,8 @@ function mineV() {
   return `${topbar('Min samling')}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
   ${S.mine.length && S.push === 'off' && !store.get('pushNudgeHidden', false) ? `<div class="instc pushnudge"><span class="tic">${ic(BELL, 'currentColor', 22)}</span><div><b>Få påminnelser i mobilen</b><span>En notis när något behöver vattnas, på tiden du väljer.</span></div><button class="btn sm" onclick="enablePush()">Slå på</button><button class="x" aria-label="Dölj" onclick="store.set('pushNudgeHidden', true); render()">✕</button></div>` : ''}
-  <div class="sec"><h2>Dina växter</h2><span style="display:flex;gap:8px"><button class="btn sm line" onclick="openHouse()">${ic(DOORI, 'currentColor', 15)} Mitt hem</button><button class="btn sm line" onclick="addCustomStart()">+ Egen växt</button></span></div>
-  ${rooms.length && S.mine.length ? `<div class="roomchips">${[[null, 'Alla']].concat(rooms.map(r => [r.id, r.name]), [['-', 'Utan rum']]).map(([id, n]) => `<button class="${S.mroom === id ? 'on' : ''}" onclick="S.mroom=${id ? `'${id}'` : 'null'};render()">${esc(n)}<small>${id === null ? S.mine.length : S.mine.filter(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id).length}</small></button>`).join('')}</div>` : ''}
+  <div class="sec"><h2>Dina växter</h2><span style="display:flex;gap:8px">${S.pro ? `<button class="btn sm line" onclick="openHouse()">${ic(DOORI, 'currentColor', 15)} Mitt hem</button>` : ''}<button class="btn sm line" onclick="addCustomStart()">+ Egen växt</button></span></div>
+  ${S.pro && rooms.length && S.mine.length ? `<div class="roomchips">${[[null, 'Alla']].concat(rooms.map(r => [r.id, r.name]), [['-', 'Utan rum']]).map(([id, n]) => `<button class="${S.mroom === id ? 'on' : ''}" onclick="S.mroom=${id ? `'${id}'` : 'null'};render()">${esc(n)}<small>${id === null ? S.mine.length : S.mine.filter(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id).length}</small></button>`).join('')}</div>` : ''}
   <div class="list" style="padding-top:0">${S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p>Tryck på hjärtat på en växt under Växter så hamnar den här, med vattningspåminnelser.</p><button class="btn sm" onclick="go('home')">Hitta växter</button></div>`}</div>`;
 }
 function meV() {
@@ -3062,7 +3145,7 @@ function meV() {
   ${settingsRow()}
   <div class="pad" style="padding-top:12px"><button class="setrow" onclick="openPeople()"><span class="tic">👥</span><span class="grow"><b>Hitta användare</b><span>Sök på namn eller ort och följ andra växtvänner</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="pad" style="padding-top:10px"><button class="setrow" onclick="go('home');openHomeCfg()"><span class="tic">${ic(PEN, 'currentColor', 20)}</span><span class="grow"><b>Anpassa startskärmen</b><span>Välj vad som visas och i vilken ordning</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
-  <div class="pad" style="padding-top:10px"><button class="setrow" onclick="openHouse()"><span class="tic">${ic(DOORI, 'currentColor', 20)}</span><span class="grow"><b>Mitt hem</b><span>${(S.home || []).length ? S.home.length + (S.home.length === 1 ? ' rum' : ' rum') + ', väderstreck och var växterna står' : 'Lägg in rum och väderstreck'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
+  <div class="pad" style="padding-top:10px"><button class="setrow" onclick="openHouse()"><span class="tic">${ic(DOORI, 'currentColor', 20)}</span><span class="grow"><b>Mitt hem${S.pro ? '' : ' ' + proBadge()}</b><span>${(S.home || []).length ? S.home.length + (S.home.length === 1 ? ' rum' : ' rum') + ', väderstreck och var växterna står' : 'Lägg in rum och väderstreck'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="pad" style="padding-top:10px"><button class="setrow" onclick="openSmart()"><span class="tic">${ic(HOMEI, 'currentColor', 20)}</span><span class="grow"><b>Smarta hemmet</b><span>Sensorer, växtlampa, bevattning och luftfukt</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="stats"><div class="stat"><b>${S.mine.length}</b><span class="mut">växter i samlingen</span></div><div class="stat"><b>${posts === null ? '–' : posts}</b><span class="mut">frågor i communityn</span></div></div>
   ${DEMO ? '' : `<div class="addbar"><button class="btn wide line" onclick="signOut()">Logga ut</button></div>`}
@@ -3288,7 +3371,7 @@ function delBtn(key, fn, id) {
 }
 function segBar() {
   return `<div class="seg2" role="tablist">${[['detect', 'Detektiver'], ['q', 'Frågor'], ['forum', 'Forum'], ['swap', 'Byt']].map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>
-  <div class="pad" style="padding-top:10px"><button class="peopleb" onclick="openPeople()"><span>👥</span><span class="grow">Hitta andra användare</span>${ic(I.search, 'currentColor', 18)}</button></div>`;
+  <div class="pad cbtns" style="padding-top:10px"><button class="peopleb" onclick="openPeople()"><span>👥</span><span class="grow">Hitta användare</span></button><button class="peopleb xb" onclick="openExperts()"><span>🎓</span><span class="grow">Fråga en expert</span>${S.pro ? '' : proBadge()}</button></div>`;
 }
 function listState(list, emptyText) {
   if (S.feedErr) return `<div class="empty"><p>${esc(S.feedErr)}</p><button class="btn sm" onclick="loadFeed()">Försök igen</button></div>`;
@@ -3562,6 +3645,8 @@ async function setPro(on) {
 function proV() {
   const feats = [[CAM, 'Identifiera växter med kameran', 'Fota ett blad eller en blomma och få veta vad det är.'],
     [I.sun, 'Ljusmätare', 'Mät ljuset där växten ska stå och få förslag på växter som trivs.'],
+    [XPI, 'Fråga växtexperter', 'Ställ egna frågor med foto till trädgårdsmästare och specialister och få personliga svar.'],
+    [DOORI, 'Mitt hem', 'Rita ditt hem med rum, fönster och trädgård, se det i 3D och få tips om var växterna trivs.'],
     [I.leaf, 'Obegränsad samling', `Gratis kan du spara ${FREE_LIMIT} växter. Med Pro finns ingen gräns.`],
     [I.check, 'Pro-märke i communityn', 'Visa att du är en riktig växtnörd.']];
   return `<div class="mh"><h2>Roothood Pro</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
@@ -3740,7 +3825,7 @@ function docV() {
 }
 function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { stopLight(); if (S.tool === 'house' && S.hDirty) saveHomeNow(true); S.tool = null; render(); }
-function toolV() { return S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'smart' ? smartV() : lightV(); }
+function toolV() { return S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'smart' ? smartV() : lightV(); }
 
 // --- Säsongstips ---
 // Varje tips: [typ, rubrik, text, månader i zon 1–2, zon 3–5, zon 6–8]. En lista gäller alla zoner.
@@ -4121,7 +4206,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.44';
+const APP_VERSION = '1.46';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;

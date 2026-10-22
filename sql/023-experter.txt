@@ -1,0 +1,51 @@
+-- Roothood steg 023: Växtexperter (Pro). Gör någon till expert i Table Editor → profiles: is_expert = true, expert_title, expert_bio, expert_tags.
+alter table public.profiles add column if not exists is_expert boolean not null default false;
+alter table public.profiles add column if not exists expert_title text;
+alter table public.profiles add column if not exists expert_bio text;
+alter table public.profiles add column if not exists expert_tags text[] not null default '{}';
+
+create table if not exists public.expert_questions (
+  id bigint generated always as identity primary key,
+  asker uuid not null default auth.uid() references auth.users on delete cascade,
+  expert uuid references auth.users on delete set null,
+  category text,
+  body text not null check (char_length(body) between 5 and 2000),
+  photo_url text,
+  answer text check (answer is null or char_length(answer) <= 4000),
+  answered_by uuid references auth.users on delete set null,
+  answered_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists expert_questions_asker on public.expert_questions (asker);
+alter table public.expert_questions enable row level security;
+drop policy if exists "Läs egna och expertfrågor" on public.expert_questions;
+create policy "Läs egna och expertfrågor" on public.expert_questions for select
+  using (auth.uid() = asker or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_expert));
+drop policy if exists "Pro frågar expert" on public.expert_questions;
+create policy "Pro frågar expert" on public.expert_questions for insert
+  with check (auth.uid() = asker and answer is null and exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_pro));
+drop policy if exists "Expert svarar" on public.expert_questions;
+create policy "Expert svarar" on public.expert_questions for update
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_expert))
+  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_expert) and answered_by = auth.uid());
+
+-- Användare får inte göra sig själva till experter
+create or replace function public.protect_expert_flag() returns trigger language plpgsql as $$
+begin
+  if (new.is_expert is distinct from old.is_expert or new.expert_title is distinct from old.expert_title or new.expert_bio is distinct from old.expert_bio or new.expert_tags is distinct from old.expert_tags)
+     and coalesce(auth.role(), '') <> 'service_role' and auth.uid() is not null then
+    new.is_expert := old.is_expert; new.expert_title := old.expert_title; new.expert_bio := old.expert_bio; new.expert_tags := old.expert_tags;
+  end if;
+  return new;
+end $$;
+drop trigger if exists protect_expert_flag on public.profiles;
+create trigger protect_expert_flag before update on public.profiles for each row execute function public.protect_expert_flag();
+
+create or replace function public.list_experts()
+returns table (id uuid, display_name text, expert_title text, expert_bio text, expert_tags text[], answered int)
+language sql stable security definer set search_path = public as $$
+  select p.id, p.display_name, p.expert_title, p.expert_bio, p.expert_tags,
+    (select count(*) from expert_questions q where q.answered_by = p.id)::int
+  from profiles p where p.is_expert order by p.display_name;
+$$;
+grant execute on function public.list_experts() to anon, authenticated;
