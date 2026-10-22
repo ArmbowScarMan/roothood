@@ -752,6 +752,12 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 .v3btns{position:absolute;left:10px;right:10px;bottom:10px;display:flex;gap:6px;justify-content:center;z-index:2}
 .v3btns button{border:0;background:var(--surf);color:var(--ink);font:inherit;font-size:13px;font-weight:800;border-radius:999px;padding:9px 13px;box-shadow:0 6px 16px rgba(70,52,28,.14);cursor:pointer}
 .v3btns button.on{background:var(--pri);color:var(--onpri)}
+
+.h3card{margin:0 18px;background:var(--surf);border-radius:26px;box-shadow:var(--sh);overflow:hidden}
+.h3card .planbox.home3d{margin:0;height:250px;border-radius:0;box-shadow:none}
+.h3bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px 12px 16px;font-size:13px}
+.h3empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:22px 20px}
+.h3empty b{font-size:17px}.h3empty>span:not(:first-child){font-size:13.5px;color:var(--mut);max-width:290px}.h3empty .btn{margin-top:6px}
 /* Mitt hem */
 .rooms{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 18px 0}
 .roomc{all:unset;box-sizing:border-box;cursor:pointer;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:3px;min-height:150px}
@@ -1612,6 +1618,17 @@ let T3 = null;
 const FH = { sofa: 0.8, chair2: 0.9, bed2: 0.5, bed1: 0.5, table: 0.45, dtable: 0.75, chair: 0.9, desk: 0.75, shelf: 1.9, pshelf: 1.5, dresser: 0.9, ward: 2.1, tv: 0.5, counter: 0.9, stove: 0.9, fridge: 1.8, bath: 0.6, shower: 2.0, wc: 0.8, sink: 0.85, rug: 0.02, round: 0.75, ghouse: 2.3, rbed: 0.4, shed: 2.2, compost: 0.9 };
 const FC = { sofa: '#8FA9B8', chair2: '#8FA9B8', bed2: '#E6DED2', bed1: '#E6DED2', table: '#B98E62', dtable: '#B98E62', chair: '#A47B52', desk: '#C9A57D', shelf: '#C9A57D', pshelf: '#A47B52', dresser: '#D9C3A5', ward: '#E8E2D8', tv: '#4A4A4A', counter: '#EDEBE6', stove: '#3D3D3D', fridge: '#F2F2F0', bath: '#FAFAFA', shower: '#CFE6F2', wc: '#FAFAFA', sink: '#FAFAFA', rug: '#B6A3CF', round: '#B98E62', ghouse: '#DDEFE8', rbed: '#8A6440', shed: '#B5523B', compost: '#6B4A2A' };
 const AREA3 = { lot: '#A9C98C', lawn: '#7FB35B', bed: '#8A5A34', veg: '#6B4A2A', path: '#BDB6A8', patio: '#B98E62', pond: '#5CA6D6' };
+
+function home3dV() {
+  if (!S.user) return '';
+  const has = (S.home || []).some(r => r.rect) || ((S.hplan && S.hplan.areas) || []).length;
+  if (!S.homeLoaded) return `<div class="sec cap2"><h2>Mitt hem</h2></div><div class="h3card"><div class="h3empty"><p class="mut">Hämtar ditt hem…</p></div></div>`;
+  if (!has) return `<div class="sec cap2"><h2>Mitt hem</h2></div><div class="h3card"><div class="h3empty"><span style="font-size:40px">🏡</span><b>Rita ditt hem</b><span>Rita rum, fönster och trädgård, så ser du hemmet i 3D här och får tips om var växterna trivs.</span><button class="btn sm" onclick="openHouse();S.hview='plan';render()">Börja rita</button></div></div>`;
+  const n = S.mine.filter(m => m.details && m.details.pos).length;
+  return `<div class="sec cap2"><h2>Mitt hem</h2><button class="viewall" onclick="openHouse();S.hview='3d';render()">Visa stort</button></div>
+  <div class="h3card"><div class="planbox home3d" id="box3d"><p class="l3">Laddar 3D…</p></div>
+    <div class="h3bar"><span class="mut">${planRooms().length} rum${n ? ' · ' + n + (n === 1 ? ' växt utplacerad' : ' växter utplacerade') : ''}</span><button class="btn sm" onclick="openHouse();S.hview='plan';render()">${ic(PEN, 'currentColor', 15)} Redigera Mitt hem</button></div></div>`;
+}
 function view3dV() {
   const has = planRooms().length || planAreas().length;
   return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}
@@ -1628,7 +1645,7 @@ async function mount3d() {
     r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
     T3.scene = new THREE.Scene(); T3.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 2000);
     const c = r.domElement; c.style.touchAction = 'none'; c.style.display = 'block';
-    c.addEventListener('pointerdown', e => { c.setPointerCapture(e.pointerId); T3.ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); T3.g = null; });
+    c.addEventListener('pointerdown', e => { T3.auto = false; if (c.style.touchAction !== 'pan-y') c.setPointerCapture(e.pointerId); T3.ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); T3.g = null; });
     c.addEventListener('pointermove', e => { const P = T3.ptr; if (!P.has(e.pointerId)) return; const o = P.get(e.pointerId), st = T3.st;
       if (P.size === 1) { st.az -= (e.clientX - o.x) * 0.008; st.el = Math.max(0.12, Math.min(1.52, st.el + (e.clientY - o.y) * 0.006)); }
       P.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -1642,11 +1659,12 @@ async function mount3d() {
     build3d(true); T3.justBuilt = true;
   }
   const l = box.querySelector('.l3'); if (l) l.remove();
+  const onHome = box.classList.contains('home3d'); T3.renderer.domElement.style.touchAction = onHome ? 'pan-y' : 'none'; if (onHome && T3.autoBox !== box) { T3.auto = true; T3.st.el = 0.75; } T3.autoBox = box; if (!onHome) T3.auto = false;
   if (T3.renderer.domElement.parentNode !== box) { box.insertBefore(T3.renderer.domElement, box.firstChild); if (!T3.justBuilt) build3d(); }
   T3.justBuilt = false;
   const W = box.clientWidth, H = box.clientHeight; T3.renderer.setSize(W, H, false); T3.renderer.domElement.style.width = '100%'; T3.renderer.domElement.style.height = '100%';
   T3.camera.aspect = W / H; T3.camera.updateProjectionMatrix(); T3.dirty = true;
-  if (!T3.loop) { const tick = () => { if (!document.body.contains(T3.renderer.domElement)) { T3.loop = null; return; } if (T3.dirty) { place3dCam(); T3.renderer.render(T3.scene, T3.camera); T3.dirty = false; } T3.loop = requestAnimationFrame(tick); }; T3.loop = requestAnimationFrame(tick); }
+  if (!T3.loop) { const tick = () => { if (!document.body.contains(T3.renderer.domElement)) { T3.loop = null; return; } if (T3.auto) { T3.st.az += 0.0035; T3.dirty = true; } if (T3.dirty) { place3dCam(); T3.renderer.render(T3.scene, T3.camera); T3.dirty = false; } T3.loop = requestAnimationFrame(tick); }; T3.loop = requestAnimationFrame(tick); }
 }
 function place3dCam() { const st = T3.st, c = T3.camera; c.position.set(st.tx + st.dist * Math.cos(st.el) * Math.sin(st.az), st.dist * Math.sin(st.el), st.tz + st.dist * Math.cos(st.el) * Math.cos(st.az)); c.lookAt(st.tx, 0.6, st.tz); }
 function cam3(k) { if (!T3) return; const st = T3.st; if (k === 'top') { st.el = 1.52; st.az = 0; } else { st.el = 0.85; st.az = 0.75; } fit3d(); T3.dirty = true; }
@@ -2773,6 +2791,7 @@ const HB = [
   ['alerts', 'Varningar', 'Torr jord, luftfukt och vattning idag'],
   ['weather', 'Väder', 'Väder där du bor och varningar för dina växter'],
   ['mine', 'Mina växter', 'Dina växter med temperatur, fukt och ljus'],
+  ['home3d', 'Mitt hem i 3D', 'Din bostad i 3D med knapp för att ändra'],
   ['db', 'Växtdatabasen', 'Sök bland alla växter och skötselråd', 'tool'],
   ['local', 'Händer nära dig', 'Byten och fall från din ort'],
   ['id', 'Identifiera växt', 'Fota och få svar', 'tool'],
@@ -2788,7 +2807,7 @@ function homeLayout() {
   let L = S.layout || store.get('homeLayout', null);
   if (!Array.isArray(L)) L = [];
   L = L.map(x => x.k === 'plants' ? { k: 'db', on: x.on, w: 'w' } : x).filter((x, i, a) => HB_M[x.k] && a.findIndex(y => y.k === x.k) === i);
-  HB.forEach(b => { if (!L.some(x => x.k === b[0])) L.push({ k: b[0], on: true, w: HB_DEF[b[0]] }); });
+  HB.forEach((b, i) => { if (L.some(x => x.k === b[0])) return; let at = 0; for (let j = i - 1; j >= 0; j--) { const k = L.findIndex(x => x.k === HB[j][0]); if (k >= 0) { at = k + 1; break; } } L.splice(at, 0, { k: b[0], on: true, w: HB_DEF[b[0]] }); });
   return S.layout = L;
 }
 function toolTile(k, size) {
@@ -2806,6 +2825,7 @@ function homeBlocks(intro) {
     flush();
     if (x.k === 'alerts') out.push(homeAlerts());
     else if (x.k === 'weather') out.push(weatherV());
+    else if (x.k === 'home3d') out.push(home3dV());
     else if (x.k === 'mine') out.push(S.user && S.mine.length ? `<div class="sec cap2"><h2>Mina växter</h2><button class="viewall" onclick="go('mine')">Visa alla</button></div><div class="mycards big">${S.mine.map(myCard).join('')}</div>` : intro);
     else if (x.k === 'local') out.push(localV());
     else if (x.k === 'season') out.push(seasonCard());
@@ -3984,7 +4004,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.37';
+const APP_VERSION = '1.38';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
