@@ -2224,21 +2224,24 @@ function removeFreeWall(pt, pt2) {
   S.hplan.walls = rest; saveHomeSoon();
   return `${w.h === 'half' ? 'Halvväggen' : 'Väggen'} är borttagen (${r1(cut)} m). Ångra om det blev fel.`;
 }
+function insideSeg(pt, g, m) { const dx = g[2] - g[0], dy = g[3] - g[1], L = Math.hypot(dx, dy) || 1, t = ((pt.x - g[0]) * dx + (pt.y - g[1]) * dy) / L; return t > m && t < L - m; }
 function addWin(pt, pt2) {
-  const P = PL(), kind = P.wkind || 'win';
+  const P = PL(), kind = P.wkind || 'win', cands = [];
   if (kind === 'open') { const m = removeFreeWall(pt, pt2); if (m) return planMsg(m); }
   // tryck på något som redan finns = ta bort det
   if (!pt2) for (const r of planRooms()) {
     const bi = kind !== 'bay' ? -1 : (r.bays || []).findIndex(b => baySegs(r, b).some(g => segDist(pt.x, pt.y, g[0]) < 0.4));
     if (bi >= 0) { pushUndo(); r.bays.splice(bi, 1); r.winsTouched = true; syncDirs(r); saveHomeSoon(); replaceWinWords(r); return planMsg('Burspråket är borttaget.'); }
-    const wi = (r.wins || []).findIndex(w => (wkOf(w) === kind || (kind === 'door' && w.k === 'open' && w.pair) || (kind === 'open' && w.k === 'door' && w.pair)) && segDist(pt.x, pt.y, wallSeg(r, w)) < 0.4);
+    const wi = (r.wins || []).findIndex(w => (wkOf(w) === kind || (kind === 'door' && w.k === 'open' && w.pair) || (kind === 'open' && w.k === 'door' && w.pair)) && segDist(pt.x, pt.y, wallSeg(r, w)) < 0.4 && (kind !== 'open' || insideSeg(pt, wallSeg(r, w), 0.1)));
     if (wi >= 0) { pushUndo(); const w = r.wins.splice(wi, 1)[0]; if (w.pair) planRooms().forEach(o => { if (o.wins) o.wins = o.wins.filter(x => x.pair !== w.pair); }); r.winsTouched = true; syncDirs(r); saveHomeSoon(); replaceWinWords(r); if (w.k === 'open') return planMsg('Väggen är tillbaka.');
       return planMsg({ win: 'Fönstret', door: 'Dörren', open: 'Öppningen', rad: 'Elementet', vent: 'Ventilen' }[wkOf(w)] + ' är borttaget.'.replace('borttaget', ['door', 'vent', 'open'].includes(wkOf(w)) ? 'borttagen' : 'borttaget')); }
   }
   let best = null;
   planRooms().forEach(r => { const { x, y, w, h } = r.rect;
     [['t', [x, y, x + w, y], w], ['b', [x, y + h, x + w, y + h], w], ['l', [x, y, x, y + h], h], ['r', [x + w, y, x + w, y + h], h]].forEach(([s, seg, L]) => {
-      const dd = segDist(pt.x, pt.y, seg); if (!best || dd < best.d) best = { d: dd, r, s, L, along: ['t', 'b'].includes(s) ? pt.x - x : pt.y - y }; }); });
+      const dd = segDist(pt.x, pt.y, seg), along = ['t', 'b'].includes(s) ? pt.x - x : pt.y - y; cands.push({ d: dd, r, s, L, along });
+      if (!best || dd < best.d) best = { d: dd, r, s, L, along }; }); });
+  if (kind === 'open' && !pt2) { const ok = cands.filter(c => c.d <= 0.8 && c.along >= -0.1 && c.along <= c.L + 0.1 && solidPieces(c.r, c.s).some(q => c.along >= q[0] - 0.1 && c.along <= q[1] + 0.1)).sort((a2, b2) => a2.d - b2.d); if (ok.length) best = ok[0]; }
   if (!best || best.d > 0.8) return toast('Tryck närmare en vägg');
   pushUndo();
   const r = best.r, L = best.L;
@@ -2250,7 +2253,7 @@ function addWin(pt, pt2) {
     return planMsg('Burspråk med fönster mot ' + baySegs(r, r.bays[r.bays.length - 1]).map(g => DIRS.find(d => d[0] === angDir(g[1]))[1].toLowerCase()).join(', ') + '. Tryck på det igen för att ta bort det.');
   }
   let l = Math.min(WL[kind] || 1, L), step = kind === 'vent' ? 0.1 : 0.25, p = Math.max(0, Math.min(L - l, Math.round((best.along - l / 2) / step) * step));
-  if (kind === 'open' && !pt2) { const pc = solidPieces(r, best.s).find(q => best.along >= q[0] - 0.05 && best.along <= q[1] + 0.05); if (!pc) return toast('Här finns ingen vägg att ta bort'); p = r1(pc[0]); l = r1(pc[1] - pc[0]); }
+  if (kind === 'open' && !pt2) { const pc = solidPieces(r, best.s).find(q => best.along >= q[0] - 0.1 && best.along <= q[1] + 0.1); if (!pc) return toast('Här finns ingen vägg att ta bort'); p = r1(pc[0]); l = r1(pc[1] - pc[0]); }
   if (pt2) { const a1 = ['t', 'b'].includes(best.s) ? pt2.x - r.rect.x : pt2.y - r.rect.y, s0 = Math.round(Math.max(0, Math.min(best.along, a1)) * 4) / 4, s1 = Math.round(Math.min(L, Math.max(best.along, a1)) * 4) / 4; if (s1 - s0 >= 0.25) { p = s0; l = s1 - s0; } }
   const el = { s: best.s, p: r1(p), l }; if (kind !== 'win') el.k = kind;
   const overlaps = w => w.s === best.s && w.p < el.p + l && el.p < w.p + w.l && (kind === 'open' || (kind === 'vent' || kind === 'rad' ? ['vent', 'rad'].includes(wkOf(w)) : !['vent', 'rad'].includes(wkOf(w))));
@@ -4118,7 +4121,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.43';
+const APP_VERSION = '1.44';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
