@@ -1,0 +1,49 @@
+-- Roothood steg 022: hitta andra användare, profiler och att följa varandra.
+create table if not exists public.follows (
+  follower uuid not null default auth.uid() references auth.users on delete cascade,
+  followee uuid not null references auth.users on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (follower, followee),
+  check (follower <> followee)
+);
+alter table public.follows enable row level security;
+drop policy if exists "Läs följare" on public.follows;
+create policy "Läs följare" on public.follows for select using (true);
+drop policy if exists "Följ själv" on public.follows;
+create policy "Följ själv" on public.follows for insert with check (auth.uid() = follower);
+drop policy if exists "Sluta följa själv" on public.follows;
+create policy "Sluta följa själv" on public.follows for delete using (auth.uid() = follower);
+
+create or replace function public.find_users(q text default '')
+returns table (id uuid, display_name text, city text, interests text[], plants int, posts int, followers int)
+language sql stable security definer set search_path = public as $$
+  select p.id, p.display_name, p.city, p.interests,
+    (select count(*) from user_plants u where u.user_id = p.id)::int,
+    (select count(*) from posts x where x.user_id = p.id and not coalesce(x.hidden, false))::int,
+    (select count(*) from follows f where f.followee = p.id)::int
+  from profiles p
+  where p.id is distinct from auth.uid()
+    and (coalesce(q, '') = '' or p.display_name ilike '%' || q || '%' or p.city ilike '%' || q || '%')
+  order by (lower(coalesce(p.city, '')) = lower(coalesce((select city from profiles where id = auth.uid()), '#'))) desc,
+    (select count(*) from follows f where f.followee = p.id) desc, p.display_name
+  limit 40;
+$$;
+grant execute on function public.find_users(text) to authenticated;
+
+create or replace function public.user_card(p_id uuid)
+returns table (id uuid, display_name text, city text, interests text[], plants int, posts int, followers int, following int, share boolean, plant_list jsonb)
+language sql stable security definer set search_path = public as $$
+  select p.id, p.display_name, p.city, p.interests,
+    (select count(*) from user_plants u where u.user_id = p.id)::int,
+    (select count(*) from posts x where x.user_id = p.id and not coalesce(x.hidden, false))::int,
+    (select count(*) from follows f where f.followee = p.id)::int,
+    (select count(*) from follows f where f.follower = p.id)::int,
+    coalesce(p.share_photos, true),
+    case when coalesce(p.share_photos, true) then (
+      select jsonb_agg(jsonb_build_object('plant_id', up.plant_id, 'name', coalesce(pl.swedish_name, up.custom_name),
+        'photo', case when array_length(up.photos, 1) > 0 and up.photos[array_length(up.photos, 1)] like 'https://%' then up.photos[array_length(up.photos, 1)] end) order by up.created_at desc)
+      from user_plants up left join plants pl on pl.id = up.plant_id where up.user_id = p.id)
+    end
+  from profiles p where p.id = p_id;
+$$;
+grant execute on function public.user_card(uuid) to authenticated;

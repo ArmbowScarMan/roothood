@@ -686,6 +686,25 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 .dwhy{font-size:13px;color:var(--pri);font-weight:700}
 
 
+
+/* Hitta användare */
+.peopleb{display:flex;align-items:center;gap:10px;width:100%;border:0;background:var(--surf);color:var(--ink);font:inherit;font-size:14.5px;font-weight:700;border-radius:18px;padding:12px 14px;box-shadow:var(--sh);cursor:pointer;text-align:left}
+.peopleb .grow{flex:1}
+.whol,.whol0{display:flex;gap:10px;align-items:center;min-width:0}.whol{cursor:pointer;border-radius:12px}.whol:hover b,.whol:focus-visible b{text-decoration:underline}
+.prow2{display:flex;align-items:center;gap:10px;background:var(--surf);border-radius:18px;padding:8px 12px 8px 8px;box-shadow:var(--sh)}
+.popen{all:unset;flex:1;display:flex;gap:12px;align-items:center;cursor:pointer;min-width:0}
+.popen .av{width:44px;height:44px;font-size:18px;flex:none}
+.popen .grow{display:flex;flex-direction:column;min-width:0}.popen .grow>span{font-size:12.5px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uhero{display:flex;gap:16px;align-items:center;margin:8px 18px 0}
+.uhero .bigav{margin:0;flex:none}.uhero .grow{display:flex;flex-direction:column}.uhero h2{margin:0;font-size:22px}.uhero .grow>span{color:var(--mut);font-size:14px}
+.ustats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 18px 0}
+.ustats div{background:var(--surf);border-radius:16px;padding:10px 4px;text-align:center;box-shadow:var(--sh);display:flex;flex-direction:column}
+.ustats b{font-size:18px}.ustats span{font-size:11.5px;color:var(--mut)}
+.uplants{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.upl{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:5px;min-width:0}.upl:disabled{cursor:default}
+.upl .ph{aspect-ratio:1/1;border-radius:16px;width:100%}.upl img{width:100%;height:100%;object-fit:cover}
+.upl span{font-size:12.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nrow small{display:block}
 /* Väder */
 .wxc{margin:14px 18px 0;background:linear-gradient(160deg,#DCEBF3,var(--surf) 70%);border-radius:24px;padding:16px;box-shadow:var(--sh)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .wxc{background:linear-gradient(160deg,#1D3340,var(--surf) 70%)}}
@@ -848,6 +867,17 @@ const demoApi = {
   async setRemind(id, on) { const m = this._raw(); m.find(x => x.id === id).remind = on; await this.save(m); },
   async saveDetails(id, d) { const m = this._raw(); m.find(x => x.id === id).details = d; await this.save(m); },
   async getHome() { return store.get('home', []); },
+  _people() { return [
+    { id: 'u-lena', display_name: 'Lena', city: S.city || 'Piteå', interests: ['Krukväxt', 'Orkidé'], plants: 34, posts: 12, followers: 8, share: true, plant_list: [{ name: 'Monstera Thai Constellation' }, { name: 'Phalaenopsis' }, { name: 'Hoya kerrii' }] },
+    { id: 'u-ahmed', display_name: 'Ahmed', city: 'Luleå', interests: ['Köksträdgård'], plants: 18, posts: 5, followers: 3, share: true, plant_list: [{ name: 'Chili' }, { name: 'Tomat' }] },
+    { id: 'u-maria', display_name: 'Maria', city: S.city || 'Piteå', interests: ['Trädgård', 'Krukväxt'], plants: 52, posts: 21, followers: 15, share: false, plant_list: null },
+    { id: 'u-johan', display_name: 'Johan', city: 'Umeå', interests: ['Kaktus'], plants: 61, posts: 9, followers: 6, share: true, plant_list: [{ name: 'Kaktusfikon' }, { name: 'Lithops' }] },
+    { id: 'u-sara', display_name: 'Sara', city: 'Stockholm', interests: ['Krukväxt'], plants: 27, posts: 3, followers: 2, share: true, plant_list: [{ name: 'Kalatea' }] }]; },
+  async findUsers(q) { q = (q || '').toLowerCase(); return this._people().filter(u => !q || u.display_name.toLowerCase().includes(q) || (u.city || '').toLowerCase().includes(q)); },
+  async userCard(id) { const u = this._people().find(x => x.id === id || x.id === 'u-' + String(id).toLowerCase()); return u ? Object.assign({ following: 4 }, u, { followers: u.followers + (store.get('follows', []).includes(id) ? 1 : 0) }) : null; },
+  async userPosts(id) { const u = this._people().find(x => x.id === id || x.id === 'u-' + String(id).toLowerCase()) || {}; return this._feed().filter(p => p.user_id === id || p.author === u.display_name).slice(0, 20); },
+  async myFollows() { return store.get('follows', []); },
+  async follow(id, on) { const f = store.get('follows', []).filter(x => x !== id); if (on) f.push(id); store.set('follows', f); },
   async saveHome(r) { store.set('home', { rooms: r, plan: S.hplan || {}, layout: S.layout || null }); },
   async othersPhotos() { return []; },
   async setShare(on) { store.set('share', on); },
@@ -981,6 +1011,11 @@ const sbApi = {
   async setPushHour(endpoint, h) { const { error } = await sb.from('push_subscriptions').update({ notify_hour: h }).eq('endpoint', endpoint); if (error) throw /notify_hour/.test(error.message || '') ? new Error('HOUR_NOT_READY') : error; },
   async setRemind(id, on) { const { error } = await sb.from('user_plants').update({ remind: on }).eq('id', id); if (error) throw /remind/.test(error.message || '') ? new Error('REMIND_NOT_READY') : error; },
   async saveDetails(id, d) { const { error } = await sb.from('user_plants').update({ details: d }).eq('id', id); if (error) throw /details/.test(error.message || '') ? new Error('DETAILS_NOT_READY') : error; },
+  async findUsers(q) { const { data, error } = await sb.rpc('find_users', { q: q || '' }); if (error) throw /find_users/.test(error.message || '') ? new Error('USERS_NOT_READY') : error; return data || []; },
+  async userCard(id) { const { data, error } = await sb.rpc('user_card', { p_id: id }); if (error) throw /user_card/.test(error.message || '') ? new Error('USERS_NOT_READY') : error; return (data && data[0]) || null; },
+  async userPosts(id) { const { data, error } = await sb.from('posts').select('id,kind,title,body,category,created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(20); if (error) throw error; return data || []; },
+  async myFollows() { const { data, error } = await sb.from('follows').select('followee').eq('follower', S.user.id); if (error) return []; return (data || []).map(x => x.followee); },
+  async follow(id, on) { const r = on ? await sb.from('follows').insert({ follower: S.user.id, followee: id }) : await sb.from('follows').delete().eq('follower', S.user.id).eq('followee', id); if (r.error && !/duplicate/.test(r.error.message || '')) throw /follows/.test(r.error.message || '') ? new Error('USERS_NOT_READY') : r.error; },
   async getHome() { const { data, error } = await sb.from('homes').select('rooms').eq('user_id', S.user.id); if (error) throw /homes/.test(error.message || '') ? new Error('HOME_NOT_READY') : error; return (data && data[0] && data[0].rooms) || []; },
   async saveHome(r) { const { error } = await sb.from('homes').upsert({ user_id: S.user.id, rooms: { rooms: r, plan: S.hplan || {}, layout: S.layout || null }, updated_at: new Date().toISOString() }); if (error) throw /homes/.test(error.message || '') ? new Error('HOME_NOT_READY') : error; },
   async othersPhotos(pid) { const { data, error } = await sb.rpc('plant_photos', { p_plant_id: pid }); if (error) throw error; return data || []; },
@@ -2415,7 +2450,7 @@ function render() {
 let curHash = null, navFromPop = false, scrollT = null;
 function viewHash() {
   if (S.sel) return '#v/' + S.sel;
-  if (S.tool) return '#t/' + S.tool + (S.tool === 'house' && S.room ? '/' + S.room : '');
+  if (S.tool) return '#t/' + S.tool + (S.tool === 'house' && S.room ? '/' + S.room : '') + (S.tool === 'user' && S.uid ? '/' + encodeURIComponent(S.uid) : '');
   if (S.tab === 'comm') return '#c/' + S.ctab + (S.forum ? '/f/' + encodeURIComponent(S.forum) : '') + (S.post ? '/p/' + S.post : '') + (S.newL || S.newCase ? '/new' : '');
   return '#' + S.tab;
 }
@@ -2434,6 +2469,8 @@ function applyView(h) {
   if (a[0] === 'v' && S.plants.some(p => p.id === +a[1])) S.sel = +a[1];
   else if (a[0] === 't' && a[1] === 'settings') { openSettings(); return true; }
   else if (a[0] === 't' && (a[1] === 'season' || a[1] === 'smart' || a[1] === 'doc' || a[1] === 'db')) S.tool = a[1];
+  else if (a[0] === 't' && a[1] === 'people' && S.user) { S.tool = 'people'; loadPeople(); }
+  else if (a[0] === 't' && a[1] === 'user' && a[2] && S.user) { openUser(a[2], true); }
   else if (a[0] === 't' && a[1] === 'house' && S.user) { S.tool = 'house'; S.room = a[2] || null; }
   else if (a[0] === 't' && ['id', 'light'].includes(a[1]) && S.pro) S.tool = a[1];
   else if (a[0] === 'c') {
@@ -2552,6 +2589,71 @@ function dbV() {
   <div class="sec"><h2>Alla växter</h2><span class="mut" id="count"></span></div>
   <div class="tabs" role="tablist">${['Alla'].concat(envCats()).map(c => `<button class="tab ${c === S.cat ? 'on' : ''}" role="tab" aria-selected="${c === S.cat}" onclick="S.cat='${c}';render()">${c}</button>`).join('')}${store.get('zone', 0) && S.env !== 'in' ? `<button class="tab ${S.cat === 'zon' ? 'on' : ''}" role="tab" aria-selected="${S.cat === 'zon'}" onclick="S.cat='zon';render()">Klarar zon ${store.get('zone', 0)}</button>` : ''}</div>
   <div class="grid" id="list"></div>`;
+}
+
+// ===== Hitta andra användare =====
+let peopleT = null;
+async function loadPeople() {
+  S.pplBusy = true;
+  try { const [list, fol] = await Promise.all([api.findUsers(S.pq || ''), api.myFollows()]); S.ppl = list; S.follows = fol; S.pplErr = null; }
+  catch (e) { S.ppl = []; S.pplErr = e.message; }
+  S.pplBusy = false; if (S.tool === 'people') { const y = $('#main').scrollTop; const f = document.activeElement && document.activeElement.id === 'pq'; render(); $('#main').scrollTop = y; if (f) { const i = $('#pq'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
+}
+function openPeople() { if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'people'; render(); $('#main').scrollTop = 0; loadPeople(); }
+function pqInput(v) { S.pq = v; clearTimeout(peopleT); peopleT = setTimeout(loadPeople, 300); }
+function avBig(name, cls) { return `<div class="${cls || 'av'}" style="background:hsl(${hueOf(name)} 40% 38%)">${esc((name || '?')[0].toUpperCase())}</div>`; }
+function personRow(u) {
+  const f = (S.follows || []).includes(u.id), same = S.city && u.city && u.city.toLowerCase() === S.city.toLowerCase();
+  return `<div class="prow2"><button class="popen" onclick="openUser('${esc(u.id)}')">${avBig(u.display_name)}<span class="grow"><b>${esc(u.display_name)}</b><span>${[u.city ? (same ? '📍 ' : '') + esc(u.city) : '', u.plants != null ? u.plants + ' växter' : '', u.followers ? u.followers + ' följare' : ''].filter(Boolean).join(' · ')}</span></span></button>
+    <button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow('${esc(u.id)}')">${f ? 'Följer' : 'Följ'}</button></div>`;
+}
+function peopleV() {
+  const list = S.ppl || [], fol = S.follows || [], q = (S.pq || '').trim();
+  const following = list.filter(u => fol.includes(u.id)), near = S.city ? list.filter(u => !fol.includes(u.id) && (u.city || '').toLowerCase() === S.city.toLowerCase()) : [], rest = list.filter(u => !fol.includes(u.id) && !near.includes(u));
+  const sec = (t, l) => l.length ? `<div class="sec"><h2>${t}</h2></div><div class="pad"><div class="norm">${l.map(personRow).join('')}</div></div>` : '';
+  return `${topbar('Hitta användare', 'closeTool()')}
+  <div class="searchrow"><div class="search">${ic(I.search, null, 20)}<input id="pq" type="search" placeholder="Sök på namn eller ort" value="${esc(S.pq || '')}" oninput="pqInput(this.value)" aria-label="Sök användare" autocomplete="off"></div></div>
+  ${S.pplErr === 'USERS_NOT_READY' ? '<div class="instc" style="margin:12px 18px 0"><div><b>Användarsökningen är inte påslagen i databasen än</b><span>Kör SQL-koden för steg 022 i Supabase.</span></div></div>' : ''}
+  ${S.ppl == null ? '<p class="mut" style="margin:16px 18px">Letar…</p>' : !list.length ? `<p class="mut" style="margin:16px 18px">${q ? 'Ingen användare matchar "' + esc(q) + '".' : 'Inga andra användare än.'}</p>`
+    : q ? sec(list.length + (list.length === 1 ? ' träff' : ' träffar'), list) : sec('Du följer', following) + sec('Nära dig i ' + esc(S.city || ''), near) + sec('Fler växtvänner', rest)}
+  <div style="height:24px"></div>`;
+}
+async function toggleFollow(id) {
+  if (needLogin()) return; const on = !(S.follows || []).includes(id);
+  S.follows = on ? (S.follows || []).concat(id) : S.follows.filter(x => x !== id);
+  if (S.ucard && S.ucard.id === id) S.ucard.followers = Math.max(0, (S.ucard.followers || 0) + (on ? 1 : -1));
+  const y = $('#main').scrollTop; render(); $('#main').scrollTop = y;
+  try { await api.follow(id, on); } catch (e) { S.follows = on ? S.follows.filter(x => x !== id) : S.follows.concat(id); render(); toast(e.message === 'USERS_NOT_READY' ? 'Att följa är inte påslaget i databasen än (steg 022).' : errMsg(e)); return; }
+  const u = S.ucard && S.ucard.id === id ? S.ucard : (S.ppl || []).find(x => x.id === id); if (u) toast(on ? 'Du följer nu ' + u.display_name : 'Du följer inte längre ' + u.display_name);
+}
+async function openUser(id, fromHash) {
+  if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.uBack = fromHash ? null : (S.tool === 'people' ? 'people' : S.tab === 'comm' ? 'comm' : null);
+  S.tool = 'user'; S.uid = id; S.ucard = null; S.uposts = null; render(); $('#main').scrollTop = 0;
+  try { const [c, ps, fol] = await Promise.all([api.userCard(id), api.userPosts(id), S.follows ? Promise.resolve(S.follows) : api.myFollows()]); S.ucard = c || { missing: 1 }; S.uposts = ps; S.follows = fol; }
+  catch (e) { S.ucard = { err: e.message }; }
+  if (S.tool === 'user' && S.uid === id) render();
+}
+function userBack() { const b = S.uBack; S.uid = null; if (b === 'people') { S.tool = 'people'; render(); } else { S.tool = null; render(); } }
+const KIND_TAB = { question: 'q', thread: 'forum', listing: 'swap', mystery: 'detect' };
+const KIND_NAME = { question: 'Fråga', thread: 'Forumtråd', listing: 'Byt & ge bort', mystery: 'Detektivfall' };
+function openUserPost(id, kind, cat) { S.tool = null; S.tab = 'comm'; S.ctab = KIND_TAB[kind] || 'q'; S.forum = kind === 'thread' ? cat : null; S.post = id; S.newL = false; S.newCase = false; render(); loadFeed(); $('#main').scrollTop = 0; }
+function userV() {
+  const c = S.ucard, back = 'userBack()';
+  if (!c) return `${topbar('Profil', back)}<p class="mut" style="margin:16px 18px">Hämtar profilen…</p>`;
+  if (c.err || c.missing) return `${topbar('Profil', back)}<p class="mut" style="margin:16px 18px">${c.err === 'USERS_NOT_READY' ? 'Profiler är inte påslagna i databasen än (steg 022).' : 'Profilen hittades inte.'}</p>`;
+  const f = (S.follows || []).includes(c.id), posts = S.uposts || [];
+  return `${topbar(c.display_name, back)}
+  <div class="uhero">${avBig(c.display_name, 'bigav')}<div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? '📍 ' + esc(c.city) : 'Ingen ort angiven'}</span>
+    <button class="btn sm ${f ? 'line' : ''}" style="margin-top:10px;align-self:flex-start" onclick="toggleFollow('${esc(c.id)}')">${f ? 'Följer ✓' : '+ Följ'}</button></div></div>
+  <div class="ustats"><div><b>${c.plants || 0}</b><span>växter</span></div><div><b>${c.posts || 0}</b><span>inlägg</span></div><div><b>${c.followers || 0}</b><span>följare</span></div><div><b>${c.following || 0}</b><span>följer</span></div></div>
+  ${(c.interests || []).length ? `<div class="sec"><h2>Intressen</h2></div><div class="pad"><div class="chips2">${c.interests.map(i => `<span class="tag lime">${esc(i)}</span>`).join('')}</div></div>` : ''}
+  <div class="sec"><h2>Växter</h2></div>
+  <div class="pad">${c.plant_list && c.plant_list.length ? `<div class="uplants">${c.plant_list.slice(0, 30).map(pl => { const db = pl.plant_id ? S.plants.find(x => x.id === pl.plant_id) : S.plants.find(x => x.swedish_name === pl.name);
+      return `<button class="upl" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${pl.photo ? `<div class="ph has-img"><img src="${esc(pl.photo)}" alt="" loading="lazy"></div>` : db ? plantPh(db) : ph('', 'Krukväxt', pl.name)}<span>${esc(pl.name || 'Växt')}</span></button>`; }).join('')}</div>`
+    : `<p class="mut" style="margin:0;font-size:14px">${esc(c.display_name)} visar inte sin samling.</p>`}</div>
+  <div class="sec"><h2>Inlägg</h2></div>
+  <div class="pad">${S.uposts == null ? '<p class="mut">Hämtar…</p>' : posts.length ? `<div class="norm">${posts.map(p => `<button class="nrow" onclick="openUserPost(${p.id},'${p.kind || 'question'}','${esc(p.category || '')}')"><span class="grow"><small class="mut">${KIND_NAME[p.kind || 'question']} · ${ago(p.created_at)}</small>${esc((p.title || p.body || '').slice(0, 90))}</span>${ic(I.back, 'var(--mut)', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button>`).join('')}</div>` : `<p class="mut" style="margin:0;font-size:14px">Inga inlägg än.</p>`}</div>
+  <div style="height:24px"></div>`;
 }
 // ===== Anpassa startskärmen =====
 const HB = [
@@ -2708,7 +2810,8 @@ function meV() {
   ${proCard()}
   ${installCard()}
   ${settingsRow()}
-  <div class="pad" style="padding-top:12px"><button class="setrow" onclick="go('home');openHomeCfg()"><span class="tic">${ic(PEN, 'currentColor', 20)}</span><span class="grow"><b>Anpassa startskärmen</b><span>Välj vad som visas och i vilken ordning</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
+  <div class="pad" style="padding-top:12px"><button class="setrow" onclick="openPeople()"><span class="tic">👥</span><span class="grow"><b>Hitta användare</b><span>Sök på namn eller ort och följ andra växtvänner</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
+  <div class="pad" style="padding-top:10px"><button class="setrow" onclick="go('home');openHomeCfg()"><span class="tic">${ic(PEN, 'currentColor', 20)}</span><span class="grow"><b>Anpassa startskärmen</b><span>Välj vad som visas och i vilken ordning</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="pad" style="padding-top:10px"><button class="setrow" onclick="openHouse()"><span class="tic">${ic(DOORI, 'currentColor', 20)}</span><span class="grow"><b>Mitt hem</b><span>${(S.home || []).length ? S.home.length + (S.home.length === 1 ? ' rum' : ' rum') + ', väderstreck och var växterna står' : 'Lägg in rum och väderstreck'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="pad" style="padding-top:10px"><button class="setrow" onclick="openSmart()"><span class="tic">${ic(HOMEI, 'currentColor', 20)}</span><span class="grow"><b>Smarta hemmet</b><span>Sensorer, växtlampa, bevattning och luftfukt</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="stats"><div class="stat"><b>${S.mine.length}</b><span class="mut">växter i samlingen</span></div><div class="stat"><b>${posts === null ? '–' : posts}</b><span class="mut">frågor i communityn</span></div></div>
@@ -2920,9 +3023,10 @@ function sendReport(form) {
   if (S.rep.kind === 'photo') return sendPhotoReport(r);
   commRun(() => api.report(S.rep.kind, S.rep.id, r), 'Tack! Rapporten är skickad.');
 }
-function whoP(o, sub, pill) { return who(o.author, sub, pill, o.author_pro); }
-function who(name, sub, pill, pro) {
-  return `<div class="who"><div class="av" style="background:hsl(${hueOf(name)} 40% 38%)">${esc((name || '?')[0])}</div><div><b>${esc(name)}</b>${pro ? proBadge() : ''}<br><span class="mut">${esc(sub)}</span></div>${pill || ''}</div>`;
+function whoP(o, sub, pill) { return who(o.author, sub, pill, o.author_pro, o.user_id); }
+function who(name, sub, pill, pro, uid) {
+  const link = uid && uid !== myId() && !String(uid).startsWith('seed') ? ` role="button" tabindex="0" class="whol" onclick="event.stopPropagation();openUser('${esc(uid)}')" onkeydown="if(event.key==='Enter')openUser('${esc(uid)}')" aria-label="Visa ${esc(name)}s profil"` : '';
+  return `<div class="who"><span${link || ' class="whol0"'}><div class="av" style="background:hsl(${hueOf(name)} 40% 38%)">${esc((name || '?')[0])}</div><div><b>${esc(name)}</b>${pro ? proBadge() : ''}<br><span class="mut">${esc(sub)}</span></div></span>${pill || ''}</div>`;
 }
 function likeBtn(p) {
   const on = !!(S.user && p.likers.includes(S.user.id));
@@ -2933,7 +3037,8 @@ function delBtn(key, fn, id) {
   return `<button class="x ${sure ? 'sure' : ''}" onclick="${fn}(${id})">${sure ? 'Bekräfta' : 'Ta bort'}</button>`;
 }
 function segBar() {
-  return `<div class="seg2" role="tablist">${[['detect', 'Detektiver'], ['q', 'Frågor'], ['forum', 'Forum'], ['swap', 'Byt']].map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>`;
+  return `<div class="seg2" role="tablist">${[['detect', 'Detektiver'], ['q', 'Frågor'], ['forum', 'Forum'], ['swap', 'Byt']].map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>
+  <div class="pad" style="padding-top:10px"><button class="peopleb" onclick="openPeople()"><span>👥</span><span class="grow">Hitta andra användare</span>${ic(I.search, 'currentColor', 18)}</button></div>`;
 }
 function listState(list, emptyText) {
   if (S.feedErr) return `<div class="empty"><p>${esc(S.feedErr)}</p><button class="btn sm" onclick="loadFeed()">Försök igen</button></div>`;
@@ -3385,7 +3490,7 @@ function docV() {
 }
 function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { stopLight(); S.tool = null; render(); }
-function toolV() { return S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'smart' ? smartV() : lightV(); }
+function toolV() { return S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'smart' ? smartV() : lightV(); }
 
 // --- Säsongstips ---
 // Varje tips: [typ, rubrik, text, månader i zon 1–2, zon 3–5, zon 6–8]. En lista gäller alla zoner.
@@ -3766,7 +3871,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.35';
+const APP_VERSION = '1.36';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
@@ -3841,7 +3946,7 @@ function settingsV() {
       <label class="fl" for="scity">Ort (valfritt)</label><input id="scity" maxlength="60" placeholder="t.ex. Uppsala" value="${esc(P.city || '')}">
       <label class="fl">Mina intressen</label><div class="chips2">${CATS.map(c => `<button class="${P.interests.includes(c) ? 'on' : ''}" aria-pressed="${P.interests.includes(c)}" onclick="toggleInterest('${c}',this)">${c}</button>`).join('')}</div>
       <p class="mut" style="margin:8px 0 0;font-size:13px">Intressena styr vad appen visar först.</p>
-      <label class="sharerow"><input type="checkbox" ${P.share_photos !== false ? 'checked' : ''} onchange="toggleShare(this.checked)"><span><b style="display:block">Visa mina växtfoton för andra</b><span class="mut" style="font-size:13px">Dina foton syns under "Andras bilder" på växtens sida, med ditt namn.</span></span></label>
+      <label class="sharerow"><input type="checkbox" ${P.share_photos !== false ? 'checked' : ''} onchange="toggleShare(this.checked)"><span><b style="display:block">Visa mina växter och foton för andra</b><span class="mut" style="font-size:13px">Dina foton syns under "Andras bilder" på växtens sida, med ditt namn.</span></span></label>
       <div style="margin-top:14px"><button class="btn sm" onclick="saveProfile()">Spara profil</button></div></div>`;
   const account = S.user && !DEMO ? `<div class="sec"><h2>Konto</h2></div><div class="pad"><div class="setcard">
       ${S.user.email ? `<label class="fl">E-post</label><p style="margin:0 0 4px">${esc(S.user.email)}</p>` : ''}
