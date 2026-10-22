@@ -777,6 +777,20 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 .h3bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px 12px 16px;font-size:13px}
 .h3empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:22px 20px}
 .h3empty b{font-size:17px}.h3empty>span:not(:first-child){font-size:13.5px;color:var(--mut);max-width:290px}.h3empty .btn{margin-top:6px}
+
+/* Kompakt redigering av Mitt hem */
+.hseg{margin:0 18px 8px !important;padding:4px !important}
+.hseg button{padding:7px 0 !important;font-size:13.5px !important}
+.ptools{gap:4px !important;padding:0 12px 6px !important}
+.ptools .pt{padding:6px 1px 5px;gap:3px;border-radius:16px}
+.ptools .pti{width:30px;height:30px;border-radius:11px}
+.ptools .pti svg{width:18px;height:18px}
+.ptools .ptl{font-size:10.5px}
+.pbar{display:flex;align-items:flex-start;gap:8px;margin:0 18px 8px}
+.pbar .phint{flex:1;margin:0;height:auto;max-height:36px;font-size:12.5px;line-height:1.4;-webkit-line-clamp:2}
+.savep{flex:none;border:0;font:inherit;font-size:12.5px;font-weight:800;border-radius:999px;padding:7px 12px;cursor:pointer;background:var(--soft);color:var(--pri2)}
+.savep.dirty{background:var(--acc);color:#fff;box-shadow:0 4px 12px rgba(194,100,63,.35)}
+.savep:disabled{opacity:.7}
 /* Mitt hem */
 .rooms{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 18px 0}
 .roomc{all:unset;box-sizing:border-box;cursor:pointer;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:3px;min-height:150px}
@@ -1894,7 +1908,7 @@ async function saveHomeNow(auto) {
   catch (e) { S.hSaveErr = 1; toast(e.message === 'HOME_NOT_READY' ? 'Mitt hem är inte påslaget i databasen än (steg 019).' : 'Kunde inte spara. ' + errMsg(e)); }
   S.hSaving = false; updSaveBar();
 }
-function saveBarInner() { return S.hSaving ? '<span class="sbst">Sparar…</span><button class="btn sm" disabled>Sparar…</button>' : S.hDirty ? `<span class="sbst warn">${S.hSaveErr ? 'Kunde inte spara' : 'Osparade ändringar'}</span><button class="btn sm" onclick="saveHomeNow()">💾 Spara</button>` : `<span class="sbst ok">✓ Allt är sparat${S.hSavedAt ? ' ' + new Date(S.hSavedAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }) : ''}</span><button class="btn sm line" onclick="saveHomeNow()">Spara</button>`; }
+function saveBarInner() { return S.hSaving ? '<button class="savep" disabled>Sparar…</button>' : S.hDirty ? `<button class="savep dirty" onclick="saveHomeNow()" title="${S.hSaveErr ? 'Kunde inte spara, försök igen' : 'Du har osparade ändringar'}">💾 Spara</button>` : `<button class="savep ok" onclick="saveHomeNow()" title="Allt är sparat">✓ Sparat</button>`; }
 function updSaveBar() { const b = $('#savebar'); if (b) b.innerHTML = saveBarInner(); }
 window.addEventListener('pagehide', () => { if (S.hDirty) saveHomeNow(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && S.hDirty) saveHomeNow(true); });
@@ -1974,6 +1988,14 @@ function planInner() {
   out += '</g>';
   return out;
 }
+function fitPlanBox() {
+  const box = $('#planbox') || $('#box3d:not(.home3d)'); if (!box) return;
+  const nav = $('nav'), main = $('#main'), bottom = nav && nav.getBoundingClientRect().top > 0 ? nav.getBoundingClientRect().top : main.getBoundingClientRect().bottom;
+  const h = Math.round(bottom - box.getBoundingClientRect().top - 10); const nh = Math.max(280, h) + 'px';
+  if (box.style.height !== nh) { box.style.height = nh; if (box.id === 'planbox') PL().fit = PL().fit || !PL().fitted; }
+  PL().fitted = true;
+}
+window.addEventListener('resize', () => { if ($('#planbox') || $('#box3d')) { fitPlanBox(); if ($('#plan')) renderPlan(); if ($('#box3d')) mount3d(); } });
 function planHint() {
   const P = PL();
   if (P.mode === 'room') return P.roomDraw ? 'Dra med fingret där det nya rummet ska vara. Ett tryck ger ett rum på 3 × 3 m.' : P.sel && P.sel.k === 'room' ? 'Dra rummet för att flytta det. Dra i den orange pricken för att ändra storlek.' : 'Tryck på ett rum för att välja det. Tryck på + Nytt rum för att rita ett nytt.';
@@ -1991,8 +2013,7 @@ function planV() {
   const P = PL(), m = P.mode, unplaced = (S.home || []).filter(r => !r.rect);
   const tool = (k, n, icon, act, on) => `<button class="pt pt-${k} ${on ? 'on' : ''}" aria-pressed="${!!on}" onclick="${act}"><span class="pti"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${icon}</svg></span><span class="ptl">${n}</span></button>`;
   return `<div class="ptools">${tool('move', 'Flytta', PTI.move, "planMode('move')", m === 'move')}${tool('room', 'Rum', PTI.room, "planMode('room')", m === 'room')}${tool('win', 'Väggar', PTI.win, "planMode('win')", m === 'win')}${tool('ute', 'Ute', PTI.ute, "planMode('ute')", m === 'ute')}${tool('plant', 'Växt', PTI.plant, "planPick('plant')", m === 'place' && P.pick && P.pick.k === 'plant')}${tool('furn', 'Möbler', PTI.furn, "planPick('furn')", m === 'place' && P.pick && P.pick.k === 'furn')}${tool('dev', 'Smart', PTI.dev, "planPick('dev')", m === 'place' && P.pick && P.pick.k === 'dev')}</div>
-  <p class="phint" id="phint">${planHint()}${m === 'ute' && (P.upoly || []).length >= 3 ? ` <button class="link3" onclick="finishPoly()">Klar med ytan</button>` : m !== 'move' ? ` <button class="link3" onclick="planMode('move')">${m === 'win' || m === 'ute' || m === 'room' ? 'Klar' : 'Avbryt'}</button>` : ''}</p>
-  <div class="savebar" id="savebar">${saveBarInner()}</div>
+  <div class="pbar"><p class="phint" id="phint">${planHint()}${m === 'ute' && (P.upoly || []).length >= 3 ? ` <button class="link3" onclick="finishPoly()">Klar med ytan</button>` : m !== 'move' ? ` <button class="link3" onclick="planMode('move')">${m === 'win' || m === 'ute' || m === 'room' ? 'Klar' : 'Avbryt'}</button>` : ''}</p><span id="savebar">${saveBarInner()}</span></div>
   <div class="planbox" id="planbox">${m === 'room' ? `<button class="newroomb ${P.roomDraw ? 'on' : ''}" onclick="PL().roomDraw=!PL().roomDraw;PL().sel=null;PL().msg=null;render()">${P.roomDraw ? 'Avbryt nytt rum' : '+ Nytt rum'}</button>` : ''}${m === 'ute' ? `<div class="wkind">${UK.map(([k, n, ty, e]) => `<button class="${(P.ukind || 'lot') === k ? 'on ute' : ''}" onclick="uteKind('${k}')"><span style="font-size:15px">${e}</span>${n}</button>`).join('')}</div>` : ''}${m === 'win' ? `<div class="wkind">${WK.map(([k, n]) => `<button class="${(P.wkind || 'win') === k ? 'on' : ''}" onclick="PL().wkind='${k}';PL().msg=null;render()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${WKI[k]}</svg>${n}</button>`).join('')}</div>` : ''}${(S.undo || []).length ? `<button class="pundo" onclick="undoPlan()" aria-label="Ångra"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Ångra</button>` : ''}<svg id="plan" width="100%" height="100%" onpointerdown="planDown(event)" onpointermove="planMove(event)" onpointerup="planUp(event)" onpointercancel="planUp(event)" onwheel="planWheel(event)">${planInner()}</svg>
     <button class="pmapb ${m === 'map' ? 'on' : ''}" onclick="planMode(PL().mode === 'map' ? 'move' : 'map')" aria-label="Karta i bakgrunden"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6.5v13.5L9 17.5l6 2.5 6-2.5V4l-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg></button>${m === 'map' ? mapPanelV() : ''}${mapOn() && m !== 'map' ? `<span class="mattr">${TILES[S.hplan.map.layer || 'sat'][2]}</span>` : ''}
     <button class="pnorth" onclick="rotNorth()" aria-label="Vrid norrpilen" title="Vrid norrpilen så den pekar mot norr"><span style="transform:rotate(${northDeg() + viewRot()}deg)">${compassSvg([], 40)}</span></button>
@@ -2642,6 +2663,7 @@ function render() {
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); }
   const lv = $('#lv'); if (lv && lightStream) { lv.srcObject = lightStream; lv.hidden = false; lv.play().catch(() => {}); }
   loadPhotos();
+  fitPlanBox();
   if ($('#plan') && PL().fit) renderPlan();
   if ($('#box3d')) mount3d();
   trackView();
@@ -4080,7 +4102,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.41';
+const APP_VERSION = '1.42';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
