@@ -746,6 +746,12 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 .sw span::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}
 .sw input:checked+span{background:var(--pri2)}.sw input:checked+span::after{transform:translateX(20px)}
 .sw input:focus-visible+span{outline:2px solid var(--pri);outline-offset:2px}
+
+#box3d{touch-action:none}
+#box3d .l3{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;margin:0;color:var(--mut);font-weight:700}
+.v3btns{position:absolute;left:10px;right:10px;bottom:10px;display:flex;gap:6px;justify-content:center;z-index:2}
+.v3btns button{border:0;background:var(--surf);color:var(--ink);font:inherit;font-size:13px;font-weight:800;border-radius:999px;padding:9px 13px;box-shadow:0 6px 16px rgba(70,52,28,.14);cursor:pointer}
+.v3btns button.on{background:var(--pri);color:var(--onpri)}
 /* Mitt hem */
 .rooms{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 18px 0}
 .roomc{all:unset;box-sizing:border-box;cursor:pointer;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:3px;min-height:150px}
@@ -1507,8 +1513,9 @@ function houseV() {
   if (S.room) { const r = rooms.find(x => x.id === S.room); if (r) return roomV(r); if (S.homeLoaded) S.room = null; else return `${topbar('Mitt hem', 'closeTool()')}<p class="mut" style="margin:0 18px">Hämtar dina rum…</p>`; }
   const noRoom = S.mine.filter(m => !roomOf(m));
   const hv = S.hview || 'plan';
-  const seg = `<div class="seg2 hseg"><button class="${hv === 'plan' ? 'on' : ''}" onclick="S.hview='plan';render()">Ritning</button><button class="${hv === 'list' ? 'on' : ''}" onclick="S.hview='list';render()">Rum</button></div>`;
+  const seg = `<div class="seg2 hseg">${[['plan', 'Ritning'], ['3d', '3D'], ['list', 'Rum']].map(([k, n]) => `<button class="${hv === k ? 'on' : ''}" onclick="S.hview='${k}';render()">${n}</button>`).join('')}</div>`;
   if (hv === 'plan') return `${topbar('Mitt hem', 'closeTool()')}${seg}${planV()}`;
+  if (hv === '3d') return `${topbar('Mitt hem', 'closeTool()')}${seg}${view3dV()}`;
   return `${topbar('Mitt hem', 'closeTool()')}${seg}
   <p class="mut" style="margin:0 18px 4px">Lägg in dina rum och åt vilket väderstreck fönstren vetter. Då vet Roothood hur mycket ljus varje växt får och tipsar om bättre platser.</p>
   ${S.homeErr === 'HOME_NOT_READY' ? '<div class="instc" style="margin:12px 18px 0"><div><b>Mitt hem är inte påslaget i databasen än</b><span>Kör SQL-koden för steg 019 i Supabase.</span></div></div>' : ''}
@@ -1599,6 +1606,111 @@ async function delRoom() {
   } catch (e) { toast(errMsg(e)); }
 }
 
+
+// ===== Mitt hem i 3D (three.js laddas först när man öppnar vyn) =====
+let T3 = null;
+const FH = { sofa: 0.8, chair2: 0.9, bed2: 0.5, bed1: 0.5, table: 0.45, dtable: 0.75, chair: 0.9, desk: 0.75, shelf: 1.9, pshelf: 1.5, dresser: 0.9, ward: 2.1, tv: 0.5, counter: 0.9, stove: 0.9, fridge: 1.8, bath: 0.6, shower: 2.0, wc: 0.8, sink: 0.85, rug: 0.02, round: 0.75, ghouse: 2.3, rbed: 0.4, shed: 2.2, compost: 0.9 };
+const FC = { sofa: '#8FA9B8', chair2: '#8FA9B8', bed2: '#E6DED2', bed1: '#E6DED2', table: '#B98E62', dtable: '#B98E62', chair: '#A47B52', desk: '#C9A57D', shelf: '#C9A57D', pshelf: '#A47B52', dresser: '#D9C3A5', ward: '#E8E2D8', tv: '#4A4A4A', counter: '#EDEBE6', stove: '#3D3D3D', fridge: '#F2F2F0', bath: '#FAFAFA', shower: '#CFE6F2', wc: '#FAFAFA', sink: '#FAFAFA', rug: '#B6A3CF', round: '#B98E62', ghouse: '#DDEFE8', rbed: '#8A6440', shed: '#B5523B', compost: '#6B4A2A' };
+const AREA3 = { lot: '#A9C98C', lawn: '#7FB35B', bed: '#8A5A34', veg: '#6B4A2A', path: '#BDB6A8', patio: '#B98E62', pond: '#5CA6D6' };
+function view3dV() {
+  const has = planRooms().length || planAreas().length;
+  return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}
+    ${has ? `<div class="v3btns"><button onclick="cam3('top')">Uppifrån</button><button onclick="cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button></div>` : ''}</div>
+  <p class="mut" style="margin:10px 18px 24px;font-size:13px">Dra med ett finger för att snurra. Nyp med två fingrar för att zooma, och dra med två fingrar för att flytta. Solen lyser från söder enligt norrpilen i ritningen.</p>`;
+}
+async function mount3d() {
+  const box = $('#box3d'); if (!box || !(planRooms().length || planAreas().length)) return;
+  if (!T3) {
+    if (S.t3load) return; S.t3load = true;
+    try { const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js'); T3 = { THREE, st: { az: 0.75, el: 0.85, dist: 0, tx: 0, tz: 0 }, ptr: new Map() }; }
+    catch (e) { S.t3load = false; const l = $('#box3d .l3'); if (l) l.textContent = '3D kunde inte laddas. Kontrollera internet och försök igen.'; return; }
+    const THREE = T3.THREE, r = T3.renderer = new THREE.WebGLRenderer({ antialias: true });
+    r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+    T3.scene = new THREE.Scene(); T3.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 2000);
+    const c = r.domElement; c.style.touchAction = 'none'; c.style.display = 'block';
+    c.addEventListener('pointerdown', e => { c.setPointerCapture(e.pointerId); T3.ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); T3.g = null; });
+    c.addEventListener('pointermove', e => { const P = T3.ptr; if (!P.has(e.pointerId)) return; const o = P.get(e.pointerId), st = T3.st;
+      if (P.size === 1) { st.az -= (e.clientX - o.x) * 0.008; st.el = Math.max(0.12, Math.min(1.52, st.el + (e.clientY - o.y) * 0.006)); }
+      P.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (P.size === 2) { const [a, b] = [...P.values()], d = Math.hypot(a.x - b.x, a.y - b.y), m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        if (T3.g) { st.dist = Math.max(2, Math.min(400, st.dist * T3.g.d / d)); const k = st.dist / 600, dx = (m.x - T3.g.m.x) * k, dy = (m.y - T3.g.m.y) * k;
+          st.tx -= dx * Math.cos(st.az) + dy * Math.sin(st.az); st.tz -= -dx * Math.sin(st.az) + dy * Math.cos(st.az); }
+        T3.g = { d, m }; }
+      T3.dirty = true; });
+    const up = e => { T3.ptr.delete(e.pointerId); T3.g = null; }; c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+    c.addEventListener('wheel', e => { e.preventDefault(); T3.st.dist = Math.max(2, Math.min(400, T3.st.dist * (e.deltaY > 0 ? 1.1 : 0.9))); T3.dirty = true; }, { passive: false });
+    build3d(true); T3.justBuilt = true;
+  }
+  const l = box.querySelector('.l3'); if (l) l.remove();
+  if (T3.renderer.domElement.parentNode !== box) { box.insertBefore(T3.renderer.domElement, box.firstChild); if (!T3.justBuilt) build3d(); }
+  T3.justBuilt = false;
+  const W = box.clientWidth, H = box.clientHeight; T3.renderer.setSize(W, H, false); T3.renderer.domElement.style.width = '100%'; T3.renderer.domElement.style.height = '100%';
+  T3.camera.aspect = W / H; T3.camera.updateProjectionMatrix(); T3.dirty = true;
+  if (!T3.loop) { const tick = () => { if (!document.body.contains(T3.renderer.domElement)) { T3.loop = null; return; } if (T3.dirty) { place3dCam(); T3.renderer.render(T3.scene, T3.camera); T3.dirty = false; } T3.loop = requestAnimationFrame(tick); }; T3.loop = requestAnimationFrame(tick); }
+}
+function place3dCam() { const st = T3.st, c = T3.camera; c.position.set(st.tx + st.dist * Math.cos(st.el) * Math.sin(st.az), st.dist * Math.sin(st.el), st.tz + st.dist * Math.cos(st.el) * Math.cos(st.az)); c.lookAt(st.tx, 0.6, st.tz); }
+function cam3(k) { if (!T3) return; const st = T3.st; if (k === 'top') { st.el = 1.52; st.az = 0; } else { st.el = 0.85; st.az = 0.75; } fit3d(); T3.dirty = true; }
+function fit3d() { const b = T3.bounds; if (!b) return; T3.st.tx = (b[0] + b[2]) / 2; T3.st.tz = (b[1] + b[3]) / 2; T3.st.dist = Math.max(6, Math.hypot(b[2] - b[0], b[3] - b[1]) * 1.15); }
+function build3d(first) {
+  if (!T3) return; const THREE = T3.THREE, sc = T3.scene, dark = document.documentElement.getAttribute('data-theme') === 'dark' || (document.documentElement.getAttribute('data-theme') !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+  sc.children.slice().forEach(o => o.traverse(x => { if (x.geometry) x.geometry.dispose(); if (x.material) { (Array.isArray(x.material) ? x.material : [x.material]).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); }); } })); sc.clear();
+  sc.background = new THREE.Color(dark ? '#13241B' : '#E8F0F2');
+  const WH = S.low3d ? 1.0 : 2.5, TH = 0.12, mats = {}, M = (col, o) => mats[col + JSON.stringify(o || {})] || (mats[col + JSON.stringify(o || {})] = new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.85 }, o || {})));
+  const add = (m, cast, recv) => { m.castShadow = cast !== false; m.receiveShadow = recv !== false; sc.add(m); return m; };
+  const box = (x1, z1, x2, z2, y0, h, th, col, o) => { const L = Math.hypot(x2 - x1, z2 - z1); if (L < 0.01 || h <= 0) return; const g = new THREE.BoxGeometry(L + (o && o.noext ? 0 : th), h, th), m = new THREE.Mesh(g, M(col, o && o.mat)); m.position.set((x1 + x2) / 2, y0 + h / 2, (z1 + z2) / 2); m.rotation.y = -Math.atan2(z2 - z1, x2 - x1); return add(m, !(o && o.mat && o.mat.transparent)); };
+  const shape = (pts, y, col, o) => { const sh = new THREE.Shape(pts.map(q => new THREE.Vector2(q[0], -q[1]))), m = new THREE.Mesh(new THREE.ShapeGeometry(sh), M(col, o)); m.rotation.x = -Math.PI / 2; m.position.y = y; return add(m, false, true); };
+  // mark och ljus
+  const all = [].concat(...planRooms().map(roomPoly), ...planAreas().map(a => a.pts)); const xs = all.map(q => q[0]), zs = all.map(q => q[1]);
+  const b = T3.bounds = [Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs)], cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2, span = Math.max(10, b[2] - b[0], b[3] - b[1]);
+  const g = new THREE.Mesh(new THREE.PlaneGeometry(span * 6, span * 6), M(dark ? '#20372A' : '#DCE6D2')); g.rotation.x = -Math.PI / 2; g.position.set(cx, -0.02, cz); add(g, false, true);
+  sc.add(new THREE.HemisphereLight(dark ? '#9fb7c8' : '#ffffff', dark ? '#1b2a20' : '#cbd6c2', dark ? 0.7 : 1.0));
+  const th = northDeg() * Math.PI / 180, sx = -Math.sin(th), sz = Math.cos(th), sun = new THREE.DirectionalLight('#fff4e0', dark ? 1.0 : 1.6);
+  sun.position.set(cx + sx * span, span * 0.9, cz + sz * span); sun.target.position.set(cx, 0, cz); sun.castShadow = true;
+  Object.assign(sun.shadow.camera, { left: -span, right: span, top: span, bottom: -span, near: 0.5, far: span * 4 }); sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sc.add(sun); sc.add(sun.target);
+  // tomt och ytor
+  planAreas().slice().sort((a, c) => (c.t === 'lot') - (a.t === 'lot')).forEach((a, i) => shape(a.pts, a.t === 'lot' ? -0.01 : 0.002 + i * 0.001, AREA3[a.t] || '#7FB35B'));
+  // rum: golv och väggar
+  planRooms().forEach(r => {
+    const v = roomSun(r); shape(roomPoly(r), 0.01, v >= 2.5 ? '#E3C99D' : v >= 1.7 ? '#DCC7A6' : '#CDBCA3');
+    ['t', 'r', 'b', 'l'].forEach(s => {
+      const L = sideLen(r, s), wins = (r.wins || []).filter(w => w.s === s && !w.k).map(w => [w.p, w.p + w.l]), doors = (r.wins || []).filter(w => w.s === s && w.k === 'door').map(w => [w.p, w.p + w.l]);
+      solidPieces(r, s).forEach(([a0, a1]) => {
+        const cuts = wins.filter(w => w[1] > a0 && w[0] < a1).sort((x, y) => x[0] - y[0]); let a = a0;
+        const seg = (p0, p1) => wallSeg(r, { s, p: p0, l: p1 - p0 });
+        cuts.forEach(([w0, w1]) => { w0 = Math.max(w0, a0); w1 = Math.min(w1, a1); if (w0 > a) { const q = seg(a, w0); box(q[0], q[1], q[2], q[3], 0, WH, TH, '#F4EFE6'); }
+          const q = seg(w0, w1); box(q[0], q[1], q[2], q[3], 0, Math.min(0.9, WH), TH, '#F4EFE6', { noext: 1 }); if (WH > 0.9) { box(q[0], q[1], q[2], q[3], 0.9, Math.min(WH, 2.1) - 0.9, 0.03, '#9FD3EF', { noext: 1, mat: { transparent: true, opacity: 0.35, roughness: 0.1 } }); if (WH > 2.1) box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6', { noext: 1 }); } a = w1; });
+        if (a < a1) { const q = seg(a, a1); box(q[0], q[1], q[2], q[3], 0, WH, TH, '#F4EFE6'); }
+      });
+      if (WH > 2.1) doors.forEach(([d0, d1]) => { const q = wallSeg(r, { s, p: d0, l: d1 - d0 }); box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6', { noext: 1 }); });
+    });
+    (r.bays || []).forEach(by => baySegs(r, by).forEach(([q]) => { box(q[0], q[1], q[2], q[3], 0, Math.min(0.9, WH), TH, '#F4EFE6'); if (WH > 0.9) { box(q[0], q[1], q[2], q[3], 0.9, Math.min(WH, 2.1) - 0.9, 0.03, '#9FD3EF', { noext: 1, mat: { transparent: true, opacity: 0.35, roughness: 0.1 } }); if (WH > 2.1) box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6'); } }));
+    const lab = label3d(r.name); if (lab) { const c0 = roomPoly(r).reduce((s2, q) => [s2[0] + q[0], s2[1] + q[1]], [0, 0]).map(v2 => v2 / roomPoly(r).length); lab.position.set(c0[0], WH + 0.6, c0[1]); sc.add(lab); }
+  });
+  planWalls().forEach(wl => wl.h === 'hedge' ? box(wl.x1, wl.y1, wl.x2, wl.y2, 0, 1.2, 0.6, '#4E8B3A') : box(wl.x1, wl.y1, wl.x2, wl.y2, 0, wl.h === 'half' ? Math.min(1.1, WH) : WH, TH, '#F4EFE6'));
+  // möbler
+  planFurn().forEach(f => { const h = FH[f.t] || 0.8, m = new THREE.Mesh(f.t === 'round' ? new THREE.CylinderGeometry(f.w / 2, f.w / 2, h, 28) : new THREE.BoxGeometry(f.w, h, f.h), M(FC[f.t] || '#C9A57D', f.t === 'shower' || f.t === 'ghouse' ? { transparent: true, opacity: 0.55 } : null));
+    m.position.set(f.x, h / 2 + 0.01, f.y); m.rotation.y = -(f.rot || 0) * Math.PI / 180; add(m); });
+  // växter i samlingen
+  S.mine.filter(m => m.details && m.details.pos).forEach(m => { const { x, y } = m.details.pos, ok = plantMarkerOk(m), gr = new THREE.Group();
+    const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.28, 18), M('#C2643F')); pot.position.y = 0.14; pot.castShadow = true; gr.add(pot);
+    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.32, 18, 14), M(ok === false ? '#B9A23F' : '#3E8E52')); leaf.position.y = 0.6; leaf.scale.y = 1.2; leaf.castShadow = true; gr.add(leaf);
+    gr.position.set(x, 0, y); sc.add(gr); });
+  // smarta saker
+  planItems().forEach(it => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), M('#7D6CB3', { emissive: '#3a2f66' })); m.position.set(it.x, 0.95, it.y); add(m); });
+  // träd och buskar
+  planGarden().forEach(t => { const R = t.r || 1.5, gr = new THREE.Group(), trunkH = t.t === 'bush' ? 0 : t.t === 'conifer' ? 0.6 : 1.8;
+    if (trunkH) { const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, trunkH, 10), M('#6B4A2A')); tr.position.y = trunkH / 2; tr.castShadow = true; gr.add(tr); }
+    const crown = t.t === 'conifer' ? new THREE.Mesh(new THREE.ConeGeometry(R, R * 3, 14), M('#2F5E3A')) : new THREE.Mesh(new THREE.SphereGeometry(R, 18, 14), M(t.t === 'bush' ? '#6FA84E' : '#4E8B3A'));
+    crown.position.y = t.t === 'conifer' ? trunkH + R * 1.5 : t.t === 'bush' ? R * 0.8 : trunkH + R * 0.8; crown.castShadow = true; gr.add(crown);
+    if (t.t === 'fruit') [[0.5, 0.3], [-0.4, 0.5], [0.2, -0.6]].forEach(([a, c]) => { const fr = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), M('#D2553F')); fr.position.set(a * R, crown.position.y + 0.1, c * R); gr.add(fr); });
+    gr.position.set(t.x, 0, t.y); sc.add(gr); });
+  if (first || !T3.st.dist) fit3d(); T3.dirty = true;
+}
+function label3d(txt) {
+  if (!T3) return null; const THREE = T3.THREE, c = document.createElement('canvas'), x = c.getContext('2d'); x.font = '700 44px system-ui, sans-serif'; const w = Math.ceil(x.measureText(txt).width) + 40;
+  c.width = w; c.height = 72; x.font = '700 44px system-ui, sans-serif'; x.fillStyle = 'rgba(255,255,255,.85)'; x.beginPath(); x.roundRect ? x.roundRect(0, 0, w, 72, 36) : x.rect(0, 0, w, 72); x.fill(); x.fillStyle = '#1F4D3A'; x.textBaseline = 'middle'; x.fillText(txt, 20, 38);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); sp.scale.set(w / 72 * 0.55, 0.55, 1); sp.renderOrder = 10; return sp;
+}
 // ===== Planlösning: rita rum, fönster, växter och smarta saker =====
 const WKI = {"win": "<rect x=\"5\" y=\"4\" width=\"14\" height=\"16\" rx=\"1.5\"/><path d=\"M12 4v16M5 12h14\"/>", "bay": "<path d=\"M2 17h4l3-6h6l3 6h4\"/>", "door": "<path d=\"M4 20h16\"/><path d=\"M6 20V5h6v15\"/><path d=\"M12 5a9 9 0 0 1 7 9\"/>", "open": "<path d=\"M3 12h5M16 12h5\"/><path d=\"M8 9v6M16 9v6\" opacity=\".5\"/>", "rad": "<rect x=\"3\" y=\"8\" width=\"18\" height=\"10\" rx=\"2\"/><path d=\"M7.5 8v10M12 8v10M16.5 8v10\"/>", "vent": "<rect x=\"5\" y=\"5\" width=\"14\" height=\"14\" rx=\"3\"/><path d=\"M8 9.5h8M8 12h8M8 14.5h8\"/>", "wall": "<path d=\"M4 20L20 4\"/>", "half": "<path d=\"M4 20L20 4\" stroke-dasharray=\"2 3.5\"/>"};
 const DOCI = '<path d="M12 21c-4.5-2.6-8-6.2-8-10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 3.5c0 4.3-3.5 7.9-8 10.5z"/><path d="M12 10.5v5M9.5 13h5"/>';
@@ -2444,6 +2556,7 @@ function render() {
   const lv = $('#lv'); if (lv && lightStream) { lv.srcObject = lightStream; lv.hidden = false; lv.play().catch(() => {}); }
   loadPhotos();
   if ($('#plan') && PL().fit) renderPlan();
+  if ($('#box3d')) mount3d();
   trackView();
 }
 // ===== Kom ihåg var man var (och tillbaka-knappen) =====
@@ -3871,7 +3984,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.36';
+const APP_VERSION = '1.37';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
