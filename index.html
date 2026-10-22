@@ -694,6 +694,24 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 .cbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .peopleb.xb{background:linear-gradient(120deg,var(--surf),#EFE6F7)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .peopleb.xb{background:linear-gradient(120deg,var(--surf),#2C2740)}}
+.tic.inspo{background:#F6E1DA;color:#A9472C}
+.peopleb.ib{background:linear-gradient(120deg,var(--surf),#F8E6DF)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tic.inspo{background:#4A2B22;color:#F2B49E}:root:not([data-theme="light"]) .peopleb.ib{background:linear-gradient(120deg,var(--surf),#3A2621)}}
+:root[data-theme="dark"] .tic.inspo{background:#4A2B22;color:#F2B49E}
+.infl{display:flex;flex-direction:column;gap:10px}
+.icard{background:var(--surf);border-radius:20px;padding:14px;box-shadow:var(--sh);display:flex;gap:12px;align-items:flex-start}
+.icard .av{flex:none}
+.icard .grow{flex:1;min-width:0}
+.icard b{font-size:15.5px}
+.icard p{margin:3px 0 8px;font-size:13.5px;color:var(--mut);line-height:1.4}
+.itag{font-size:12px;color:var(--mut);font-weight:600}
+.ilinks{display:flex;gap:6px;flex-wrap:wrap}
+.ilinks a{display:inline-flex;align-items:center;gap:5px;text-decoration:none;font-size:13px;font-weight:700;border-radius:999px;padding:6px 11px;background:var(--bg);color:var(--ink)}
+.ilinks a.yt{background:#FBE3E1;color:#B3261E}
+.ilinks a.ig{background:#F7E1EE;color:#9C2B6A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ilinks a.yt{background:#4A2220;color:#F4B4AE}:root:not([data-theme="light"]) .ilinks a.ig{background:#45213A;color:#F0B2D6}}
+:root[data-theme="dark"] .ilinks a.yt{background:#4A2220;color:#F4B4AE}
+:root[data-theme="dark"] .ilinks a.ig{background:#45213A;color:#F0B2D6}
 .tic.xp{background:#E7E1F2;color:#4F4377}
 .xcard{background:var(--surf);border-radius:20px;box-shadow:var(--sh);padding:14px}
 .xtop{display:flex;gap:12px;align-items:center}.xtop .av{width:46px;height:46px;font-size:19px;flex:none}
@@ -1799,6 +1817,7 @@ function label3d(txt) {
 }
 // ===== Planlösning: rita rum, fönster, växter och smarta saker =====
 const WKI = {"win": "<rect x=\"5\" y=\"4\" width=\"14\" height=\"16\" rx=\"1.5\"/><path d=\"M12 4v16M5 12h14\"/>", "bay": "<path d=\"M2 17h4l3-6h6l3 6h4\"/>", "door": "<path d=\"M4 20h16\"/><path d=\"M6 20V5h6v15\"/><path d=\"M12 5a9 9 0 0 1 7 9\"/>", "open": "<path d=\"M3 12h5M16 12h5\"/><path d=\"M8 9v6M16 9v6\" opacity=\".5\"/>", "rad": "<rect x=\"3\" y=\"8\" width=\"18\" height=\"10\" rx=\"2\"/><path d=\"M7.5 8v10M12 8v10M16.5 8v10\"/>", "vent": "<rect x=\"5\" y=\"5\" width=\"14\" height=\"14\" rx=\"3\"/><path d=\"M8 9.5h8M8 12h8M8 14.5h8\"/>", "wall": "<path d=\"M4 20L20 4\"/>", "half": "<path d=\"M4 20L20 4\" stroke-dasharray=\"2 3.5\"/>"};
+const INSPI = '<rect x="3" y="5" width="18" height="14" rx="4"/><path d="M10 9.5l5 2.5-5 2.5z"/>';
 const XPI = '<path d="M3 9l9-5 9 5-9 5z"/><path d="M7 11v4c0 1.5 2.2 3 5 3s5-1.5 5-3v-4"/><path d="M21 9v5"/>';
 const DOCI = '<path d="M12 21c-4.5-2.6-8-6.2-8-10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 3.5c0 4.3-3.5 7.9-8 10.5z"/><path d="M12 10.5v5M9.5 13h5"/>';
 const PTI = {
@@ -2917,6 +2936,70 @@ function expertsV() {
   <div style="height:24px"></div>`;
 }
 function keepMain() { const y = $('#main').scrollTop; render(); $('#main').scrollTop = y; }
+
+// ===== Odlare att följa (influencers) =====
+// yt: YouTube-sökning på kanalnamnet; ig: Instagram-konto; web: hemsida; pod: poddnamn
+const INFL = [
+  ['Sara Bäckmo', 'se', 'Köksträdgård', 'Odlar mycket grönsaker på liten yta och förklarar allt pedagogiskt. Har också podden Skillnadens.', { ig: 'skillnadens', web: 'https://www.sarabackmo.se', yt: 'Sara Bäckmo odling' }],
+  ['Hanna Wendelbo', 'se', 'Trädgård', 'Odlar massor i en vanlig villaträdgård och delar praktiska tips.', { ig: 'hannawendelbo' }],
+  ['Fialottas paradis', 'se', 'Köksträdgård', 'Ann Sofie Nordin visar odling från frö till skörd, steg för steg.', { ig: 'fialottasparadis' }],
+  ['Lotta Lundgren', 'se', 'Köksträdgård', 'Roliga och praktiska tips om att planera grönsaksodlingen. Podden Jordkommissionen.', { ig: 'hejlottalundgren' }],
+  ['Glädjens odling', 'se', 'Köksträdgård', 'Lovisa Leijon testar nya idéer och visar även det som misslyckas.', { ig: 'gladjens_odling', web: 'https://gladjensodling.se' }],
+  ['Grönsaksfrisören', 'se', 'Köksträdgård', 'Elina Linderberth odlar fritt, återbrukar och kräver ingen perfektion.', { ig: 'gronsaksfrisoren' }],
+  ['Hållbart villaliv', 'se', 'Köksträdgård', 'Hanna Le Thi visar hur man odlar mat i villaträdgården.', { yt: 'Hållbart villaliv' }],
+  ['Leva hållbart', 'se', 'Köksträdgård', 'Maria Mehlin är expert på kallsådd, alltså att så ute på vintern.', { ig: 'levahallbart' }],
+  ['Trädgårdstrollet', 'se', 'Trädgård', 'Jasmine Waara nördar loss om sorter, från dahlior till tomater.', { ig: 'tradgardstrollet_' }],
+  ['Linnea Dickson', 'se', 'Trädgård', 'Pedagogisk och energisk. Podden Trädgård trädgård trädgård.', { ig: 'neadickson' }],
+  ['Eva Robilde', 'se', 'Trädgård', 'Lär ut beskärning och trädgårdsskötsel på ett lätt sätt.', { ig: 'robilde' }],
+  ['Växtlunda', 'se', 'Trädgård', 'Ylva Rudling odlar med humor och miljötänk.', { ig: 'vaxtlunda' }],
+  ['Camillas trädgård', 'se', 'Trädgård', 'Inspiration och bilder från en svensk trädgård.', { ig: 'camillastradgard.se' }],
+  ['Länsmansgården', 'se', 'Trädgård', 'Karolina i Dalby delar kunskap och inspiration.', { ig: 'karolinalansmansgarden' }],
+  ['Victoria Skoglund', 'se', 'Trädgård', 'Trädgårdsdesigner med stor följarskara.', { ig: 'victoriaskoglund' }],
+  ['Gustav Mandelmann', 'se', 'Trädgård', 'Livet på Mandelmanns trädgårdar i Skåne.', { ig: 'gustavmandelmann' }],
+  ['Marie Mandelmann', 'se', 'Köksträdgård', 'Jordnära odling som inspirerar alla åldrar.', { ig: 'mariemandelmann' }],
+  ['En annan slags trädgård', 'se', 'Snittblommor', 'Emily Bratt om slow flowers, vilda växter och färg.', { ig: 'enannanslagstradgard' }],
+  ['Blomma i tid', 'se', 'Snittblommor', 'Anna och Charlotta odlar snittblommor och testar nya metoder.', { ig: 'blommaitid' }],
+  ['Little and lush', 'se', 'Krukväxter', 'Anna visar en lägenhet full av gröna växter.', { ig: 'littleandlush' }],
+  ['Planterina', 'int', 'Krukväxter', 'En av de största krukväxtkanalerna, med skötsel och projekt.', { yt: 'Planterina' }],
+  ['Summer Rayne Oakes', 'int', 'Krukväxter', 'Kanalen Plant One On Me med hemmadjungel och besök i botaniska trädgårdar.', { yt: 'Plant One On Me Summer Rayne Oakes', ig: 'homesteadbrooklyn' }],
+  ['House Plant Journal', 'int', 'Krukväxter', 'Darryl Cheng förklarar ljus och vattning väldigt tydligt.', { yt: 'House Plant Journal Darryl Cheng', ig: 'houseplantjournal' }],
+  ['Crazy Plant Guy', 'int', 'Krukväxter', 'Urban djungel med massor av krukväxter.', { yt: 'Crazy Plant Guy' }],
+  ['Kaylee Ellen', 'int', 'Krukväxter', 'Ovanliga aroider och kalatheor.', { yt: 'Kaylee Ellen plants' }],
+  ['Leafing Around', 'int', 'Krukväxter', 'Filodendron, anthurium och andra aroider från Malaysia.', { yt: 'Leafing Around plants' }],
+  ['Hilton Carter', 'int', 'Krukväxter', 'Känd för sina gröna inredningar och böcker om växter i hemmet.', { ig: 'hiltoncarter' }],
+  ['Epic Gardening', 'int', 'Köksträdgård', 'Kevin Espiritu om pallkragar, kompost och frösådd.', { yt: 'Epic Gardening', ig: 'epicgardening' }],
+  ['Charles Dowding', 'int', 'Köksträdgård', 'Pionjären inom no-dig, odling utan att gräva.', { yt: 'Charles Dowding no dig' }],
+  ['Huw Richards', 'int', 'Köksträdgård', 'Odlar mat i Wales och lär ut grunderna.', { yt: 'Huw Richards' }],
+  ['Self Sufficient Me', 'int', 'Köksträdgård', 'Mark Valencia om självhushåll och grönsaker.', { yt: 'Self Sufficient Me' }],
+  ['Gardenary', 'int', 'Köksträdgård', 'Nicole Burke om odling i pallkragar.', { yt: 'Gardenary Nicole Burke' }],
+  ['Monty Don', 'int', 'Trädgård', 'Brittisk trädgårdsikon och programledare för Gardeners’ World.', { ig: 'themontydon', yt: 'Monty Don' }],
+  ['Garden Answer', 'int', 'Trädgård', 'Laura visar plantering, rabatter och krukarrangemang.', { yt: 'Garden Answer', ig: 'gardenanswer' }],
+  ['Floret Flowers', 'int', 'Snittblommor', 'Erin Benzakein, känd blomsterodlare med fantastiska dahlior.', { ig: 'floretflowers', yt: 'Floret Flowers' }],
+];
+const ICATS = ['Krukväxter', 'Trädgård', 'Köksträdgård', 'Snittblommor'];
+function openInspo() { stopLight(); S.sel = null; S.modal = null; S.tool = 'inspo'; render(); $('#main').scrollTop = 0; }
+function inflCard(x) {
+  const [n, land, cat, d, l] = x;
+  const a = [];
+  if (l.yt) a.push(`<a class="yt" href="https://www.youtube.com/results?search_query=${encodeURIComponent(l.yt)}" target="_blank" rel="noopener">▶ YouTube</a>`);
+  if (l.ig) a.push(`<a class="ig" href="https://www.instagram.com/${encodeURIComponent(l.ig)}/" target="_blank" rel="noopener">◎ @${esc(l.ig)}</a>`);
+  if (l.web) a.push(`<a href="${esc(l.web)}" target="_blank" rel="noopener">🌐 Hemsida</a>`);
+  return `<div class="icard">${avBig(n)}<div class="grow"><b>${esc(n)}</b><div class="itag">${land === 'se' ? '🇸🇪 Svensk' : '🌍 Utländsk'} · ${cat}</div><p>${esc(d)}</p><div class="ilinks">${a.join('')}</div></div></div>`;
+}
+function inspoV() {
+  const land = S.iland || 'all', cat = S.icat || 'Alla';
+  const list = INFL.filter(x => (land === 'all' || x[1] === land) && (cat === 'Alla' || x[2] === cat));
+  const se = list.filter(x => x[1] === 'se'), int = list.filter(x => x[1] === 'int');
+  return `${topbar('Odlare att följa', 'closeTool()')}
+  <p class="mut" style="margin:0 18px">Svenska och utländska odlare på YouTube och Instagram. Tryck på en knapp för att öppna kanalen.</p>
+  <div class="seg2" role="tablist" style="margin-top:12px">${[['all', 'Alla'], ['se', 'Svenska'], ['int', 'Utländska']].map(([k, t]) => `<button class="${land === k ? 'on' : ''}" role="tab" aria-selected="${land === k}" onclick="S.iland='${k}';keepMain()">${t}</button>`).join('')}</div>
+  <div class="tabs" role="tablist">${['Alla'].concat(ICATS).map(c => `<button class="tab ${c === cat ? 'on' : ''}" role="tab" aria-selected="${c === cat}" onclick="S.icat='${c}';keepMain()">${c}</button>`).join('')}</div>
+  ${se.length ? `<div class="sec"><h2>🇸🇪 Svenska (${se.length})</h2></div><div class="pad infl">${se.map(inflCard).join('')}</div>` : ''}
+  ${int.length ? `<div class="sec"><h2>🌍 Utländska (${int.length})</h2></div><div class="pad infl">${int.map(inflCard).join('')}</div>` : ''}
+  ${list.length ? '' : '<p class="mut" style="margin:16px 18px">Inga odlare i den kategorin än.</p>'}
+  <p class="mut" style="font-size:12.5px;margin:16px 18px 0">YouTube-knappen söker fram kanalen. Saknas någon du gillar? Tipsa oss i Frågor.</p>
+  <div style="height:24px"></div>`;
+}
 // ===== Hitta andra användare =====
 let peopleT = null;
 async function loadPeople() {
@@ -2993,6 +3076,7 @@ const HB = [
   ['light', 'Ljusmätare', 'Mät ljuset hemma', 'tool'],
   ['doc', 'Växtdoktorn', 'Skador, sjukdomar och ohyra', 'tool'],
   ['expert', 'Växtexperter', 'Fråga en riktig expert', 'tool'],
+  ['inspo', 'Odlare att följa', 'YouTube och Instagram, svenska och utländska', 'tool'],
   ['house', 'Mitt hem', 'Rum, väderstreck och ritning', 'tool'],
   ['smart', 'Smarta hemmet', 'Sensorer, lampa och bevattning', 'tool'],
   ['season', 'Säsongstips', 'Vad du kan göra just nu'],
@@ -3010,7 +3094,7 @@ const SZN = [['s', 'Liten'], ['m', 'Mellan'], ['l', 'Stor']];
 function sizeOf(x) { return x.sz || (HB_M[x.k] && HB_M[x.k][3] === 'tool' ? (x.w === 'w' ? 'l' : 'm') : 'm'); }
 function toolTile(k, size) {
   const lock = S.pro ? '' : '<span class="protag">PRO</span>';
-  const T = { db: [I.search, 'db', 'openDb()', `<span class="dbcount">${S.plants.length} växter</span>`], id: [CAM, '', "openTool('id')", lock], light: [I.sun, 'sun', "openTool('light')", lock], doc: [DOCI, 'doc', 'openDoc()', ''], house: [DOORI, 'house', 'openHouse()', lock], expert: [XPI, 'xp', 'openExperts()', lock], smart: [HOMEI, 'smart', 'openSmart()', ''] }[k];
+  const T = { db: [I.search, 'db', 'openDb()', `<span class="dbcount">${S.plants.length} växter</span>`], id: [CAM, '', "openTool('id')", lock], light: [I.sun, 'sun', "openTool('light')", lock], doc: [DOCI, 'doc', 'openDoc()', ''], house: [DOORI, 'house', 'openHouse()', lock], expert: [XPI, 'xp', 'openExperts()', lock], inspo: [INSPI, 'inspo', 'openInspo()', ''], smart: [HOMEI, 'smart', 'openSmart()', ''] }[k];
   const b = HB_M[k];
   if (size === 's') return `<button class="tool compact t-${k}" onclick="${T[2]}"><span class="tic ${T[1]}">${ic(T[0], 'currentColor', 20)}</span><b>${b[1]}</b></button>`;
   return size === 'l' ? `<button class="tool wide t-${k}" onclick="${T[2]}"><span class="tic ${T[1]}">${ic(T[0], 'currentColor', 24)}</span><span class="grow"><b>${b[1]}</b><span>${b[2]}</span></span>${T[3]}</button>`
@@ -3371,7 +3455,7 @@ function delBtn(key, fn, id) {
 }
 function segBar() {
   return `<div class="seg2" role="tablist">${[['detect', 'Detektiver'], ['q', 'Frågor'], ['forum', 'Forum'], ['swap', 'Byt']].map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>
-  <div class="pad cbtns" style="padding-top:10px"><button class="peopleb" onclick="openPeople()"><span>👥</span><span class="grow">Hitta användare</span></button><button class="peopleb xb" onclick="openExperts()"><span>🎓</span><span class="grow">Fråga en expert</span>${S.pro ? '' : proBadge()}</button></div>`;
+  <div class="pad cbtns" style="padding-top:10px"><button class="peopleb" onclick="openPeople()"><span>👥</span><span class="grow">Hitta användare</span></button><button class="peopleb xb" onclick="openExperts()"><span>🎓</span><span class="grow">Fråga en expert</span>${S.pro ? '' : proBadge()}</button><button class="peopleb ib" style="grid-column:1/-1" onclick="openInspo()"><span>▶️</span><span class="grow">Odlare att följa på YouTube och Instagram</span></button></div>`;
 }
 function listState(list, emptyText) {
   if (S.feedErr) return `<div class="empty"><p>${esc(S.feedErr)}</p><button class="btn sm" onclick="loadFeed()">Försök igen</button></div>`;
@@ -3825,7 +3909,7 @@ function docV() {
 }
 function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { stopLight(); if (S.tool === 'house' && S.hDirty) saveHomeNow(true); S.tool = null; render(); }
-function toolV() { return S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'smart' ? smartV() : lightV(); }
+function toolV() { return S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'smart' ? smartV() : lightV(); }
 
 // --- Säsongstips ---
 // Varje tips: [typ, rubrik, text, månader i zon 1–2, zon 3–5, zon 6–8]. En lista gäller alla zoner.
@@ -4206,7 +4290,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.46';
+const APP_VERSION = '1.47';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
