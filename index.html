@@ -652,6 +652,29 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 .devgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .devgrid button{border:0;background:var(--surf);box-shadow:var(--sh);border-radius:18px;padding:14px;font:inherit;font-weight:700;color:var(--ink);display:flex;gap:10px;align-items:center;cursor:pointer;text-align:left}
 .devgrid button span{font-size:24px}
+
+/* Växtdoktorn */
+.tool.docb{grid-column:1/-1;flex-direction:row;align-items:center;gap:12px;background:linear-gradient(120deg,var(--surf),#F7E9E2)}
+.tool.docb .grow{display:flex;flex-direction:column;gap:2px}
+.tic.doc{background:#F6DED4;color:#A04A2C}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tool.docb{background:linear-gradient(120deg,var(--surf),#2E2019)}:root:not([data-theme="light"]) .tic.doc{background:#3A241B;color:#EDA88B}}
+:root[data-theme="dark"] .tool.docb{background:linear-gradient(120deg,var(--surf),#2E2019)}:root[data-theme="dark"] .tic.doc{background:#3A241B;color:#EDA88B}
+.docpick{display:flex;align-items:center;gap:10px;margin:12px 18px 0}.docpick label{font-weight:700;font-size:14px}.docpick select{flex:1;width:auto}
+.symgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 18px}
+.sym{border:0;background:var(--surf);color:var(--ink);font:inherit;font-size:13.5px;font-weight:600;line-height:1.3;text-align:left;border-radius:16px;padding:10px 11px;display:flex;gap:8px;align-items:center;box-shadow:0 1px 2px rgba(70,52,28,.05),0 4px 12px rgba(70,52,28,.05);cursor:pointer;transition:background .15s,transform .1s}
+.sym:active{transform:scale(.97)}
+.sym .se{font-size:17px;flex:none;width:22px;text-align:center}
+.sym.on{background:var(--pri);color:var(--onpri)}
+.dcause{background:var(--surf);border-radius:20px;box-shadow:var(--sh);margin-bottom:10px;overflow:hidden}
+.dch{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;width:100%;padding:14px;cursor:pointer}
+.dch .grow{flex:1;display:flex;flex-direction:column;gap:5px}.dch b{font-size:16px}
+.dtags{display:flex;gap:6px;flex-wrap:wrap}.dtag{font-size:11px;font-weight:800;border-radius:999px;padding:3px 8px;background:var(--soft);color:var(--pri)}
+.dtag.t-pest{background:#F6DED4;color:#A04A2C}.dtag.t-fung{background:#E7E1F2;color:#4F4377}.dtag.t-care{background:#DCEBF3;color:#245E7A}.dtag.t-ok{background:var(--soft);color:var(--pri)}.dtag.spread{background:#FBE7C6;color:#7A5300}
+.dpct{flex:none;width:58px;text-align:right;font-weight:800;font-size:15px;color:var(--pri);position:relative;padding-bottom:7px}
+.dpct i{position:absolute;right:0;bottom:0;height:4px;border-radius:4px;background:var(--pri2)}
+.dbody{padding:0 14px 14px;font-size:14.5px;line-height:1.5}.dbody p{margin:0 0 8px}.dbody h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}.dbody ol{margin:0;padding-left:20px}.dbody li{margin-bottom:4px}
+.docgo{position:sticky;bottom:12px;z-index:4;display:block;margin:16px auto 0;border:0;background:var(--pri);color:var(--onpri);font:inherit;font-weight:800;font-size:14.5px;border-radius:999px;padding:12px 20px;box-shadow:0 8px 22px rgba(31,77,58,.35);cursor:pointer}
+.dwhy{font-size:13px;color:var(--pri);font-weight:700}
 /* Mitt hem */
 .rooms{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 18px 0}
 .roomc{all:unset;box-sizing:border-box;cursor:pointer;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:3px;min-height:150px}
@@ -1491,6 +1514,7 @@ async function delRoom() {
 
 // ===== Planlösning: rita rum, fönster, växter och smarta saker =====
 const WKI = {"win": "<rect x=\"5\" y=\"4\" width=\"14\" height=\"16\" rx=\"1.5\"/><path d=\"M12 4v16M5 12h14\"/>", "bay": "<path d=\"M2 17h4l3-6h6l3 6h4\"/>", "door": "<path d=\"M4 20h16\"/><path d=\"M6 20V5h6v15\"/><path d=\"M12 5a9 9 0 0 1 7 9\"/>", "open": "<path d=\"M3 12h5M16 12h5\"/><path d=\"M8 9v6M16 9v6\" opacity=\".5\"/>", "rad": "<rect x=\"3\" y=\"8\" width=\"18\" height=\"10\" rx=\"2\"/><path d=\"M7.5 8v10M12 8v10M16.5 8v10\"/>", "vent": "<rect x=\"5\" y=\"5\" width=\"14\" height=\"14\" rx=\"3\"/><path d=\"M8 9.5h8M8 12h8M8 14.5h8\"/>", "wall": "<path d=\"M4 20L20 4\"/>", "half": "<path d=\"M4 20L20 4\" stroke-dasharray=\"2 3.5\"/>"};
+const DOCI = '<path d="M12 21c-4.5-2.6-8-6.2-8-10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 3.5c0 4.3-3.5 7.9-8 10.5z"/><path d="M12 10.5v5M9.5 13h5"/>';
 const PTI = {
   ute: '<path d="M12 21v-6"/><path d="M12 15c-3.6 0-6-2.3-6-5.3C6 6.5 8.7 3 12 3s6 3.5 6 6.7c0 3-2.4 5.3-6 5.3z"/><path d="M4 21h16"/>',
   furn: '<path d="M5 11V8.5A2.5 2.5 0 0 1 7.5 6h9A2.5 2.5 0 0 1 19 8.5V11"/><path d="M3.5 11.5a1.5 1.5 0 0 1 3 0V13h11v-1.5a1.5 1.5 0 0 1 3 0V17h-17z"/><path d="M5.5 17v2M18.5 17v2"/>',
@@ -2357,7 +2381,7 @@ function applyView(h) {
   stopLight(); S.sel = null; S.tool = null; S.post = null; S.forum = null; S.del = null; S.newL = false; S.newCase = false;
   if (a[0] === 'v' && S.plants.some(p => p.id === +a[1])) S.sel = +a[1];
   else if (a[0] === 't' && a[1] === 'settings') { openSettings(); return true; }
-  else if (a[0] === 't' && (a[1] === 'season' || a[1] === 'smart')) S.tool = a[1];
+  else if (a[0] === 't' && (a[1] === 'season' || a[1] === 'smart' || a[1] === 'doc')) S.tool = a[1];
   else if (a[0] === 't' && a[1] === 'house' && S.user) { S.tool = 'house'; S.room = a[2] || null; }
   else if (a[0] === 't' && ['id', 'light'].includes(a[1]) && S.pro) S.tool = a[1];
   else if (a[0] === 'c') {
@@ -2476,6 +2500,7 @@ function detail() {
   </div>
   ${tips.length ? `<div class="sec"><h2>Skötseltips</h2></div><div class="tips">${tips.map(t => `<div class="tipr"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>${t[0]}</b><span>${esc(t[1])}</span></div></div>`).join('')}</div>` : ''}
   ${similar.length ? `<div class="sec"><h2>Liknande växter</h2></div><div class="similar">${similar.map(s => `<button onclick="openPlant(${s.id})">${plantPh(s)}<span>${esc(s.swedish_name)}</span></button>`).join('')}</div>` : ''}
+  ${my ? `<div class="pad" style="padding-top:14px"><button class="setrow" onclick="openDoc(${my.id})"><span class="tic doc">${ic(DOCI, 'currentColor', 20)}</span><span class="grow"><b>Något som inte ser friskt ut?</b><span>Fråga Växtdoktorn om skador och ohyra</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>` : ''}
   ${othersV(p)}
   ${cta ? `<div class="cta">${cta}</div>` : '<div style="height:16px"></div>'}
   </div>`;
@@ -3021,11 +3046,172 @@ function proBadge() { return '<span class="probadge">PRO</span>'; }
 function toolsRow() {
   const lock = S.pro ? '' : '<span class="protag">PRO</span>';
   return `<div class="tools"><button class="tool" onclick="openTool('id')"><span class="tic">${ic(CAM, 'currentColor', 24)}</span><b>Identifiera växt</b><span>Fota och få svar</span>${lock}</button>
-  <button class="tool" onclick="openTool('light')"><span class="tic sun">${ic(I.sun, 'currentColor', 24)}</span><b>Ljusmätare</b><span>Mät ljuset hemma</span>${lock}</button></div>`;
+  <button class="tool" onclick="openTool('light')"><span class="tic sun">${ic(I.sun, 'currentColor', 24)}</span><b>Ljusmätare</b><span>Mät ljuset hemma</span>${lock}</button>
+  <button class="tool docb" onclick="openDoc()"><span class="tic doc">${ic(DOCI, 'currentColor', 24)}</span><span class="grow"><b>Växtdoktorn</b><span>Skador, sjukdomar och ohyra. Välj vad du ser och få hjälp.</span></span></button></div>`;
+}
+
+// ===== Växtdoktorn: skador, sjukdomar och ohyra =====
+const SYM = [
+  ['Bladen', [['yellow', 'Gula blad', '🟡'], ['yellowlow', 'Gula nedersta blad', '⬇️'], ['brownTips', 'Bruna spetsar eller kanter', '🍂'], ['brownSpots', 'Bruna fläckar', '🟤'], ['blackSpots', 'Svarta fläckar', '⚫'], ['halo', 'Fläckar med gul ring runt', '🎯'], ['stipple', 'Små ljusa prickar, ser prickigt ut', '·:'], ['silver', 'Silvriga streck med svarta prickar', '🪩'], ['whitePowder', 'Vitt pulver som går att torka bort', '❄️'], ['sticky', 'Klibbiga blad eller fönsterbräda', '🍯'], ['sooty', 'Svart sotig beläggning', '🖤'], ['holes', 'Hål eller gnagda kanter', '🕳️'], ['curl', 'Krulliga eller missformade blad', '〰️'], ['droop', 'Slappa, hängande blad', '🥀'], ['drop', 'Bladen faller av', '🍃'], ['pale', 'Bleka, ljusgröna blad', '⬜'], ['scorch', 'Blekta, torra fläckar där solen träffar', '☀️'], ['leggy', 'Långa, tunna skott med glest mellan bladen', '📏']]],
+  ['Djur och mögel', [['webs', 'Fin spindelväv', '🕸️'], ['whiteFluff', 'Vit ludd i bladvecken', '☁️'], ['bumps', 'Bruna eller vita knölar på stam och blad', '🟫'], ['bugs', 'Små gröna eller svarta insekter på skotten', '🐜'], ['whiteFlies', 'Små vita flugor som flyger upp', '🦋'], ['gnats', 'Små svarta flugor kring jorden', '🪰'], ['larvae', 'Små genomskinliga maskar i jorden', '🪱'], ['jumpers', 'Små vita djur som hoppar i jorden', '🦗'], ['greyMold', 'Grå ludd på blad eller blommor', '🌫️']]],
+  ['Stam, rötter och jord', [['mushyStem', 'Mjuk, mörk stambas', '🫠'], ['rootRot', 'Bruna, mjuka rötter som luktar illa', '🤢'], ['soilMold', 'Vitt mögel på jordytan', '⚪'], ['saltCrust', 'Vit skorpa på jord eller kruka', '🧂'], ['dryHard', 'Jorden är helt torr och har släppt från krukan', '🏜️'], ['wetLong', 'Jorden är blöt flera dagar efter vattning', '💦']]]
+];
+const SYM_M = Object.fromEntries([].concat(...SYM.map(g => g[1])).map(x => [x[0], x]));
+const CAUSE = [
+  { id: 'spider', n: 'Spinnkvalster', t: 'Skadedjur', sp: 1, w: { webs: 5, stipple: 4, yellow: 1, drop: 1, pale: 1 },
+    d: 'Mycket små spindeldjur som suger saft på bladens undersida. Trivs i varm, torr luft, särskilt vintertid nära element.',
+    c: 'Titta på bladens undersida med förstoringsglas eller mobilkameran. Du ser små rörliga prickar och ibland fin väv mellan blad och stam.',
+    a: ['Flytta växten bort från dina andra växter.', 'Duscha hela växten ljummet, även under bladen.', 'Torka bladen med en trasa doppad i vatten med lite såpa (1 msk per liter).', 'Upprepa var 4:e till 5:e dag i minst 3 veckor, äggen kläcks efter hand.', 'Fungerar det inte: köp rovkvalster (biologisk bekämpning) eller såpa/rapsolja från handeln.'],
+    p: 'Höj luftfuktigheten, duscha växterna ibland och ställ dem inte direkt ovanför element.' },
+  { id: 'thrips', n: 'Trips', t: 'Skadedjur', sp: 1, w: { silver: 5, stipple: 2, curl: 2, blackSpots: 1, pale: 1 },
+    d: 'Smala, små insekter (1–2 mm) som raspar på bladen. Lämnar silvriga streck och små svarta prickar (spillning).',
+    c: 'Skaka ett blad över ett vitt papper. Smala gula eller svarta streck som rör sig är trips.',
+    a: ['Isolera växten direkt, trips sprider sig lätt.', 'Duscha växten och torka bladen med såpvatten.', 'Sätt upp blå eller gula klisterskivor för att fånga de vuxna.', 'Behandla med såpa eller rapsolja var 5:e dag i 3–4 veckor.', 'Rovkvalster eller rovstinkflyn är effektiva biologiska alternativ.'],
+    p: 'Kontrollera nya växter noga och håll dem för sig själva i två veckor.' },
+  { id: 'mealy', n: 'Ullöss', t: 'Skadedjur', sp: 1, w: { whiteFluff: 5, sticky: 2, yellow: 1, drop: 1, sooty: 1 },
+    d: 'Vita, ullhåriga löss som gömmer sig i bladveck och på rötterna. Vanliga på suckulenter, orkidéer och palmer.',
+    c: 'Vita bomullsliknande tussar i bladvecken. Tryck på en, är den blöt och rosa inuti är det en lus.',
+    a: ['Isolera växten.', 'Pensla bort lössen med en bomullspinne doppad i T-röd eller alkohol.', 'Spraya med såpvatten och upprepa varje vecka i en månad.', 'Titta också på rötterna, byt jord om du hittar löss där.', 'Nyckelpigelarver (Cryptolaemus) äter ullöss om angreppet är stort.'],
+    p: 'Kolla bladvecken när du vattnar, så upptäcker du dem tidigt.' },
+  { id: 'scale', n: 'Sköldlöss', t: 'Skadedjur', sp: 1, w: { bumps: 5, sticky: 3, sooty: 2, yellow: 1 },
+    d: 'Löss som sitter stilla under ett hårt eller vaxigt skal på stammar och bladnerver.',
+    c: 'Små bruna eller vita knölar som går att peta loss med en nagel. Bladen under är ofta klibbiga.',
+    a: ['Isolera växten.', 'Skrapa bort sköldlössen med en nagel eller tandborste.', 'Torka med T-röd eller såpvatten.', 'Behandla med rapsolja som kväver de unga lössen, upprepa var 10:e dag.', 'Ha tålamod, det tar ofta 1–2 månader.'],
+    p: 'Undersök nya växter noga, särskilt citrus, fikus och palmer.' },
+  { id: 'aphid', n: 'Bladlöss', t: 'Skadedjur', sp: 1, w: { bugs: 5, sticky: 2, curl: 2, sooty: 1 },
+    d: 'Små gröna, svarta eller gula löss som samlas på unga skott och knoppar.',
+    c: 'Du ser lössen med blotta ögat i klungor på skottspetsarna.',
+    a: ['Spola bort lössen med vatten.', 'Klipp bort hårt angripna skott.', 'Spraya med såpvatten var 3:e dag i två veckor.', 'Utomhus: gynna nyckelpigor och blomflugor.'],
+    p: 'Undvik att gödsla för mycket med kväve, mjuka nya skott lockar löss.' },
+  { id: 'whitefly', n: 'Vita flygare', t: 'Skadedjur', sp: 1, w: { whiteFlies: 5, sticky: 2, yellow: 1, sooty: 1 },
+    d: 'Små vita flugor som sitter under bladen och flyger upp när du rör växten.',
+    c: 'Ruska lätt på växten. Ett moln av små vita flugor betyder vita flygare.',
+    a: ['Sätt upp gula klisterskivor.', 'Duscha bladens undersida och spraya med såpvatten var 4:e dag.', 'Dammsug försiktigt bort de vuxna flugorna tidigt på morgonen när de är tröga.', 'Parasitstekeln Encarsia är ett bra biologiskt medel i växthus.'],
+    p: 'Kontrollera nya växter och vädra växthuset ofta.' },
+  { id: 'gnats', n: 'Sorgmyggor', t: 'Skadedjur', sp: 1, w: { gnats: 5, larvae: 3, wetLong: 2, soilMold: 1 },
+    d: 'Små svarta flugor som lägger ägg i fuktig jord. Larverna äter fina rötter och kan skada småplantor.',
+    c: 'Flugor som surrar kring jorden. Lägg en potatisskiva på jorden en dag, larverna samlas under den.',
+    a: ['Låt jorden torka upp ordentligt mellan vattningarna.', 'Sätt gula klisterskivor i krukan.', 'Lägg ett lager sand eller grus överst på jorden.', 'Vattna med nematoder (finns i trädgårdsbutiker) för att döda larverna.'],
+    p: 'Vattna mindre och hellre underifrån, och förvara säckar med jord stängda.' },
+  { id: 'springtail', n: 'Hoppstjärtar', t: 'Skadedjur', sp: 0, w: { jumpers: 5, wetLong: 1, soilMold: 1 },
+    d: 'Små vita djur som hoppar i jorden. De äter mögel och döda växtdelar och är nästan alltid ofarliga.',
+    c: 'Vattna och titta på jordytan, små vita djur hoppar iväg.',
+    a: ['Ingen behandling behövs oftast.', 'Låt jorden torka mer mellan vattningarna så blir de färre.'],
+    p: 'Undvik ständigt blöt jord.' },
+  { id: 'mildew', n: 'Mjöldagg', t: 'Svamp', sp: 1, w: { whitePowder: 5, curl: 1, yellow: 1 },
+    d: 'Svampsjukdom som ser ut som vitt mjöl på bladen. Trivs när luften är stillastående och växten är stressad.',
+    c: 'Det vita går att torka bort med fingret men kommer tillbaka.',
+    a: ['Klipp bort angripna blad och släng dem i soporna, inte i komposten.', 'Spraya med 1 dl mjölk blandat med 9 dl vatten, eller 1 tsk bikarbonat per liter vatten, varje vecka.', 'Ge växten bättre luftcirkulation.'],
+    p: 'Ge växterna luft emellan och vattna jorden, inte bladen.' },
+  { id: 'botrytis', n: 'Gråmögel', t: 'Svamp', sp: 1, w: { greyMold: 5, brownSpots: 1, mushyStem: 1, wetLong: 1 },
+    d: 'Grå, luddig svamp som angriper vissna blommor och blad när det är fuktigt och svalt.',
+    c: 'Grått damm som yr när du rör vid det, ofta på blommor eller blad som ligger på jorden.',
+    a: ['Ta bort allt angripet och vissnat material direkt.', 'Låt jorden och bladen torka upp.', 'Ställ växten luftigare och varmare.'],
+    p: 'Plocka vissna blommor och blad regelbundet och vattna på morgonen.' },
+  { id: 'sootyMold', n: 'Sotdagg', t: 'Svamp', sp: 0, w: { sooty: 5, sticky: 2 },
+    d: 'Svart svampbeläggning som växer på klibbig honungsdagg från löss. Svampen i sig är ofarlig men tar ljus från bladen.',
+    c: 'Den svarta beläggningen går att torka bort. Leta efter löss eller vita flygare i närheten.',
+    a: ['Torka av bladen med ljummet vatten och lite diskmedel.', 'Bekämpa lössen som orsakar honungsdaggen.'],
+    p: 'Håll koll på löss, då kommer ingen sotdagg.' },
+  { id: 'leafspot', n: 'Bladfläcksjuka', t: 'Svamp eller bakterie', sp: 1, w: { halo: 5, brownSpots: 2, blackSpots: 2, drop: 1, wetLong: 1 },
+    d: 'Svamp eller bakterier som ger bruna eller svarta fläckar, ofta med en gul ring runt.',
+    c: 'Fläckarna sprider sig och blir fler, ofta på blad som varit blöta länge.',
+    a: ['Klipp bort angripna blad med ren sax.', 'Vattna bara jorden, aldrig bladen.', 'Isolera växten och låt den stå luftigt.'],
+    p: 'Undvik att bladen är blöta över natten.' },
+  { id: 'rot', n: 'Rotröta av för mycket vatten', t: 'Skötsel', sp: 0, w: { rootRot: 5, mushyStem: 4, wetLong: 4, droop: 2, yellowlow: 2, yellow: 1, soilMold: 1, gnats: 1, blackSpots: 1 },
+    d: 'Rötterna kvävs i blöt jord och börjar ruttna. Växten hänger trots att jorden är fuktig. Den vanligaste dödsorsaken för krukväxter.',
+    c: 'Ta upp växten ur krukan. Friska rötter är ljusa och fasta, ruttna är bruna, mjuka och luktar illa.',
+    a: ['Ta ur växten och skölj bort jorden.', 'Klipp bort alla mjuka, bruna rötter med ren sax.', 'Plantera i ny, luftig jord i en kruka med dräneringshål.', 'Vänta en vecka innan du vattnar igen.', 'Är stammen rutten: ta sticklingar från friska delar.'],
+    p: 'Vattna när de översta centimetrarna jord är torra och häll alltid ut vatten som blir stående.' },
+  { id: 'thirst', n: 'För lite vatten', t: 'Skötsel', sp: 0, w: { dryHard: 5, droop: 3, brownTips: 2, curl: 1, drop: 1, yellowlow: 1 },
+    d: 'Växten har torkat ut. Bladen blir slappa och bruna i kanterna.',
+    c: 'Jorden är torr långt ner och krukan känns lätt när du lyfter den.',
+    a: ['Ställ krukan i en balja med vatten i 20–30 minuter så att jorden suger upp vatten.', 'Låt överflödigt vatten rinna av.', 'Klipp bort helt torra blad.'],
+    p: 'Använd påminnelser i appen och känn på jorden en gång i veckan.' },
+  { id: 'dark', n: 'För lite ljus', t: 'Skötsel', sp: 0, w: { leggy: 5, pale: 3, drop: 1, yellowlow: 1 },
+    d: 'Växten sträcker sig mot ljuset och får långa, svaga skott och bleka blad. Mycket vanligt i Sverige på vintern.',
+    c: 'Skotten lutar mot fönstret och det är långt mellan bladen.',
+    a: ['Flytta växten närmare ett ljusare fönster, helst söder eller väster.', 'Sätt upp en växtlampa 10–12 timmar om dagen under vintern.', 'Toppa långa skott för att få en buskigare växt.'],
+    p: 'Mät ljuset med ljusmätaren i appen och se till att växten får rätt ljus i Mitt hem.' },
+  { id: 'sunburn', n: 'Solbränna', t: 'Skötsel', sp: 0, w: { scorch: 5, pale: 1, brownSpots: 1 },
+    d: 'Starkt solljus bränner bladen, särskilt efter att växten stått mörkt eller flyttats ut.',
+    c: 'Blekta eller bruna, torra fläckar på de blad som vetter mot fönstret.',
+    a: ['Flytta växten en bit från fönstret eller sätt upp en tunn gardin.', 'Brända blad blir inte gröna igen, klipp bort dem om de är fula.'],
+    p: 'Vänj växter vid sol gradvis, särskilt på våren.' },
+  { id: 'dryAir', n: 'Torr luft', t: 'Skötsel', sp: 0, w: { brownTips: 4, curl: 1, stipple: 1 },
+    d: 'Svensk inomhusluft är mycket torr på vintern. Tropiska växter får bruna spetsar.',
+    c: 'Bara spetsarna och kanterna blir bruna, och det är värst nära element.',
+    a: ['Ställ växten längre från element.', 'Gruppera växter tillsammans och ställ dem på ett fat med fuktig leca.', 'Använd en luftfuktare om du har många tropiska växter.'],
+    p: 'Sikta på 40–60 % luftfuktighet. En hygrometer visar hur torrt det är.' },
+  { id: 'salt', n: 'Salter eller för mycket näring', t: 'Skötsel', sp: 0, w: { saltCrust: 5, brownTips: 2, yellow: 1 },
+    d: 'Näringssalter och kalk från kranvattnet samlas i jorden och bränner rötterna.',
+    c: 'Vit skorpa på jordytan eller krukkanten.',
+    a: ['Spola igenom jorden med mycket vatten och låt det rinna ut.', 'Gödsla svagare och bara under växtsäsongen.', 'Byt det översta jordlagret eller plantera om.'],
+    p: 'Använd hälften av doseringen på näringsflaskan och ge ingen näring på vintern.' },
+  { id: 'hunger', n: 'Näringsbrist', t: 'Skötsel', sp: 0, w: { yellowlow: 3, pale: 3, yellow: 2 },
+    d: 'Växten har gjort slut på näringen i jorden. Vanligt om den stått länge i samma jord.',
+    c: 'Hela växten blir ljusare och de äldre bladen gulnar först.',
+    a: ['Gödsla med flytande växtnäring under vår och sommar.', 'Plantera om i ny jord om det gått mer än två år.'],
+    p: 'Ge näring varannan vecka från mars till september.' },
+  { id: 'cold', n: 'Kyla eller kalldrag', t: 'Skötsel', sp: 0, w: { drop: 3, blackSpots: 2, droop: 1, curl: 1 },
+    d: 'Tropiska växter tål inte kalldrag från fönster, dörrar eller vädring på vintern.',
+    c: 'Bladen blir mörka eller genomskinliga och faller plötsligt.',
+    a: ['Flytta växten bort från dörrar och kalla fönsterrutor.', 'Klipp bort skadade blad.'],
+    p: 'Låt inte blad nudda kalla fönsterrutor och vädra kort på vintern.' },
+  { id: 'chewers', n: 'Larver eller sniglar', t: 'Skadedjur', sp: 0, w: { holes: 5 },
+    d: 'Gnagskador som oftast kommer från larver, sniglar eller vivlar, särskilt på växter som står ute.',
+    c: 'Leta under bladen och i jorden på kvällen med ficklampa. Slemspår betyder sniglar.',
+    a: ['Plocka bort djuren för hand.', 'Utomhus: använd snigelfällor eller järnfosfat.', 'Vivellarver i jorden går att bekämpa med nematoder.'],
+    p: 'Kolla bladens undersida när du vattnar.' },
+  { id: 'age', n: 'Naturligt åldrande', t: 'Ofarligt', sp: 0, w: { yellowlow: 2 },
+    d: 'Det är normalt att ett äldre blad längst ner gulnar och faller ibland, särskilt när växten gör nya blad.',
+    c: 'Bara ett eller några få nedersta blad gulnar, resten ser friskt ut.',
+    a: ['Klipp bort bladet när det är helt gult.', 'Inget mer behövs.'],
+    p: 'Inget att göra.' }
+];
+function docScores() {
+  const sel = S.docSym || [], m = S.docMine ? S.mine.find(x => x.id === S.docMine) : null, pl = m ? S.plants.find(x => x.id === m.plant_id) : null;
+  if (!sel.length) return [];
+  return CAUSE.map(c => { let sc = 0, hit = 0; sel.forEach(k => { if (c.w[k]) { sc += c.w[k]; hit++; } }); if (!hit) return null;
+    const miss = sel.length - hit;
+    let bonus = 0, why = [];
+    if (pl && c.id === 'dryAir' && /hög/i.test(pl.humidity || '')) { bonus += 1; why.push(pl.swedish_name + ' vill ha fuktig luft'); }
+    if (pl && c.id === 'rot' && (pl.category === 'Kaktus' || pl.water_level === 1)) { bonus += 1; why.push(pl.swedish_name + ' vill ha lite vatten'); }
+    if (m && m.details && m.details.pos && ['dryAir', 'spider'].includes(c.id) && posHints(m).some(h => /element/.test(h[1]))) { bonus += 1; why.push('Står nära ett element'); }
+    if (pl && c.id === 'dark' && pl.light_level === 3) { bonus += 1; why.push(pl.swedish_name + ' vill ha mycket ljus'); }
+    if (m && c.id === 'thirst' && left(m) === 0) { bonus += 1; why.push('Den behöver vatten enligt appen'); }
+    const M = sc + bonus; return { c, sc: M - miss * 1.5, pct: Math.max(5, Math.min(95, Math.round(100 * M / (M + 3 * miss) * Math.min(1, M / 5)))), why }; }).filter(Boolean).sort((a, b) => b.sc - a.sc).slice(0, 4);
+}
+function openDoc(mid) { stopLight(); S.sel = null; S.modal = null; S.tool = 'doc'; if (mid) S.docMine = mid; S.docOpen = null; render(); $('#main').scrollTop = 0; }
+function docSym(k) { const a = S.docSym = S.docSym || []; S.docSym = a.includes(k) ? a.filter(x => x !== k) : a.concat(k); S.docOpen = null; const y = $('#main').scrollTop; render(); $('#main').scrollTop = y; }
+function docPhoto(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.docPh = f; S.docPhUrl = URL.createObjectURL(f); render(); }
+function docQuestion() { const m = S.docMine ? S.mine.find(x => x.id === S.docMine) : null, syms = (S.docSym || []).map(k => SYM_M[k][1].toLowerCase()); return `Vad är det för fel på ${m ? 'min ' + m.name.toLowerCase() : 'min växt'}? Jag ser: ${syms.join(', ') || '…'}.`; }
+function docAsk() { if (needLogin()) return; S.tool = null; S.tab = 'comm'; S.ctab = 'q'; S.post = null; S.draft = docQuestion(); render(); loadFeed(); $('#main').scrollTop = 0; setTimeout(() => { const t = $('#nq'); if (t) t.focus(); }, 60); }
+function docCase() { if (needLogin()) return; S.tool = null; S.tab = 'comm'; S.ctab = 'detect'; S.post = null; S.cbody = docQuestion(); loadFeed(); startCase(S.docPh); }
+async function docLog(id) { const c = CAUSE.find(x => x.id === id), m = S.mine.find(x => x.id === S.docMine); if (!m) return;
+  try { await api.addLog(m.id, 'note', today(), 'Växtdoktorn: ' + c.n + '. Började behandla: ' + c.a[0].replace(/\.$/, '').toLowerCase() + '.'); delete S.log[m.id]; toast('Sparat i dagboken för ' + m.name); } catch (e) { toast(errMsg(e)); } }
+function docV() {
+  const sel = S.docSym || [], res = docScores(), mine = S.mine || [];
+  return `${topbar('Växtdoktorn', 'closeTool()')}
+  <p class="mut" style="margin:0 18px">Välj allt du ser på växten, så får du troliga orsaker och vad du kan göra.</p>
+  ${mine.length ? `<div class="docpick"><label for="docm">Gäller</label><select id="docm" onchange="S.docMine=+this.value||null;render()"><option value="">Ingen särskild växt</option>${mine.map(m => `<option value="${m.id}" ${S.docMine === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></div>` : ''}
+  ${SYM.map(([g, list]) => `<div class="sec"><h2>${g}</h2></div><div class="symgrid">${list.map(([k, n, e]) => `<button class="sym ${sel.includes(k) ? 'on' : ''}" aria-pressed="${sel.includes(k)}" onclick="docSym('${k}')"><span class="se">${e}</span><span>${n}</span></button>`).join('')}</div>`).join('')}
+  ${sel.length ? `<button class="docgo" onclick="document.getElementById('docres').scrollIntoView({behavior:'smooth'})">Visa ${res.length} ${res.length === 1 ? 'trolig orsak' : 'troliga orsaker'} ↓</button>` : ''}
+  <div class="sec" id="docres"><h2>${res.length ? 'Troliga orsaker' : 'Resultat'}</h2>${sel.length ? `<button class="link3" onclick="S.docSym=[];render()">Rensa</button>` : ''}</div>
+  <div class="pad">${!sel.length ? '<p class="mut" style="margin:0">Välj minst ett tecken ovanför.</p>' : res.map((r, i) => { const c = r.c, open = S.docOpen === c.id || (S.docOpen == null && i === 0);
+    return `<div class="dcause ${open ? 'open' : ''}"><button class="dch" onclick="S.docOpen='${open ? '-' : c.id}';render()"><span class="grow"><b>${c.n}</b><span class="dtags"><span class="dtag t-${c.t === 'Skadedjur' ? 'pest' : c.t === 'Skötsel' ? 'care' : c.t === 'Ofarligt' ? 'ok' : 'fung'}">${c.t}</span>${c.sp ? '<span class="dtag spread">Kan smitta</span>' : ''}</span></span><span class="dpct">${r.pct}%<i style="width:${r.pct}%"></i></span></button>
+      ${open ? `<div class="dbody"><p>${c.d}</p>${r.why.length ? `<p class="dwhy">${r.why.map(esc).join(' · ')}</p>` : ''}
+        <h4>Så ser du det</h4><p>${c.c}</p><h4>Gör så här</h4><ol>${c.a.map(x => `<li>${x}</li>`).join('')}</ol><h4>Förebygg</h4><p>${c.p}</p>
+        ${c.sp ? '<div class="pdhint warn"><span class="ck">⚠️</span><span>Ställ växten för sig själv tills den är frisk, så smittar den inte dina andra växter.</span></div>' : ''}
+        ${S.docMine ? `<button class="btn sm line" style="margin-top:10px" onclick="docLog('${c.id}')">Spara i skötseldagboken</button>` : ''}</div>` : ''}</div>`; }).join('')}</div>
+  <div class="sec"><h2>Osäker? Fråga andra</h2></div>
+  <div class="pad"><div class="setcard">${S.docPh ? `<img class="lbig" src="${esc(S.docPhUrl)}" alt="Foto på skadan"><button class="btn sm line" onclick="S.docPh=null;render()">Byt foto</button>` : `<label onclick="photoPick(event,this)" class="shot small"><span class="tic">${ic(CAM, 'currentColor', 24)}</span><span class="grow"><b>Fota skadan</b><span>Ta en bild nära, gärna på bladets undersida</span></span><input type="file" accept="image/*" class="sr" onchange="docPhoto(this)"></label>`}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${S.docPh ? `<button class="btn sm cop" onclick="docCase()">Fråga Växtdetektiverna med bilden</button>` : ''}<button class="btn sm ${S.docPh ? 'line' : ''}" onclick="docAsk()">Ställ en fråga i communityn</button></div></div></div>
+  <p class="mut" style="margin:14px 18px 28px;font-size:12.5px">Växtdoktorn ger förslag utifrån det du väljer. Är du osäker, visa en bild för någon som kan växter.</p>`;
 }
 function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { stopLight(); S.tool = null; render(); }
-function toolV() { return S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'smart' ? smartV() : lightV(); }
+function toolV() { return S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'smart' ? smartV() : lightV(); }
 
 // --- Säsongstips ---
 // Varje tips: [typ, rubrik, text, månader i zon 1–2, zon 3–5, zon 6–8]. En lista gäller alla zoner.
@@ -3406,7 +3592,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.29';
+const APP_VERSION = '1.30';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
