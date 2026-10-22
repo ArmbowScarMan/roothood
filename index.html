@@ -733,6 +733,14 @@ button.pw{cursor:pointer}
 :root[data-theme="dark"] .ac.d{background:#4A231C;color:#F4C1B6}:root[data-theme="dark"] .ac.w{background:#433518;color:#F0D9A3}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ac.d{background:#4A231C;color:#F4C1B6}:root:not([data-theme="light"]) .ac.w{background:#433518;color:#F0D9A3}}
 .tic.wat{background:#D8ECF0;font-size:20px}
+.plinks{display:flex;gap:16px;flex-wrap:wrap}
+.terr{margin-top:8px;border-top:1px solid var(--line,#E4DCCE);padding-top:10px}
+.terr h4{margin:12px 0 6px;font-size:14.5px}
+.tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tgrid div{background:var(--bg);border-radius:12px;padding:8px 6px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.tgrid small{font-size:11px;color:var(--mut)}
+.tgrid b{font-size:13.5px}
+.tuv{margin:8px 0 0;font-size:13.5px;line-height:1.45}
 .vetbox{margin:18px 18px 0;display:flex;flex-direction:column;gap:4px;background:var(--surf);border-radius:18px;padding:13px 14px;box-shadow:var(--sh);font-size:13.5px}
 .vetbox span{color:var(--mut);line-height:1.45}
 .peopleb.ib{background:linear-gradient(120deg,var(--surf),#F8E6DF)}
@@ -2986,9 +2994,9 @@ function keepMain() { const y = $('#main').scrollTop; render(); $('#main').scrol
 // ===== Mina djur: husdjur, akvarium och giftvarningar =====
 const PK = {
   katt: ['Katt', '🐈'], hund: ['Hund', '🐕'], kanin: ['Kanin', '🐇'], marsvin: ['Marsvin', '🐹'], gnagare: ['Hamster, råtta eller annan gnagare', '🐁'],
-  fagel: ['Fågel', '🦜'], hons: ['Höns', '🐔'], hast: ['Häst', '🐴'], skoldpadda: ['Landsköldpadda', '🐢'], fisk: ['Akvariefisk', '🐠'],
+  fagel: ['Fågel', '🦜'], hons: ['Höns', '🐔'], hast: ['Häst', '🐴'], skoldpadda: ['Landsköldpadda', '🐢'], reptil: ['Reptil eller terrariedjur', '🦎'], fisk: ['Akvariefisk', '🐠'],
 };
-const PKS = { katt: 'katt', hund: 'hund', kanin: 'kanin', marsvin: 'marsvin', gnagare: 'gnagare', fagel: 'fågel', hons: 'höns', hast: 'häst', skoldpadda: 'sköldpadda', fisk: 'fisk' };
+const PKS = { katt: 'katt', hund: 'hund', kanin: 'kanin', marsvin: 'marsvin', gnagare: 'gnagare', fagel: 'fågel', hons: 'höns', hast: 'häst', skoldpadda: 'sköldpadda', reptil: 'reptilen', fisk: 'fisk' };
 // Vad djuren kan äta och inte äta. [kan äta, får inte äta, tips]
 const PFOOD = {
   katt: [['Kattmat som huvudföda', 'Kattgräs (havre eller vete)', 'Kattmynta', 'Lite kokt kyckling eller fisk utan ben'], ['Liljor, även pollen och vattnet i vasen', 'Lök och vitlök', 'Choklad', 'Vindruvor och russin', 'Mjölk, de flesta katter tål inte laktos', 'Alkohol och koffein'], 'Katter tuggar gärna på växter. Ställ fram kattgräs så lämnar de oftare de andra växterna ifred.'],
@@ -3029,7 +3037,7 @@ const fishOf = n => FISH.find(f => f[0] === n);
 // Släkten med särskilda risker för vissa djur. d = farlig, w = varning, s = ofarlig
 const ALLK = ['katt', 'hund', 'kanin', 'marsvin', 'gnagare', 'fagel', 'hons', 'hast', 'skoldpadda'];
 const TOXG = {
-  Persea: { fagel: ['d', 'Avokado är livsfarlig för fåglar'], kanin: ['d', 'Avokado är mycket giftig för kaniner'], marsvin: ['d', 'Avokado är mycket giftig för marsvin'], gnagare: ['d', 'Avokado är giftig för gnagare'], hast: ['d', 'Avokado är giftig för hästar'], hons: ['d', 'Avokado är giftig för höns'], skoldpadda: ['d', 'Avokado är giftig för sköldpaddor'], hund: ['w', 'Kärnor och blad är giftiga för hundar'], katt: ['w', 'Kärnor och blad är giftiga för katter'] },
+  Persea: { reptil: ['d', 'Avokado är giftig för reptiler'], fagel: ['d', 'Avokado är livsfarlig för fåglar'], kanin: ['d', 'Avokado är mycket giftig för kaniner'], marsvin: ['d', 'Avokado är mycket giftig för marsvin'], gnagare: ['d', 'Avokado är giftig för gnagare'], hast: ['d', 'Avokado är giftig för hästar'], hons: ['d', 'Avokado är giftig för höns'], skoldpadda: ['d', 'Avokado är giftig för sköldpaddor'], hund: ['w', 'Kärnor och blad är giftiga för hundar'], katt: ['w', 'Kärnor och blad är giftiga för katter'] },
   Taxus: { '*': ['d', 'Idegran är livsfarlig. Hästar kan dö av en liten mängd'] },
   Lilium: { katt: ['d', 'Liljor är livsfarliga för katter, även pollen och vasvatten'] },
   Hemerocallis: { katt: ['d', 'Daglilja är livsfarlig för katter och ger njursvikt'] },
@@ -3048,9 +3056,9 @@ const TOXG = {
 };
 const LV = { d: 3, w: 2, u: 1, s: 0 };
 function genusOf(p) { return p.genus || ((p.latin_name || '').split(/\s+/)[0] || ''); }
-function toxFor(p, kind) {
+function toxFor(p, kind, label) {
   if (!p || kind === 'fisk') return null;
-  const t = (p.toxicity_text || '').toLowerCase(), w = PKS[kind];
+  const t = (p.toxicity_text || '').toLowerCase(), w = label || PKS[kind];
   const names = { katt: /katt/.test(t), hund: /hund/.test(t), fagel: /fåg/.test(t) }, all = /djur|husdjur/.test(t) && !/katt|hund/.test(t) || /människor och djur/.test(t);
   const hit = all || names[kind] || (/husdjur/.test(t));
   let r;
@@ -3065,19 +3073,20 @@ function toxFor(p, kind) {
   if (o && (LV[o[0]] > LV[r[0]] || o[0] === 's')) r = o;
   return r;
 }
-const petEmoji = k => (PK[k] || ['', '🐾'])[1];
+const petEmoji = (k, sp) => k === 'reptil' && terrOf(sp) ? terrOf(sp)[2] : (PK[k] || ['', '🐾'])[1];
+function toxPet(p, a) { if (a.kind !== 'reptil') return toxFor(p, a.kind); const tr = terrOf(a.sp); return tr && tr[9] ? toxFor(p, 'reptil', tr[0].toLowerCase()) : null; }
 const petsList = () => ((S.pets && S.pets.list) || []);
 const animals = () => petsList().filter(x => x.kind !== 'fisk');
 function myPlantsP() { return S.mine.map(m => [m, S.plants.find(p => p.id === m.plant_id)]).filter(x => x[1]); }
 function petWarnings() {
   const out = [];
-  myPlantsP().forEach(([m, p]) => animals().forEach(a => { const r = toxFor(p, a.kind); if (r && (r[0] === 'd' || r[0] === 'w')) out.push({ m, p, a, lv: r[0], t: r[1] }); }));
+  myPlantsP().forEach(([m, p]) => animals().forEach(a => { const r = toxPet(p, a); if (r && (r[0] === 'd' || r[0] === 'w')) out.push({ m, p, a, lv: r[0], t: r[1] }); }));
   return out.sort((x, y) => LV[y.lv] - LV[x.lv]);
 }
 function plantPetNote(p) {
-  const l = animals().map(a => [a, toxFor(p, a.kind)]).filter(x => x[1] && (x[1][0] === 'd' || x[1][0] === 'w'));
+  const l = animals().map(a => [a, toxPet(p, a)]).filter(x => x[1] && (x[1][0] === 'd' || x[1][0] === 'w'));
   if (!l.length) return animals().length ? `<div class="petok">🐾 Inga kända risker för ${animals().map(a => esc(a.name)).join(', ')}</div>` : '';
-  return `<div class="petwarn">${l.map(([a, r]) => `<div class="pw ${r[0]}"><span>${petEmoji(a.kind)}</span><div><b>${r[0] === 'd' ? 'Farlig' : 'Giftig'} för ${esc(a.name)}</b><span>${esc(r[1])}</span></div></div>`).join('')}</div>`;
+  return `<div class="petwarn">${l.map(([a, r]) => `<div class="pw ${r[0]}"><span>${petEmoji(a.kind, a.sp)}</span><div><b>${r[0] === 'd' ? 'Farlig' : 'Giftig'} för ${esc(a.name)}</b><span>${esc(r[1])}</span></div></div>`).join('')}</div>`;
 }
 async function loadPets() { try { S.pets = await api.getPets(); S.petsErr = null; } catch (e) { S.pets = store.get('pets', null) || { list: [], tank: {} }; S.petsErr = e.message; } if (!S.pets.list) S.pets.list = []; if (!S.pets.tank) S.pets.tank = {}; }
 async function savePets() { store.set('pets', S.pets); try { await api.savePets(S.pets); S.petsErr = null; } catch (e) { S.petsErr = e.message; if (e.message !== 'PETS_NOT_READY') toast(errMsg(e)); } }
@@ -3085,6 +3094,7 @@ async function openPets() { stopLight(); S.sel = null; S.modal = null; S.tool = 
 function addPet() {
   const k = S.pk || 'katt';
   if (k === 'fisk') { const sp = $('#pfish').value, n = Math.max(1, Math.min(99, +$('#pcount').value || 1)); const ex = petsList().find(x => x.kind === 'fisk' && x.sp === sp); if (ex) ex.n += n; else S.pets.list.push({ id: Date.now(), kind: 'fisk', name: sp, sp, n }); toast(n + ' ' + sp.toLowerCase() + ' i akvariet'); }
+  else if (k === 'reptil') { const sp = $('#prep').value, name = ($('#pname').value || '').trim() || sp; S.pets.list.push({ id: Date.now(), kind: 'reptil', name, sp, plants: [] }); S.terOpen = S.pets.list[S.pets.list.length - 1].id; toast(name + ' är tillagd'); }
   else { const name = ($('#pname').value || '').trim() || PK[k][0]; S.pets.list.push({ id: Date.now(), kind: k, name, sp: ($('#pbreed').value || '').trim() }); toast(name + ' är tillagd'); }
   S.petAdd = false; savePets(); keepMain();
 }
@@ -3113,20 +3123,20 @@ function aqChecks() {
 function petFormV() {
   const k = S.pk || 'katt';
   return `<div class="setcard petform"><label class="fl" style="margin-top:0">Vilket djur?</label>
-    <div class="chips2">${Object.keys(PK).map(x => `<button class="${k === x ? 'on' : ''}" onclick="S.pk='${x}';keepMain()">${PK[x][1]} ${x === 'gnagare' ? 'Gnagare' : PK[x][0]}</button>`).join('')}</div>
-    ${k === 'fisk' ? `<label class="fl" for="pfish">Art</label><select id="pfish">${FISH.map(f => `<option>${f[0]}</option>`).join('')}</select>
+    <div class="chips2">${Object.keys(PK).map(x => `<button class="${k === x ? 'on' : ''}" onclick="S.pk='${x}';keepMain()">${PK[x][1]} ${x === 'gnagare' ? 'Gnagare' : x === 'reptil' ? 'Reptil och terrarium' : PK[x][0]}</button>`).join('')}</div>
+    ${k === 'reptil' ? `<label class="fl" for="prep">Art</label><select id="prep">${TERR.map(t => `<option>${t[0]}</option>`).join('')}</select><label class="fl" for="pname">Namn</label><input id="pname" maxlength="40" placeholder="t.ex. Draken">` : k === 'fisk' ? `<label class="fl" for="pfish">Art</label><select id="pfish">${FISH.map(f => `<option>${f[0]}</option>`).join('')}</select>
       <label class="fl" for="pcount">Antal</label><input id="pcount" type="number" min="1" max="99" value="1" inputmode="numeric">`
     : `<label class="fl" for="pname">Namn</label><input id="pname" maxlength="40" placeholder="${k === 'katt' ? 't.ex. Misse' : k === 'hund' ? 't.ex. Bamse' : 'Djurets namn'}">
       <label class="fl" for="pbreed">Ras eller art (valfritt)</label><input id="pbreed" maxlength="40" placeholder="${k === 'fagel' ? 't.ex. undulat' : k === 'gnagare' ? 't.ex. hamster' : 't.ex. ' + (k === 'hund' ? 'labrador' : k === 'katt' ? 'huskatt' : 'ras')}">`}
     <div style="display:flex;gap:8px;margin-top:14px"><button class="btn" style="flex:1" onclick="addPet()">Lägg till</button>${petsList().length ? '<button class="btn line" onclick="S.petAdd=false;keepMain()">Avbryt</button>' : ''}</div></div>`;
 }
 function petCard(a) {
-  const f = PFOOD[a.kind], open = S.petOpen === a.id, sure = S.del === 'pet' + a.id;
-  const bad = myPlantsP().filter(([m, p]) => { const r = toxFor(p, a.kind); return r && (r[0] === 'd' || r[0] === 'w'); }).length;
-  return `<div class="petc"><div class="petr"><span class="pem">${petEmoji(a.kind)}</span><span class="grow"><b>${esc(a.name)}</b><span>${esc(a.sp || PK[a.kind][0])}${bad ? ` · <em class="bad">${bad} giftig${bad > 1 ? 'a' : ''} växt${bad > 1 ? 'er' : ''} hemma</em>` : ' · inga giftiga växter hemma'}</span></span>
+  const f = a.kind === 'reptil' ? RFOOD[a.sp] : PFOOD[a.kind], open = S.petOpen === a.id, sure = S.del === 'pet' + a.id, topen = S.terOpen === a.id, rt = a.kind === 'reptil';
+  const bad = myPlantsP().filter(([m, p]) => { const r = toxPet(p, a); return r && (r[0] === 'd' || r[0] === 'w'); }).length;
+  return `<div class="petc"><div class="petr"><span class="pem">${petEmoji(a.kind, a.sp)}</span><span class="grow"><b>${esc(a.name)}</b><span>${esc(a.sp || PK[a.kind][0])}${rt && !terrOf(a.sp)[9] ? ' · äter inte växter' : bad ? ` · <em class="bad">${bad} giftig${bad > 1 ? 'a' : ''} växt${bad > 1 ? 'er' : ''} hemma</em>` : ' · inga giftiga växter hemma'}</span></span>
     <button class="x ${sure ? 'sure' : ''}" onclick="delPet(${a.id})">${sure ? 'Bekräfta' : 'Ta bort'}</button></div>
-    <button class="link3" onclick="S.petOpen=${open ? 'null' : a.id};keepMain()">${open ? 'Dölj' : 'Vad kan ' + esc(a.name) + ' äta?'}</button>
-    ${open && f ? `<div class="food"><div><h4>✅ Kan äta</h4><ul>${f[0].map(x => `<li>${x}</li>`).join('')}</ul></div><div><h4>⛔ Får inte äta</h4><ul>${f[1].map(x => `<li>${x}</li>`).join('')}</ul></div><p>${f[2]}</p></div>` : ''}</div>`;
+    <div class="plinks"><button class="link3" onclick="S.petOpen=${open ? 'null' : a.id};keepMain()">${open ? 'Dölj maten' : 'Vad kan ' + esc(a.name) + ' äta?'}</button>${rt ? `<button class="link3" onclick="S.terOpen=${topen ? 'null' : a.id};keepMain()">${topen ? 'Dölj terrariet' : '🏜️ Terrariet'}</button>` : ''}</div>
+    ${open && f ? `<div class="food"><div><h4>✅ Kan äta</h4><ul>${f[0].map(x => `<li>${x}</li>`).join('')}</ul></div><div><h4>⛔ Får inte äta</h4><ul>${f[1].map(x => `<li>${x}</li>`).join('')}</ul></div><p>${f[2]}</p></div>` : ''}${rt && topen ? terrV(a) : ''}</div>`;
 }
 function petsV() {
   if (!S.pets) { loadPets().then(() => S.tool === 'pets' && render()); return `${topbar('Mina djur', 'closeTool()')}<p class="mut" style="margin:0 18px">Hämtar…</p>`; }
@@ -3137,7 +3147,7 @@ function petsV() {
   return `${topbar('Mina djur', 'closeTool()')}
   <p class="mut" style="margin:0 18px">Lägg in dina djur. Appen varnar om någon av dina växter är giftig för dem och visar vad de får äta.</p>
   ${S.petsErr === 'PETS_NOT_READY' && S.user ? `<div class="instc" style="margin:12px 18px 0"><div><b>Djuren sparas bara i den här webbläsaren</b><span>Kör SQL-koden för steg 024 i Supabase så sparas de på ditt konto.</span></div></div>` : ''}
-  ${an.length ? `<div class="sec"><h2>Varningar</h2></div><div class="pad">${warns.length ? `<div class="petwarn">${warns.slice(0, S.pwAll ? 99 : 5).map(x => `<button class="pw ${x.lv}" onclick="openMine(${x.m.id})"><span>${petEmoji(x.a.kind)}</span><div><b>${esc(x.m.name)} är ${x.lv === 'd' ? 'farlig' : 'giftig'} för ${esc(x.a.name)}</b><span>${esc(x.t)}</span></div></button>`).join('')}</div>${warns.length > 5 ? `<button class="link3" onclick="S.pwAll=!S.pwAll;keepMain()">${S.pwAll ? 'Visa färre' : 'Visa alla ' + warns.length}</button>` : ''}` : `<div class="petok">✅ Inga av dina växter är kända som giftiga för dina djur.</div>`}</div>` : ''}
+  ${an.length ? `<div class="sec"><h2>Varningar</h2></div><div class="pad">${warns.length ? `<div class="petwarn">${warns.slice(0, S.pwAll ? 99 : 5).map(x => `<button class="pw ${x.lv}" onclick="openMine(${x.m.id})"><span>${petEmoji(x.a.kind, x.a.sp)}</span><div><b>${esc(x.m.name)} är ${x.lv === 'd' ? 'farlig' : 'giftig'} för ${esc(x.a.name)}</b><span>${esc(x.t)}</span></div></button>`).join('')}</div>${warns.length > 5 ? `<button class="link3" onclick="S.pwAll=!S.pwAll;keepMain()">${S.pwAll ? 'Visa färre' : 'Visa alla ' + warns.length}</button>` : ''}` : `<div class="petok">✅ Inga av dina växter är kända som giftiga för dina djur.</div>`}</div>` : ''}
   <div class="sec"><h2>Dina djur</h2>${petsList().length && !S.petAdd ? '<button class="viewall" onclick="S.petAdd=true;keepMain()">+ Lägg till</button>' : ''}</div>
   <div class="pad">${an.map(petCard).join('')}${!petsList().length || S.petAdd ? petFormV() : ''}</div>
   ${hasAq ? `<div class="sec"><h2>🐠 Mitt akvarium</h2></div><div class="pad"><div class="setcard aq">
@@ -3150,6 +3160,57 @@ function petsV() {
   <div class="vetbox"><b>Har ditt djur ätit något giftigt?</b><span>Ring veterinär eller djursjukhus direkt, även om djuret verkar må bra. Ta med växten eller en bild på den. Informationen i appen är vägledning, inte veterinärråd.</span></div>
   <div style="height:24px"></div>`;
 }
+// Terrariedjur: [namn, latin, emoji, miljö öken/trop/rum, dag °C, varmplats °C, natt °C, luftfuktighet %, UVB, äter växter 0/1/2, not]
+const TERR = [
+  ['Skäggagam', 'Pogona vitticeps', '🦎', 'öken', '26–30', '38–42', '20–24', '30–40', 'Ja, stark UVB (T5 10–12 %) 12 timmar om dagen', 2, 'Vuxna äter mest grönt, unga mest insekter'],
+  ['Leopardgecko', 'Eublepharis macularius', '🦎', 'öken', '24–28', '30–33', '20–22', '30–40', 'Svag UVB rekommenderas', 0, 'Behöver ett fuktigt gömställe för skalömsningen'],
+  ['Majsorm', 'Pantherophis guttatus', '🐍', 'rum', '24–28', '29–32', '20–24', '40–60', 'Inte nödvändigt, men svag UVB är bra', 0, 'Kan rymma genom små springor, ha lock med lås'],
+  ['Kungspyton', 'Python regius', '🐍', 'trop', '26–30', '31–33', '23–26', '50–70', 'Inte nödvändigt, men svag UVB är bra', 0, 'Kan sluta äta i flera veckor på vintern, det är oftast normalt'],
+  ['Kronkamgecko', 'Correlophus ciliatus', '🦎', 'trop', '22–26', '27–28', '18–22', '50–80', 'Svag UVB rekommenderas', 1, 'Tål inte värme över 28 °C. Dimma kvällstid'],
+  ['Blåtungad skink', 'Tiliqua', '🦎', 'öken', '26–30', '35–38', '20–24', '40–60', 'Ja, UVB rekommenderas', 2, 'Allätare som äter både grönt och djur'],
+  ['Pilgiftsgroda', 'Dendrobatidae', '🐸', 'trop', '22–26', '26–27', '18–22', '80–100', 'Svag UVB är bra för växterna och grodan', 1, 'Odlade grodor är inte giftiga. Rör dem ändå inte i onödan'],
+  ['Fågelspindel', 'Theraphosidae', '🕷️', 'rum', '22–26', '26–28', '18–22', '50–70', 'Behövs inte', 0, 'Ta bort uteblivet byte efter ett dygn'],
+  ['Vandrande pinne', 'Phasmatodea', '🌿', 'rum', '20–25', '–', '18–20', '60–70', 'Behövs inte', 2, 'Äter blad, och de måste vara obesprutade'],
+];
+const terrOf = n => TERR.find(t => t[0] === n);
+const RFOOD = {
+  'Skäggagam': [['Syrsor och kackerlackor (dubia)', 'Maskros, groblad och klöver', 'Ruccola, endivesallad och kålrabbiblad', 'Hibiskusblommor', 'Riven butternutpumpa'], ['Vilda insekter, de kan vara besprutade', 'Eldflugor, livsfarliga', 'Avokado', 'Rabarber', 'Spenat i stor mängd', 'Isbergssallad', 'Citrusfrukter och lök'], 'Pudra insekterna med kalk med D3 flera gånger i veckan.'],
+  'Leopardgecko': [['Syrsor', 'Kackerlackor (dubia)', 'Mjölmask', 'Zophobas sparsamt, den är fet', 'Kalkpulver i en egen skål'], ['Frukt och grönsaker, den kan inte smälta dem', 'Vilda insekter', 'Byten som är större än avståndet mellan ögonen'], 'Leopardgeckos äter bara insekter. Pudra insekterna med kalk.'],
+  'Majsorm': [['Hela möss, frysta och upptinade', 'Bytet ska vara lika brett som ormens bredaste del', 'Unga ormar var 5–7 dag, vuxna var 10–14 dag'], ['Levande gnagare, de kan skada ormen', 'Byten som är för stora', 'Rått kött och korv'], 'Låt ormen vara i fred ett par dagar efter maten så att den inte kräks upp den.'],
+  'Kungspyton': [['Hela råttor eller möss, frysta och upptinade', 'Bytet ska vara lika brett som ormens bredaste del'], ['Levande gnagare', 'Byten som är för stora', 'Rått kött'], 'Låt ormen vara i fred ett par dagar efter maten.'],
+  'Kronkamgecko': [['Färdigt fruktmos för kronkamgeckos', 'Syrsor ibland', 'Mosad mango eller banan ibland'], ['Avokado', 'Citrusfrukter', 'Vilda insekter', 'För stora insekter'], 'Ge färdigfoder som grund, det har rätt kalk och vitaminer.'],
+  'Blåtungad skink': [['Grönsaker och blad', 'Lite frukt', 'Insekter och snäckor', 'Kokt ägg ibland'], ['Avokado', 'Rabarber', 'Lök och vitlök', 'Citrusfrukter'], 'Ungefär hälften grönt och hälften protein.'],
+  'Pilgiftsgroda': [['Springstjärtar', 'Fruktflugor som inte kan flyga', 'Pudra med vitamin och kalk'], ['Större insekter', 'Vilda insekter'], 'Pilgiftsgrodor behöver mat varje eller varannan dag.'],
+  'Fågelspindel': [['Syrsor', 'Kackerlackor', 'Byte som är mindre än kroppen'], ['Vilda insekter', 'Mat under skalömsningen'], 'Mata inte när den ska ömsa skal, då kan bytet skada den.'],
+  'Vandrande pinne': [['Björnbärs- och hallonblad', 'Hassel och ek', 'Rosblad', 'Allt obesprutat'], ['Blad från besprutade växter', 'Murgröna och andra giftiga blad', 'Vissna eller mögliga blad'], 'Ställ kvistarna i en vas med vatten och lock så de håller sig fräscha.'],
+};
+const TERR_TIPS = { 'öken': 'Haworthia, gasteria, echeveria och andra mjuka suckulenter utan taggar', 'trop': 'Bromelia, tillandsia, fittonia, ormbunkar och mossor', 'rum': 'Gullranka, ampellilja och klängfikus fungerar bra' };
+function terrChecks(a) {
+  const tr = terrOf(a.sp), out = [], ids = a.plants || [];
+  if (!tr) return out;
+  const pl = myPlantsP().filter(([m]) => ids.includes(m.id)), hum = tempRange(tr[7] + '');
+  pl.forEach(([m, p]) => {
+    if (tr[9]) { const r = toxFor(p, 'reptil', tr[0].toLowerCase()); if (r && (r[0] === 'd' || r[0] === 'w')) out.push([r[0], `${m.name} kan vara giftig och ${tr[0].toLowerCase()}en kan äta den. ${r[1]}.`]); }
+    if (tr[3] === 'öken' && /hög/i.test(p.humidity || '')) out.push(['w', `${m.name} vill ha hög luftfuktighet, men terrariet ska vara torrt (${tr[7]} %).`]);
+    if (tr[3] === 'trop' && p.category === 'Kaktus') out.push(['w', `${m.name} ruttnar lätt i ett fuktigt terrarium (${tr[7]} %).`]);
+    if (/tagg/i.test(p.toxicity_text || '') || (p.category === 'Kaktus' && /Opuntia|Echinocactus|Mammillaria|Cereus/i.test(p.latin_name || ''))) out.push(['w', `${m.name} har taggar som kan skada djuret.`]);
+    if (tr[3] === 'öken' && hum && p.water_level >= 3) out.push(['w', `${m.name} behöver mycket vatten, det passar inte i ett ökenterrarium.`]);
+  });
+  if (pl.length && !out.length) out.push(['s', 'Växterna passar i terrariet.']);
+  return out;
+}
+function togTerrPlant(pid, mid) { const a = S.pets.list.find(x => x.id === pid); a.plants = a.plants || []; a.plants = a.plants.includes(mid) ? a.plants.filter(x => x !== mid) : a.plants.concat(mid); savePets(); keepMain(); }
+function terrV(a) {
+  const tr = terrOf(a.sp); if (!tr) return '';
+  const inner = myPlantsP().filter(([m, p]) => INDOOR.includes(p.category) && p.category !== 'Akvarieväxt'), ids = a.plants || [], chk = terrChecks(a);
+  const lvIcon = { d: '⛔', w: '⚠️', u: 'ℹ️', s: '✅' };
+  return `<div class="terr"><div class="tgrid"><div><small>Dag</small><b>${tr[4]} °C</b></div><div><small>Varmplats</small><b>${tr[5]}${tr[5] === '–' ? '' : ' °C'}</b></div><div><small>Natt</small><b>${tr[6]} °C</b></div><div><small>Luftfuktighet</small><b>${tr[7]} %</b></div></div>
+    <p class="tuv"><b>UVB:</b> ${tr[8]}</p><p class="tuv">${esc(tr[10])}.</p>
+    <h4>Växter i terrariet</h4>${inner.length ? `<div class="chips2">${inner.map(([m]) => `<button class="${ids.includes(m.id) ? 'on' : ''}" onclick="togTerrPlant(${a.id},${m.id})">${esc(m.name)}</button>`).join('')}</div>` : '<p class="mut" style="margin:4px 0">Lägg till växter i din samling först.</p>'}
+    ${chk.length ? `<div class="aqchk" style="margin-top:10px">${chk.map(c => `<div class="ac ${c[0]}"><span>${lvIcon[c[0]]}</span><span>${c[1]}</span></div>`).join('')}</div>` : ''}
+    <p class="tuv" style="margin-top:10px">🌱 <b>Passar bra:</b> ${TERR_TIPS[tr[3]]}${tr[9] ? '. Kolla alltid att växten är ofarlig, för djuret kan äta den' : ''}.</p></div>`;
+}
+
 function openAqDb() { S.env = 'in'; S.cat = 'Akvarieväxt'; S.q = ''; openDb(); }
 
 // ===== Odlare att följa (influencers) =====
@@ -4507,7 +4568,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.48';
+const APP_VERSION = '1.49';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
