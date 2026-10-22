@@ -700,6 +700,7 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 .tool.wide .grow{display:flex;flex-direction:column;gap:2px}.tool.wide b{margin-top:0}
 .tool.wide .grow>span{font-size:12.5px;color:var(--mut)}
 .tool.wide.t-doc{background:linear-gradient(120deg,var(--surf),#F7E9E2)}
+.tic.db{background:#DFEBD6;color:#2F5E24}.dbcount{flex:none;font-size:12px;font-weight:800;color:var(--pri);background:var(--soft);border-radius:999px;padding:4px 10px}
 .tic.house{background:#F3E6CF;color:#7A5520}.tic.smart{background:#E7E1F2;color:#4F4377}
 .hcfgrow{display:flex;justify-content:center;padding:18px 18px 26px}
 .hcfgb{border:0;background:var(--surf);color:var(--mut);font:inherit;font-size:13.5px;font-weight:700;border-radius:999px;padding:10px 16px;display:flex;gap:7px;align-items:center;box-shadow:var(--sh);cursor:pointer}
@@ -2392,7 +2393,7 @@ function render() {
   else if (S.err) m.innerHTML = `<div class="center"><h2>Kunde inte hämta växterna</h2><p class="mut">Kontrollera internetanslutningen och försök igen.</p><p class="mut">${esc(S.err.message || S.err)}</p></div>`;
   else {
     m.innerHTML = S.sel ? detail() : S.tool ? toolV() : S.tab === 'home' ? home() : S.tab === 'mine' ? mineV() : S.tab === 'me' ? meV() : comm();
-    if (!S.sel && !S.tool && S.tab === 'home') renderList();
+    if (!S.sel && (S.tool === 'db' || (!S.tool && S.tab === 'home'))) renderList();
   }
   $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'pro' ? proV() : addV()}</div></div>` : '';
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); }
@@ -2423,7 +2424,7 @@ function applyView(h) {
   stopLight(); S.sel = null; S.tool = null; S.post = null; S.forum = null; S.del = null; S.newL = false; S.newCase = false;
   if (a[0] === 'v' && S.plants.some(p => p.id === +a[1])) S.sel = +a[1];
   else if (a[0] === 't' && a[1] === 'settings') { openSettings(); return true; }
-  else if (a[0] === 't' && (a[1] === 'season' || a[1] === 'smart' || a[1] === 'doc')) S.tool = a[1];
+  else if (a[0] === 't' && (a[1] === 'season' || a[1] === 'smart' || a[1] === 'doc' || a[1] === 'db')) S.tool = a[1];
   else if (a[0] === 't' && a[1] === 'house' && S.user) { S.tool = 'house'; S.room = a[2] || null; }
   else if (a[0] === 't' && ['id', 'light'].includes(a[1]) && S.pro) S.tool = a[1];
   else if (a[0] === 'c') {
@@ -2468,7 +2469,7 @@ function home() {
   const bell = `<button class="circ" onclick="go('mine')" aria-label="${due.length ? due.length + ' växter behöver vatten' : 'Vattningspåminnelser'}">${ic(I.bell, null, 22)}${due.length ? `<span class="dot">${due.length}</span>` : ''}</button>`;
   const fp = S.plants.find(p => /Monstera/.test(p.latin_name)) || S.plants[0] || {};
   const intro = `<div class="hero">${ph(fp.latin_name, fp.category, fp.swedish_name || 'x')}<div class="shade"></div><div class="hero-t">${S.user
-    ? `<h2>Börja din samling</h2><p>Tryck på hjärtat på en växt du har, så påminner vi dig när den behöver vatten.</p><button class="pillbtn" onclick="$('.search input').focus()">Sök växter</button>`
+    ? `<h2>Börja din samling</h2><p>Tryck på hjärtat på en växt du har, så påminner vi dig när den behöver vatten.</p><button class="pillbtn" onclick="openDb(true)">Sök växter</button>`
     : `<h2>Ditt grannskap för växter</h2><p>Spara dina växter, få vattningspåminnelser och fråga andra.</p><button class="pillbtn" onclick="openModal('login')">Kom igång</button>`}</div></div>`;
   const city = S.city || '';
   return `<div class="homehead"><div class="grow"><h1 class="brand">Roothood</h1><span>${S.user ? 'Hej' + (name ? ' ' + esc(name) : '') + '! ' + sub : sub}</span></div>
@@ -2534,11 +2535,21 @@ function weatherV() {
     ${warn.length ? `<div class="wxwarn">${warn.slice(0, S.wxAll ? 99 : 2).map(x => `<div class="wxw w-${x[0]}"><span class="wwi">${x[1]}</span><div><b>${x[2]}</b><span>${x[3]}</span></div></div>`).join('')}${warn.length > 2 ? `<button class="link3" style="align-self:flex-start" onclick="S.wxAll=!S.wxAll;render()">${S.wxAll ? 'Visa färre' : 'Visa ' + (warn.length - 2) + ' varningar till'}</button>` : ''}</div>` : `<p class="wxok">Inga vädervarningar för dina växter just nu.</p>`}
     <p class="wxsrc">Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}</p></div>`;
 }
+function openDb(focus) { stopLight(); S.sel = null; S.modal = null; S.tool = 'db'; render(); $('#main').scrollTop = 0; if (focus) setTimeout(() => { const i = $('.search input'); if (i) i.focus(); }, 50); }
+function dbV() {
+  return `${topbar('Växtdatabasen', 'closeTool()')}
+  <div class="seg2" role="tablist">${[['all', 'Båda'], ['in', 'Inomhus'], ['out', 'Utomhus']].map(([k, t]) => `<button class="${S.env === k ? 'on' : ''}" role="tab" aria-selected="${S.env === k}" onclick="setEnv('${k}')">${t}</button>`).join('')}</div>
+  <div class="searchrow"><div class="search">${ic(I.search, null, 20)}<input type="search" placeholder="Sök växt eller vetenskapligt namn" value="${esc(S.q)}" oninput="S.q=this.value;renderList()" aria-label="Sök växter"></div></div>
+  <div class="sec"><h2>Alla växter</h2><span class="mut" id="count"></span></div>
+  <div class="tabs" role="tablist">${['Alla'].concat(envCats()).map(c => `<button class="tab ${c === S.cat ? 'on' : ''}" role="tab" aria-selected="${c === S.cat}" onclick="S.cat='${c}';render()">${c}</button>`).join('')}${store.get('zone', 0) && S.env !== 'in' ? `<button class="tab ${S.cat === 'zon' ? 'on' : ''}" role="tab" aria-selected="${S.cat === 'zon'}" onclick="S.cat='zon';render()">Klarar zon ${store.get('zone', 0)}</button>` : ''}</div>
+  <div class="grid" id="list"></div>`;
+}
 // ===== Anpassa startskärmen =====
 const HB = [
   ['alerts', 'Varningar', 'Torr jord, luftfukt och vattning idag'],
   ['weather', 'Väder', 'Väder där du bor och varningar för dina växter'],
   ['mine', 'Mina växter', 'Dina växter med temperatur, fukt och ljus'],
+  ['db', 'Växtdatabasen', 'Sök bland alla växter och skötselråd', 'tool'],
   ['local', 'Händer nära dig', 'Byten och fall från din ort'],
   ['id', 'Identifiera växt', 'Fota och få svar', 'tool'],
   ['light', 'Ljusmätare', 'Mät ljuset hemma', 'tool'],
@@ -2546,20 +2557,19 @@ const HB = [
   ['house', 'Mitt hem', 'Rum, väderstreck och ritning', 'tool'],
   ['smart', 'Smarta hemmet', 'Sensorer, lampa och bevattning', 'tool'],
   ['season', 'Säsongstips', 'Vad du kan göra just nu'],
-  ['plants', 'Alla växter', 'Sök och bläddra i växtdatabasen']
 ];
 const HB_M = Object.fromEntries(HB.map(b => [b[0], b]));
-const HB_DEF = { id: 's', light: 's', doc: 'w', house: 's', smart: 's' };
+const HB_DEF = { db: 'w', id: 's', light: 's', doc: 'w', house: 's', smart: 's' };
 function homeLayout() {
   let L = S.layout || store.get('homeLayout', null);
   if (!Array.isArray(L)) L = [];
-  L = L.filter(x => HB_M[x.k]);
+  L = L.map(x => x.k === 'plants' ? { k: 'db', on: x.on, w: 'w' } : x).filter((x, i, a) => HB_M[x.k] && a.findIndex(y => y.k === x.k) === i);
   HB.forEach(b => { if (!L.some(x => x.k === b[0])) L.push({ k: b[0], on: true, w: HB_DEF[b[0]] }); });
   return S.layout = L;
 }
 function toolTile(k, size) {
   const lock = S.pro ? '' : '<span class="protag">PRO</span>';
-  const T = { id: [CAM, '', "openTool('id')", lock], light: [I.sun, 'sun', "openTool('light')", lock], doc: [DOCI, 'doc', 'openDoc()', ''], house: [DOORI, 'house', 'openHouse()', ''], smart: [HOMEI, 'smart', 'openSmart()', ''] }[k];
+  const T = { db: [I.search, 'db', 'openDb()', `<span class="dbcount">${S.plants.length} växter</span>`], id: [CAM, '', "openTool('id')", lock], light: [I.sun, 'sun', "openTool('light')", lock], doc: [DOCI, 'doc', 'openDoc()', ''], house: [DOORI, 'house', 'openHouse()', ''], smart: [HOMEI, 'smart', 'openSmart()', ''] }[k];
   const b = HB_M[k];
   return size === 'w' ? `<button class="tool wide t-${k}" onclick="${T[2]}"><span class="tic ${T[1]}">${ic(T[0], 'currentColor', 24)}</span><span class="grow"><b>${b[1]}</b><span>${b[2]}</span></span>${T[3]}</button>`
     : `<button class="tool t-${k}" onclick="${T[2]}"><span class="tic ${T[1]}">${ic(T[0], 'currentColor', 24)}</span><b>${b[1]}</b><span>${b[2]}</span>${T[3]}</button>`;
@@ -2575,11 +2585,6 @@ function homeBlocks(intro) {
     else if (x.k === 'mine') out.push(S.user && S.mine.length ? `<div class="sec cap2"><h2>Mina växter</h2><button class="viewall" onclick="go('mine')">Visa alla</button></div><div class="mycards big">${S.mine.map(myCard).join('')}</div>` : intro);
     else if (x.k === 'local') out.push(localV());
     else if (x.k === 'season') out.push(seasonCard());
-    else if (x.k === 'plants') out.push(`<div class="seg2" role="tablist">${[['all', 'Båda'], ['in', 'Inomhus'], ['out', 'Utomhus']].map(([k, t]) => `<button class="${S.env === k ? 'on' : ''}" role="tab" aria-selected="${S.env === k}" onclick="setEnv('${k}')">${t}</button>`).join('')}</div>
-  <div class="searchrow"><div class="search">${ic(I.search, null, 20)}<input type="search" placeholder="Sök växt eller vetenskapligt namn" value="${esc(S.q)}" oninput="S.q=this.value;renderList()" aria-label="Sök växter"></div></div>
-  <div class="sec"><h2>Alla växter</h2><span class="mut" id="count"></span></div>
-  <div class="tabs" role="tablist">${['Alla'].concat(envCats()).map(c => `<button class="tab ${c === S.cat ? 'on' : ''}" role="tab" aria-selected="${c === S.cat}" onclick="S.cat='${c}';render()">${c}</button>`).join('')}${store.get('zone', 0) && S.env !== 'in' ? `<button class="tab ${S.cat === 'zon' ? 'on' : ''}" role="tab" aria-selected="${S.cat === 'zon'}" onclick="S.cat='zon';render()">Klarar zon ${store.get('zone', 0)}</button>` : ''}</div>
-  <div class="grid" id="list"></div>`);
   });
   flush();
   return out.join('\n');
@@ -3371,7 +3376,7 @@ function docV() {
 }
 function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { stopLight(); S.tool = null; render(); }
-function toolV() { return S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'smart' ? smartV() : lightV(); }
+function toolV() { return S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'smart' ? smartV() : lightV(); }
 
 // --- Säsongstips ---
 // Varje tips: [typ, rubrik, text, månader i zon 1–2, zon 3–5, zon 6–8]. En lista gäller alla zoner.
@@ -3752,7 +3757,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.33';
+const APP_VERSION = '1.34';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
