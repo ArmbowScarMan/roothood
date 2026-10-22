@@ -2209,8 +2209,24 @@ function restoreWall(seg) {
   if (!changed) { S.undo.pop(); return null; }
   saveHomeSoon(); return `Väggen är tillbaka (${r1(a1 - a0)} m).`;
 }
+// Ta bort hela eller en del av en fri vägg (ritad med Lägg till vägg eller Halvvägg)
+function removeFreeWall(pt, pt2) {
+  const ws = planWalls().filter(w => w.h !== 'hedge'); if (!ws.length) return null;
+  const dW = w => Math.min(segDist(pt.x, pt.y, [w.x1, w.y1, w.x2, w.y2]), pt2 ? segDist(pt2.x, pt2.y, [w.x1, w.y1, w.x2, w.y2]) : 99);
+  let fw = null; ws.forEach(w => { const d = dW(w); if (d < 0.45 && (!fw || d < fw.d)) fw = { w, d }; }); if (!fw) return null;
+  let roomD = 99; planRooms().forEach(r => ['t', 'r', 'b', 'l'].forEach(s => { const sd = wallSeg(r, { s, p: 0, l: sideLen(r, s) }); roomD = Math.min(roomD, segDist(pt.x, pt.y, sd)); }));
+  if (roomD < fw.d - 0.05) return null;
+  const w = fw.w, dx = w.x2 - w.x1, dy = w.y2 - w.y1, L2 = dx * dx + dy * dy || 1, L = Math.sqrt(L2), tOf = q => Math.max(0, Math.min(1, ((q.x - w.x1) * dx + (q.y - w.y1) * dy) / L2));
+  pushUndo(); let rest = planWalls().filter(x => x !== w), cut = L;
+  if (pt2) { let t0 = tOf(pt), t1 = tOf(pt2); if (t0 > t1) [t0, t1] = [t1, t0];
+    if ((t1 - t0) * L >= 0.2) { cut = (t1 - t0) * L; const mk = (a, b, id) => ({ id, x1: r1(w.x1 + dx * a), y1: r1(w.y1 + dy * a), x2: r1(w.x1 + dx * b), y2: r1(w.y1 + dy * b), h: w.h });
+      if (t0 * L > 0.1) rest.push(mk(0, t0, w.id + 'a')); if ((1 - t1) * L > 0.1) rest.push(mk(t1, 1, w.id + 'b')); } }
+  S.hplan.walls = rest; saveHomeSoon();
+  return `${w.h === 'half' ? 'Halvväggen' : 'Väggen'} är borttagen (${r1(cut)} m). Ångra om det blev fel.`;
+}
 function addWin(pt, pt2) {
   const P = PL(), kind = P.wkind || 'win';
+  if (kind === 'open') { const m = removeFreeWall(pt, pt2); if (m) return planMsg(m); }
   // tryck på något som redan finns = ta bort det
   if (!pt2) for (const r of planRooms()) {
     const bi = kind !== 'bay' ? -1 : (r.bays || []).findIndex(b => baySegs(r, b).some(g => segDist(pt.x, pt.y, g[0]) < 0.4));
@@ -4102,7 +4118,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.42';
+const APP_VERSION = '1.43';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
