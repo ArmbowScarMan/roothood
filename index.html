@@ -758,6 +758,10 @@ button.pw{cursor:pointer}
 .plinks{display:flex;gap:16px;flex-wrap:wrap}
 .terr{margin-top:8px;border-top:1px solid var(--line,#E4DCCE);padding-top:10px}
 .terr h4{margin:12px 0 6px;font-size:14.5px}
+.bgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.bgrid div{background:var(--bg);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:2px}
+.bgrid small{font-size:11px;color:var(--mut)}
+.bgrid b{font-size:13px;line-height:1.3}
 .tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .tgrid div{background:var(--bg);border-radius:12px;padding:8px 6px;text-align:center;display:flex;flex-direction:column;gap:2px}
 .tgrid small{font-size:11px;color:var(--mut)}
@@ -3373,7 +3377,7 @@ function toxFor(p, kind, label) {
   if (o && (LV[o[0]] > LV[r[0]] || o[0] === 's')) r = o;
   return r;
 }
-const petEmoji = (k, sp) => k === 'reptil' && terrOf(sp) ? terrOf(sp)[2] : (PK[k] || ['', '🐾'])[1];
+const petEmoji = (k, sp) => k === 'reptil' && terrOf(sp) ? terrOf(sp)[2] : k === 'fagel' && birdOf(sp) ? birdOf(sp)[2] : (PK[k] || ['', '🐾'])[1];
 function toxPet(p, a) { if (a.kind !== 'reptil') return toxFor(p, a.kind); const tr = terrOf(a.sp); return tr && tr[9] ? toxFor(p, 'reptil', tr[0].toLowerCase()) : null; }
 const petsList = () => ((S.pets && S.pets.list) || []);
 const animals = () => petsList().filter(x => x.kind !== 'fisk');
@@ -3394,6 +3398,7 @@ async function openPets() { stopLight(); S.sel = null; S.modal = null; S.tool = 
 function addPet() {
   const k = S.pk || 'katt';
   if (k === 'fisk') { const sp = $('#pfish').value, n = Math.max(1, Math.min(99, +$('#pcount').value || 1)); const ex = petsList().find(x => x.kind === 'fisk' && x.sp === sp); if (ex) ex.n += n; else S.pets.list.push({ id: Date.now(), kind: 'fisk', name: sp, sp, n }); toast(n + ' ' + sp.toLowerCase() + ' i akvariet'); }
+  else if (k === 'fagel') { const sp = $('#pbird').value, name = ($('#pname').value || '').trim() || sp || 'Fågel'; S.pets.list.push({ id: Date.now(), kind: 'fagel', name, sp }); S.birdOpen = S.pets.list[S.pets.list.length - 1].id; toast(name + ' är tillagd'); }
   else if (k === 'reptil') { const sp = $('#prep').value, name = ($('#pname').value || '').trim() || sp; S.pets.list.push({ id: Date.now(), kind: 'reptil', name, sp, plants: [] }); S.terOpen = S.pets.list[S.pets.list.length - 1].id; toast(name + ' är tillagd'); }
   else { const name = ($('#pname').value || '').trim() || PK[k][0]; S.pets.list.push({ id: Date.now(), kind: k, name, sp: ($('#pbreed').value || '').trim() }); toast(name + ' är tillagd'); }
   S.petAdd = false; savePets(); keepMain();
@@ -3424,19 +3429,19 @@ function petFormV() {
   const k = S.pk || 'katt';
   return `<div class="setcard petform"><label class="fl" style="margin-top:0">Vilket djur?</label>
     <div class="chips2">${Object.keys(PK).map(x => `<button class="${k === x ? 'on' : ''}" onclick="S.pk='${x}';keepMain()">${PK[x][1]} ${x === 'gnagare' ? 'Gnagare' : x === 'reptil' ? 'Reptil och terrarium' : PK[x][0]}</button>`).join('')}</div>
-    ${k === 'reptil' ? `<label class="fl" for="prep">Art</label><select id="prep">${TERR.map(t => `<option>${t[0]}</option>`).join('')}</select><label class="fl" for="pname">Namn</label><input id="pname" maxlength="40" placeholder="t.ex. Draken">` : k === 'fisk' ? `<label class="fl" for="pfish">Art</label><select id="pfish">${FISH.map(f => `<option>${f[0]}</option>`).join('')}</select>
+    ${k === 'fagel' ? `<label class="fl" for="pbird">Art</label><select id="pbird">${BIRDS.map(b => `<option>${b[0]}</option>`).join('')}<option value="">Annan fågel</option></select><label class="fl" for="pname">Namn</label><input id="pname" maxlength="40" placeholder="t.ex. Pippi">` : k === 'reptil' ? `<label class="fl" for="prep">Art</label><select id="prep">${TERR.map(t => `<option>${t[0]}</option>`).join('')}</select><label class="fl" for="pname">Namn</label><input id="pname" maxlength="40" placeholder="t.ex. Draken">` : k === 'fisk' ? `<label class="fl" for="pfish">Art</label><select id="pfish">${FISH.map(f => `<option>${f[0]}</option>`).join('')}</select>
       <label class="fl" for="pcount">Antal</label><input id="pcount" type="number" min="1" max="99" value="1" inputmode="numeric">`
     : `<label class="fl" for="pname">Namn</label><input id="pname" maxlength="40" placeholder="${k === 'katt' ? 't.ex. Misse' : k === 'hund' ? 't.ex. Bamse' : 'Djurets namn'}">
       <label class="fl" for="pbreed">Ras eller art (valfritt)</label><input id="pbreed" maxlength="40" placeholder="${k === 'fagel' ? 't.ex. undulat' : k === 'gnagare' ? 't.ex. hamster' : 't.ex. ' + (k === 'hund' ? 'labrador' : k === 'katt' ? 'huskatt' : 'ras')}">`}
     <div style="display:flex;gap:8px;margin-top:14px"><button class="btn" style="flex:1" onclick="addPet()">Lägg till</button>${petsList().length ? '<button class="btn line" onclick="S.petAdd=false;keepMain()">Avbryt</button>' : ''}</div></div>`;
 }
 function petCard(a) {
-  const f = a.kind === 'reptil' ? RFOOD[a.sp] : PFOOD[a.kind], open = S.petOpen === a.id, sure = S.del === 'pet' + a.id, topen = S.terOpen === a.id, rt = a.kind === 'reptil';
+  const f = a.kind === 'reptil' ? RFOOD[a.sp] : a.kind === 'fagel' && birdOf(a.sp) ? BFOOD[birdOf(a.sp)[3]] : PFOOD[a.kind], bd = a.kind === 'fagel' && birdOf(a.sp), bopen = S.birdOpen === a.id, open = S.petOpen === a.id, sure = S.del === 'pet' + a.id, topen = S.terOpen === a.id, rt = a.kind === 'reptil';
   const bad = myPlantsP().filter(([m, p]) => { const r = toxPet(p, a); return r && (r[0] === 'd' || r[0] === 'w'); }).length;
   return `<div class="petc"><div class="petr"><span class="pem">${petEmoji(a.kind, a.sp)}</span><span class="grow"><b>${esc(a.name)}</b><span>${esc(a.sp || PK[a.kind][0])}${rt && !terrOf(a.sp)[9] ? ' · äter inte växter' : bad ? ` · <em class="bad">${bad} giftig${bad > 1 ? 'a' : ''} växt${bad > 1 ? 'er' : ''} hemma</em>` : ' · inga giftiga växter hemma'}</span></span>
     <button class="x ${sure ? 'sure' : ''}" onclick="delPet(${a.id})">${sure ? 'Bekräfta' : 'Ta bort'}</button></div>
-    <div class="plinks"><button class="link3" onclick="S.petOpen=${open ? 'null' : a.id};keepMain()">${open ? 'Dölj maten' : 'Vad kan ' + esc(a.name) + ' äta?'}</button>${rt ? `<button class="link3" onclick="S.terOpen=${topen ? 'null' : a.id};keepMain()">${topen ? 'Dölj terrariet' : '🏜️ Terrariet'}</button>` : ''}</div>
-    ${open && f ? `<div class="food"><div><h4>✅ Kan äta</h4><ul>${f[0].map(x => `<li>${x}</li>`).join('')}</ul></div><div><h4>⛔ Får inte äta</h4><ul>${f[1].map(x => `<li>${x}</li>`).join('')}</ul></div><p>${f[2]}</p></div>` : ''}${rt && topen ? terrV(a) : ''}</div>`;
+    <div class="plinks"><button class="link3" onclick="S.petOpen=${open ? 'null' : a.id};keepMain()">${open ? 'Dölj maten' : 'Vad kan ' + esc(a.name) + ' äta?'}</button>${rt ? `<button class="link3" onclick="S.terOpen=${topen ? 'null' : a.id};keepMain()">${topen ? 'Dölj terrariet' : '🏜️ Terrariet'}</button>` : ''}${bd ? `<button class="link3" onclick="S.birdOpen=${bopen ? 'null' : a.id};keepMain()">${bopen ? 'Dölj' : '🪺 Fågelns behov'}</button>` : ''}</div>
+    ${open && f ? `<div class="food"><div><h4>✅ Kan äta</h4><ul>${f[0].map(x => `<li>${x}</li>`).join('')}</ul></div><div><h4>⛔ Får inte äta</h4><ul>${f[1].map(x => `<li>${x}</li>`).join('')}</ul></div><p>${f[2]}</p></div>` : ''}${rt && topen ? terrV(a) : ''}${bd && bopen ? birdV(a) : ''}</div>`;
 }
 function petsV() {
   if (!S.pets) { loadPets().then(() => S.tool === 'pets' && render()); return `${topbar('Mina djur', 'closeTool()')}<p class="mut" style="margin:0 18px">Hämtar…</p>`; }
@@ -3485,6 +3490,27 @@ const RFOOD = {
   'Vandrande pinne': [['Björnbärs- och hallonblad', 'Hassel och ek', 'Rosblad', 'Allt obesprutat'], ['Blad från besprutade växter', 'Murgröna och andra giftiga blad', 'Vissna eller mögliga blad'], 'Ställ kvistarna i en vas med vatten och lock så de håller sig fräscha.'],
 };
 const TERR_TIPS = { 'öken': 'Haworthia, gasteria, echeveria och andra mjuka suckulenter utan taggar', 'trop': 'Bromelia, tillandsia, fittonia, ormbunkar och mossor', 'rum': 'Gullranka, ampellilja och klängfikus fungerar bra' };
+// Fåglar: [namn, latin, emoji, matgrupp, bur/plats, temperatur, ljus, sällskap, not]
+const BIRDS = [
+  ['Undulat', 'Melopsittacus undulatus', '🦜', 'frö', 'Minst 80 × 40 × 50 cm, hellre bred än hög', '18–25 °C, inget drag', 'Dagsljus eller fågellampa med UV', 'Minst två, de blir ensamma annars', 'Behöver flyga fritt i rummet varje dag'],
+  ['Nymfparakit', 'Nymphicus hollandicus', '🦜', 'frö', 'Minst 100 × 50 × 80 cm', '18–25 °C', 'Dagsljus eller fågellampa med UV', 'Minst två', 'Behöver flyga fritt varje dag och tycker om att bli kliad'],
+  ['Kanariefågel', 'Serinus canaria domestica', '🐤', 'frö', 'Minst 60 × 30 × 40 cm, längden är viktigast', '16–24 °C', 'Dagsljus, gärna fågellampa på vintern', 'Kan bo ensam, hanen sjunger mest då', 'Badar gärna i ett badhus'],
+  ['Zebrafink', 'Taeniopygia guttata', '🐦', 'frö', 'Minst 80 × 40 × 40 cm', '18–25 °C', 'Dagsljus eller fågellampa med UV', 'Par eller liten flock', 'Bygger gärna bo, ge torrt gräs och kokosfiber'],
+  ['Dvärgpapegoja', 'Agapornis', '🦜', 'frö', 'Minst 100 × 50 × 60 cm', '20–25 °C', 'Fågellampa med UV', 'Par', 'Gnager mycket, ge kvistar från fruktträd'],
+  ['Grå jako', 'Psittacus erithacus', '🦜', 'papegoja', 'Stor voljär eller bur på minst 120 × 80 × 120 cm', '18–25 °C', 'Fågellampa med UV, 10–12 timmar ljus', 'Behöver mycket sällskap och aktivering varje dag', 'Kan leva i över 50 år och lär sig prata'],
+  ['Vaktel', 'Coturnix japonica', '🐦', 'vaktel', 'Stor golvyta, de springer mer än flyger', 'Tål svalt men behöver frostfritt skydd', 'Dagsljus', 'Flock, gärna en tupp på 3–4 hönor', 'Lägger små prickiga ägg nästan varje dag'],
+  ['Anka', 'Anas platyrhynchos domesticus', '🦆', 'anka', 'Hage ute med skydd över natten', 'Klarar kyla med skydd mot blåst', 'Dagsljus', 'Minst två', 'Behöver vatten att doppa huvudet och bada i'],
+];
+const birdOf = n => BIRDS.find(b => b[0] === n);
+const BFOOD = {
+  'frö': [['Fröblandning för arten', 'Broccoli, morot, paprika och gurka', 'Maskros och groddar', 'Hirs som godis', 'Sepiaskal för kalk'], ['Avokado, livsfarlig', 'Choklad, kaffe och te', 'Lök och vitlök', 'Salt mat och chips', 'Äppelkärnor och fruktkärnor', 'Rabarber', 'Alkohol'], 'Byt vatten varje dag. Fröskal i matskålen kan se ut som mat fast den är tom, så blås bort skalen.'],
+  'papegoja': [['Pellets som bas', 'Frukt och grönsaker varje dag', 'Nötter i små mängder', 'Kokt ägg ibland'], ['Avokado, livsfarlig', 'Choklad, kaffe och te', 'Lök och vitlök', 'Salt och fet mat', 'Fruktkärnor', 'För mycket solrosfrön, de är feta'], 'Göm mat i leksaker så får den något att göra.'],
+  'vaktel': [['Vaktel- eller kycklingfoder med mycket protein', 'Grönt som sallad och maskros', 'Mjölmask', 'Snäckskal för kalk'], ['Avokado', 'Gröna potatisskal', 'Choklad', 'Salt mat', 'Möglig mat'], 'Vaktlar behöver mycket protein, särskilt när de värper.'],
+  'anka': [['Foder för ankor eller sjöfåglar', 'Grönt, gräs och maskros', 'Ärtor och majs', 'Snäckskal för kalk'], ['Bröd, det ger felväxta vingar', 'Avokado', 'Choklad', 'Lök', 'Möglig mat'], 'Ge maten nära vatten, ankor sköljer maten när de äter.'],
+};
+function birdV(a) { const b = birdOf(a.sp); if (!b) return '';
+  return `<div class="terr"><div class="bgrid"><div><small>Bur eller plats</small><b>${b[4]}</b></div><div><small>Temperatur</small><b>${b[5]}</b></div><div><small>Ljus</small><b>${b[6]}</b></div><div><small>Sällskap</small><b>${b[7]}</b></div></div><p class="tuv">${esc(b[8])}.</p><p class="tuv">⚠️ Fåglar är känsliga för ångor. Använd inte teflonpannor och starka dofter nära fågeln.</p></div>`; }
+
 function terrChecks(a) {
   const tr = terrOf(a.sp), out = [], ids = a.plants || [];
   if (!tr) return out;
@@ -5154,7 +5180,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.61';
+const APP_VERSION = '1.62';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
