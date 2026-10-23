@@ -654,7 +654,26 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 .pzoom button{border:0;background:var(--surf);color:var(--ink);width:40px;height:40px;border-radius:14px;box-shadow:var(--sh);font-size:20px;font-weight:700;cursor:pointer}
 .pmk{width:28px;height:28px;border-radius:50%;overflow:hidden}
 .pmk .ph{width:28px;height:28px;border-radius:50%}.pmk svg{width:100%;height:100%}.pmk img{width:100%;height:100%;object-fit:cover}
-.planbox .psel{position:absolute;left:10px;right:60px;bottom:10px;margin:0;max-height:55%;overflow:auto}
+.planbox .pselw{position:absolute;left:8px;right:58px;bottom:8px;max-height:44%;overflow:auto;background:var(--surf);border-radius:16px;box-shadow:0 6px 20px rgba(70,52,28,.18);z-index:3}
+.planbox .pselw .psel{position:static;margin:0;box-shadow:none;border-radius:0;padding:4px 10px 10px;gap:6px;max-height:none;background:none}
+.planbox .pselw .psel .grow{min-width:90px}
+.planbox .pselw .psel .grow b{font-size:14px}
+.planbox .pselw .psel .grow span{font-size:12px}
+.planbox .pselw .btn.sm{padding:6px 11px;font-size:13px}
+.planbox .pselw .stepr button{width:26px;height:26px;font-size:15px}
+.planbox .pselw .x{font-size:13px}
+.pctl{position:sticky;top:0;display:flex;align-items:center;gap:4px;padding:5px 6px 2px 12px;background:var(--surf);z-index:1}
+.pctl b{flex:1;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pctl button{width:28px;height:28px;border:0;border-radius:9px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px;font-weight:800;line-height:1;cursor:pointer;display:grid;place-items:center}
+.pmini{position:absolute;left:8px;bottom:8px;z-index:3;display:flex;align-items:center;gap:6px;border:0;background:var(--surf);color:var(--ink);font:inherit;font-size:13.5px;font-weight:700;border-radius:99px;padding:8px 14px;box-shadow:0 6px 20px rgba(70,52,28,.18);cursor:pointer;max-width:60%}
+.pmini span{font-size:12px;color:var(--pri)}
+.planbox .bpanel .brow2 .grow b{font-size:14px}
+.planbox .bpanel .iconb{width:30px;height:30px;font-size:15px}
+.planbox .bpanel .bpick{padding:7px 10px;border-width:1.5px}
+.planbox .bpanel .bpick .grow b{font-size:13.5px}
+.planbox .bpanel .bsel{padding:6px 8px}
+.planbox .bpanel .bdims input{width:50px;padding:5px 6px;font-size:14px}
+.planbox .bpanel .btn.sm{padding:5px 10px;font-size:12.5px}
 .psel{margin:12px 18px 0;background:var(--surf);border-radius:20px;box-shadow:var(--sh);padding:12px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .psel.col{flex-direction:column;align-items:stretch}
 .psel .grow{flex:1;min-width:120px;display:flex;flex-direction:column}
@@ -2313,6 +2332,13 @@ function planV() {
   <p class="mut" style="margin:14px 18px 24px;font-size:13px">Norrpilen uppe till höger: tryck för att vrida den tills den pekar mot norr i din bostad. Fönstrens väderstreck räknas om direkt.</p>`;
 }
 function planSelV() {
+  const P = PL(), html = planSelInner(); if (!html) return '';
+  const title = ((html.match(/<b>([^<]*)<\/b>/) || [])[1] || 'Detaljer').replace(/^Sätter ut: /, '');
+  if (P.pmin) return `<button class="pmini" onclick="PL().pmin=false;render()" aria-label="Visa rutan igen"><span>▴</span>${P.mode === 'bed' ? 'Rabatt · ' : ''}${esc(title.slice(0, 26))}</button>`;
+  return `<div class="pselw"><div class="pctl"><b>${P.mode === 'bed' ? 'Rabattplanering' : esc(title.slice(0, 30))}</b><button onclick="PL().pmin=true;render()" aria-label="Minimera" title="Minimera">_</button><button onclick="closePanel()" aria-label="Stäng" title="Stäng">×</button></div>${html}</div>`;
+}
+function closePanel() { const P = PL(); P.pmin = false; if (P.mode === 'bed') { P.ssel = null; planMode('move'); return; } P.sel = null; P.vsel = null; render(); }
+function planSelInner() {
   if (PL().mode === 'bed') return bedPanelV();
   const sel = PL().sel; if (!sel) return '';
   if (sel.k === 'room') { const r = S.home.find(x => x.id === sel.id); if (!r) return '';
@@ -4943,7 +4969,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.54';
+const APP_VERSION = '1.55';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
