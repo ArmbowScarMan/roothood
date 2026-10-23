@@ -263,7 +263,7 @@ input.ro{opacity:.65}
 .snooze button{border:0;background:var(--soft);color:var(--pri);font:inherit;font-weight:700;border-radius:999px;padding:6px 14px;margin-top:8px;cursor:pointer}
 .similar.others button{width:120px}
 .others img{display:block;width:120px;height:120px;object-fit:cover;border-radius:20px;background:var(--phb)}
-.others .empty2{padding:0 18px;color:var(--mut);font-size:14px;margin:0}
+.others .empty2,p.empty2{padding:0 18px;color:var(--mut);font-size:14px;margin:0}
 .lbimg{display:block;width:100%;max-height:70vh;object-fit:contain;border-radius:18px;background:#000;margin-top:4px}
 .sharerow{display:flex;gap:12px;align-items:flex-start;margin-top:14px;cursor:pointer}
 .sharerow input{width:22px;height:22px;flex:none;margin:2px 0 0;accent-color:var(--pri)}
@@ -814,6 +814,20 @@ button.pw{cursor:pointer}
 .pdprev span{font-size:13px;color:var(--mut)}
 .myname{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--pri);margin:2px 0}
 .myname .link3{font-size:13px;padding:0}
+.nlist{display:flex;flex-direction:column;gap:8px}
+.nrow{all:unset;box-sizing:border-box;display:flex;gap:10px;align-items:flex-start;background:var(--surf);border-radius:16px;padding:11px 13px;box-shadow:var(--sh);cursor:pointer}
+.nrow.new{border-left:4px solid var(--acc)}
+.nrow .nic{font-size:20px;line-height:1.2}
+.nrow .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nrow .grow b{font-size:14.5px}
+.nrow .grow span{font-size:13px;color:var(--mut)}
+.nrow small{font-size:11.5px;color:var(--mut);white-space:nowrap}
+.cphb{cursor:pointer}
+.cph{position:relative;display:inline-block}
+.cph img{width:44px;height:44px;object-fit:cover;border-radius:10px;display:block}
+.cph button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:var(--ink);color:var(--bg);font-size:13px;line-height:1;cursor:pointer}
+.pimg{display:block;width:100%;max-height:320px;object-fit:cover;border-radius:14px;margin:8px 0 4px;cursor:zoom-in}
+.pimg.big{max-height:none;object-fit:contain;cursor:zoom-out}
 .vetbox{margin:18px 18px 0;display:flex;flex-direction:column;gap:4px;background:var(--surf);border-radius:18px;padding:13px 14px;box-shadow:var(--sh);font-size:13.5px}
 .vetbox span{color:var(--mut);line-height:1.45}
 .peopleb.ib{background:linear-gradient(120deg,var(--surf),#F8E6DF)}
@@ -903,6 +917,8 @@ button.pw{cursor:pointer}
 .tool.wide .grow{display:flex;flex-direction:column;gap:2px}.tool.wide b{margin-top:0}
 .tool.wide .grow>span{font-size:12.5px;color:var(--mut)}
 .tool.wide.t-doc{background:linear-gradient(120deg,var(--surf),#F7E9E2)}
+:root[data-theme="dark"] .tool.wide.t-doc{background:linear-gradient(120deg,var(--surf),#3A2621)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tool.wide.t-doc{background:linear-gradient(120deg,var(--surf),#3A2621)}}
 .tic.db{background:#DFEBD6;color:#2F5E24}.dbcount{flex:none;font-size:12px;font-weight:800;color:var(--pri);background:var(--soft);border-radius:999px;padding:4px 10px}
 .tic.house{background:#F3E6CF;color:#7A5520}.tic.smart{background:#E7E1F2;color:#4F4377}
 .hcfgrow{display:flex;justify-content:center;padding:18px 18px 26px}
@@ -1209,8 +1225,9 @@ const demoApi = {
     f.unshift({ id: Date.now(), kind: 'mystery', user_id: 'demo', author: 'Du', category: 'Detektiv', title: place, body, city: city || null, photo_url: url, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f);
   },
   async feed(kind) { kind = kind || 'question'; const pro = store.get('pro', false); if (kind === 'listing') this._swapSeed(this._feed()); if (kind === 'mystery') this._caseSeed(this._feed()); return JSON.parse(JSON.stringify(this._feed().filter(p => (p.kind || 'question') === kind))).map(p => { if (p.user_id === 'demo') p.author_pro = pro; p.answers.forEach(a => { if (a.user_id === 'demo') a.author_pro = pro; }); return p; }); },
-  async newThread(cat, title, body) { const f = this._feed(); f.unshift({ id: Date.now(), kind: 'thread', user_id: 'demo', author: 'Du', category: cat, title, body, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
-  async ask(cat, body) { const f = this._feed(); f.unshift({ id: Date.now(), kind: 'question', user_id: 'demo', author: 'Du', category: cat, body, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
+  async newThread(cat, title, body, photo) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.unshift({ id: Date.now(), kind: 'thread', user_id: 'demo', author: 'Du', category: cat, title, body, photo_url: url, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
+  async ask(cat, body, photo) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.unshift({ id: Date.now(), kind: 'question', user_id: 'demo', author: 'Du', category: cat, body, photo_url: url, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
+  async notifs() { const me = 'demo', out = []; this._feed().filter(p => p.user_id === me).forEach(p => (p.answers || []).filter(a => a.user_id !== me).forEach(a => out.push({ t: 'reply', at: a.created_at, who: a.author, body: a.body, post_id: p.id, kind: p.kind || 'question', cat: p.category, ptitle: p.title || p.body }))); (store.get('xq', []) || []).filter(q => q.answer).forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer })); return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 50); },
   async answer(pid, body) { const f = this._feed(); f.find(p => p.id === pid).answers.push({ id: Date.now(), user_id: 'demo', author: 'Du', body, created_at: new Date().toISOString() }); this._save(f); },
   async like(pid, on) { const f = this._feed(), p = f.find(x => x.id === pid); p.likers = p.likers.filter(x => x !== 'demo'); if (on) p.likers.push('demo'); this._save(f); },
   async best(pid, aid) { const f = this._feed(); f.find(p => p.id === pid).best_answer_id = aid; this._save(f); },
@@ -1358,8 +1375,8 @@ const sbApi = {
       answers: a.data.filter(x => x.post_id === p.id).map(x => ({ ...x, author: name(x.user_id), author_pro: isPro(x.user_id) })),
       likers: l.data.filter(x => x.post_id === p.id).map(x => x.user_id) }));
   },
-  async ask(cat, body) { const { error } = await sb.from('posts').insert({ user_id: S.user.id, category: cat, body }); if (error) throw error; },
-  async newThread(cat, title, body) { const { error } = await sb.from('posts').insert({ user_id: S.user.id, kind: 'thread', category: cat, title, body }); if (error) throw error; },
+  async ask(cat, body, photo) { const url = photo ? await uploadPhoto(photo) : null, row = { user_id: S.user.id, category: cat, body }; if (url) row.photo_url = url; const { error } = await sb.from('posts').insert(row); if (error) throw error; },
+  async newThread(cat, title, body, photo) { const url = photo ? await uploadPhoto(photo) : null, row = { user_id: S.user.id, kind: 'thread', category: cat, title, body }; if (url) row.photo_url = url; const { error } = await sb.from('posts').insert(row); if (error) throw error; },
   async newListing(type, title, body, city, photo) {
     const url = photo ? await uploadPhoto(photo) : null;
     const { error } = await sb.from('posts').insert({ user_id: S.user.id, kind: 'listing', category: type, title, body, city: city || null, photo_url: url });
@@ -1370,6 +1387,15 @@ const sbApi = {
     const url = photo ? await uploadPhoto(photo) : null;
     const { error } = await sb.from('posts').insert({ user_id: S.user.id, kind: 'mystery', category: 'Detektiv', title: place, body, city: city || null, photo_url: url });
     if (error) throw /kind_check/.test(error.message || '') ? new Error('DETECT_NOT_READY') : error;
+  },
+  async notifs() {
+    const out = [], me = S.user.id, mp = await sb.from('posts').select('id,kind,title,body,category').eq('user_id', me).order('created_at', { ascending: false }).limit(150);
+    if (!mp.error && mp.data.length) { const byId = Object.fromEntries(mp.data.map(p => [p.id, p])), an = await sb.from('answers').select('id,post_id,user_id,body,created_at').in('post_id', mp.data.map(p => p.id)).neq('user_id', me).order('created_at', { ascending: false }).limit(60);
+      if (!an.error && an.data.length) { const pr = await sb.from('profiles').select('id,display_name').in('id', [...new Set(an.data.map(a => a.user_id))]), nm = Object.fromEntries(((pr.data) || []).map(x => [x.id, x.display_name]));
+        an.data.forEach(a => { const p = byId[a.post_id]; out.push({ t: 'reply', at: a.created_at, who: nm[a.user_id], body: a.body, post_id: a.post_id, kind: p.kind || 'question', cat: p.category, ptitle: p.title || p.body }); }); } }
+    const xq = await sb.from('expert_questions').select('id,answer,answered_at').eq('asker', me).not('answer', 'is', null).order('answered_at', { ascending: false }).limit(20);
+    if (!xq.error) xq.data.forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer }));
+    return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 60);
   },
   async answer(pid, body) { const { error } = await sb.from('answers').insert({ post_id: pid, user_id: S.user.id, body }); if (error) throw error; },
   async like(pid, on) {
@@ -1736,7 +1762,7 @@ function roomHints(p, r, win) {
   if (r.temp === 'Svalt' && p.category !== 'Kaktus' && p.light_level >= 2 && /tropi|monstera|filodendron|philodendron|alokasia|alocasia|calathea/i.test((p.swedish_name || '') + (p.latin_name || ''))) h.push(['warn', `${nm} kommer från tropikerna och vill inte ha det kallare än cirka 16 °C.`]);
   return h;
 }
-async function loadHome() { if (!S.user) return; try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); }
+async function loadHome() { if (!S.user) return; try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
 function openHouse(id) { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'house'; S.room = id || null; if (S.pl) { S.pl.sel = null; S.pl.mode = 'move'; S.pl.fit = true; } render(); $('#main').scrollTop = 0; }
 function compassSvg(dirs, size) {
   const sz = size || 44, c = sz / 2, R = c - 3;
@@ -3022,7 +3048,7 @@ function topbar(title, backFn) {
   const left_ = backFn
     ? `<button class="circ" onclick="${backFn}" aria-label="Tillbaka">${ic(I.back, null, 22)}</button>`
     : `<img class="logoimg" src="${LOGO}" alt="Roothood" width="40" height="40">`;
-  const right = `<button class="circ" onclick="go('mine')" aria-label="${due ? due + ' växter behöver vatten' : 'Vattningspåminnelser'}">${ic(I.bell, null, 22)}${due ? `<span class="dot">${due}</span>` : ''}</button>`;
+  const right = bellBtn();
   return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1>${esc(title)}</h1>${right}</div>`;
 }
 
@@ -3112,7 +3138,7 @@ function home() {
   const due = S.mine.filter(m => left(m) === 0);
   const name = S.user && !DEMO ? String(S.user.name).split(' ')[0] : '';
   const sub = !S.user ? 'Växtfolk i Sverige' : due.length ? `${due.length} ${due.length > 1 ? 'växter behöver' : 'växt behöver'} vatten idag` : 'Alla dina växter har vatten';
-  const bell = `<button class="circ" onclick="go('mine')" aria-label="${due.length ? due.length + ' växter behöver vatten' : 'Vattningspåminnelser'}">${ic(I.bell, null, 22)}${due.length ? `<span class="dot">${due.length}</span>` : ''}</button>`;
+  const bell = bellBtn();
   const fp = S.plants.find(p => /Monstera/.test(p.latin_name)) || S.plants[0] || {};
   const intro = `<div class="hero">${ph(fp.latin_name, fp.category, fp.swedish_name || 'x')}<div class="shade"></div><div class="hero-t">${S.user
     ? `<h2>Börja din samling</h2><p>Tryck på hjärtat på en växt du har, så påminner vi dig när den behöver vatten.</p><button class="pillbtn" onclick="openDb(true)">Sök växter</button>`
@@ -3462,6 +3488,29 @@ function terrV(a) {
 }
 
 function openAqDb() { S.env = 'in'; S.cat = 'Akvarieväxt'; S.q = ''; openDb(); }
+
+// ===== Notiser: svar på mina inlägg, expertsvar, vattning =====
+function notifSeen() { return store.get('notifSeen', 0); }
+function notifUnseen() { return (S.notifs || []).filter(n => Date.parse(n.at) > notifSeen()).length; }
+async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); } catch (e) { S.notifs = S.notifs || []; } const b = $('.bellb .dot'); if (!S.tool && !S.modal) render(); }
+function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due; return `<button class="circ bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
+function openNotif() { if (!S.user) return openModal('login'); stopLight(); S.sel = null; S.modal = null; S.prevSeen = notifSeen(); S.tool = 'notif'; render(); $('#main').scrollTop = 0; store.set('notifSeen', Date.now()); loadNotifs().then(() => { if (S.tool === 'notif') render(); }); }
+function goPost(kind, id, cat) { S.tool = null; S.sel = null; S.tab = 'comm'; S.ctab = KIND_TAB[kind] || 'q'; S.forum = kind === 'thread' ? cat : null; S.post = id; S.newCase = false; S.newL = false; S.newThread = false; render(); $('#main').scrollTop = 0; loadFeed(); }
+function notifV() {
+  const due = S.mine.filter(m => left(m) === 0), out = typeof outWeatherAlerts === 'function' && S.wx && S.wx.d ? outWeatherAlerts() : [], N = S.notifs, seen = S.prevSeen || 0;
+  const what = { question: 'din fråga', thread: 'din tråd', listing: 'din annons', mystery: 'ditt detektivfall' };
+  const row = (icon, title, sub, at, act, isNew) => `<button class="nrow ${isNew ? 'new' : ''}" onclick="${act}"><span class="nic">${icon}</span><span class="grow"><b>${title}</b>${sub ? `<span>${sub}</span>` : ''}</span>${at ? `<small>${ago(at)}</small>` : ''}</button>`;
+  const todo = due.map(m => row('💧', `${esc(m.name)} behöver vatten idag`, '', null, `S.tool=null;go('mine')`, false)).concat(out.map(([m, t]) => row('🌦️', esc(m.name), esc(t.split('.')[0]), null, `S.tool=null;openMine(${m.id})`, false)));
+  const act = (N || []).map(n => n.t === 'expert' ? row('🎓', `${esc(n.who || 'En expert')} har svarat på din expertfråga`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `openExperts()`, Date.parse(n.at) > seen)
+    : row(n.kind === 'mystery' ? '🔎' : n.kind === 'listing' ? '🔁' : '💬', `${esc(n.who || 'Någon')} svarade på ${what[n.kind] || 'ditt inlägg'}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”${n.ptitle ? ` · ${esc(n.ptitle.slice(0, 40))}` : ''}`, n.at, `goPost('${n.kind}',${n.post_id},'${esc(n.cat || '')}')`, Date.parse(n.at) > seen));
+  return `${topbar('Notiser', 'S.tool=null;render()')}
+  ${todo.length ? `<div class="sec"><h2>Att göra idag</h2></div><div class="pad nlist">${todo.join('')}</div>` : ''}
+  <div class="sec"><h2>Svar och aktivitet</h2></div><div class="pad nlist">${N == null ? '<p class="mut">Hämtar…</p>' : act.length ? act.join('') : '<p class="mut" style="margin:0">Inga svar än. När någon svarar på dina frågor, trådar, annonser eller detektivfall syns det här.</p>'}</div>
+  <p class="mut" style="font-size:12.5px;margin:14px 18px 24px">Notiser i mobilen när du inte har appen öppen gäller än så länge bara vattning.</p>`;
+}
+function cPhotoBtn() { return S.cph ? `<span class="cph"><img src="${esc(S.cphUrl)}" alt="Vald bild"><button onclick="S.cph=null;S.cphUrl=null;keepMain()" aria-label="Ta bort bilden">×</button></span>` : `<label onclick="photoPick(event,this)" class="btn sm line cphb">📷 Bild<input type="file" accept="image/*" class="sr" onchange="cPhoto(this)"></label>`; }
+function cPhoto(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.cph = f; S.cphUrl = URL.createObjectURL(f); keepMain(); }
+const postImg = p => p.photo_url ? `<img class="pimg" src="${esc(p.photo_url)}" alt="Bild i inlägget" loading="lazy" onclick="event.stopPropagation();this.classList.toggle('big')">` : '';
 
 // ===== Utomhusväxter: plats i trädgården och råd utifrån vädret =====
 const OUTP = {
@@ -4164,8 +4213,8 @@ function askQ() {
   if (needLogin()) return;
   const v = S.draft.trim();
   if (v.length < 5) return toast('Skriv minst 5 tecken.');
-  S.draft = '';
-  commRun(() => api.ask(S.qcat, v), 'Din fråga är publicerad');
+  S.draft = ''; const ph = S.cph; S.cph = null; S.cphUrl = null;
+  commRun(() => api.ask(S.qcat, v, ph), 'Din fråga är publicerad');
 }
 function startThread() { if (needLogin()) return; S.newThread = true; render(); const f = $('#tt'); if (f) f.focus(); }
 function sendThread() {
@@ -4173,8 +4222,8 @@ function sendThread() {
   const t = S.tt.trim(), b = S.tb.trim();
   if (t.length < 3) return toast('Skriv en rubrik på minst 3 tecken.');
   if (b.length < 5) return toast('Skriv minst 5 tecken i inlägget.');
-  S.tt = ''; S.tb = ''; S.newThread = false;
-  commRun(() => api.newThread(S.forum, t, b), 'Din tråd är publicerad');
+  S.tt = ''; S.tb = ''; S.newThread = false; const ph = S.cph; S.cph = null; S.cphUrl = null;
+  commRun(() => api.newThread(S.forum, t, b, ph), 'Din tråd är publicerad');
 }
 function sendAnswer(pid) {
   if (needLogin()) return;
@@ -4248,7 +4297,7 @@ function answersV(p, allowBest) {
 function postCard(p) {
   const best = p.answers.find(a => a.id === p.best_answer_id);
   return `<div class="post">${whoP(p, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>`)}
-  <h3><button class="plink" onclick="openPost(${p.id})">${esc(p.body)}</button></h3>
+  <h3><button class="plink" onclick="openPost(${p.id})">${esc(p.body)}</button></h3>${postImg(p)}
   ${best ? `<div class="ans"><b>Bästa svar</b>${esc(best.body)}</div>` : ''}
   <div class="prow">${likeBtn(p)}<button class="link2" onclick="openPost(${p.id})">${p.answers.length ? p.answers.length + ' svar' : 'Svara'}</button></div></div>`;
 }
@@ -4260,7 +4309,7 @@ function comm() {
   const st = listState(S.feed, 'Inga frågor än. Bli först med att fråga något!');
   return `${topbar('Community')}${segBar()}
   <div class="ask"><textarea id="nq" rows="2" maxlength="1000" placeholder="Snabb fråga? Skriv den här" aria-label="Din fråga" oninput="S.draft=this.value">${esc(S.draft)}</textarea>
-  <div class="askrow"><select aria-label="Kategori" onchange="S.qcat=this.value">${QCATS.map(c => `<option ${c === S.qcat ? 'selected' : ''}>${c}</option>`).join('')}</select><button class="btn sm" onclick="askQ()">Publicera</button></div></div>
+  <div class="askrow"><select aria-label="Kategori" onchange="S.qcat=this.value">${QCATS.map(c => `<option ${c === S.qcat ? 'selected' : ''}>${c}</option>`).join('')}</select>${cPhotoBtn()}<button class="btn sm" onclick="askQ()">Publicera</button></div></div>
   <div class="pad">${st || S.feed.map(postCard).join('')}</div>`;
 }
 function postV() {
@@ -4268,7 +4317,7 @@ function postV() {
   if (!p) { S.post = null; return comm(); }
   const mine = !!(S.user && p.user_id === S.user.id);
   return `${topbar('Fråga', 'S.post=null;S.del=null;render()')}<div class="pad">
-  <div class="post" style="margin-top:10px">${whoP(p, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>`)}<h2 style="font-size:21px">${esc(p.body)}</h2>
+  <div class="post" style="margin-top:10px">${whoP(p, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>`)}<h2 style="font-size:21px">${esc(p.body)}</h2>${postImg(p)}
   <div class="prow">${likeBtn(p)}<span class="grow"></span>${mine ? delBtn('p', 'delPost', p.id) : `<button class="x" onclick="openReport('post',${p.id})">Rapportera</button>`}</div></div>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
   ${answersV(p, true)}${replyBox(p.id, 'Skriv ett svar')}</div>`;
@@ -4457,8 +4506,8 @@ function forumCatV() {
   const ts = (S.threads || []).filter(t => t.category === f.id);
   const form = S.newThread ? `<div class="ask" style="margin:12px 0 4px"><label class="sr" for="tt">Rubrik</label><input id="tt" maxlength="120" placeholder="Rubrik" value="${esc(S.tt)}" oninput="S.tt=this.value" style="margin-bottom:10px;background:var(--bg);border:0">
     <textarea rows="5" maxlength="5000" placeholder="Vad vill du berätta eller diskutera?" aria-label="Inlägg" oninput="S.tb=this.value">${esc(S.tb)}</textarea>
-    <div class="askrow"><button class="btn sm line" onclick="S.newThread=false;render()">Avbryt</button><span class="grow" style="flex:1"></span><button class="btn sm" onclick="sendThread()">Publicera tråd</button></div></div>` : '';
-  const list = ts.length ? ts.map(t => `<button class="thr" onclick="openPost(${t.id})"><b>${esc(t.title || t.body.slice(0, 60))}</b><span class="mut">${esc(t.author)}, ${ago(t.created_at)}</span><span class="tmeta"><span>${ic('<path d="M5 5h14v10h-7l-4 4v-4H5z"/>', 'currentColor', 15)}${t.answers.length} svar</span><span>♥ ${t.likers.length}</span></span></button>`).join('')
+    <div class="askrow"><button class="btn sm line" onclick="S.newThread=false;S.cph=null;render()">Avbryt</button>${cPhotoBtn()}<span class="grow" style="flex:1"></span><button class="btn sm" onclick="sendThread()">Publicera tråd</button></div></div>` : '';
+  const list = ts.length ? ts.map(t => `<button class="thr" onclick="openPost(${t.id})"><b>${esc(t.title || t.body.slice(0, 60))}</b><span class="mut">${esc(t.author)}, ${ago(t.created_at)}</span><span class="tmeta"><span>${ic('<path d="M5 5h14v10h-7l-4 4v-4H5z"/>', 'currentColor', 15)}${t.answers.length} svar</span><span>♥ ${t.likers.length}</span>${t.photo_url ? '<span>📷</span>' : ''}</span></button>`).join('')
     : `<div class="empty"><p>Inga trådar här än. Starta den första!</p></div>`;
   return `${topbar(f.id, 'S.forum=null;S.newThread=false;render()')}<p class="mut" style="text-align:center;margin:0 18px">${esc(f.d)}</p>
   <div class="pad">${S.newThread ? form : `<div class="addbar" style="padding:14px 0 4px"><button class="btn wide" onclick="startThread()">+ Ny tråd</button></div>`}
@@ -4469,7 +4518,7 @@ function threadV() {
   if (!p) { S.post = null; return forumCatV(); }
   const mine = !!(S.user && p.user_id === S.user.id);
   return `${topbar(p.category, 'S.post=null;S.del=null;render()')}<div class="pad">
-  <div class="post" style="margin-top:10px">${whoP(p, ago(p.created_at))}<h2 style="font-size:21px;margin-bottom:8px">${esc(p.title || '')}</h2><p style="margin:0;white-space:pre-line">${esc(p.body)}</p>
+  <div class="post" style="margin-top:10px">${whoP(p, ago(p.created_at))}<h2 style="font-size:21px;margin-bottom:8px">${esc(p.title || '')}</h2><p style="margin:0;white-space:pre-line">${esc(p.body)}</p>${postImg(p)}
   <div class="prow">${likeBtn(p)}<span class="grow"></span>${mine ? delBtn('p', 'delPost', p.id) : `<button class="x" onclick="openReport('post',${p.id})">Rapportera</button>`}</div></div>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
   ${answersV(p, false)}${replyBox(p.id, 'Skriv ett svar i tråden')}</div>`;
@@ -4677,7 +4726,7 @@ function docV() {
 }
 function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { stopLight(); if (S.tool === 'house' && S.hDirty) saveHomeNow(true); S.tool = null; render(); }
-function toolV() { return S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'smart' ? smartV() : lightV(); }
+function toolV() { return S.tool === 'notif' ? notifV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'smart' ? smartV() : lightV(); }
 
 // --- Säsongstips ---
 // Varje tips: [typ, rubrik, text, månader i zon 1–2, zon 3–5, zon 6–8]. En lista gäller alla zoner.
@@ -5058,7 +5107,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.58';
+const APP_VERSION = '1.59';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
