@@ -800,6 +800,18 @@ button.pw{cursor:pointer}
 .bpm{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
 .bpm em{font-style:normal;font-size:11.5px;font-weight:700;background:var(--bg);border-radius:99px;padding:2px 7px}
 .bpm em:first-child{background:var(--pri);color:var(--onpri)}
+.mycard h3 .sci{display:block}
+.mname .sci{display:block}
+.mname .svn{display:block;font-size:12.5px;font-weight:600;color:var(--mut);margin-top:1px}
+.mh h2 .sci{display:block}
+.mh h2 .svn{display:block;font-size:14px;font-weight:600;color:var(--mut)}
+.mycard h3 .svn{display:block;font-size:.78em;font-weight:600;opacity:.85}
+.myname .sci{font-weight:700}
+.myname .svn{margin-left:6px;font-weight:600;color:var(--mut)}
+.pdprev{display:flex;flex-direction:column;gap:1px;background:var(--bg);border-radius:12px;padding:8px 12px;margin:6px 0 12px}
+.pdprev small{font-size:11.5px;color:var(--mut);font-weight:700}
+.pdprev b{font-size:15px}
+.pdprev span{font-size:13px;color:var(--mut)}
 .myname{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--pri);margin:2px 0}
 .myname .link3{font-size:13px;padding:0}
 .vetbox{margin:18px 18px 0;display:flex;flex-direction:column;gap:4px;background:var(--surf);border-radius:18px;padding:13px 14px;box-shadow:var(--sh);font-size:13.5px}
@@ -1403,7 +1415,7 @@ function openMine(id) {
 function myplantV() {
   const m = S.mine.find(x => x.id === S.myv); if (!m) return '';
   const d = left(m);
-  return `<div class="mh"><h2>${esc(m.name)}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  return `<div class="mh"><h2>${nameHtml(m)}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div class="addpimg">${myPh(m)}</div>
   ${m.latin ? `<p class="mut" style="margin:10px 0 0"><i>${esc(m.latin)}</i></p>` : ''}
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><span class="tag lime">${esc(m.category || 'Egen växt')}</span><span class="tag green">${d === null ? 'Vattna vid torka' : d === 0 ? 'Vattna idag' : 'Vattnas om ' + d + (d === 1 ? ' dag' : ' dagar')}</span></div>
@@ -1423,7 +1435,10 @@ async function confirmAddp() {
   S.ap = null; photoWarnCheck(); afterAdd();
 }
 const myItem = id => S.mine.find(x => x.id === id);
-function applyNick(m) { const d = m.details || {}; m.baseName = m.name; m.baseLatin = m.latin; if (d.sort) { m.name = `${m.name} '${d.sort}'`; if (m.latin) m.latin = `${m.latin.replace(/\s*'[^']*'$/, '')} '${d.sort}'`; } if (d.nick) m.name = d.nick; return m; }
+function applyNick(m) { const d = m.details || {}; m.baseName = m.name; m.baseLatin = m.latin; m.sv = d.nick || m.name;
+  if (d.sort) { const base = (m.latin || '').replace(/\s*'[^']*'$/, ''); m.latin = base ? `${base} '${d.sort}'` : `'${d.sort}'`; m.name = base ? m.latin : `${m.sv} '${d.sort}'`; } else m.name = m.sv; return m; }
+function sciHtml(lat) { const k = (lat || '').indexOf(" '"); return k > 0 ? `<i>${esc(lat.slice(0, k))}</i> ${esc(lat.slice(k + 1))}` : `<i>${esc(lat || '')}</i>`; }
+function nameHtml(m) { return m.latin ? `<span class="sci">${sciHtml(m.latin)}</span><small class="svn">${esc(m.sv || m.name)}</small>` : esc(m.name); }
 function sortSuggest(m) { const p = plantById(m.plant_id), g = p ? genusOf(p) : ((m.baseLatin || m.latin || '').split(' ')[0]); if (!g) return []; const sp = p && p.species ? p.species : ((p && p.latin_name) || '').split(' ')[1]; return [...new Set(S.plants.filter(x => genusOf(x) === g && x.cultivar && (!sp || (x.latin_name || '').includes(sp))).map(x => x.cultivar))].sort((a, b) => a.localeCompare(b, 'sv')); }
 async function addMyPhoto(id, inp) {
   const f = inp && inp.files && inp.files[0]; if (!f) return;
@@ -1516,7 +1531,7 @@ function growthTxt(d) {
 }
 function detailsV(m, inModal) {
   const d = m.details || {}, out = isOutM(m), items = [];
-  if (d.sort) items.push(['Sort', d.sort]); if (d.nick) items.push(['Eget namn', d.nick]);
+  if (d.sort) items.push(['Sort', d.sort]); if (d.nick) items.push(['Svenskt namn', d.nick]);
   if (out) outItems(m, d).forEach(x => items.push(x));
   if (!out) {
   if (d.place) items.push(['Planterad', d.place]);
@@ -1554,12 +1569,12 @@ function pdChips(k, multi) { return `<div class="chips2">${PD[k].map(v => { cons
 function pdetV() {
   const m = S.mine.find(x => x.id === S.pdId); if (!m) return '';
   const d = S.pd, outd = OUTDOOR.includes(m.category || (plantById(m.plant_id) || {}).category), pot = outd ? ['Kruka', 'Ampel'].includes(d.place) : (!d.place || !['Rabatt', 'Odlingslåda', 'I vatten', 'I marken'].includes(d.place)), pp = plantById(m.plant_id), ps = pp ? pSize(pp) : null;
-  return `<div class="mh"><h2>${esc(m.name)}</h2><button class="close" onclick="closeDetails()" aria-label="Stäng">×</button></div>
+  return `<div class="mh"><h2>${nameHtml(m)}</h2><button class="close" onclick="closeDetails()" aria-label="Stäng">×</button></div>
   <div class="pdform">
   ${S.pdNew ? `<p class="mut" style="margin:0 0 10px;font-size:14px">${esc(m.name)} finns nu i din samling. Berätta lite om den, så blir råden bättre. Du kan hoppa över och fylla i senare.</p>` : ''}
   <div class="two"><div><label class="fl" for="pdsort" style="margin-top:0">Sort</label><input id="pdsort" maxlength="60" list="sortlist" placeholder="t.ex. ${esc((sortSuggest(m)[0]) || 'Gyllene Kitajka')}" value="${esc(d.sort || '')}" oninput="S.pd.sort=this.value;pdPrev()"><datalist id="sortlist">${sortSuggest(m).map(x => `<option value="${esc(x)}">`).join('')}</datalist></div>
-  <div><label class="fl" for="pdnick" style="margin-top:0">Eget namn</label><input id="pdnick" maxlength="60" placeholder="${esc(m.baseName || m.name)}" value="${esc(d.nick || '')}" oninput="S.pd.nick=this.value;pdPrev()"></div></div>
-  <p class="mut" style="font-size:12px;margin:4px 0 12px">Namnet i din samling blir: <b id="pdprev">${esc(d.nick || ((m.baseName || m.name) + (d.sort ? ` '${d.sort}'` : '')))}</b></p>
+  <div><label class="fl" for="pdnick" style="margin-top:0">Svenskt namn</label><input id="pdnick" maxlength="60" placeholder="${esc(m.baseName || m.name)}" value="${esc(d.nick || '')}" oninput="S.pd.nick=this.value;pdPrev()"></div></div>
+  <div class="pdprev" id="pdprev">${pdPrevHtml(m, d)}</div>
   ${outd ? outFormV(m, d, ps) + `<button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="saveDetails()">${S.busy ? 'Sparar…' : 'Spara'}</button>${S.pdNew ? '<button class="link3" style="margin:8px auto 0;display:block" onclick="closeDetails()">Hoppa över</button>' : ''}</div>` : `
   <label class="fl" style="margin-top:0">Hur är den planterad?</label>${pdChips('place')}
   ${pot ? `<div class="two"><div><label class="fl" for="pdcm">Krukans diameter (cm)</label><input id="pdcm" type="number" inputmode="numeric" min="1" max="300" value="${d.cm || ''}" oninput="S.pd.cm=+this.value||null"></div>
@@ -1579,7 +1594,8 @@ function pdetV() {
   <p class="mut" style="font-size:13px;margin:12px 0 0">Ändrar du höjden sparas den i skötseldagboken, så ser du hur växten växer.</p>
   <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="saveDetails()">${S.busy ? 'Sparar…' : 'Spara'}</button>${S.pdNew ? '<button class="link3" style="margin:8px auto 0;display:block" onclick="closeDetails()">Hoppa över</button>' : ''}</div>`}`;
 }
-function pdPrev() { const m = S.mine.find(x => x.id === S.pdId), d = S.pd, e = $('#pdprev'); if (m && e) e.textContent = (d.nick || '').trim() || ((m.baseName || m.name) + ((d.sort || '').trim() ? ` '${d.sort.trim()}'` : '')); }
+function pdPrevHtml(m, d) { const sv = (d.nick || '').trim() || m.baseName || m.name, so = (d.sort || '').trim(), base = (m.baseLatin || '').replace(/\s*'[^']*'$/, ''); return `<small>Så visas den i din samling</small>${so && base ? `<b>${sciHtml(base + " '" + so + "'")}</b><span>${esc(sv)}</span>` : `<b>${esc(sv + (so ? ` '${so}'` : ''))}</b>${base ? `<span>${sciHtml(base)}</span>` : ''}`}`; }
+function pdPrev() { const m = S.mine.find(x => x.id === S.pdId), e = $('#pdprev'); if (m && e) e.innerHTML = pdPrevHtml(m, S.pd); }
 function closeDetails() { S.pdNew = false; const back = S.pdBack; S.modal = null; if (back) { S.modal = 'myplant'; } render(); }
 async function saveDetails() {
   const m = S.mine.find(x => x.id === S.pdId); if (!m) return;
@@ -3087,7 +3103,7 @@ function myCard(m) {
   const temp = sn ? fmt(sn.temp, 0) + ' °C' : cl ? fmt(cl.temp, 0) + ' °C' : p && p.temperature ? ((/(\d+)\s*–\s*(\d+)/.exec(p.temperature) || [])[0] || '').replace(/\s/g, '') + ' °C' : '–';
   const wet = sn ? `${sn.moist} %${dry ? ' <em>(låg)</em>' : ''}` : d === null ? 'Vid torka' : d === 0 ? 'Vattna idag' : 'Om ' + d + (d === 1 ? ' dag' : ' dagar');
   const light = sn && sn.lux != null ? fmt(sn.lux) + ' lx' : p ? LIGHT[p.light_level - 1] : '–';
-  return `<button class="mycard" onclick="openMine(${m.id})" aria-label="${esc(m.name)}"><div class="mimg">${myPh(m)}<h3>${esc(m.name)}</h3></div>
+  return `<button class="mycard" onclick="openMine(${m.id})" aria-label="${esc(m.name)}"><div class="mimg">${myPh(m)}<h3>${nameHtml(m)}</h3></div>
   <div class="mrows"><div><i>${ic(I.temp, 'currentColor', 15)}</i>Temperatur: <b>${temp}</b></div>
   <div class="${dry || d === 0 ? 'warn' : ''}"><i>${ic(I.drop, 'currentColor', 15)}</i>${sn ? 'Fuktighet' : 'Vatten'}: <b>${wet}</b></div>
   <div><i>${ic(I.sun, 'currentColor', 15)}</i>Ljus: <b>${light}</b></div></div></button>`;
@@ -3924,7 +3940,7 @@ function detail() {
   </div></div>${credit}
   ${my ? galleryV(my) : ''}
   <div class="sheet2">
-  <div class="dname"><h1>${esc(p.swedish_name)}</h1>${my && my.name !== p.swedish_name ? `<span class="myname">Din: ${esc(my.name)} <button class="link3" onclick="openDetails(${my.id})">Ändra</button></span>` : ''}<i>${esc(p.latin_name)}</i>${p.family || p.genus ? `<span class="taxline">${[p.family && 'Familj ' + p.family, p.genus && 'Släkte ' + p.genus, p.cultivar && "Sort '" + p.cultivar + "'"].filter(Boolean).map(esc).join(' · ')}</span>` : ''}<i style="display:none"></i><div class="tags">${status}<span class="tag lime">${esc(p.category)}</span>${zoneTag(p)}${p.status === 'pending' ? '<span class="tag">Väntar på granskning</span>' : ''}</div></div>
+  <div class="dname"><h1>${esc(p.swedish_name)}</h1>${my && my.name !== p.swedish_name ? `<span class="myname">Din: ${nameHtml(my)} <button class="link3" onclick="openDetails(${my.id})">Ändra</button></span>` : ''}<i>${esc(p.latin_name)}</i>${p.family || p.genus ? `<span class="taxline">${[p.family && 'Familj ' + p.family, p.genus && 'Släkte ' + p.genus, p.cultivar && "Sort '" + p.cultivar + "'"].filter(Boolean).map(esc).join(' · ')}</span>` : ''}<i style="display:none"></i><div class="tags">${status}<span class="tag lime">${esc(p.category)}</span>${zoneTag(p)}${p.status === 'pending' ? '<span class="tag">Väntar på granskning</span>' : ''}</div></div>
   <div class="sec"><h2>Så vattnar du</h2></div>
   <p class="howto">${esc(p.water_text)}.${p.soil ? ' Jord: ' + esc(p.soil.charAt(0).toLowerCase() + p.soil.slice(1)) + '.' : ''}</p>
   ${my && d === 0 ? `<div class="snooze">Är jorden fortfarande blöt? Skjut upp, så påminner vi dig om 2 dagar.<br><button onclick="snooze(${my.id})">Skjut upp 2 dagar</button></div>` : ''}
@@ -3962,7 +3978,7 @@ function mineV() {
   const rows = shown.map(m => {
     const d = left(m), pct = m.interval ? Math.round((m.interval - d) / m.interval * 100) : 0;
     const status = d === null ? `<span class="mut">${m.remind === false ? 'Ingen påminnelse, du sköter vattningen' : 'Växer ute, vattna vid torka'}</span>` : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
-    return `<div class="mrow"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${esc(m.name)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${roomOf(m) && !S.mroom ? `<span class="mini rtag">${ic(DOORI, 'currentColor', 11)} ${esc(roomOf(m).name)}</span>` : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
+    return `<div class="mrow"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${nameHtml(m)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${roomOf(m) && !S.mroom ? `<span class="mini rtag">${ic(DOORI, 'currentColor', 11)} ${esc(roomOf(m).name)}</span>` : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
       <div class="side"><label onclick="photoPick(event,this)" class="pbtn" title="Ta eller välj ett foto" aria-label="Lägg till foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
   }).join('');
   return `${topbar('Min samling')}
@@ -5042,7 +5058,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.57';
+const APP_VERSION = '1.58';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
