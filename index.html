@@ -1433,7 +1433,7 @@ async function toggleShare(on) {
 
 // ===== Om min växt (kruka, jord, plats, höjd) =====
 const PD = {
-  place: ['Kruka', 'Ampel', 'Rabatt', 'Odlingslåda', 'Semi-hydro', 'Terrarium', 'I vatten'],
+  place: ['Kruka', 'Ampel', 'I marken', 'Rabatt', 'Odlingslåda', 'Semi-hydro', 'Terrarium', 'I vatten'],
   mat: ['Plast', 'Terrakotta', 'Keramik', 'Ytterkruka', 'Annat'],
   drain: ['Ja', 'Nej', 'Vet inte'],
   soil: ['Krukjord', 'Kaktusjord', 'Orkidébark', 'Perlit', 'Leca', 'Pimpsten', 'Kokosfiber', 'Vitmossa', 'Pon', 'Kompost', 'Trädgårdsjord'],
@@ -1470,6 +1470,7 @@ function detailsV(m, inModal) {
   if (d.drain && !d.self) items.push(['Dräneringshål', d.drain]);
   if (d.soil && d.soil.length) items.push(['Jord', d.soil.join(', ')]);
   if (d.h) items.push(['Höjd/längd', d.h + ' cm', growthTxt(d)]);
+  if (d.w) items.push(['Bredd', d.w + ' cm']);
   const rm = S.pro ? roomOf(m) : null;
   if (rm) items.push(['Rum', rm.name, [dirTxt(rm), d.win].filter(Boolean).join(' · ')]);
   else if (d.light) items.push(['Plats', d.light]);
@@ -1496,7 +1497,7 @@ function pdSoil(v) { const a = S.pd.soil || []; S.pd.soil = a.includes(v) ? a.fi
 function pdChips(k, multi) { return `<div class="chips2">${PD[k].map(v => { const on = multi ? (S.pd.soil || []).includes(v) : S.pd[k] === v; return `<button class="${on ? 'on' : ''}" aria-pressed="${on}" onclick="${multi ? `pdSoil('${v}')` : `pdSet('${k}','${v}')`}">${v}</button>`; }).join('')}</div>`; }
 function pdetV() {
   const m = S.mine.find(x => x.id === S.pdId); if (!m) return '';
-  const d = S.pd, pot = !d.place || !['Rabatt', 'Odlingslåda', 'I vatten'].includes(d.place);
+  const d = S.pd, outd = OUTDOOR.includes(m.category || (plantById(m.plant_id) || {}).category), pot = outd ? ['Kruka', 'Ampel'].includes(d.place) : (!d.place || !['Rabatt', 'Odlingslåda', 'I vatten', 'I marken'].includes(d.place)), pp = plantById(m.plant_id), ps = pp ? pSize(pp) : null;
   return `<div class="mh"><h2>${esc(m.name)}</h2><button class="close" onclick="closeDetails()" aria-label="Stäng">×</button></div>
   <div class="pdform">
   <label class="fl" style="margin-top:0">Hur är den planterad?</label>${pdChips('place')}
@@ -1505,7 +1506,8 @@ function pdetV() {
   <label class="fl">Krukans material</label>${pdChips('mat')}
   <label class="tog"><input type="checkbox" ${d.self ? 'checked' : ''} onchange="S.pd.self=this.checked;keepScroll()"><span><b>Självvattnande kruka</b></span></label>
   ${d.self ? '' : `<label class="fl">Dräneringshål i botten?</label>${pdChips('drain')}`}`
-  : `<label class="fl" for="pdh">Höjd/längd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="2000" value="${d.h || ''}" oninput="S.pd.h=+this.value||null">`}
+  : `<div class="two"><div><label class="fl" for="pdh">Höjd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="4000" placeholder="${ps ? 'Fullvuxen ca ' + ps[0] : ''}" value="${d.h || ''}" oninput="S.pd.h=+this.value||null"></div>
+  <div><label class="fl" for="pdw">Bredd (cm)</label><input id="pdw" type="number" inputmode="numeric" min="1" max="3000" placeholder="${ps ? 'Fullvuxen ca ' + ps[1] : ''}" value="${d.w || ''}" oninput="S.pd.w=+this.value||null"></div></div>${outd ? '<p class="mut" style="font-size:12.5px;margin:6px 0 0">Höjden och bredden används när växten visas i 3D och på ritningen av Mitt hem.</p>' : ''}`}
   <label class="fl">Jord och substrat (välj flera)</label>${pdChips('soil', true)}
   ${S.pro ? `<label class="fl">Vilket rum står den i?</label>
   <div class="chips2">${(S.home || []).map(r => `<button class="${d.room === r.id ? 'on' : ''}" aria-pressed="${d.room === r.id}" onclick="pdSet('room','${r.id}')">${esc(r.name)}</button>`).join('')}<button class="addroom" onclick="newRoom('pdet')">+ Nytt rum</button></div>
@@ -1521,9 +1523,10 @@ async function saveDetails() {
   const m = S.mine.find(x => x.id === S.pdId); if (!m) return;
   const old = m.details || {}, d = JSON.parse(JSON.stringify(S.pd));
   if (d.cm && (d.cm < 1 || d.cm > 300)) return toast('Krukstorleken verkar inte stämma');
-  if (d.h && (d.h < 1 || d.h > 2000)) return toast('Höjden verkar inte stämma');
+  if (d.h && (d.h < 1 || d.h > 4000)) return toast('Höjden verkar inte stämma');
+  if (d.w && (d.w < 1 || d.w > 3000)) return toast('Bredden verkar inte stämma');
   if (d.from) d.from = d.from.trim().slice(0, 80);
-  if (['Rabatt', 'Odlingslåda', 'I vatten'].includes(d.place)) { delete d.cm; delete d.mat; delete d.self; delete d.drain; }
+  if (['Rabatt', 'Odlingslåda', 'I vatten', 'I marken'].includes(d.place)) { delete d.cm; delete d.mat; delete d.self; delete d.drain; }
   if (d.room) { const r = roomOf(null, d); if (r) d.light = roomLightWord(r); else delete d.room; } else delete d.win;
   const hChanged = d.h && d.h !== old.h;
   if (hChanged) d.hist = (old.hist || []).filter(x => x.d !== today()).concat({ d: today(), h: d.h }).slice(-50);
@@ -1866,38 +1869,83 @@ function build3d(first) {
   planFurn().filter(f => !OUT3[f.t]).forEach(f => { const h = FH[f.t] || 0.8, m = new THREE.Mesh(f.t === 'round' ? new THREE.CylinderGeometry(f.w / 2, f.w / 2, h, 28) : new THREE.BoxGeometry(f.w, h, f.h), M(FC[f.t] || '#C9A57D', f.t === 'shower' || f.t === 'ghouse' ? { transparent: true, opacity: 0.55 } : null));
     m.position.set(f.x, h / 2 + 0.01, f.y); m.rotation.y = -(f.rot || 0) * Math.PI / 180; add(m); });
   // växter i samlingen
-  S.mine.filter(m => m.details && m.details.pos).forEach(m => { const { x, y } = m.details.pos, ok = plantMarkerOk(m), gr = new THREE.Group();
+  S.mine.filter(m => m.details && m.details.pos).forEach(m => { const { x, y } = m.details.pos, pp = plantById(m.plant_id);
+    if (OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel'].includes(m.details.place)) { const g3 = plant3d(pp || { id: m.id, swedish_name: m.name, latin_name: m.latin || '', category: m.category }, THREE, M, m.details.h, m.details.w, m.id * 31); g3.position.set(x, 0, y); sc.add(g3); if (S.hview === '3d' && !S.low3d && (m.details.h || m.details.w)) { const lab = label3d(m.name); if (lab) { lab.position.set(x, Math.min(40, (m.details.h || pSize(pp || {})[0]) / 100) + 0.5, y); lab.scale.multiplyScalar ? lab.scale.multiplyScalar(0.7) : 0; sc.add(lab); } } return; }
+    const ok = plantMarkerOk(m), gr = new THREE.Group();
     const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.28, 18), M('#C2643F')); pot.position.y = 0.14; pot.castShadow = true; gr.add(pot);
     const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.32, 18, 14), M(ok === false ? '#B9A23F' : '#3E8E52')); leaf.position.y = 0.6; leaf.scale.y = 1.2; leaf.castShadow = true; gr.add(leaf);
     gr.position.set(x, 0, y); sc.add(gr); });
   // smarta saker
   planItems().forEach(it => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), M('#7D6CB3', { emissive: '#3a2f66' })); m.position.set(it.x, 0.95, it.y); add(m); });
   // träd och buskar
-  planGarden().forEach(t => { const R = t.r || 1.5, gr = new THREE.Group(), trunkH = t.t === 'bush' ? 0 : t.t === 'conifer' ? 0.6 : 1.8;
-    if (trunkH) { const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, trunkH, 10), M('#6B4A2A')); tr.position.y = trunkH / 2; tr.castShadow = true; gr.add(tr); }
-    const crown = t.t === 'conifer' ? new THREE.Mesh(new THREE.ConeGeometry(R, R * 3, 14), M('#2F5E3A')) : new THREE.Mesh(new THREE.SphereGeometry(R, 18, 14), M(t.t === 'bush' ? '#6FA84E' : '#4E8B3A'));
-    crown.position.y = t.t === 'conifer' ? trunkH + R * 1.5 : t.t === 'bush' ? R * 0.8 : trunkH + R * 0.8; crown.castShadow = true; gr.add(crown);
-    if (t.t === 'fruit') [[0.5, 0.3], [-0.4, 0.5], [0.2, -0.6]].forEach(([a, c]) => { const fr = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), M('#D2553F')); fr.position.set(a * R, crown.position.y + 0.1, c * R); gr.add(fr); });
-    gr.position.set(t.x, 0, t.y); sc.add(gr); });
+  planGarden().forEach(t => { const R = t.r || 1.5, g3 = veg3d(THREE, M, GKIND[t.t] || 'lov', t.h || gDefH(t), R * 2, Math.round(t.x * 577 + t.y * 97), 120, t.t === 'fruit' ? { fruit: true } : {}); g3.position.set(t.x, 0, t.y); sc.add(g3); });
   if (first || !T3.st.dist) fit3d(); T3.dirty = true;
 }
 
 // Utomhus i 3D: växter i rabatter och byggnader i trädgården
-function plant3d(p, THREE, M) {
-  const [hc, wc] = pSize(p), h = Math.max(0.05, Math.min(25, hc / 100)), w = Math.max(0.05, Math.min(16, wc / 100)), t = guessType(p), hue = plantHue(p.id), gr = new THREE.Group();
-  const leaf = M(t === 'barr' ? '#2F5E3A' : t === 'gras' ? '#9DB35A' : t === 'ormbunke' ? '#5E9E48' : `hsl(${100 + hue % 40},38%,${t === 'marktack' ? 46 : 36}%)`), bloom = M(`hsl(${hue},62%,62%)`);
-  const ball = (r, y, sy, m) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), m); b.position.y = y; b.scale.y = sy; b.castShadow = true; gr.add(b); return b; };
-  if (t === 'trad' || t === 'frukt') { const th = h * 0.35, tr = new THREE.Mesh(new THREE.CylinderGeometry(Math.max(0.04, w * 0.03), Math.max(0.06, w * 0.04), th, 8), M('#6B4A2A')); tr.position.y = th / 2; tr.castShadow = true; gr.add(tr); const r = Math.min(w / 2, (h - th) / 2); ball(r, th + r, (h - th) / (2 * r), leaf);
-    if (t === 'frukt') [[0.5, 0.3], [-0.4, 0.5], [0.2, -0.6]].forEach(([a, c]) => { const fr = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), M('#D2553F')); fr.position.set(a * r, th + r, c * r); gr.add(fr); }); }
-  else if (t === 'barr') { const c = new THREE.Mesh(new THREE.ConeGeometry(w / 2, h, 12), leaf); c.position.y = h / 2; c.castShadow = true; gr.add(c); }
-  else if (t === 'gras') { const c = new THREE.Mesh(new THREE.ConeGeometry(w / 2, h, 10), leaf); c.position.y = h / 2; c.castShadow = true; gr.add(c); }
-  else if (t === 'lok') { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, h, 5), M('#5E8F4F')); st.position.y = h / 2; gr.add(st); ball(Math.max(0.03, w / 2), h, 1, bloom); }
-  else if (t === 'klatter') { const c = new THREE.Mesh(new THREE.CylinderGeometry(w / 3, w / 3, Math.min(h, 3), 8), leaf); c.position.y = Math.min(h, 3) / 2; c.castShadow = true; gr.add(c); }
-  else { const r = w / 2; ball(r, Math.min(h, r * 2) / 2, h / (2 * r), leaf); if (['perenn', 'sommar', 'ros', 'marktack', 'lok'].includes(t) || /blom/i.test(p.tips || '')) [[0, 1, 0], [0.45, 0.8, 0.2], [-0.4, 0.8, -0.25]].forEach(([a, b, c]) => { const f = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.025, r * 0.22), 8, 6), bloom); f.position.set(a * r, h * b, c * r); gr.add(f); });
-    if (t === 'bar') [[0.5, 0.5, 0.3], [-0.4, 0.4, 0.4]].forEach(([a, b, c]) => { const f = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 5), M('#5B2340')); f.position.set(a * r, h * b, c * r); gr.add(f); }); }
+function garden3d(a, THREE, M, sc) { const y0 = a.t === 'bed' ? 0.12 : 0.08; (a.spots || []).slice(0, 600).forEach(s => { const p = plantById(s.pid); if (!p) return; const g = plant3d(p, THREE, M, null, null, Math.round(s.x * 977 + s.y * 131)); g.position.set(s.x, y0, s.y); sc.add(g); }); }
+// Detaljerade växter i 3D. Storlek i meter, seed ger variation som är samma varje gång.
+function rng3(seed) { let s = (Math.abs(Math.round(seed)) % 2147483646) + 1; return () => (s = s * 16807 % 2147483647) / 2147483647; }
+function kind3d(p) {
+  const t = guessType(p), g = genusOf(p), lat = p.latin_name || '';
+  if (t === 'barr') return /Pinus/.test(g) && !/mugo/.test(lat) ? 'tall' : /Thuja|Juniperus communis|Taxus/.test(lat) ? 'pelare' : /Microbiota|horizontalis|sabina|mugo/.test(lat) ? 'krypbarr' : /Larix/.test(g) ? 'gran' : 'gran';
+  if (t === 'trad') return /Erecta/.test(lat) ? 'pelarlov' : /Betula/.test(g) ? 'bjork' : 'lov';
+  return t;
+}
+function veg3d(THREE, M, kind, h, w, seed, hue, opt) {
+  const gr = new THREE.Group(), R = rng3(seed), lo = S.low3d, seg = lo ? [8, 6] : [14, 10], o = opt || {};
+  const green = (l, s) => M(`hsl(${95 + Math.round(R() * 30)},${s || 38}%,${l}%)`), bark = M(kind === 'bjork' ? '#E8E4DA' : kind === 'tall' ? '#9A5B34' : '#6B4A2A');
+  const blob = (r, x, y, z, sy, m) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, seg[0], seg[1]), m); b.position.set(x, y, z); b.scale.y = sy || 1; b.castShadow = true; b.receiveShadow = true; gr.add(b); return b; };
+  const cyl = (r0, r1, len, x, y, z, m, rz, ry) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, len, lo ? 6 : 10), m); c.position.set(x, y, z); if (rz) c.rotation.z = rz; if (ry) c.rotation.y = ry; c.castShadow = true; gr.add(c); return c; };
+  const cone = (r, len, x, y, z, m, rz, ry) => { const c = new THREE.Mesh(new THREE.ConeGeometry(r, len, lo ? 8 : 16), m); c.position.set(x, y, z); if (rz) c.rotation.z = rz; if (ry != null) c.rotation.y = ry; c.castShadow = true; gr.add(c); return c; };
+  const flowers = (n, r, cy, spread, col) => { const m = M(col || `hsl(${hue},62%,64%)`); for (let i = 0; i < n; i++) { const a = R() * 6.283, d = Math.sqrt(R()) * spread; blob(r, Math.cos(a) * d, cy + (R() - 0.3) * r * 3, Math.sin(a) * d, 1, m); } };
+  const crown = (cy, cw, ch, n, l) => { const nb = lo ? Math.min(n, 4) : n; blob(Math.min(cw, ch) * 0.7, 0, cy, 0, ch / Math.min(cw, ch), green(l || 34)); for (let i = 0; i < nb; i++) { const a = i / nb * 6.283 + R() * 0.8, d = cw * (0.35 + R() * 0.25), rb = cw * (0.38 + R() * 0.18); blob(rb, Math.cos(a) * d, cy + (R() - 0.45) * ch * 0.9, Math.sin(a) * d, Math.max(0.7, Math.min(1.4, ch / cw)), green((l || 34) + Math.round(R() * 10 - 4))); } };
+  if (kind === 'lov' || kind === 'frukt' || kind === 'bjork' || kind === 'pelarlov') {
+    const th = h * (kind === 'frukt' ? 0.3 : 0.36), rt = Math.max(0.05, Math.min(0.6, h * 0.02 + w * 0.01)), cw = kind === 'pelarlov' ? w / 2 : w / 2, ch = (h - th) / 2;
+    cyl(rt * 0.6, rt, th + ch * 0.6, 0, (th + ch * 0.6) / 2, 0, bark);
+    if (!lo) for (let i = 0; i < 3; i++) { const a = i * 2.1 + R(), L = cw * 0.7; const b = cyl(rt * 0.25, rt * 0.4, L, Math.cos(a) * L * 0.35, th + L * 0.25, Math.sin(a) * L * 0.35, bark, 0.9, -a); b.rotation.order = 'YXZ'; }
+    crown(th + ch, cw, ch, kind === 'bjork' ? 5 : 7, kind === 'bjork' ? 40 : 32);
+    if (kind === 'frukt' || o.fruit) { const fm = M(o.fruitCol || '#C8322B'); for (let i = 0; i < (lo ? 6 : 16); i++) { const a = R() * 6.283, d = cw * (0.6 + R() * 0.35); blob(Math.max(0.04, w * 0.018), Math.cos(a) * d, th + ch * (0.5 + R()), Math.sin(a) * d, 1, fm); } }
+    if (o.bloom) flowers(lo ? 8 : 20, Math.max(0.05, w * 0.025), th + ch * 1.2, cw * 0.9, o.bloom);
+  } else if (kind === 'gran') { const m = green(22, 30); cyl(Math.max(0.04, w * 0.03), Math.max(0.06, w * 0.04), h * 0.25, 0, h * 0.125, 0, bark); const n = lo ? 3 : 5; for (let i = 0; i < n; i++) { const f = i / n; cone(w / 2 * (1 - f * 0.75), h * 0.38, 0, h * 0.12 + f * h * 0.7 + h * 0.19, 0, m, 0, R()); } }
+  else if (kind === 'tall') { cyl(Math.max(0.05, w * 0.03), Math.max(0.08, w * 0.045), h * 0.75, 0, h * 0.375, 0, bark); const m = green(26, 30); for (let i = 0; i < (lo ? 3 : 6); i++) { const a = R() * 6.283, d = w * 0.25 * R(); blob(w * (0.2 + R() * 0.12), Math.cos(a) * d, h * (0.72 + R() * 0.2), Math.sin(a) * d, 0.55, m); } }
+  else if (kind === 'pelare') { const m = green(24, 32); cone(w / 2, h, 0, h / 2, 0, m); if (!lo) blob(w * 0.42, 0, h * 0.28, 0, 1.6, m); }
+  else if (kind === 'krypbarr') { const m = green(30, 30); for (let i = 0; i < (lo ? 3 : 6); i++) { const a = i * 1.05 + R(), d = w * 0.3; blob(w * 0.28, Math.cos(a) * d, h * 0.4, Math.sin(a) * d, Math.max(0.25, h / (w * 0.56)), m); } }
+  else if (kind === 'buske' || kind === 'bar' || kind === 'ros') {
+    const n = lo ? 3 : 6, rb = w * 0.3, sy = Math.max(0.5, Math.min(2.2, h / (rb * 2.4)));
+    blob(rb * 1.1, 0, Math.max(rb * sy, h - rb * sy * 1.1), 0, sy, green(33));
+    for (let i = 0; i < n; i++) { const a = i / n * 6.283 + R(), d = w * 0.22; blob(rb * (0.8 + R() * 0.3), Math.cos(a) * d, rb * sy * (0.9 + R() * 0.6), Math.sin(a) * d, sy, green(30 + Math.round(R() * 10))); }
+    if (kind === 'bar') { const bm = M(o.berry || '#3B1F3A'); for (let i = 0; i < (lo ? 6 : 18); i++) { const a = R() * 6.283, d = w * (0.3 + R() * 0.2); blob(Math.max(0.025, w * 0.02), Math.cos(a) * d, h * (0.3 + R() * 0.5), Math.sin(a) * d, 1, bm); } }
+    if (kind === 'ros' || o.bloom) flowers(lo ? 6 : 16, Math.max(0.035, w * 0.04), h * 0.75, w * 0.42, o.bloom || `hsl(${hue % 40 + 330},65%,68%)`);
+  } else if (kind === 'gras') { const m = M(`hsl(${70 + hue % 20},35%,52%)`); for (let i = 0; i < (lo ? 4 : 9); i++) { const a = i / 9 * 6.283; cone(Math.max(0.02, w * 0.07), h, Math.cos(a) * w * 0.12, h / 2, Math.sin(a) * w * 0.12, m, (R() - 0.5) * 0.5, a); } }
+  else if (kind === 'lok') { const lm = green(40); cyl(0.01, 0.012, h, 0, h / 2, 0, lm); if (!lo) [0.4, -0.4].forEach(r => cone(0.02, h * 0.55, 0, h * 0.27, 0, lm, r)); blob(Math.max(0.03, Math.min(0.12, w * 0.5)), 0, h, 0, 1.2, M(`hsl(${hue},68%,62%)`)); }
+  else if (kind === 'klatter') { cyl(0.02, 0.02, h, 0, h / 2, 0, M('#B49A78')); for (let i = 0; i < (lo ? 3 : 7); i++) blob(w * 0.22, (R() - 0.5) * w * 0.4, h * (i + 0.5) / 7, (R() - 0.5) * w * 0.2, 1.3, green(32)); if (o.bloom !== false) flowers(lo ? 4 : 10, Math.max(0.03, w * 0.05), h * 0.6, w * 0.3); }
+  else if (kind === 'marktack') { for (let i = 0; i < (lo ? 2 : 5); i++) { const a = i * 1.3 + R(), d = w * 0.25 * R(); blob(w * 0.3, Math.cos(a) * d, h * 0.3, Math.sin(a) * d, Math.max(0.15, h / (w * 0.6)), green(40)); } flowers(lo ? 4 : 10, Math.max(0.015, w * 0.04), h * 0.6, w * 0.4); }
+  else { // perenn, sommar, krydda, grönsaker
+    const base = Math.min(h, Math.max(0.15, h * (h > 0.7 ? 0.45 : 0.8))), rb = w * 0.3;
+    for (let i = 0; i < (lo ? 2 : 4); i++) { const a = i * 1.6 + R(), d = w * 0.15; blob(rb, Math.cos(a) * d, base * 0.5, Math.sin(a) * d, Math.max(0.4, base / (rb * 2)), green(34 + Math.round(R() * 8))); }
+    const veg = ['gron', 'rot', 'krydda'].includes(kind);
+    if (h > 0.7 && !veg) { const sm = M(`hsl(${hue},60%,62%)`), st = green(38); for (let i = 0; i < (lo ? 2 : 5); i++) { const a = R() * 6.283, d = w * 0.18 * R(), x = Math.cos(a) * d, z = Math.sin(a) * d; cyl(0.008, 0.012, h - base * 0.4, x, base * 0.4 + (h - base * 0.4) / 2, z, st); cone(Math.max(0.025, w * 0.06), h * 0.3, x, h - h * 0.12, z, sm); } }
+    else if (!veg) flowers(lo ? 4 : 9, Math.max(0.02, w * 0.06), base * 0.9, w * 0.32);
+    if (o.fruit) { const fm = M(o.fruitCol || '#D2553F'); for (let i = 0; i < (lo ? 3 : 8); i++) { const a = R() * 6.283, d = w * 0.3; blob(Math.max(0.025, w * 0.05), Math.cos(a) * d, base * (0.3 + R() * 0.6), Math.sin(a) * d, 1, fm); } }
+  }
   return gr;
 }
-function garden3d(a, THREE, M, sc) { const y0 = a.t === 'bed' ? 0.12 : 0.08; (a.spots || []).slice(0, 600).forEach(s => { const p = plantById(s.pid); if (!p) return; const g = plant3d(p, THREE, M); g.position.set(s.x, y0, s.y); sc.add(g); }); }
+function opt3d(p) { const g = genusOf(p), n = (p.swedish_name || '').toLowerCase();
+  if (/^Malus/.test(g) || /äpple/.test(n)) return { fruit: true, fruitCol: '#C8322B' }; if (/Pyrus/.test(g)) return { fruit: true, fruitCol: '#C9B43A' }; if (/Prunus/.test(g) && /plommon|körsbär/.test(n)) return { fruit: true, fruitCol: /plommon/.test(n) ? '#4B2A5E' : '#9E1B22' };
+  if (/Solanum lycopersicum/.test(p.latin_name || '')) return { fruit: true, fruitCol: '#D2392C' }; if (/Capsicum/.test(g)) return { fruit: true, fruitCol: '#D6452B' }; if (/Cucurbita/.test(g)) return { fruit: true, fruitCol: '#E28B2A' };
+  if (/Ribes rubrum|röda vinbär/i.test(p.latin_name + n)) return { berry: '#C21E2B' }; if (/vita vinbär/.test(n)) return { berry: '#EDE3B8' }; if (/krusbär/.test(n)) return { berry: '#8DB34A' }; if (/hallon|Rubus idaeus/i.test(n + p.latin_name)) return { berry: '#C2264A' }; if (/havtorn/.test(n)) return { berry: '#E8892A' }; if (/blåbär|Vaccinium/i.test(n + p.latin_name)) return { berry: '#3A4E8C' };
+  if (/Syringa|Magnolia|Philadelphus|Spiraea|Forsythia|Hydrangea|Rhododendron|Viburnum opulus 'Roseum'/.test(p.latin_name || '')) return { bloom: /Forsythia/.test(g) ? '#F2C230' : /Philadelphus|Spiraea|Viburnum|Hydrangea|Magnolia/.test(g) ? '#F5F2EA' : `hsl(${plantHue(p.id) % 60 + 290},55%,70%)` };
+  if (/Sorbus|Crataegus/.test(g)) return { fruit: true, fruitCol: '#D2391F' };
+  return {}; }
+// Planta i 3D från databasen, med egen höjd och bredd i cm om man skrivit in det
+function plant3d(p, THREE, M, hcm, wcm, seed) {
+  const [h0, w0] = pSize(p), h = Math.max(0.05, Math.min(40, (hcm || h0) / 100)), w = Math.max(0.05, Math.min(25, (wcm || w0) / 100));
+  return veg3d(THREE, M, kind3d(p), h, w, seed != null ? seed : p.id * 13, plantHue(p.id), opt3d(p));
+}
+const GKIND = { tree: 'lov', fruit: 'frukt', conifer: 'gran', bush: 'buske' };
+function gDefH(g) { const R = g.r || 1.5; return g.t === 'tree' ? Math.max(4, R * 2.2 + 2.5) : g.t === 'fruit' ? R * 2 + 1.5 : g.t === 'conifer' ? Math.max(3, R * 3.5) : R * 1.4; }
+
 function roof3d(THREE, w, d, h, m) { const g = new THREE.Group(), c = new THREE.Mesh(new THREE.ConeGeometry(Math.SQRT1_2, h, 4), m); c.rotation.y = Math.PI / 4; c.castShadow = true; g.add(c); g.scale.set(w, 1, d); return g; }
 const OUT3 = {
   shed: (f, THREE, M, sc) => { const g = new THREE.Group(), b = new THREE.Mesh(new THREE.BoxGeometry(f.w, 2, f.h), M('#8E2B21')); b.position.y = 1; b.castShadow = b.receiveShadow = true; g.add(b);
@@ -2021,6 +2069,7 @@ function delVtx(id) { pushUndo(); const a = planAreas().find(x => x.id === id); 
 function areaType(id, t) { pushUndo(); planAreas().find(a => a.id === id).t = t; saveHomeSoon(); render(); }
 function delArea(id) { pushUndo(); S.hplan.areas = planAreas().filter(a => a.id !== id); PL().sel = null; saveHomeSoon(); render(); }
 function gEdit(dv) { pushUndo(); const g = planGarden().find(x => x.id === PL().sel.id); g.r = Math.max(0.3, Math.min(12, r1(g.r + dv))); saveHomeSoon(); render(); }
+function gEditH(dv) { pushUndo(); const g = planGarden().find(x => x.id === PL().sel.id); g.h = Math.max(0.3, Math.min(40, r1((g.h || gDefH(g)) + dv))); saveHomeSoon(); render(); }
 function delG(id) { pushUndo(); S.hplan.garden = planGarden().filter(x => x.id !== id); PL().sel = null; saveHomeSoon(); render(); }
 function uteKind(k) { const P = PL(); if (P.upoly && P.upoly.length >= 3 && P.ukind !== k) finishPoly(); P.ukind = k; P.upoly = []; P.msg = null; render(); }
 function planFurn() { return (S.hplan && S.hplan.furn) || []; }
@@ -2134,6 +2183,8 @@ function planInner() {
     out += `<g data-k="furn" data-id="${f.id}" transform="translate(${T(f.x, f.y)}) rotate(${f.rot || 0})">${round ? `<ellipse rx="${(W / 2).toFixed(1)}" ry="${(H / 2).toFixed(1)}"` : `<rect x="${(-W / 2).toFixed(1)}" y="${(-H / 2).toFixed(1)}" width="${W.toFixed(1)}" height="${H.toFixed(1)}" rx="${Math.min(6, W / 5, H / 5).toFixed(1)}"`} fill="${rug ? 'rgba(160,140,200,.18)' : 'var(--phb)'}" fill-opacity="${S.hplan.map && S.hplan.map.on ? .8 : 1}" stroke="${on ? 'var(--acc)' : 'var(--mut)'}" stroke-width="${on ? 2.5 : 1.3}" ${rug ? 'stroke-dasharray="4 3"' : ''}/>${f.t === 'sofa' && H > 14 ? `<rect x="${(-W / 2 + 3).toFixed(1)}" y="${(-H / 2 + 3).toFixed(1)}" width="${(W - 6).toFixed(1)}" height="${(H * 0.28).toFixed(1)}" rx="3" fill="none" stroke="var(--mut)" stroke-width="1" pointer-events="none"/>` : ''}${f.t.startsWith('bed') && H > 20 ? `<rect x="${(-W / 2 + 4).toFixed(1)}" y="${(-H / 2 + 4).toFixed(1)}" width="${(W - 8).toFixed(1)}" height="${(H * 0.18).toFixed(1)}" rx="3" fill="var(--surf)" stroke="var(--mut)" stroke-width="1" pointer-events="none"/>` : ''}${(f.rot || 0) % 180 === 90 ? (H > 34 && W > 13) : (f.rot || 0) % 180 === 0 ? (W > 34 && H > 13) : (Math.min(W, H) > 30) ? `<text y="4" text-anchor="middle" font-size="${Math.min(11, Math.min(W, H) * 0.45).toFixed(1)}" font-weight="700" fill="var(--mut)" pointer-events="none" transform="rotate(${-(f.rot || 0)})">${esc(nm)}</text>` : ''}</g>`; });
   if (z >= 6) planItems().forEach(it => { const on = sel.k === 'dev' && sel.id === it.id, d = DEVS[it.t] || ['?', '•'];
     out += `<g data-k="dev" data-id="${it.id}" transform="translate(${T(it.x, it.y)})">${on ? '<circle r="20" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>' : ''}<circle r="14" fill="var(--surf)" stroke="var(--pri)" stroke-width="2"/><text y="5" text-anchor="middle" font-size="14" pointer-events="none">${d[1]}</text></g>`; });
+  if (z >= 2) S.mine.filter(m => m.details && m.details.pos && OUTDOOR.includes(m.category || (plantById(m.plant_id) || {}).category) && !['Kruka', 'Ampel'].includes(m.details.place)).forEach(m => { const { x, y } = m.details.pos, pp = plantById(m.plant_id), wm = (m.details.w || pSize(pp || {})[1]) / 100, k = pp ? kind3d(pp) : 'perenn', col = ['gran', 'tall', 'pelare', 'krypbarr'].includes(k) ? '47,94,58' : '78,139,58';
+    out += `<circle cx="${X(x)}" cy="${Y(y)}" r="${Math.max(4, wm / 2 * z).toFixed(1)}" fill="rgba(${col},.32)" stroke="rgb(${col})" stroke-width="1.5" ${m.details.w ? '' : 'stroke-dasharray="4 3"'} pointer-events="none"/>`; });
   if (z >= 6) S.mine.filter(m => m.details && m.details.pos).forEach(m => { const { x, y } = m.details.pos, on = sel.k === 'plant' && sel.id === m.id, ok = plantMarkerOk(m);
     const ring = ok === null ? 'var(--pri)' : ok ? 'var(--pri2)' : 'var(--cop)';
     out += `<g data-k="plant" data-id="${m.id}" transform="translate(${T(x, y)})">${on ? '<circle r="23" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>' : ''}<circle r="17" fill="var(--surf)" stroke="${ring}" stroke-width="3"/><foreignObject x="-14" y="-14" width="28" height="28" pointer-events="none"><div xmlns="http://www.w3.org/1999/xhtml" class="pmk">${myPh(m)}</div></foreignObject>${ok === false ? '<circle cx="12" cy="-12" r="6" fill="var(--cop)" stroke="#fff" stroke-width="1.5"/>' : ''}</g>`;
@@ -2188,7 +2239,7 @@ function planSelV() {
   if (sel.k === 'area') { const a = planAreas().find(x => x.id === sel.id); if (!a) return '';
     return `<div class="psel"><div class="grow"><b>${UK_M[a.t][1]}</b><span>${polyArea(a.pts)} m² · ${(a.spots || []).length ? a.spots.length + ' plantor' : a.pts.length + ' hörn'}</span></div>${['bed', 'veg'].includes(a.t) ? `<button class="btn sm" onclick="openBed('${a.id}')">🌷 Planera</button>` : ''}<select class="asel" onchange="areaType('${a.id}',this.value)" aria-label="Typ av yta">${UK.filter(u => u[2] === 'poly').map(u => `<option value="${u[0]}" ${u[0] === a.t ? 'selected' : ''}>${u[1]}</option>`).join('')}</select>${P_vsel(a) ? `<button class="btn sm line" onclick="delVtx('${a.id}')">Ta bort hörnet</button>` : ''}<button class="x" onclick="delArea('${a.id}')">Ta bort</button></div>`; }
   if (sel.k === 'gitem') { const g = planGarden().find(x => x.id === sel.id); if (!g) return '';
-    return `<div class="psel"><span style="font-size:22px">${UK_M[g.t][3]}</span><div class="grow"><b>${UK_M[g.t][1]}</b><span>Krona ${r1(g.r * 2)} m</span></div><div class="stepr"><small>Storlek</small><button onclick="gEdit(-0.25)" aria-label="Mindre">−</button><button onclick="gEdit(0.25)" aria-label="Större">+</button></div><button class="x" onclick="delG('${g.id}')">Ta bort</button></div>`; }
+    return `<div class="psel"><span style="font-size:22px">${UK_M[g.t][3]}</span><div class="grow"><b>${UK_M[g.t][1]}</b><span>Bredd ${fmtM(g.r * 2)} · höjd ${fmtM(g.h || gDefH(g))}</span></div><div class="stepr"><small>Bredd</small><button onclick="gEdit(-0.25)" aria-label="Smalare">−</button><button onclick="gEdit(0.25)" aria-label="Bredare">+</button></div><div class="stepr"><small>Höjd</small><button onclick="gEditH(-0.5)" aria-label="Lägre">−</button><button onclick="gEditH(0.5)" aria-label="Högre">+</button></div><button class="x" onclick="delG('${g.id}')">Ta bort</button></div>`; }
   if (sel.k === 'furn') { const f = planFurn().find(x => x.id === sel.id); if (!f) return ''; const F = FURN_M[f.t] || [0, 'Möbel', 0, 0, '🪑'];
     return `<div class="psel"><span style="font-size:22px">${F[4]}</span><div class="grow"><b>${F[1]}</b><span>${f.w.toFixed(2).replace(/0$/, '')} × ${f.h.toFixed(2).replace(/0$/, '')} m</span></div><div class="stepr"><small>Bredd</small><button onclick="furnEdit('w',-0.1)" aria-label="Smalare">−</button><button onclick="furnEdit('w',0.1)" aria-label="Bredare">+</button></div><div class="stepr"><small>Djup</small><button onclick="furnEdit('h',-0.1)" aria-label="Grundare">−</button><button onclick="furnEdit('h',0.1)" aria-label="Djupare">+</button></div><button class="btn sm line" onclick="furnRot()" aria-label="Vrid">↻ Vrid</button><button class="x" onclick="delFurn('${f.id}')">Ta bort</button></div>`; }
   if (sel.k === 'fwall') { const wl = planWalls().find(x => x.id === sel.id); if (!wl) return '';
@@ -4724,7 +4775,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.51';
+const APP_VERSION = '1.52';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
