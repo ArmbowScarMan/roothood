@@ -3077,13 +3077,13 @@ function diaryV(m, inModal) {
   ${form}${items}</div>`;
 }
 
-function topbar(title, backFn) {
+function topbar(title, backFn, extra) {
   const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0;
   const left_ = backFn
     ? `<button class="circ" onclick="${backFn}" aria-label="Tillbaka">${ic(I.back, null, 22)}</button>`
     : `<img class="logoimg" src="${LOGO}" alt="Roothood" width="40" height="40">`;
   const right = bellBtn();
-  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1>${esc(title)}</h1>${right}</div>`;
+  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1>${esc(title)}</h1>${extra || ''}${right}</div>`;
 }
 
 // ===== Vyer =====
@@ -4136,9 +4136,9 @@ function mineV() {
   <div class="list" style="padding-top:0">${S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p>Tryck på hjärtat på en växt under Växter så hamnar den här, med vattningspåminnelser.</p><button class="btn sm" onclick="go('home')">Hitta växter</button></div>`}</div>`;
 }
 function meV() {
-  if (!S.user) return `${topbar('Profil')}<div class="prof"><img src="${LOGO}" alt="" width="96" height="96" style="display:block;margin:0 auto 12px;border-radius:24px"><h2>Välkommen till Roothood</h2><p class="mut">Skapa ett konto för att spara växter och vara med i communityn.</p><button class="btn" onclick="openModal('login')">Logga in eller skapa konto</button></div>${installCard()}${settingsRow()}`;
+  if (!S.user) return `${topbar('Profil', null, gearBtn())}<div class="prof"><img src="${LOGO}" alt="" width="96" height="96" style="display:block;margin:0 auto 12px;border-radius:24px"><h2>Välkommen till Roothood</h2><p class="mut">Skapa ett konto för att spara växter och vara med i communityn.</p><button class="btn" onclick="openModal('login')">Logga in eller skapa konto</button></div>${installCard()}${settingsRow()}`;
   if (S.meCard === undefined) { S.meCard = null; setTimeout(loadMe); }
-  return `${topbar('Profil')}${userBody(meCardNow(), S.meCard ? S.meCard.posts : null, true)}${DEMO ? '<p class="mut" style="margin:0 18px">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}
+  return `${topbar('Profil', null, gearBtn())}${userBody(meCardNow(), S.meCard ? S.meCard.posts : null, true)}${DEMO ? '<p class="mut" style="margin:0 18px">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}
   <div class="sec"><h2>Konto och inställningar</h2></div>
   ${proCard()}
   ${installCard()}
@@ -5205,7 +5205,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.65';
+const APP_VERSION = '1.66';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
@@ -5307,6 +5307,7 @@ function settingsV() {
     ${DEMO ? `<button class="btn wide line" style="margin-top:12px" onclick="resetDemo()">${S.del === 'reset' ? 'Tryck igen för att börja om' : 'Återställ demodata'}</button>` : ''}
   </div>`;
 }
+function gearBtn() { return `<button class="circ" onclick="openSettings()" aria-label="Inställningar" title="Inställningar">${ic(GEAR, null, 22)}</button>`; }
 function settingsRow() {
   return `<div class="pad" style="padding-top:12px"><button class="setrow" onclick="openSettings()"><span class="tic">${ic(GEAR, 'currentColor', 20)}</span><span class="grow"><b>Inställningar</b><span>Profil, utseende, odlingszon och konto</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`;
 }
