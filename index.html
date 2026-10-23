@@ -1391,7 +1391,7 @@ function addPlant(id, quick) {
   if (overLimit()) { S.limitHit = true; return openModal('pro'); }
   if (!quick) { S.addp = id; return openModal('addp'); }
   const p = S.plants.find(x => x.id === id);
-  run(() => api.addMine(p), p.swedish_name + ' finns nu i din samling');
+  run(() => api.addMine(p), p.swedish_name + ' finns nu i din samling').then(afterAdd);
 }
 function openMine(id) {
   const m = S.mine.find(x => x.id === id); if (!m) return;
@@ -1418,7 +1418,7 @@ async function confirmAddp() {
   const p = S.plants.find(x => x.id === S.addp), photo = S.ap && S.ap.file;
   S.modal = null;
   await run(() => api.addMine(p, photo), p.swedish_name + ' finns nu i din samling' + (photo ? ' med ditt foto' : ''));
-  S.ap = null; photoWarnCheck();
+  S.ap = null; photoWarnCheck(); afterAdd();
 }
 const myItem = id => S.mine.find(x => x.id === id);
 async function addMyPhoto(id, inp) {
@@ -1511,7 +1511,8 @@ function growthTxt(d) {
   return `${diff > 0 ? '+' : ''}${diff} cm sedan ${dd} ${MONTHS[mo - 1]}`;
 }
 function detailsV(m, inModal) {
-  const d = m.details || {}, items = [];
+  const d = m.details || {}, out = isOutM(m), items = out ? outItems(m, d) : [];
+  if (!out) {
   if (d.place) items.push(['Planterad', d.place]);
   if (d.cm || d.mat) items.push(['Kruka', [d.cm ? d.cm + ' cm' : '', d.mat || ''].filter(Boolean).join(', ')]);
   if (d.self) items.push(['Självvattnande', 'Ja']);
@@ -1524,11 +1525,12 @@ function detailsV(m, inModal) {
   else if (d.light) items.push(['Plats', d.light]);
   if (d.since) items.push(['Har haft sedan', whenTxt(d.since)]);
   if (d.from) items.push(['Kommer från', d.from]);
-  const hints = pdHints(m, d);
+  }
+  const hints = out ? outHints(m, d) : pdHints(m, d);
   const head = inModal ? '<h3>Om min växt</h3>' : '';
   return `${inModal ? '' : `<div class="sec"><h2>Om min växt</h2>${items.length ? `<button class="link3" onclick="openDetails(${m.id})">Ändra</button>` : ''}</div>`}<div class="pdbox ${inModal ? 'inm' : ''}">${head}
   ${items.length ? `<div class="pdgrid">${items.map(i => `<div><small>${i[0]}</small><b>${esc(i[1])}</b>${i[2] ? `<em>${esc(i[2])}</em>` : ''}</div>`).join('')}</div>`
-    : `<p class="mut" style="margin:0 0 10px;font-size:14px">Spara rum, krukstorlek, jord och höjd, så får du tips för just din växt.</p>`}
+    : `<p class="mut" style="margin:0 0 10px;font-size:14px">${out ? 'Spara var den växer, sol, jord och höjd, så får du råd utifrån vädret där du bor.' : 'Spara rum, krukstorlek, jord och höjd, så får du tips för just din växt.'}</p>`}
   ${hints.map(x => `<div class="pdhint ${x[0]}"><span class="ck">${x[0] === 'warn' ? '⚠️' : '💡'}</span><span>${esc(x[1])}</span></div>`).join('')}
   ${!items.length || inModal ? `<button class="btn sm ${items.length ? 'line' : ''}" style="margin-top:10px" onclick="openDetails(${m.id})">${items.length ? 'Ändra uppgifter' : '+ Lägg till uppgifter'}</button>` : ''}</div>`;
 }
@@ -1548,6 +1550,8 @@ function pdetV() {
   const d = S.pd, outd = OUTDOOR.includes(m.category || (plantById(m.plant_id) || {}).category), pot = outd ? ['Kruka', 'Ampel'].includes(d.place) : (!d.place || !['Rabatt', 'Odlingslåda', 'I vatten', 'I marken'].includes(d.place)), pp = plantById(m.plant_id), ps = pp ? pSize(pp) : null;
   return `<div class="mh"><h2>${esc(m.name)}</h2><button class="close" onclick="closeDetails()" aria-label="Stäng">×</button></div>
   <div class="pdform">
+  ${S.pdNew ? `<p class="mut" style="margin:0 0 10px;font-size:14px">${esc(m.name)} finns nu i din samling. Berätta lite om den, så blir råden bättre. Du kan hoppa över och fylla i senare.</p>` : ''}
+  ${outd ? outFormV(m, d, ps) + `<button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="saveDetails()">${S.busy ? 'Sparar…' : 'Spara'}</button>${S.pdNew ? '<button class="link3" style="margin:8px auto 0;display:block" onclick="closeDetails()">Hoppa över</button>' : ''}</div>` : `
   <label class="fl" style="margin-top:0">Hur är den planterad?</label>${pdChips('place')}
   ${pot ? `<div class="two"><div><label class="fl" for="pdcm">Krukans diameter (cm)</label><input id="pdcm" type="number" inputmode="numeric" min="1" max="300" value="${d.cm || ''}" oninput="S.pd.cm=+this.value||null"></div>
   <div><label class="fl" for="pdh">Höjd/längd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="2000" value="${d.h || ''}" oninput="S.pd.h=+this.value||null"></div></div>
@@ -1564,9 +1568,9 @@ function pdetV() {
   <div class="two"><div><label class="fl" for="pdsince">Har haft den sedan</label><input id="pdsince" type="date" max="${today()}" value="${d.since || ''}" oninput="S.pd.since=this.value||null"></div>
   <div><label class="fl" for="pdfrom">Kommer från</label><input id="pdfrom" maxlength="80" placeholder="t.ex. stickling från mormor" value="${esc(d.from || '')}" oninput="S.pd.from=this.value"></div></div>
   <p class="mut" style="font-size:13px;margin:12px 0 0">Ändrar du höjden sparas den i skötseldagboken, så ser du hur växten växer.</p>
-  <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="saveDetails()">${S.busy ? 'Sparar…' : 'Spara'}</button></div>`;
+  <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="saveDetails()">${S.busy ? 'Sparar…' : 'Spara'}</button>${S.pdNew ? '<button class="link3" style="margin:8px auto 0;display:block" onclick="closeDetails()">Hoppa över</button>' : ''}</div>`}`;
 }
-function closeDetails() { const back = S.pdBack; S.modal = null; if (back) { S.modal = 'myplant'; } render(); }
+function closeDetails() { S.pdNew = false; const back = S.pdBack; S.modal = null; if (back) { S.modal = 'myplant'; } render(); }
 async function saveDetails() {
   const m = S.mine.find(x => x.id === S.pdId); if (!m) return;
   const old = m.details || {}, d = JSON.parse(JSON.stringify(S.pd));
@@ -1574,6 +1578,7 @@ async function saveDetails() {
   if (d.h && (d.h < 1 || d.h > 4000)) return toast('Höjden verkar inte stämma');
   if (d.w && (d.w < 1 || d.w > 3000)) return toast('Bredden verkar inte stämma');
   if (d.from) d.from = d.from.trim().slice(0, 80);
+  if (isOutM(m)) { delete d.room; delete d.win; delete d.light; if (d.place !== 'Kruka ute') { delete d.cm; delete d.drain; } delete d.mat; delete d.self; }
   if (['Rabatt', 'Odlingslåda', 'I vatten', 'I marken'].includes(d.place)) { delete d.cm; delete d.mat; delete d.self; delete d.drain; }
   if (d.room) { const r = roomOf(null, d); if (r) d.light = roomLightWord(r); else delete d.room; } else delete d.win;
   const hChanged = d.h && d.h !== old.h;
@@ -1682,7 +1687,7 @@ const DIR_SUN = { N: 1, NO: 1.4, O: 2, SO: 2.6, S: 3, SV: 2.7, V: 2.1, NV: 1.4 }
 const ROOM_TYPES = ['Vardagsrum', 'Sovrum', 'Kök', 'Badrum', 'Arbetsrum', 'Hall', 'Barnrum', 'Balkong', 'Uterum', 'Trädgård'];
 const WIN = ['I fönstret', 'Ca 1 m bort', '2 m eller mer'];
 const TEMPS = ['Svalt', 'Normalt', 'Varmt'], HUMS = ['Torr luft', 'Normal', 'Fuktig'];
-function roomOf(m, d) { const id = (d || (m && m.details) || {}).room; return id ? (S.home || []).find(r => r.id === id) || null : null; }
+function roomOf(m, d) { if (m && isOutM(m)) return null; const id = (d || (m && m.details) || {}).room; return id ? (S.home || []).find(r => r.id === id) || null : null; }
 function dirTxt(r) { const d = r.dirs || []; return d.length ? 'Fönster mot ' + d.map(x => DIRS.find(y => y[0] === x)[1].toLowerCase()).join(' och ') : 'Inget fönster'; }
 function roomSun(r, win) {
   const d = r.dirs || [];
@@ -2724,6 +2729,7 @@ function homeAlerts(sz) {
   S.mine.filter(m => { const c = m.details && m.details.climate, p = plantOf(m); return c && p && /hög/i.test(p.humidity || '') && c.hum < 45; }).slice(0, 1)
     .forEach(m => a.push([`Torr luft vid ${m.name} (${m.details.climate.hum} %)`, '(Termometer)', `openMine(${m.id})`]));
   if (S.pets) { const pw = petWarnings().filter(x => x.lv === 'd'); if (pw.length) a.unshift([`${pw[0].m.name} är farlig för ${pw[0].a.name}`, pw.length > 1 ? `(och ${pw.length - 1} till)` : '(Mina djur)', 'openPets()']); }
+  if (S.wx && S.wx.d) { const oa = outWeatherAlerts(); if (oa.length) a.push([oa.length === 1 ? `${oa[0][0].name}: ${oa[0][1].split('.')[0]}` : `${oa.length} växter ute behöver något: ${oa[0][1].split('.')[0].replace(/^./, c => c.toLowerCase())}`, '(Väder)', oa.length === 1 ? `openMine(${oa[0][0].id})` : "go('mine')"]); }
   const due = S.mine.filter(m => left(m) === 0 && !sensorDry(m));
   if (due.length) a.push([due.length === 1 ? `${due[0].name} behöver vatten idag` : `${due.length} växter behöver vatten idag`, '', "go('mine')"]);
   return a.slice(0, { s: 1, m: 2, l: 6 }[sz || 'm']).map(x => `<button class="alertb" onclick="${x[2]}"><span class="ai">${ic(I.drop, 'currentColor', 18)}</span><span class="grow"><b>${esc(x[0])}</b>${x[1] ? `<span>${x[1]}</span>` : ''}</span>${ic(I.back, 'currentColor', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button>`).join('');
@@ -2806,7 +2812,7 @@ async function saveCustom(form) {
   S.modal = null;
   if (dup) await run(() => api.addMine(dup, f.photo), dup.swedish_name + ' fanns redan i databasen och finns nu i din samling');
   else await run(async () => { await api.addCustom(f); S.plants = await api.plants(); }, f.name + ' finns nu i din samling och i databasen. Den granskas innan andra kan se den.');
-  S.ap = null; photoWarnCheck();
+  S.ap = null; photoWarnCheck(); afterAdd();
 }
 function renderModalKeep(form) {
   const p = form.querySelector('.formmsg') || document.createElement('p');
@@ -3430,6 +3436,62 @@ function terrV(a) {
 
 function openAqDb() { S.env = 'in'; S.cat = 'Akvarieväxt'; S.q = ''; openDb(); }
 
+// ===== Utomhusväxter: plats i trädgården och råd utifrån vädret =====
+const OUTP = {
+  place: ['I marken', 'Rabatt', 'Odlingsland', 'Odlingslåda', 'Kruka ute', 'Växthus', 'Mot vägg eller spaljé'],
+  sun: ['Full sol', 'Halvskugga', 'Skugga'],
+  shelter: ['Skyddat läge', 'Mot husvägg', 'Öppet och blåsigt'],
+  gsoil: ['Lerjord', 'Sandjord', 'Mulljord', 'Planteringsjord', 'Vet inte'],
+};
+function isOutM(m) { const p = plantById(m.plant_id); return OUTDOOR.includes(m.category || (p || {}).category); }
+function outChips(k) { return `<div class="chips2">${OUTP[k].map(v => { const on = S.pd[k] === v; return `<button class="${on ? 'on' : ''}" aria-pressed="${on}" onclick="pdSet('${k}','${v.replace(/'/g, "\\'")}')">${v}</button>`; }).join('')}</div>`; }
+function outFormV(m, d, ps) {
+  const pot = d.place === 'Kruka ute', areas = planAreas().filter(a => ['bed', 'veg'].includes(a.t));
+  return `<label class="fl" style="margin-top:0">Var växer den?</label>${outChips('place')}
+  ${pot ? `<div class="two"><div><label class="fl" for="pdcm">Krukans diameter (cm)</label><input id="pdcm" type="number" inputmode="numeric" min="1" max="300" value="${d.cm || ''}" oninput="S.pd.cm=+this.value||null"></div><div><label class="fl">Dräneringshål?</label>${pdChips('drain')}</div></div>` : ''}
+  ${S.pro && areas.length && ['Rabatt', 'Odlingsland'].includes(d.place) ? `<label class="fl">Vilken av dina rabatter?</label><div class="chips2">${areas.map(a => `<button class="${d.area === a.id ? 'on' : ''}" onclick="pdSet('area','${a.id}')">${a.t === 'veg' ? 'Odlingsland' : 'Rabatt'} ${String(polyArea(a.pts)).replace('.', ',')} m²</button>`).join('')}</div>` : ''}
+  <label class="fl">Hur mycket sol får den?</label>${outChips('sun')}
+  <label class="fl">Hur skyddat står den?</label>${outChips('shelter')}
+  ${pot ? '' : `<label class="fl">Vilken sorts jord?</label>${outChips('gsoil')}`}
+  <div class="two"><div><label class="fl" for="pdh">Höjd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="4000" placeholder="${ps ? 'Fullvuxen ca ' + ps[0] : ''}" value="${d.h || ''}" oninput="S.pd.h=+this.value||null"></div>
+  <div><label class="fl" for="pdw">Bredd (cm)</label><input id="pdw" type="number" inputmode="numeric" min="1" max="3000" placeholder="${ps ? 'Fullvuxen ca ' + ps[1] : ''}" value="${d.w || ''}" oninput="S.pd.w=+this.value||null"></div></div>
+  <label class="tog"><input type="checkbox" ${d.wcover ? 'checked' : ''} onchange="S.pd.wcover=this.checked;keepScroll()"><span><b>Jag täcker eller skyddar den på vintern</b></span></label>
+  <div class="two"><div><label class="fl" for="pdsince">Planterad</label><input id="pdsince" type="date" max="${today()}" value="${d.since || ''}" oninput="S.pd.since=this.value||null"></div>
+  <div><label class="fl" for="pdfrom">Kommer från</label><input id="pdfrom" maxlength="80" placeholder="t.ex. plantskolan" value="${esc(d.from || '')}" oninput="S.pd.from=this.value"></div></div>
+  <p class="mut" style="font-size:12.5px;margin:10px 0 0">Växten står ute, så råden bygger på vädret där du bor i stället för rum och fönster.</p>`;
+}
+function outItems(m, d) { const it = [];
+  if (d.place) { const a = d.area && planAreas().find(x => x.id === d.area); it.push(['Växer', d.place, a ? String(polyArea(a.pts)).replace('.', ',') + ' m²' : '']); }
+  if (d.place === 'Kruka ute' && d.cm) it.push(['Kruka', d.cm + ' cm']);
+  if (d.sun) it.push(['Sol', d.sun]); if (d.shelter) it.push(['Läge', d.shelter]); if (d.gsoil && d.gsoil !== 'Vet inte') it.push(['Jord', d.gsoil]);
+  if (d.h) it.push(['Höjd', d.h + ' cm', growthTxt(d)]); if (d.w) it.push(['Bredd', d.w + ' cm']); if (d.wcover) it.push(['Vinterskydd', 'Ja']);
+  if (d.since) it.push(['Planterad', whenTxt(d.since)]); if (d.from) it.push(['Kommer från', d.from]); return it; }
+function tender(p) { if (!p) return false; const t = guessType(p); return ['gron', 'sommar', 'krydda'].includes(t) && !/Allium|Brassica|Spinacia|Pisum|Vicia|Daucus|Pastinaca|Petroselinum|Thymus|Salvia officinalis|Origanum|Mentha|Melissa|Levisticum|Armoracia|Rheum/.test(p.latin_name || ''); }
+function outHints(m, d) {
+  const h = [], p = plantById(m.plant_id), w = S.wx, z = store.get('zone', 0), nm = (p ? p.swedish_name : m.name);
+  if (!w && !S.wxBusy) setTimeout(() => loadWeather(), 0);
+  const zr = p ? zoneOf(p) : null; if (z && zr && zr[1] < z) h.push(['warn', `${nm} klarar zon ${zr[0]}–${zr[1]}, men du bor i zon ${z}. ${d.wcover ? 'Bra att du skyddar den på vintern.' : 'Plantera i ett skyddat läge och täck över den på vintern.'}`]);
+  if (p) { const lc = lightClass(p); if (lc === 3 && d.sun === 'Skugga') h.push(['warn', `${nm} vill ha sol och blommar och växer sämre i skugga.`]); if (lc === 1 && d.sun === 'Full sol') h.push(['warn', `${nm} trivs i skugga. Full sol kan bränna bladen.`]); }
+  if (p && d.gsoil === 'Lerjord' && /väldränerad|sandig|mager/i.test(p.soil || '')) h.push(['', `${nm} vill ha väldränerad jord. Blanda i grus eller sand i lerjorden.`]);
+  if (p && d.gsoil === 'Sandjord' && /fukt|mullrik|näringsrik/i.test(p.soil || '')) h.push(['', `Sandjord torkar fort. Blanda i kompost och vattna oftare.`]);
+  if (d.place === 'Kruka ute' && d.drain === 'Nej') h.push(['warn', 'Krukan ute saknar dräneringshål. Regnvatten blir stående och rötterna kan ruttna.']);
+  if (d.place === 'Växthus') h.push(['', 'I växthuset: vädra varma dagar så det inte blir över 30 °C, och vattna oftare än ute.']);
+  if (w && w.d && w.cur) { const D = w.d, n3 = i => i < 3, mn = Math.min(...D.temperature_2m_min.slice(0, 3)), mx = Math.max(...D.temperature_2m_max.slice(0, 3)), rain = D.precipitation_sum.slice(0, 3).reduce((s, v) => s + v, 0), gust = Math.max(...D.wind_gusts_10m_max.slice(0, 3)), snow = D.snowfall_sum.slice(0, 3).reduce((s, v) => s + v, 0);
+    const newish = d.since && (Date.now() - Date.parse(d.since)) < 365 * 864e5, pot = d.place === 'Kruka ute', tall = (d.h || (p ? pSize(p)[0] : 0)) >= 150, t = p ? guessType(p) : '';
+    if (mn <= 0 && (tender(p) || pot || (zr && z && zr[1] < z))) h.push(['warn', `Frost väntas, ner till ${Math.round(mn)} °C. ${pot ? 'Ställ in krukan eller ställ den mot husväggen.' : 'Täck över med fiberduk eller ta in den i natt.'}`]);
+    else if (mn <= 3 && tender(p) && !['Växthus'].includes(d.place)) h.push(['warn', `Kallt i natt, ${Math.round(mn)} °C. ${nm} är känslig, täck gärna över.`]);
+    if (rain >= 10) h.push(['', `Det väntas ${Math.round(rain)} mm regn de närmaste dagarna. Du behöver inte vattna${pot ? ', men kolla att krukan inte står i vatten' : ''}.`]);
+    else if (rain < 2 && mx >= 18) h.push([newish || pot || ['gron', 'krydda', 'sommar'].includes(t) ? 'warn' : '', `Torrt${mx >= 25 ? ' och varmt' : ''} och nästan inget regn de närmaste dagarna. ${pot ? 'Vattna krukan varje dag.' : newish ? 'Vattna ordentligt, nyplanterade växter har korta rötter.' : 'Vattna ordentligt en gång istället för lite varje dag.'}`]);
+    if (gust >= 14 && (tall || newish) && d.shelter !== 'Skyddat läge') h.push(['warn', `Blåsigt, byar upp till ${Math.round(gust)} m/s. ${['trad', 'frukt', 'barr'].includes(t) ? 'Stötta trädet med en påle.' : tall ? 'Bind upp höga stänglar.' : 'Nyplanterade växter kan behöva stöd.'}`]);
+    if (snow >= 5 && ['barr', 'buske', 'ros', 'bar'].includes(t)) h.push(['', `Snö väntas, ca ${Math.round(snow)} cm. Borsta av tung snö så att grenarna inte knäcks.`]);
+    if (mx >= 27 && (pot || d.place === 'Växthus')) h.push(['warn', `Värme upp till ${Math.round(mx)} °C. Vattna morgon och kväll${d.place === 'Växthus' ? ' och vädra växthuset' : ''}.`]);
+  } else if (!w || w.none) h.push(['', 'Fyll i din ort i profilen, så får du råd utifrån vädret där du bor.']);
+  return h;
+}
+function outWeatherAlerts() { // till Hem: utomhusväxter som behöver något nu
+  const out = []; S.mine.filter(isOutM).forEach(m => { const hs = outHints(m, m.details || {}).filter(x => x[0] === 'warn' && /Frost|Kallt|Torrt|Blåsigt|Värme/.test(x[1])); if (hs.length) out.push([m, hs[0][1]]); }); return out; }
+async function afterAdd(ok) { const m = S.mine[S.mine.length - 1]; if (!m) return; S.pdNew = true; openDetails(m.id); const out = isOutM(m); if (!S.pd.place) S.pd.place = out ? (m.category === 'Köksträdgård' ? 'Odlingsland' : 'I marken') : 'Kruka'; render(); }
+
 // ===== Rabattläget i Mitt hem: placera rabatt, mått, sätt ut växter med cc-mått =====
 const zMax = () => PL().mode === 'bed' ? 320 : 120;
 function bedPts(br) { const c = Math.cos(br.rot * Math.PI / 180), s = Math.sin(br.rot * Math.PI / 180), T = (x, y) => [Math.round((br.cx + x * c - y * s) * 100) / 100, Math.round((br.cy + x * s + y * c) * 100) / 100];
@@ -4003,7 +4065,7 @@ async function apAddDb(id) {
   const p = S.plants.find(x => x.id === id), photo = S.ap && S.ap.file;
   S.modal = null;
   await run(() => api.addMine(p, photo), p.swedish_name + ' finns nu i din samling');
-  S.ap = null; photoWarnCheck();
+  S.ap = null; photoWarnCheck(); afterAdd();
 }
 function photoWarnCheck() { if (S.photoWarn) { S.photoWarn = false; toast('Växten sparades, men fotot kunde inte sparas.'); } }
 const petWord = p => p.pet_safe ? 'Ofarlig' : /^Okänt/.test(p.toxicity_text || '') ? 'Okänt' : 'Giftig';
@@ -4969,7 +5031,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.55';
+const APP_VERSION = '1.56';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
