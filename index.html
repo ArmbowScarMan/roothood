@@ -845,6 +845,7 @@ button.pw{cursor:pointer}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .qbtn.q-db{background:#1B3326}:root:not([data-theme="light"]) .qbtn.q-doc{background:#3A2420}:root:not([data-theme="light"]) .qbtn.q-xp{background:#2A2540}:root:not([data-theme="light"]) .qbtn.q-house{background:#3A3020}:root:not([data-theme="light"]) .qbtn.q-sun{background:#3A3418}:root:not([data-theme="light"]) .qbtn.q-pets{background:#33281E}:root:not([data-theme="light"]) .qbtn.q-smart{background:#28243A}:root:not([data-theme="light"]) .qbtn.q-inspo{background:#3A2621}:root:not([data-theme="light"]) .qbtn.q-cam{background:#183331}}
 :root[data-theme="dark"] .qbtn.q-db{background:#1B3326}:root[data-theme="dark"] .qbtn.q-doc{background:#3A2420}:root[data-theme="dark"] .qbtn.q-xp{background:#2A2540}:root[data-theme="dark"] .qbtn.q-house{background:#3A3020}:root[data-theme="dark"] .qbtn.q-sun{background:#3A3418}:root[data-theme="dark"] .qbtn.q-pets{background:#33281E}:root[data-theme="dark"] .qbtn.q-smart{background:#28243A}:root[data-theme="dark"] .qbtn.q-inspo{background:#3A2621}:root[data-theme="dark"] .qbtn.q-cam{background:#183331}
 .qbtn .tic{box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.qbtn.q-more .tic{font-size:22px;font-weight:800;color:var(--mut);background:var(--bg)}
 .welc{margin:14px 18px 0;background:var(--surf);border-radius:20px;box-shadow:var(--sh);padding:14px 16px;display:flex;flex-direction:column;gap:8px;border:2px solid var(--pri2,#5E9E48)}
 .welc .wh{display:flex;align-items:center;justify-content:space-between}
 .welc .wh b{font-size:17px}
@@ -1253,7 +1254,7 @@ const demoApi = {
   async newThread(cat, title, body, photo) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.unshift({ id: Date.now(), kind: 'thread', user_id: 'demo', author: 'Du', category: cat, title, body, photo_url: url, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
   async ask(cat, body, photo) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.unshift({ id: Date.now(), kind: 'question', user_id: 'demo', author: 'Du', category: cat, body, photo_url: url, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
   async notifs() { const me = 'demo', out = []; this._feed().filter(p => p.user_id === me).forEach(p => (p.answers || []).filter(a => a.user_id !== me).forEach(a => out.push({ t: 'reply', at: a.created_at, who: a.author, body: a.body, post_id: p.id, kind: p.kind || 'question', cat: p.category, ptitle: p.title || p.body }))); (store.get('xq', []) || []).filter(q => q.answer).forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer })); return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 50); },
-  async answer(pid, body) { const f = this._feed(); f.find(p => p.id === pid).answers.push({ id: Date.now(), user_id: 'demo', author: 'Du', body, created_at: new Date().toISOString() }); this._save(f); },
+  async answer(pid, body, photo) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.find(p => p.id === pid).answers.push({ id: Date.now(), user_id: 'demo', author: 'Du', body, photo_url: url, created_at: new Date().toISOString() }); this._save(f); },
   async like(pid, on) { const f = this._feed(), p = f.find(x => x.id === pid); p.likers = p.likers.filter(x => x !== 'demo'); if (on) p.likers.push('demo'); this._save(f); },
   async best(pid, aid) { const f = this._feed(); f.find(p => p.id === pid).best_answer_id = aid; this._save(f); },
   async report() {},
@@ -1385,7 +1386,7 @@ const sbApi = {
     if (!posts.length) return [];
     const ids = posts.map(p => p.id);
     const [a, l] = await Promise.all([
-      sb.from('answers').select('id,post_id,user_id,body,created_at').in('post_id', ids).order('created_at'),
+      sb.from('answers').select('id,post_id,user_id,body,created_at,photo_url').in('post_id', ids).order('created_at').then(r => r.error && /photo_url/.test(r.error.message || '') ? sb.from('answers').select('id,post_id,user_id,body,created_at').in('post_id', ids).order('created_at') : r),
       sb.from('likes').select('post_id,user_id').in('post_id', ids)]);
     if (a.error) throw a.error;
     if (l.error) throw l.error;
@@ -1422,7 +1423,7 @@ const sbApi = {
     if (!xq.error) xq.data.forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer }));
     return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 60);
   },
-  async answer(pid, body) { const { error } = await sb.from('answers').insert({ post_id: pid, user_id: S.user.id, body }); if (error) throw error; },
+  async answer(pid, body, photo) { const url = photo ? await uploadPhoto(photo) : null, row = { post_id: pid, user_id: S.user.id, body }; if (url) row.photo_url = url; const { error } = await sb.from('answers').insert(row); if (error) throw /photo_url/.test(error.message || '') ? new Error('Bilder i svar är inte påslagna i databasen än (steg 026).') : error; },
   async like(pid, on) {
     const { error } = on ? await sb.from('likes').insert({ post_id: pid, user_id: S.user.id })
       : await sb.from('likes').delete().eq('post_id', pid).eq('user_id', S.user.id);
@@ -3936,9 +3937,9 @@ function userBody(c, uposts, self) {
 }
 // ===== Anpassa startskärmen =====
 const HB = [
-  ['alerts', 'Varningar', 'Torr jord, luftfukt och vattning idag'],
-  ['quick', 'Snabbval', 'Alla funktioner som små knappar överst'],
   ['weather', 'Väder', 'Väder där du bor och varningar för dina växter'],
+  ['alerts', 'Varningar', 'Torr jord, luftfukt och vattning idag'],
+  ['quick', 'Snabbval', 'De viktigaste funktionerna som knappar'],
   ['mine', 'Mina växter', 'Dina växter med temperatur, fukt och ljus'],
   ['home3d', 'Mitt hem i 3D', 'Din bostad i 3D med knapp för att ändra'],
   ['db', 'Växtdatabasen', 'Sök bland alla växter och skötselråd', 'tool'],
@@ -3960,6 +3961,7 @@ function homeLayout() {
   if (!Array.isArray(L)) L = [];
   L = L.map(x => x.k === 'plants' ? { k: 'db', on: x.on, w: 'w' } : x).filter((x, i, a) => HB_M[x.k] && a.findIndex(y => y.k === x.k) === i);
   HB.forEach((b, i) => { if (L.some(x => x.k === b[0])) return; let at = 0; for (let j = i - 1; j >= 0; j--) { const k = L.findIndex(x => x.k === HB[j][0]); if (k >= 0) { at = k + 1; break; } } L.splice(at, 0, { k: b[0], on: true, w: HB_DEF[b[0]] }); });
+  if (!store.get('wxTopMig', false)) { const wi = L.findIndex(x => x.k === 'weather'); if (wi > 0) L.unshift(L.splice(wi, 1)[0]); store.set('wxTopMig', true); store.set('homeLayout', L); }
   if (!store.get('quickMig', false)) { L.forEach(x => { if (HB_M[x.k] && HB_M[x.k][3] === 'tool') x.on = false; if (x.k === 'quick') x.on = true; }); store.set('quickMig', true); store.set('homeLayout', L); }
   return S.layout = L;
 }
@@ -3998,7 +4000,7 @@ const QUICK = () => [
   ['house', 'Mitt hem', DOORI, 'house', 'openHouse()', 1], ['light', 'Ljusmätare', I.sun, 'sun', "openTool('light')", 1], ['pets', 'Mina djur', I.paw, 'pets', 'openPets()'], ['smart', 'Smarta hemmet', HOMEI, 'smart', 'openSmart()'],
   ['comm', 'Community', CHATI, 'db', "go('comm')"], ['people', 'Hitta vänner', PEOPLEI, 'xp', 'openPeople()'], ['inspo', 'Odlare att följa', INSPI, 'inspo', 'openInspo()'], ['season', 'Säsongstips', I.leaf, 'sun', 'openSeason()'],
 ];
-function quickV() { return `<div class="sec cap2"><h2>Vad vill du göra?</h2></div><div class="qgrid">${QUICK().map(([k, n, icon, cls, act, pro]) => `<button class="qbtn q-${cls || 'cam'}" onclick="${act}"><span class="tic ${cls}">${ic(icon, 'currentColor', 22)}${pro && !S.pro ? '<em>PRO</em>' : ''}</span><span>${n}</span></button>`).join('')}</div>`; }
+function quickV() { const Q = QUICK(), main = ['db', 'id', 'doc', 'expert', 'house', 'pets', 'comm'], list = S.qmore ? Q : Q.filter(q => main.includes(q[0])); return `<div class="sec cap2"><h2>Vad vill du göra?</h2></div><div class="qgrid">${list.map(([k, n, icon, cls, act, pro]) => `<button class="qbtn q-${cls || 'cam'}" onclick="${act}"><span class="tic ${cls}">${ic(icon, 'currentColor', 22)}${pro && !S.pro ? '<em>PRO</em>' : ''}</span><span>${n}</span></button>`).join('')}<button class="qbtn q-more" onclick="S.qmore=!S.qmore;keepMain()"><span class="tic">${S.qmore ? '▴' : '⋯'}</span><span>${S.qmore ? 'Färre' : 'Fler'}</span></button></div>`; }
 function welcomeV() { return `<div class="welc"><div class="wh"><b>Välkommen till Roothood 🌱</b><button class="x" onclick="store.set('welcomeDone',true);render()" aria-label="Stäng">×</button></div>
   <p>Så kommer du igång på tre steg:</p>
   <button class="wstep" onclick="openDb()"><span>1</span><div><b>Lägg till dina växter</b><small>Sök i växtdatabasen och tryck på hjärtat</small></div></button>
@@ -4302,8 +4304,8 @@ function sendAnswer(pid) {
   if (needLogin()) return;
   const v = S.adraft.trim();
   if (v.length < 2) return toast('Skriv ett svar först.');
-  S.adraft = '';
-  commRun(() => api.answer(pid, v), 'Ditt svar är publicerat');
+  S.adraft = ''; const ph = S.cph; S.cph = null; S.cphUrl = null;
+  commRun(() => api.answer(pid, v, ph), 'Ditt svar är publicerat');
 }
 function toggleLike(pid) {
   if (needLogin()) return;
@@ -4354,14 +4356,14 @@ function listState(list, emptyText) {
   return null;
 }
 function replyBox(pid, ph_) {
-  return `<div class="ask" style="margin:14px 0 0"><textarea id="na" rows="3" maxlength="3000" placeholder="${ph_}" aria-label="Ditt svar" oninput="S.adraft=this.value">${esc(S.adraft)}</textarea><div style="margin-top:10px"><button class="btn sm" onclick="sendAnswer(${pid})">Skicka svar</button></div></div>`;
+  return `<div class="ask" style="margin:14px 0 0"><textarea id="na" rows="3" maxlength="3000" placeholder="${ph_}" aria-label="Ditt svar" oninput="S.adraft=this.value">${esc(S.adraft)}</textarea><div class="askrow" style="margin-top:10px">${cPhotoBtn()}<span class="grow" style="flex:1"></span><button class="btn sm" onclick="sendAnswer(${pid})">Skicka svar</button></div></div>`;
 }
 function answersV(p, allowBest) {
   const mine = !!(S.user && p.user_id === S.user.id);
   const ans = allowBest ? [...p.answers].sort((a, b) => (b.id === p.best_answer_id) - (a.id === p.best_answer_id)) : p.answers;
   return ans.map(a => {
     const isBest = allowBest && a.id === p.best_answer_id, own = !!(S.user && a.user_id === S.user.id);
-    return `<div class="post ${isBest ? 'bestc' : ''}">${whoP(a, ago(a.created_at), isBest ? '<span class="pill ok">Bästa svar</span>' : '')}<p style="margin:0;white-space:pre-line">${esc(a.body)}</p>
+    return `<div class="post ${isBest ? 'bestc' : ''}">${whoP(a, ago(a.created_at), isBest ? '<span class="pill ok">Bästa svar</span>' : '')}<p style="margin:0;white-space:pre-line">${esc(a.body)}</p>${postImg(a)}
     <div class="prow">${allowBest && mine && !isBest ? `<button class="link2" onclick="markBest(${p.id},${a.id})">Markera som bästa svar</button>` : ''}<span class="grow"></span>${own ? delBtn('a', 'delAnswer', a.id) : `<button class="x" onclick="openReport('answer',${a.id})">Rapportera</button>`}</div></div>`;
   }).join('');
 }
@@ -5180,7 +5182,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.62';
+const APP_VERSION = '1.63';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
