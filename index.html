@@ -3550,6 +3550,7 @@ function notifSeen() { return store.get('notifSeen', 0); }
 function notifUnseen() { return (S.notifs || []).filter(n => Date.parse(n.at) > notifSeen()).length; }
 async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); } catch (e) { S.notifs = S.notifs || []; } const b = $('.bellb .dot'); if (!S.tool && !S.modal) render(); }
 function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due; return `<button class="circ bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
+function notifAllRead() { S.prevSeen = Date.now(); store.set('notifSeen', Date.now()); keepMain(); toast('Alla notiser är markerade som lästa'); }
 function openNotif() { if (!S.user) return openModal('login'); stopLight(); S.sel = null; S.modal = null; S.prevSeen = notifSeen(); S.tool = 'notif'; render(); $('#main').scrollTop = 0; store.set('notifSeen', Date.now()); loadNotifs().then(() => { if (S.tool === 'notif') render(); }); }
 function goPost(kind, id, cat) { S.tool = null; S.sel = null; S.tab = 'comm'; S.ctab = KIND_TAB[kind] || 'q'; S.forum = kind === 'thread' ? cat : null; S.post = id; S.newCase = false; S.newL = false; S.newThread = false; render(); $('#main').scrollTop = 0; loadFeed(); }
 function notifV() {
@@ -3561,7 +3562,7 @@ function notifV() {
     : row(n.kind === 'mystery' ? '🔎' : n.kind === 'listing' ? '🔁' : '💬', `${esc(n.who || 'Någon')} svarade på ${what[n.kind] || 'ditt inlägg'}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”${n.ptitle ? ` · ${esc(n.ptitle.slice(0, 40))}` : ''}`, n.at, `goPost('${n.kind}',${n.post_id},'${esc(n.cat || '')}')`, Date.parse(n.at) > seen));
   return `${topbar('Notiser', 'S.tool=null;render()')}
   ${todo.length ? `<div class="sec"><h2>Att göra idag</h2></div><div class="pad nlist">${todo.join('')}</div>` : ''}
-  <div class="sec"><h2>Svar och aktivitet</h2></div><div class="pad nlist">${N == null ? '<p class="mut">Hämtar…</p>' : act.length ? act.join('') : '<p class="mut" style="margin:0">Inga svar än. När någon svarar på dina frågor, trådar, annonser eller detektivfall syns det här.</p>'}</div>
+  <div class="sec"><h2>Svar och aktivitet</h2>${(N || []).some(n => Date.parse(n.at) > seen) ? '<button class="viewall" onclick="notifAllRead()">✓ Markera alla som lästa</button>' : ''}</div><div class="pad nlist">${N == null ? '<p class="mut">Hämtar…</p>' : act.length ? act.join('') : '<p class="mut" style="margin:0">Inga svar än. När någon svarar på dina frågor, trådar, annonser eller detektivfall syns det här.</p>'}</div>
   <p class="mut" style="font-size:12.5px;margin:14px 18px 24px">Notiser i mobilen när du inte har appen öppen gäller än så länge bara vattning.</p>`;
 }
 function cPhotoBtn() { return S.cph ? `<span class="cph"><img src="${esc(S.cphUrl)}" alt="Vald bild"><button onclick="S.cph=null;S.cphUrl=null;keepMain()" aria-label="Ta bort bilden">×</button></span>` : `<label onclick="photoPick(event,this)" class="btn sm line cphb">📷 Bild<input type="file" accept="image/*" class="sr" onchange="cPhoto(this)"></label>`; }
@@ -5204,7 +5205,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.64';
+const APP_VERSION = '1.65';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
