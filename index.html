@@ -1422,7 +1422,7 @@ async function run(fn, ok) {
   catch (e) { toast(errMsg(e)); }
   render();
 }
-function go(t) { stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'mine' && S.user && !S.push) refreshPush(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
+function go(t) { stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'mine' && S.user && !S.push) refreshPush(); if (t === 'me') loadMe(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
 function openPlant(id) { S.sel = id; S.logForm = null; S.logAll = null; render(); $('#main').scrollTop = 0; }
 function openModal(m, prefill, latin, ap) { S.modal = m; if (m === 'add' || m === 'addp') S.addRemind = undefined; S.logForm = null; S.logAll = null; S.msg = ''; S.prefill = prefill || ''; S.prefillLatin = latin || ''; if (m === 'add' || m === 'addp') S.ap = ap || null; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
 function closeModal() { S.modal = null; S.msg = ''; S.limitHit = false; render(); }
@@ -2381,8 +2381,8 @@ function planV() {
   const P = PL(), m = P.mode, unplaced = (S.home || []).filter(r => !r.rect);
   const tool = (k, n, icon, act, on) => `<button class="pt pt-${k} ${on ? 'on' : ''}" aria-pressed="${!!on}" onclick="${act}"><span class="pti"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${icon}</svg></span><span class="ptl">${n}</span></button>`;
   return `<div class="ptools">${tool('move', 'Flytta', PTI.move, "planMode('move')", m === 'move')}${tool('room', 'Rum', PTI.room, "planMode('room')", m === 'room')}${tool('win', 'Väggar', PTI.win, "planMode('win')", m === 'win')}${tool('ute', 'Ute', PTI.ute, "planMode('ute')", m === 'ute')}${tool('bed', 'Rabatt', PTI.bed, "planMode('bed')", m === 'bed')}${tool('plant', 'Växt', PTI.plant, "planPick('plant')", m === 'place' && P.pick && P.pick.k === 'plant')}${tool('furn', 'Möbler', PTI.furn, "planPick('furn')", m === 'place' && P.pick && P.pick.k === 'furn')}${tool('dev', 'Smart', PTI.dev, "planPick('dev')", m === 'place' && P.pick && P.pick.k === 'dev')}</div>
-  <div class="pbar"><p class="phint" id="phint">${planHint()}${m === 'ute' && (P.upoly || []).length >= 3 ? ` <button class="link3" onclick="finishPoly()">Klar med ytan</button>` : m !== 'move' ? ` <button class="link3" onclick="planMode('move')">${m === 'win' || m === 'ute' || m === 'room' || m === 'bed' ? 'Klar' : 'Avbryt'}</button>` : ''}</p><span id="savebar">${saveBarInner()}</span></div>
-  <div class="planbox" id="planbox">${m === 'room' ? `<button class="newroomb ${P.roomDraw ? 'on' : ''}" onclick="PL().roomDraw=!PL().roomDraw;PL().sel=null;PL().msg=null;render()">${P.roomDraw ? 'Avbryt nytt rum' : '+ Nytt rum'}</button>` : ''}${m === 'ute' ? `<div class="wkind">${UK.map(([k, n, ty, e]) => `<button class="${P.ukind === k ? 'on ute' : ''}" onclick="uteKind('${k}')"><span style="font-size:15px">${e}</span>${n}</button>`).join('')}</div>` : ''}${m === 'win' ? `<div class="wkind">${WK.map(([k, n]) => `<button class="${P.wkind === k ? 'on' : ''}" onclick="PL().wkind='${k}';PL().msg=null;render()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${WKI[k]}</svg>${n}</button>`).join('')}</div>` : ''}${(S.undo || []).length ? `<button class="pundo" onclick="undoPlan()" aria-label="Ångra"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Ångra</button>` : ''}<svg id="plan" width="100%" height="100%" onpointerdown="planDown(event)" onpointermove="planMove(event)" onpointerup="planUp(event)" onpointercancel="planUp(event)" onwheel="planWheel(event)">${planInner()}</svg>
+  <div class="pbar"><p class="phint" id="phint">${planHint()}${m === 'ute' && (P.upoly || []).length >= 3 ? ` <button class="link3" onclick="finishPoly()">Klar med ytan</button>` : m !== 'move' ? ` <button class="link3" onclick="planMode('move')">${m === 'win' || m === 'ute' || m === 'room' || m === 'bed' || (m === 'place' && P.pick && P.pick.k !== 'plant') ? 'Klar' : 'Avbryt'}</button>` : ''}</p><span id="savebar">${saveBarInner()}</span></div>
+  <div class="planbox" id="planbox">${m === 'room' ? `<button class="newroomb ${P.roomDraw ? 'on' : ''}" onclick="PL().roomDraw=!PL().roomDraw;PL().sel=null;PL().msg=null;render()">${P.roomDraw ? 'Avbryt nytt rum' : '+ Nytt rum'}</button>` : ''}${m === 'ute' ? `<div class="wkind">${UK.map(([k, n, ty, e]) => `<button class="${P.ukind === k ? 'on ute' : ''}" onclick="uteKind('${k}')"><span style="font-size:15px">${e}</span>${n}</button>`).join('')}</div>` : ''}${m === 'place' && P.pick && (P.pick.k === 'furn' || P.pick.k === 'dev') ? `<div class="wkind">${P.pick.k === 'furn' ? FURN.concat(FURN_OUT).map(([k, n, w, h, e]) => `<button class="${P.pick.t === k ? 'on' : ''}" onclick="PL().pick={k:'furn',t:'${k}'};PL().msg=null;render()"><span style="font-size:15px">${e}</span>${n}</button>`).join('') : Object.entries(DEVS).map(([k, [n, e]]) => `<button class="${P.pick.t === k ? 'on' : ''}" onclick="PL().pick={k:'dev',t:'${k}'};PL().msg=null;render()"><span style="font-size:15px">${e}</span>${n}</button>`).join('')}</div>` : ''}${m === 'win' ? `<div class="wkind">${WK.map(([k, n]) => `<button class="${P.wkind === k ? 'on' : ''}" onclick="PL().wkind='${k}';PL().msg=null;render()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${WKI[k]}</svg>${n}</button>`).join('')}</div>` : ''}${(S.undo || []).length ? `<button class="pundo" onclick="undoPlan()" aria-label="Ångra"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Ångra</button>` : ''}<svg id="plan" width="100%" height="100%" onpointerdown="planDown(event)" onpointermove="planMove(event)" onpointerup="planUp(event)" onpointercancel="planUp(event)" onwheel="planWheel(event)">${planInner()}</svg>
     <button class="pmapb ${m === 'map' ? 'on' : ''}" onclick="planMode(PL().mode === 'map' ? 'move' : 'map')" aria-label="Karta i bakgrunden"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6.5v13.5L9 17.5l6 2.5 6-2.5V4l-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg></button>${m === 'map' ? mapPanelV() : ''}${mapOn() && m !== 'map' ? `<span class="mattr">${TILES[S.hplan.map.layer || 'sat'][2]}</span>` : ''}
     <button class="pnorth" onclick="rotNorth()" aria-label="Vrid norrpilen" title="Vrid norrpilen så den pekar mot norr"><span style="transform:rotate(${northDeg() + viewRot()}deg)">${compassSvg([], 40)}</span></button>
     <div class="pzoom"><button onclick="planZoom(1.6)" aria-label="Zooma in">+</button><button onclick="planZoom(0.625)" aria-label="Zooma ut">−</button><button onclick="PL().fit=true;renderPlan()" aria-label="Visa allt" style="font-size:13px">⤢</button></div>${planSelV()}</div>
@@ -2442,6 +2442,7 @@ function planDown(e) {
   if (P.mode === 'map' && S.hplan.map && S.hplan.map.lat != null) { const M = S.hplan.map; P.drag = { k: 'mapdrag', pt, o: { x: M.ox || 0, y: M.oy || 0 }, snap: snapState() }; return; }
   if (P.mode === 'map') { P.drag = { k: 'pan', sx: e.clientX, sy: e.clientY, ox: P.ox, oy: P.oy, moved: false }; return; }
   if (P.mode === 'bed') { const k = t && t.dataset.k; if (k === 'spot' && t.dataset.id === P.bedId) { const a = curBed(), i = +t.dataset.i; P.drag = { k: 'spot', a, i, pt, o: { x: a.spots[i].x, y: a.spots[i].y }, moved: false, snap: snapState() }; return; } P.drag = { k: 'pan', sx: e.clientX, sy: e.clientY, ox: P.ox, oy: P.oy, moved: false, bedTap: true }; return; }
+  { const k0 = t && t.dataset.k; if ((k0 === 'win' || k0 === 'bay') && ['move', 'win'].includes(P.mode)) { const r = S.home.find(x => x.id === t.dataset.id), i = +t.dataset.i, obj = r && (k0 === 'win' ? (r.wins || [])[i] : (r.bays || [])[i]); if (obj && !obj.pair) { P.drag = { k: 'winmove', kind: k0, r, obj, i, pt, o: obj.p, moved: false, snap: snapState() }; return; } } }
   if ((P.mode === 'ute' && !P.ukind) || (P.mode === 'win' && !P.wkind)) { P.drag = { k: 'pan', sx: e.clientX, sy: e.clientY, ox: P.ox, oy: P.oy, moved: false }; return; }
   if (P.mode === 'win' && ['wall', 'half'].includes(P.wkind)) { const st = snapPoint(pt.x, pt.y); P.drag = { k: 'drawline', pt }; P.ldraft = { x0: st[0], y0: st[1], x1: st[0], y1: st[1] }; return; }
   if (P.mode === 'ute') { const uk = P.ukind || 'lot', ty = UK_M[uk][2];
@@ -2492,6 +2493,7 @@ function planMove(e) {
   else if (d.k === 'plant' && d.moved) d.m.details.pos = { x: r1(d.o.x + dx), y: r1(d.o.y + dy) };
   else if (d.k === 'dev' && d.moved) { d.it.x = r1(d.o.x + dx); d.it.y = r1(d.o.y + dy); }
   else if (d.k === 'furn' && d.moved) { d.f.x = Math.round((d.o.x + dx) * 20) / 20; d.f.y = Math.round((d.o.y + dy) * 20) / 20; }
+  else if (d.k === 'winmove' && d.moved) { const L = sideLen(d.r, d.obj.s), dp = ['t', 'b'].includes(d.obj.s) ? dx : dy; d.obj.p = Math.max(0, Math.min(L - d.obj.l, Math.round((d.o + dp) * 20) / 20)); P.msg = `${d.kind === 'bay' ? 'Burspråket' : ({ door: 'Dörren', open: 'Öppningen', rad: 'Elementet', vent: 'Ventilen' })[d.obj.k] || 'Fönstret'} sitter ${String(Math.round(d.obj.p * 100) / 100).replace('.', ',')} m från hörnet. Släpp där det ska sitta.`; const hh = $('#phint'); if (hh) hh.textContent = P.msg; }
   else if (d.k === 'spot' && d.moved) { const s = d.a.spots[d.i]; s.x = Math.round((d.o.x + dx) * 100) / 100; s.y = Math.round((d.o.y + dy) * 100) / 100; P.ssel = d.i; }
   else if (d.k === 'mapdrag') { const M = S.hplan.map; M.ox = d.o.x + dx; M.oy = d.o.y + dy; d.moved = true; }
   else return;
@@ -2528,6 +2530,7 @@ async function planUp(e) {
   if (d.k === 'pan' && d.bedTap) { if (!d.moved) bedTap(pt); return; }
   if (d.k === 'spot') { if (!d.moved) { P.ssel = d.i; render(); return; } const s = d.a.spots[d.i]; if (!inPoly(s.x, s.y, d.a.pts)) { s.x = d.o.x; s.y = d.o.y; toast('Växten måste stå inne i rabatten'); } else { pushUndo(d.snap); saveHomeSoon(); } render(); return; }
   if (d.k === 'pan') { if (!d.moved) P.vsel = null; if (!d.moved && d.tapSel) { P.sel = d.tapSel; render(); } else if (!d.moved && P.sel) { P.sel = null; render(); } return; }
+  if (d.k === 'winmove') { if (!d.moved) { P.sel = { k: d.kind, id: d.r.id, i: d.i }; render(); return; } pushUndo(d.snap); syncDirs(d.r); saveHomeSoon(); P.sel = { k: d.kind, id: d.r.id, i: d.i }; render(); return; }
   if (d.k === 'selwin') { P.sel = { k: 'win', id: d.id, i: d.i }; render(); return; }
   if (d.k === 'selbay') { P.sel = { k: 'bay', id: d.id, i: d.i }; render(); return; }
   if (d.k === 'selfw') { P.sel = { k: 'fwall', id: d.id }; render(); return; }
@@ -2680,9 +2683,9 @@ function planPickV() {
 }
 function startPlace(pk) { S.modal = null; const P = PL(); P.mode = 'place'; P.pick = pk; P.sel = null; render(); }
 async function placeAt(pt) {
-  const P = PL(), pk = P.pick; P.mode = 'move'; P.pick = null;
-  if (pk.k === 'furn') { pushUndo(); S.hplan = S.hplan || {}; const F = FURN_M[pk.t], f = { id: 'f' + Date.now().toString(36), t: pk.t, x: r1(pt.x), y: r1(pt.y), w: F[2], h: F[3], rot: 0 }; S.hplan.furn = planFurn().concat(f); P.sel = { k: 'furn', id: f.id }; saveHomeSoon(); render(); return; }
-  if (pk.k === 'dev') { pushUndo(); S.hplan = S.hplan || {}; const it = { id: 'd' + Date.now().toString(36), t: pk.t, x: r1(pt.x), y: r1(pt.y) }; S.hplan.items = planItems().concat(it); growLamp(it); P.sel = { k: 'dev', id: it.id }; saveHomeSoon(); render(); return; }
+  const P = PL(), pk = P.pick; const keep = pk && (pk.k === 'furn' || pk.k === 'dev'); if (!keep) { P.mode = 'move'; P.pick = null; }
+  if (pk.k === 'furn') { pushUndo(); S.hplan = S.hplan || {}; const F = FURN_M[pk.t], f = { id: 'f' + Date.now().toString(36), t: pk.t, x: r1(pt.x), y: r1(pt.y), w: F[2], h: F[3], rot: 0 }; S.hplan.furn = planFurn().concat(f); P.lastPlaced = { k: 'furn', id: f.id }; P.msg = `${F[1]} är utlagd. Tryck igen för en till, eller välj en annan möbel nedanför. Vrid och ändra storlek under Flytta.`; saveHomeSoon(); render(); return; }
+  if (pk.k === 'dev') { pushUndo(); S.hplan = S.hplan || {}; const it = { id: 'd' + Date.now().toString(36), t: pk.t, x: r1(pt.x), y: r1(pt.y) }; S.hplan.items = planItems().concat(it); growLamp(it); P.msg = `${DEVS[pk.t][0]} är utlagd. Tryck igen för en till, eller välj något annat nedanför.`; saveHomeSoon(); render(); return; }
   let m = S.mine.find(x => x.id === pk.id); if (!m) return render();
   m.details = m.details || {}; m.details.pos = { x: r1(pt.x), y: r1(pt.y) };
   await savePos(m);
@@ -3849,6 +3852,10 @@ async function toggleFollow(id) {
   try { await api.follow(id, on); } catch (e) { S.follows = on ? S.follows.filter(x => x !== id) : S.follows.concat(id); render(); toast(e.message === 'USERS_NOT_READY' ? 'Att följa är inte påslaget i databasen än (steg 022).' : errMsg(e)); return; }
   const u = S.ucard && S.ucard.id === id ? S.ucard : (S.ppl || []).find(x => x.id === id); if (u) toast(on ? 'Du följer nu ' + u.display_name : 'Du följer inte längre ' + u.display_name);
 }
+function meCardNow() { const r = S.meCard || {}, c = r.card || {}, pr = r.prof || {};
+  return { id: S.user.id, display_name: S.user.name + (S.pro ? '' : ''), city: pr.city || S.city || c.city || '', interests: pr.interests || c.interests || [], plants: S.mine.length, posts: r.posts ? r.posts.length : (c.posts || 0), followers: c.followers || 0, following: c.following || (S.follows || []).length,
+    plant_list: S.mine.map(m => ({ name: m.name, plant_id: m.plant_id, photo: m.photo || null })) }; }
+async function loadMe() { if (!S.user) return; const out = {}; try { out.prof = await api.getProfile(); } catch (e) {} try { out.card = await api.userCard(S.user.id); } catch (e) {} try { out.posts = await api.userPosts(S.user.id); } catch (e) { out.posts = []; } S.meCard = out; if (S.tab === 'me' && !S.tool && !S.sel) render(); }
 async function openUser(id, fromHash) {
   if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.uBack = fromHash ? null : (S.tool === 'people' ? 'people' : S.tab === 'comm' ? 'comm' : null);
   S.tool = 'user'; S.uid = id; S.ucard = null; S.uposts = null; render(); $('#main').scrollTop = 0;
@@ -3864,18 +3871,20 @@ function userV() {
   const c = S.ucard, back = 'userBack()';
   if (!c) return `${topbar('Profil', back)}<p class="mut" style="margin:16px 18px">Hämtar profilen…</p>`;
   if (c.err || c.missing) return `${topbar('Profil', back)}<p class="mut" style="margin:16px 18px">${c.err === 'USERS_NOT_READY' ? 'Profiler är inte påslagna i databasen än (steg 022).' : 'Profilen hittades inte.'}</p>`;
-  const f = (S.follows || []).includes(c.id), posts = S.uposts || [];
-  return `${topbar(c.display_name, back)}
-  <div class="uhero">${avBig(c.display_name, 'bigav')}<div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? '📍 ' + esc(c.city) : 'Ingen ort angiven'}</span>
-    <button class="btn sm ${f ? 'line' : ''}" style="margin-top:10px;align-self:flex-start" onclick="toggleFollow('${esc(c.id)}')">${f ? 'Följer ✓' : '+ Följ'}</button></div></div>
+  return `${topbar(c.display_name, back)}${userBody(c, S.uposts, false)}`;
+}
+function userBody(c, uposts, self) {
+  const f = (S.follows || []).includes(c.id), posts = uposts || [];
+  return `  <div class="uhero">${avBig(c.display_name, 'bigav')}<div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? '📍 ' + esc(c.city) : 'Ingen ort angiven'}</span>
+    ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">✏️ Redigera profil</button>` : `<button class="btn sm ${f ? 'line' : ''}" style="margin-top:10px;align-self:flex-start" onclick="toggleFollow('${esc(c.id)}')">${f ? 'Följer ✓' : '+ Följ'}</button>`}</div></div>
   <div class="ustats"><div><b>${c.plants || 0}</b><span>växter</span></div><div><b>${c.posts || 0}</b><span>inlägg</span></div><div><b>${c.followers || 0}</b><span>följare</span></div><div><b>${c.following || 0}</b><span>följer</span></div></div>
   ${(c.interests || []).length ? `<div class="sec"><h2>Intressen</h2></div><div class="pad"><div class="chips2">${c.interests.map(i => `<span class="tag lime">${esc(i)}</span>`).join('')}</div></div>` : ''}
   <div class="sec"><h2>Växter</h2></div>
   <div class="pad">${c.plant_list && c.plant_list.length ? `<div class="uplants">${c.plant_list.slice(0, 30).map(pl => { const db = pl.plant_id ? S.plants.find(x => x.id === pl.plant_id) : S.plants.find(x => x.swedish_name === pl.name);
       return `<button class="upl" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${pl.photo ? `<div class="ph has-img"><img src="${esc(pl.photo)}" alt="" loading="lazy"></div>` : db ? plantPh(db) : ph('', 'Krukväxt', pl.name)}<span>${esc(pl.name || 'Växt')}</span></button>`; }).join('')}</div>`
-    : `<p class="mut" style="margin:0;font-size:14px">${esc(c.display_name)} visar inte sin samling.</p>`}</div>
+    : `<p class="mut" style="margin:0;font-size:14px">${self ? 'Din samling är tom eller dold för andra.' : esc(c.display_name) + ' visar inte sin samling.'}</p>`}</div>
   <div class="sec"><h2>Inlägg</h2></div>
-  <div class="pad">${S.uposts == null ? '<p class="mut">Hämtar…</p>' : posts.length ? `<div class="norm">${posts.map(p => `<button class="nrow" onclick="openUserPost(${p.id},'${p.kind || 'question'}','${esc(p.category || '')}')"><span class="grow"><small class="mut">${KIND_NAME[p.kind || 'question']} · ${ago(p.created_at)}</small>${esc((p.title || p.body || '').slice(0, 90))}</span>${ic(I.back, 'var(--mut)', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button>`).join('')}</div>` : `<p class="mut" style="margin:0;font-size:14px">Inga inlägg än.</p>`}</div>
+  <div class="pad">${uposts == null ? '<p class="mut">Hämtar…</p>' : posts.length ? `<div class="norm">${posts.map(p => `<button class="nrow" onclick="openUserPost(${p.id},'${p.kind || 'question'}','${esc(p.category || '')}')"><span class="grow"><small class="mut">${KIND_NAME[p.kind || 'question']} · ${ago(p.created_at)}</small>${esc((p.title || p.body || '').slice(0, 90))}</span>${ic(I.back, 'var(--mut)', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button>`).join('')}</div>` : `<p class="mut" style="margin:0;font-size:14px">Inga inlägg än.</p>`}</div>
   <div style="height:24px"></div>`;
 }
 // ===== Anpassa startskärmen =====
@@ -4039,8 +4048,9 @@ function mineV() {
 }
 function meV() {
   if (!S.user) return `${topbar('Profil')}<div class="prof"><img src="${LOGO}" alt="" width="96" height="96" style="display:block;margin:0 auto 12px;border-radius:24px"><h2>Välkommen till Roothood</h2><p class="mut">Skapa ett konto för att spara växter och vara med i communityn.</p><button class="btn" onclick="openModal('login')">Logga in eller skapa konto</button></div>${installCard()}${settingsRow()}`;
-  const posts = S.feed ? S.feed.filter(p => p.user_id === S.user.id).length : null;
-  return `${topbar('Profil')}<div class="prof"><div class="bigav" style="background:hsl(${hueOf(S.user.name)} 40% 38%)">${esc((S.user.name || '?')[0].toUpperCase())}</div><h2>${esc(S.user.name)}${S.pro ? ' ' + proBadge() : ''}</h2>${DEMO ? '<p class="mut">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}</div>
+  if (S.meCard === undefined) { S.meCard = null; setTimeout(loadMe); }
+  return `${topbar('Profil')}${userBody(meCardNow(), S.meCard ? S.meCard.posts : null, true)}${DEMO ? '<p class="mut" style="margin:0 18px">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}
+  <div class="sec"><h2>Konto och inställningar</h2></div>
   ${proCard()}
   ${installCard()}
   ${settingsRow()}
@@ -4048,7 +4058,6 @@ function meV() {
   <div class="pad" style="padding-top:10px"><button class="setrow" onclick="go('home');openHomeCfg()"><span class="tic">${ic(PEN, 'currentColor', 20)}</span><span class="grow"><b>Anpassa startskärmen</b><span>Välj vad som visas och i vilken ordning</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="pad" style="padding-top:10px"><button class="setrow" onclick="openHouse()"><span class="tic">${ic(DOORI, 'currentColor', 20)}</span><span class="grow"><b>Mitt hem${S.pro ? '' : ' ' + proBadge()}</b><span>${(S.home || []).length ? S.home.length + (S.home.length === 1 ? ' rum' : ' rum') + ', väderstreck och var växterna står' : 'Lägg in rum och väderstreck'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="pad" style="padding-top:10px"><button class="setrow" onclick="openSmart()"><span class="tic">${ic(HOMEI, 'currentColor', 20)}</span><span class="grow"><b>Smarta hemmet</b><span>Sensorer, växtlampa, bevattning och luftfukt</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
-  <div class="stats"><div class="stat"><b>${S.mine.length}</b><span class="mut">växter i samlingen</span></div><div class="stat"><b>${posts === null ? '–' : posts}</b><span class="mut">frågor i communityn</span></div></div>
   ${DEMO ? '' : `<div class="addbar"><button class="btn wide line" onclick="signOut()">Logga ut</button></div>`}
   <p class="about">Roothood: växtfolk som hjälper varandra.</p>`;
 }
@@ -5107,7 +5116,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.59';
+const APP_VERSION = '1.60';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
@@ -5141,7 +5150,7 @@ async function saveProfile() {
   if (name.length < 2) return toast('Namnet måste ha minst 2 tecken.');
   S.prof.display_name = name; S.prof.city = city; if (S.city !== city) { S.wx = null; } S.city = city;
   try {
-    await api.saveProfile(S.prof);
+    S.meCard = undefined; await api.saveProfile(S.prof);
     S.user.name = name; applyInterests(S.prof.interests);
     toast('Profilen är sparad');
   } catch (e) { toast(errMsg(e)); }
