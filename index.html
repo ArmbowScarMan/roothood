@@ -800,6 +800,8 @@ button.pw{cursor:pointer}
 .bpm{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
 .bpm em{font-style:normal;font-size:11.5px;font-weight:700;background:var(--bg);border-radius:99px;padding:2px 7px}
 .bpm em:first-child{background:var(--pri);color:var(--onpri)}
+.myname{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--pri);margin:2px 0}
+.myname .link3{font-size:13px;padding:0}
 .vetbox{margin:18px 18px 0;display:flex;flex-direction:column;gap:4px;background:var(--surf);border-radius:18px;padding:13px 14px;box-shadow:var(--sh);font-size:13.5px}
 .vetbox span{color:var(--mut);line-height:1.45}
 .peopleb.ib{background:linear-gradient(120deg,var(--surf),#F8E6DF)}
@@ -1105,7 +1107,7 @@ const demoApi = {
     m.forEach(x => { if (x.photo && !x.photos) { x.photos = [x.photo]; x.showOwn = true; } });
     return m;
   },
-  async mine() { return this._raw().map(x => Object.assign({}, x, { own: x.photo || null, photos: x.photos || [], showOwn: x.showOwn !== false, photo: x.showOwn !== false && x.photo ? x.photo : null })); },
+  async mine() { return this._raw().map(x => applyNick(Object.assign({}, x, { own: x.photo || null, photos: x.photos || [], showOwn: x.showOwn !== false, photo: x.showOwn !== false && x.photo ? x.photo : null }))); },
   async save(m) { store.set('mine', m); },
   async uploadOwn(file) { return await fileShrink(file, 480, true); },
   async setPhotos(id, patch) {
@@ -1275,9 +1277,9 @@ const sbApi = {
     return res.data.map(r => {
       const own = r.photo_url || null, showOwn = r.show_own !== false;
       const ph_ = { own, photos: r.photos && r.photos.length ? r.photos : own ? [own] : [], showOwn, photo: showOwn && own ? own : null, details: r.details || {}, remind: r.remind !== false };
-      return Object.assign(r.plants
+      return applyNick(Object.assign(r.plants
         ? { id: r.id, plant_id: r.plant_id, name: r.plants.swedish_name, latin: r.plants.latin_name, category: r.plants.category, interval: r.plants.water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: false }
-        : { id: r.id, plant_id: null, name: r.custom_name, latin: r.custom_latin, category: r.custom_category, interval: r.custom_water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: true }, ph_);
+        : { id: r.id, plant_id: null, name: r.custom_name, latin: r.custom_latin, category: r.custom_category, interval: r.custom_water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: true }, ph_));
     });
   },
   async addMine(p, photo) {
@@ -1421,6 +1423,8 @@ async function confirmAddp() {
   S.ap = null; photoWarnCheck(); afterAdd();
 }
 const myItem = id => S.mine.find(x => x.id === id);
+function applyNick(m) { const d = m.details || {}; m.baseName = m.name; m.baseLatin = m.latin; if (d.sort) { m.name = `${m.name} '${d.sort}'`; if (m.latin) m.latin = `${m.latin.replace(/\s*'[^']*'$/, '')} '${d.sort}'`; } if (d.nick) m.name = d.nick; return m; }
+function sortSuggest(m) { const p = plantById(m.plant_id), g = p ? genusOf(p) : ((m.baseLatin || m.latin || '').split(' ')[0]); if (!g) return []; const sp = p && p.species ? p.species : ((p && p.latin_name) || '').split(' ')[1]; return [...new Set(S.plants.filter(x => genusOf(x) === g && x.cultivar && (!sp || (x.latin_name || '').includes(sp))).map(x => x.cultivar))].sort((a, b) => a.localeCompare(b, 'sv')); }
 async function addMyPhoto(id, inp) {
   const f = inp && inp.files && inp.files[0]; if (!f) return;
   await run(async () => {
@@ -1511,7 +1515,9 @@ function growthTxt(d) {
   return `${diff > 0 ? '+' : ''}${diff} cm sedan ${dd} ${MONTHS[mo - 1]}`;
 }
 function detailsV(m, inModal) {
-  const d = m.details || {}, out = isOutM(m), items = out ? outItems(m, d) : [];
+  const d = m.details || {}, out = isOutM(m), items = [];
+  if (d.sort) items.push(['Sort', d.sort]); if (d.nick) items.push(['Eget namn', d.nick]);
+  if (out) outItems(m, d).forEach(x => items.push(x));
   if (!out) {
   if (d.place) items.push(['Planterad', d.place]);
   if (d.cm || d.mat) items.push(['Kruka', [d.cm ? d.cm + ' cm' : '', d.mat || ''].filter(Boolean).join(', ')]);
@@ -1551,6 +1557,9 @@ function pdetV() {
   return `<div class="mh"><h2>${esc(m.name)}</h2><button class="close" onclick="closeDetails()" aria-label="Stäng">×</button></div>
   <div class="pdform">
   ${S.pdNew ? `<p class="mut" style="margin:0 0 10px;font-size:14px">${esc(m.name)} finns nu i din samling. Berätta lite om den, så blir råden bättre. Du kan hoppa över och fylla i senare.</p>` : ''}
+  <div class="two"><div><label class="fl" for="pdsort" style="margin-top:0">Sort</label><input id="pdsort" maxlength="60" list="sortlist" placeholder="t.ex. ${esc((sortSuggest(m)[0]) || 'Gyllene Kitajka')}" value="${esc(d.sort || '')}" oninput="S.pd.sort=this.value;pdPrev()"><datalist id="sortlist">${sortSuggest(m).map(x => `<option value="${esc(x)}">`).join('')}</datalist></div>
+  <div><label class="fl" for="pdnick" style="margin-top:0">Eget namn</label><input id="pdnick" maxlength="60" placeholder="${esc(m.baseName || m.name)}" value="${esc(d.nick || '')}" oninput="S.pd.nick=this.value;pdPrev()"></div></div>
+  <p class="mut" style="font-size:12px;margin:4px 0 12px">Namnet i din samling blir: <b id="pdprev">${esc(d.nick || ((m.baseName || m.name) + (d.sort ? ` '${d.sort}'` : '')))}</b></p>
   ${outd ? outFormV(m, d, ps) + `<button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="saveDetails()">${S.busy ? 'Sparar…' : 'Spara'}</button>${S.pdNew ? '<button class="link3" style="margin:8px auto 0;display:block" onclick="closeDetails()">Hoppa över</button>' : ''}</div>` : `
   <label class="fl" style="margin-top:0">Hur är den planterad?</label>${pdChips('place')}
   ${pot ? `<div class="two"><div><label class="fl" for="pdcm">Krukans diameter (cm)</label><input id="pdcm" type="number" inputmode="numeric" min="1" max="300" value="${d.cm || ''}" oninput="S.pd.cm=+this.value||null"></div>
@@ -1570,6 +1579,7 @@ function pdetV() {
   <p class="mut" style="font-size:13px;margin:12px 0 0">Ändrar du höjden sparas den i skötseldagboken, så ser du hur växten växer.</p>
   <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="saveDetails()">${S.busy ? 'Sparar…' : 'Spara'}</button>${S.pdNew ? '<button class="link3" style="margin:8px auto 0;display:block" onclick="closeDetails()">Hoppa över</button>' : ''}</div>`}`;
 }
+function pdPrev() { const m = S.mine.find(x => x.id === S.pdId), d = S.pd, e = $('#pdprev'); if (m && e) e.textContent = (d.nick || '').trim() || ((m.baseName || m.name) + ((d.sort || '').trim() ? ` '${d.sort.trim()}'` : '')); }
 function closeDetails() { S.pdNew = false; const back = S.pdBack; S.modal = null; if (back) { S.modal = 'myplant'; } render(); }
 async function saveDetails() {
   const m = S.mine.find(x => x.id === S.pdId); if (!m) return;
@@ -1578,6 +1588,7 @@ async function saveDetails() {
   if (d.h && (d.h < 1 || d.h > 4000)) return toast('Höjden verkar inte stämma');
   if (d.w && (d.w < 1 || d.w > 3000)) return toast('Bredden verkar inte stämma');
   if (d.from) d.from = d.from.trim().slice(0, 80);
+  ['sort', 'nick'].forEach(k => { if (d[k]) d[k] = d[k].trim().replace(/^'|'$/g, '').replace(/\s+/g, ' ').slice(0, 60); });
   if (isOutM(m)) { delete d.room; delete d.win; delete d.light; if (d.place !== 'Kruka ute') { delete d.cm; delete d.drain; } delete d.mat; delete d.self; }
   if (['Rabatt', 'Odlingslåda', 'I vatten', 'I marken'].includes(d.place)) { delete d.cm; delete d.mat; delete d.self; delete d.drain; }
   if (d.room) { const r = roomOf(null, d); if (r) d.light = roomLightWord(r); else delete d.room; } else delete d.win;
@@ -3913,7 +3924,7 @@ function detail() {
   </div></div>${credit}
   ${my ? galleryV(my) : ''}
   <div class="sheet2">
-  <div class="dname"><h1>${esc(p.swedish_name)}</h1><i>${esc(p.latin_name)}</i>${p.family || p.genus ? `<span class="taxline">${[p.family && 'Familj ' + p.family, p.genus && 'Släkte ' + p.genus, p.cultivar && "Sort '" + p.cultivar + "'"].filter(Boolean).map(esc).join(' · ')}</span>` : ''}<i style="display:none"></i><div class="tags">${status}<span class="tag lime">${esc(p.category)}</span>${zoneTag(p)}${p.status === 'pending' ? '<span class="tag">Väntar på granskning</span>' : ''}</div></div>
+  <div class="dname"><h1>${esc(p.swedish_name)}</h1>${my && my.name !== p.swedish_name ? `<span class="myname">Din: ${esc(my.name)} <button class="link3" onclick="openDetails(${my.id})">Ändra</button></span>` : ''}<i>${esc(p.latin_name)}</i>${p.family || p.genus ? `<span class="taxline">${[p.family && 'Familj ' + p.family, p.genus && 'Släkte ' + p.genus, p.cultivar && "Sort '" + p.cultivar + "'"].filter(Boolean).map(esc).join(' · ')}</span>` : ''}<i style="display:none"></i><div class="tags">${status}<span class="tag lime">${esc(p.category)}</span>${zoneTag(p)}${p.status === 'pending' ? '<span class="tag">Väntar på granskning</span>' : ''}</div></div>
   <div class="sec"><h2>Så vattnar du</h2></div>
   <p class="howto">${esc(p.water_text)}.${p.soil ? ' Jord: ' + esc(p.soil.charAt(0).toLowerCase() + p.soil.slice(1)) + '.' : ''}</p>
   ${my && d === 0 ? `<div class="snooze">Är jorden fortfarande blöt? Skjut upp, så påminner vi dig om 2 dagar.<br><button onclick="snooze(${my.id})">Skjut upp 2 dagar</button></div>` : ''}
@@ -5031,7 +5042,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.56';
+const APP_VERSION = '1.57';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
