@@ -942,6 +942,12 @@ button.pw{cursor:pointer}
 :root[data-theme="dark"] nav{box-shadow:0 0 0 1px rgba(92,242,194,.18),0 0 26px rgba(92,242,194,.12)}
 :root[data-theme="dark"] h1{text-shadow:0 0 18px rgba(92,242,194,.45)}
 :root[data-theme="dark"] .chips2 button.on,:root[data-theme="dark"] .mchips button.on{box-shadow:0 0 14px rgba(92,242,194,.4)}
+.frcard{margin:12px 18px 0;background:var(--surf);border:2px solid var(--pri);border-radius:22px;padding:6px 14px;box-shadow:var(--sh)}
+.frc{display:flex;gap:12px;align-items:flex-start;padding:10px 0}
+.frc+.frc{border-top:1px solid var(--line)}
+.frc .frem{font-size:28px;line-height:1}
+.frc b{display:block;font-size:16px}.frc span.mut,.frc .grow>span{display:block;font-size:13.5px;color:var(--mut)}
+.frc .fbtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
 .pchips{display:flex;flex-wrap:wrap;gap:8px}
 .pchip{display:flex;gap:10px;align-items:center;background:var(--surf);border-radius:16px;padding:8px 14px 8px 10px;box-shadow:var(--sh)}
 .pchip>span:first-child{font-size:26px;line-height:1}
@@ -2878,11 +2884,15 @@ function smartV() {
   <div style="height:20px"></div>`;
 }
 
+function friendReqCard() {
+  const l = (S.notifs || []).filter(n => n.t === 'friend');
+  if (!S.user || !l.length) return '';
+  return `<div class="frcard">${l.slice(0, 3).map(n => `<div class="frc"><span class="frem">👋</span><div class="grow"><b>${esc(n.who || 'Någon')} vill bli din vän</b><span>Vill du acceptera vänförfrågan?</span><div class="fbtns"><button class="btn sm" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',true)">Acceptera</button><button class="btn sm line" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',false)">Neka</button><button class="link3" onclick="openUser('${esc(n.from)}')">Visa profil</button></div></div></div>`).join('')}</div>`;
+}
 function todoItems() {
   const t = [];
   S.mine.filter(m => left(m) === 0 && !sensorDry(m)).forEach(m => t.push({ id: 'w' + m.id, txt: 'Vattna ' + m.name, act: `water(${m.id})`, open: `openMine(${m.id})` }));
   S.mine.filter(sensorDry).forEach(m => t.push({ id: 's' + m.id, txt: 'Kolla jorden i ' + m.name + ' (sensorn säger torrt)', act: `water(${m.id})`, open: `openMine(${m.id})` }));
-  (S.notifs || []).filter(n => n.t === 'friend').slice(0, 3).forEach(n => t.push({ id: 'f' + n.req, txt: (n.who || 'Någon') + ' vill bli din vän. Svara på förfrågan.', open: 'openNotif()' }));
   if (S.pets) { petWarnings().filter(x => x.lv === 'd').slice(0, 2).forEach(x => t.push({ id: 'p' + x.m.id + x.a.id, txt: x.m.name + ' är farlig för ' + x.a.name + '. Flytta den.', open: 'openPets()' })); }
   if (S.wx && S.wx.d) outWeatherAlerts().slice(0, 3).forEach(([m, msg]) => t.push({ id: 'o' + m.id, txt: m.name + ': ' + msg.split('.')[0], open: `openMine(${m.id})` }));
   return t;
@@ -3267,7 +3277,7 @@ function home() {
     : `<h2>Ditt grannskap för växter</h2><p>Spara dina växter, få vattningspåminnelser och fråga andra.</p><button class="pillbtn" onclick="openModal('login')">Kom igång</button>`}</div></div>`;
   const city = S.city || '';
   return `<div class="homehead"><div class="grow"><h1 class="brand">Roothood</h1><span>${S.user ? 'Hej' + (name ? ' ' + esc(name) : '') + '! ' + sub : sub}</span></div>
-  <button class="citychip" onclick="${S.user ? 'openSettings()' : "openModal('login')"}" aria-label="Din ort"><img src="${LOGO}" alt="" width="26" height="26">${esc(city || (S.user ? 'Välj ort' : 'Logga in'))}</button></div>
+  <div style="display:flex;gap:8px;align-items:center"><button class="citychip" onclick="${S.user ? 'openSettings()' : "openModal('login')"}" aria-label="Din ort"><img src="${LOGO}" alt="" width="26" height="26">${esc(city || (S.user ? 'Välj ort' : 'Logga in'))}</button>${S.user ? bell : ''}</div></div>
   ${DEMO ? '<p style="text-align:center;margin:4px 0 0"><span class="badge" title="Ingen databas kopplad. Det du gör sparas bara i den här webbläsaren.">Demoläge</span></p>' : ''}
   ${homeBlocks(intro)}
   <div class="hcfgrow"><button class="hcfgb" onclick="openHomeCfg()">${ic(PEN, 'currentColor', 15)} Anpassa startskärmen</button></div>`;
@@ -4115,6 +4125,7 @@ function toolTile(k, size) {
 function homeBlocks(intro) {
   const L = homeLayout().filter(x => x.on), out = []; let tiles = [];
   if (!store.get('welcomeDone', false)) out.push(welcomeV());
+  out.push(friendReqCard());
   const flush = () => { if (tiles.length) { out.push(`<div class="tools">${tiles.join('')}</div>`); tiles = []; } };
   L.forEach(x => {
     const sz = sizeOf(x);
@@ -5042,7 +5053,8 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
-  ['1.71.1', 'Nu', ['Åtgärdat: Mitt hem gick inte att öppna för den som hade fönster och växter utplacerade i ett rum']],
+  ['1.72', 'Nu', ['Notisklockan finns nu på Hem också, så den syns på alla sidor', 'Vänförfrågningar visas som en tydlig ruta högst upp på Hem med knapparna Acceptera och Neka']],
+  ['1.71.1', '26 okt', ['Åtgärdat: Mitt hem gick inte att öppna för den som hade fönster och växter utplacerade i ett rum']],
   ['1.71', 'Nu', ['Nytt mörkt neonutseende som matchar logotypen (du kan byta till ljust under Inställningar → Utseende)']],
   ['1.70', '26 okt', ['Ny logotyp: ett träd med kretsmönster', 'Ny ikon på startskärmen', 'Tydligare felruta om en vy kraschar, så att felet kan rättas']],
   ['1.69', '26 okt', ['Vänförfrågningar med notis där du accepterar eller nekar', 'Välj vad andra ser på din profil: ort, intressen, växter, djur och inlägg (alla, bara vänner eller ingen)', 'Vänner visas på din profil']],
@@ -5534,7 +5546,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.71.1';
+const APP_VERSION = '1.72';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 function applyPrefs() {
