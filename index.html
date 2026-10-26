@@ -5718,7 +5718,10 @@ function nbFind() {
   navigator.geolocation.getCurrentPosition(async pos => {
     const here = { lat: pos.coords.latitude, lon: pos.coords.longitude }, R = nbKm * 1000;
     const a = `(around:${R},${here.lat},${here.lon})`;
-    const q = `[out:json][timeout:40];(nwr${a}["shop"="garden_centre"];nwr${a}["landuse"="horticulture"];nwr${a}["leisure"="garden"];nwr${a}["leisure"="park"]["name"];);out center tags 120;`;
+    // Långa avstånd: bara handelsträdgårdar och botaniska trädgårdar (parker finns för tusentals över hela landet)
+    const big = nbKm > 50, q = big
+      ? `[out:json][timeout:60];(nwr${a}["shop"="garden_centre"];nwr${a}["landuse"="horticulture"];nwr${a}["leisure"="garden"];);out center tags 400;`
+      : `[out:json][timeout:40];(nwr${a}["shop"="garden_centre"];nwr${a}["landuse"="horticulture"];nwr${a}["leisure"="garden"];nwr${a}["leisure"="park"]["name"];);out center tags 150;`;
     let j = null, why = '';
     for (const url of ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter']) {
       const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 45000);
@@ -5731,7 +5734,7 @@ function nbFind() {
       const seen = new Set();
       const kind = t => t.shop === 'garden_centre' || t.landuse === 'horticulture' ? 'Handelsträdgård' : t.leisure === 'garden' ? 'Botanisk trädgård' : 'Park';
       const list = (j.elements || []).map(e => { const t = e.tags || {}, la = e.lat != null ? e.lat : (e.center || {}).lat, lo = e.lon != null ? e.lon : (e.center || {}).lon; if (la == null || !t.name) return null; return { name: t.name, kind: kind(t), hours: t.opening_hours || '', web: t.website || t['contact:website'] || '', lat: la, lon: lo, d: nbDist(here, { lat: la, lon: lo }) }; }).filter(Boolean)
-        .filter(x => { const k = x.name + x.kind; if (seen.has(k)) return false; seen.add(k); return true; }).sort((x, y) => x.d - y.d).slice(0, 25);
+        .filter(x => { const k = x.name + x.kind; if (seen.has(k)) return false; seen.add(k); return true; }).sort((x, y) => x.d - y.d).slice(0, big ? 60 : 25);
       nbState = { st: 'ok', list, at: Date.now() }; render();
     } catch (e) { nbState = { st: 'err', err: 'Kunde inte hämta platserna just nu (' + (why || e.message) + '). Försök igen om en stund.' }; render(); }
   }, () => { nbState = { st: 'err', err: 'Tillåt platsen i Chrome för att hitta trädgårdar nära dig.' }; render(); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
@@ -5739,11 +5742,11 @@ function nbFind() {
 function nbV() {
   const st = nbState.st, fmt = d => d < 1 ? Math.round(d * 1000) + ' m' : (Math.round(d * 10) / 10).toString().replace('.', ',') + ' km';
   let body;
-  const kmChips = `<div class="chips2" style="margin:0 0 12px">${[10, 15, 30, 50].map(k => `<button class="${nbKm === k ? 'on' : ''}" onclick="nbSetKm(${k})">${k} km</button>`).join('')}</div>`;
+  const kmChips = `<div class="chips2" style="margin:0 0 12px">${[10, 15, 30, 50, 150, 1500].map(k => `<button class="${nbKm === k ? 'on' : ''}" onclick="nbSetKm(${k})">${k === 1500 ? '150 mil (hela landet)' : k === 150 ? '15 mil' : k + ' km'}</button>`).join('')}</div>`;
   if (st === 'idle') body = `<p class="mut" style="margin:0 0 14px">Hitta handelsträdgårdar, botaniska trädgårdar och parker. Uppgifterna kommer från OpenStreetMap, så de kan saknas eller vara gamla.</p>${kmChips}<button class="btn" onclick="nbFind()">Hitta nära mig</button>`;
   else if (st === 'busy') body = '<div class="center mut"><div class="lsp"><span></span><span></span><span></span></div><div style="margin-top:14px">Letar…</div></div>';
   else if (st === 'err') body = `<p class="mut">${esc(nbState.err)}</p><button class="btn sm line" onclick="nbFind()">Försök igen</button>`;
-  else body = nbState.list.length ? `${kmChips}<p class="mut" style="margin:0 0 10px;font-size:13px">${nbState.list.length} platser inom ${nbKm} km, närmast först. Öppettider finns där OpenStreetMap har dem. Ring gärna före besöket.</p>` +
+  else body = nbState.list.length ? `${kmChips}<p class="mut" style="margin:0 0 10px;font-size:13px">${nbState.list.length} platser inom ${nbKm >= 150 ? (nbKm / 10) + ' mil' : nbKm + ' km'}, närmast först. Öppettider finns där OpenStreetMap har dem. Ring gärna före besöket.</p>` +
       nbState.list.map(x => `<div class="setcard" style="padding:12px 14px;margin-bottom:8px;text-align:left"><div class="grow"><b style="font-size:15px">${esc(x.name)}</b><span style="display:block;color:var(--mut);font-size:13px">${esc(x.kind)} · ${fmt(x.d)}${x.hours ? ' · ' + esc(x.hours) : ''}</span></div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><a class="btn sm" href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lon}" target="_blank" rel="noopener">Vägbeskrivning</a>${x.web ? `<a class="btn sm line" href="${esc(x.web)}" target="_blank" rel="noopener">Hemsida</a>` : ''}</div></div>`).join('') +
       `<button class="btn sm line" style="margin-top:6px" onclick="nbFind()">Uppdatera</button>`
     : `${kmChips}<p class="mut">Inga trädgårdar eller parker hittades inom ${nbKm} km. Prova ett större avstånd.</p><button class="btn sm line" onclick="nbFind()">Uppdatera</button>`;
@@ -6228,7 +6231,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.94.2';
+const APP_VERSION = '1.94.3';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
