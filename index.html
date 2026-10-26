@@ -3814,8 +3814,8 @@ function guessType(p) { if (p.plant_type) return p.plant_type; if (p.category ==
 function bedArea(id) { return planAreas().find(a => a.id === id); }
 function bbox(pts) { const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; }
 function inPoly(x, y, pts) { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
-function segDist(x, y, a, b) { const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy; let t = l ? ((x - a[0]) * dx + (y - a[1]) * dy) / l : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(x - a[0] - t * dx, y - a[1] - t * dy); }
-function edgeDist(x, y, pts) { let m = 1e9; pts.forEach((q, i) => { m = Math.min(m, segDist(x, y, q, pts[(i + 1) % pts.length])); }); return m; }
+function segPt(x, y, a, b) { const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy; let t = l ? ((x - a[0]) * dx + (y - a[1]) * dy) / l : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(x - a[0] - t * dx, y - a[1] - t * dy); }
+function edgeDist(x, y, pts) { let m = 1e9; pts.forEach((q, i) => { m = Math.min(m, segPt(x, y, q, pts[(i + 1) % pts.length])); }); return m; }
 // Rabattens djup = kortaste bredden räknat vinkelrätt mot längsta sidan
 function bedDims(pts) {
   let best = null; pts.forEach((q, i) => { const n = pts[(i + 1) % pts.length], L = Math.hypot(n[0] - q[0], n[1] - q[1]); if (!best || L > best[0]) best = [L, q, n]; });
@@ -5042,6 +5042,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.71.1', 'Nu', ['Åtgärdat: Mitt hem gick inte att öppna för den som hade fönster och växter utplacerade i ett rum']],
   ['1.71', 'Nu', ['Nytt mörkt neonutseende som matchar logotypen (du kan byta till ljust under Inställningar → Utseende)']],
   ['1.70', '26 okt', ['Ny logotyp: ett träd med kretsmönster', 'Ny ikon på startskärmen', 'Tydligare felruta om en vy kraschar, så att felet kan rättas']],
   ['1.69', '26 okt', ['Vänförfrågningar med notis där du accepterar eller nekar', 'Välj vad andra ser på din profil: ort, intressen, växter, djur och inlägg (alla, bara vänner eller ingen)', 'Vänner visas på din profil']],
@@ -5533,7 +5534,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.71';
+const APP_VERSION = '1.71.1';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 function applyPrefs() {
