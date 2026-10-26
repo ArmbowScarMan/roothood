@@ -1597,7 +1597,7 @@ function addPlant(id, quick) {
 }
 function openQAdd() { S.qaq = ''; openModal('qadd'); setTimeout(() => { const i = $('#qaq'); if (i) i.focus(); }, 60); }
 function qaHits() {
-  const q = (S.qaq || '').trim().toLowerCase(); if (q.length < 2) return '<p class="mut" style="margin:14px 0 0;font-size:14px">Skriv namnet på växten, så kan du lägga till den med ett tryck.</p>';
+  const q = (S.qaq || '').trim().toLowerCase(); if (q.length < 2) return '<p class="mut" style="margin:14px 0 0;font-size:14px">Sök i växtdatabasen först. Tryck på + så kommer du till kruka, jord och plats.</p>';
   const nm = p => (p.swedish_name || '').toLowerCase(), lt = p => (p.latin_name || '').toLowerCase();
   const L = S.plants.filter(p => nm(p).includes(q) || lt(p).includes(q)).sort((a, b) => (nm(b).startsWith(q) - nm(a).startsWith(q)) || nm(a).localeCompare(nm(b), 'sv')).slice(0, 12);
   if (!L.length) return `<div class="empty" style="margin-top:12px"><p>Hittar ingen växt som heter så.</p><button class="btn sm" onclick="openModal('add','${esc(S.qaq).replace(/'/g, '')}')">Lägg till den som egen växt</button></div>`;
@@ -1608,14 +1608,14 @@ async function qaAdd(id) {
   if (!S.user) return openModal('login');
   if (overLimit()) { S.limitHit = true; return openModal('pro'); }
   const p = S.plants.find(x => x.id === id); if (!p) return;
-  try { await api.addMine(p); S.mine = await api.mine(); toast(p.swedish_name + ' finns nu i din samling'); qaRefresh(); }
+  try { await api.addMine(p); S.mine = await api.mine(); S.modal = null; toast(p.swedish_name + ' finns nu i din samling'); await afterAdd(); }
   catch (e) { toast(errMsg(e)); }
 }
 function qaddV() {
   return `<div class="mh"><h2>Lägg till växt</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div class="search" style="margin:0"><input id="qaq" type="search" placeholder="Sök t.ex. monstera eller tomat" value="${esc(S.qaq || '')}" oninput="S.qaq=this.value;qaRefresh()" aria-label="Sök växt" autocomplete="off"></div>
   <div id="qahits">${qaHits()}</div>
-  <div class="qacts"><button class="btn sm line" onclick="closeModal();openTool('id')">📷 Identifiera med foto</button><button class="btn sm line" onclick="openModal('add',S.qaq||'')">✍️ Egen växt</button></div>`;
+  <div class="qacts"><button class="btn sm line" onclick="closeModal();openTool('id')">📷 Identifiera med foto</button><button class="btn sm line" onclick="openModal('add',S.qaq||'')">✍️ Hittar inte? Skapa egen växt</button></div>`;
 }
 function openMine(id) {
   const m = S.mine.find(x => x.id === id); if (!m) return;
@@ -6048,7 +6048,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.87';
+const APP_VERSION = '1.87.1';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
