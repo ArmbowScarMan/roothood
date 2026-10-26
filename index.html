@@ -2058,7 +2058,7 @@ function home3dV(sz) {
 function view3dV() {
   const has = planRooms().length || planAreas().length;
   return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}
-    ${has ? `<div class="v3btns"><button onclick="cam3('top')">Uppifrån</button><button onclick="cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button></div>` : ''}</div>
+    ${has ? `<div class="v3btns"><button onclick="cam3('top')">Uppifrån</button><button onclick="cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button><button onclick="cycleSea3()">Säsong: ${seas3()}</button></div>` : ''}</div>
   <p class="mut" style="margin:10px 18px 24px;font-size:13px">Dra med ett finger för att snurra. Nyp med två fingrar för att zooma, och dra med två fingrar för att flytta. Solen lyser från söder enligt norrpilen i ritningen.</p>`;
 }
 async function mount3d() {
@@ -2147,7 +2147,7 @@ function build3d(first) {
     if (OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel'].includes(m.details.place)) { const g3 = plant3d(pp || { id: m.id, swedish_name: m.name, latin_name: m.latin || '', category: m.category }, THREE, M, m.details.h, m.details.w, m.id * 31); g3.position.set(x, 0, y); sc.add(g3); if (S.hview === '3d' && !S.low3d && (m.details.h || m.details.w)) { const lab = label3d(m.name); if (lab) { lab.position.set(x, Math.min(40, (m.details.h || pSize(pp || {})[0]) / 100) + 0.5, y); lab.scale.multiplyScalar ? lab.scale.multiplyScalar(0.7) : 0; sc.add(lab); } } return; }
     const ok = plantMarkerOk(m), gr = new THREE.Group();
     const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.28, 18), M('#C2643F')); pot.position.y = 0.14; pot.castShadow = true; gr.add(pot);
-    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.32, 18, 14), M(ok === false ? '#B9A23F' : '#3E8E52')); leaf.position.y = 0.6; leaf.scale.y = 1.2; leaf.castShadow = true; gr.add(leaf);
+    gr.add(indoor3d(THREE, M, pp || { swedish_name: m.name, latin_name: m.latin || '', category: m.category }, ok, seed3(m.id)));
     gr.position.set(x, 0, y); sc.add(gr); });
   // smarta saker
   planItems().forEach(it => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), M('#7D6CB3', { emissive: '#3a2f66' })); m.position.set(it.x, 0.95, it.y); add(m); });
@@ -2160,52 +2160,143 @@ function build3d(first) {
 function garden3d(a, THREE, M, sc) { const y0 = a.t === 'bed' ? 0.12 : 0.08; (a.spots || []).slice(0, 600).forEach(s => { const p = plantById(s.pid); if (!p) return; const g = plant3d(p, THREE, M, null, null, Math.round(s.x * 977 + s.y * 131)); g.position.set(s.x, y0, s.y); sc.add(g); }); }
 // Detaljerade växter i 3D. Storlek i meter, seed ger variation som är samma varje gång.
 function rng3(seed) { let s = (Math.abs(Math.round(seed)) % 2147483646) + 1; return () => (s = s * 16807 % 2147483647) / 2147483647; }
+const SEAS3 = ['Sommar', 'Höst', 'Vinter', 'Vår'];
+const seas3 = () => S.sea3 || 'Sommar';
+function cycleSea3() { S.sea3 = SEAS3[(SEAS3.indexOf(seas3()) + 1) % 4]; build3d(); keepMain(); }
 function kind3d(p) {
   const t = guessType(p), g = genusOf(p), lat = p.latin_name || '';
   if (t === 'barr') return /Pinus/.test(g) && !/mugo/.test(lat) ? 'tall' : /Thuja|Juniperus communis|Taxus/.test(lat) ? 'pelare' : /Microbiota|horizontalis|sabina|mugo/.test(lat) ? 'krypbarr' : /Larix/.test(g) ? 'gran' : 'gran';
+  if (t === 'perenn' || t === 'sommar') {
+    if (/Hosta|Bergenia|Brunnera|Heuchera|Alchemilla|Rheum|Ligularia|Rodgersia|Symphytum|Pulmonaria/.test(g)) return 'blad';
+    if (/^Iris|Hemerocallis|Crocosmia|Acorus|Sisyrinchium|Kniphofia|Liriope|Hakonechloa/.test(g)) return 'svard';
+    if (/Helianthus/.test(g)) return 'solros';
+  }
   if (t === 'trad') return /Erecta/.test(lat) ? 'pelarlov' : /Betula/.test(g) ? 'bjork' : 'lov';
   return t;
 }
 function veg3d(THREE, M, kind, h, w, seed, hue, opt) {
   const gr = new THREE.Group(), R = rng3(seed), lo = S.low3d, seg = lo ? [8, 6] : [14, 10], o = opt || {};
-  const green = (l, s) => M(`hsl(${95 + Math.round(R() * 30)},${s || 38}%,${l}%)`), bark = M(kind === 'bjork' ? '#E8E4DA' : kind === 'tall' ? '#9A5B34' : '#6B4A2A');
+  const sn = seas3(), sk = { Sommar: 's', Höst: 'h', Vinter: 'w', Vår: 'v' }[sn];
+  const EG = ['gran', 'tall', 'pelare', 'krypbarr', 'marktack'].includes(kind) || o.everg, DEC = ['lov', 'frukt', 'bjork', 'pelarlov', 'buske', 'bar', 'ros', 'klatter'].includes(kind) && !o.everg;
+  const PER = ['perenn', 'sommar', 'lok', 'blad', 'svard', 'ormbunke', 'krydda', 'gron', 'rot', 'solros', 'gras'].includes(kind) && !o.everg;
+  const dead = (DEC || PER) && sk === 'w', bare = dead && kind !== 'gras';
+  const showFl = !o.when ? (sk === 's' || sk === 'v') : o.when.includes(sk), showFruit = sk === 's' || sk === 'h';
+  const green = (l, s) => { let hh = o.leaf ? o.leaf[0] + Math.round((R() - 0.5) * 14) : 95 + Math.round(R() * 30), ss = o.leaf ? o.leaf[1] : (s || 38), ll = o.leaf ? o.leaf[2] + (l - 34) * 0.4 : l;
+    if (!EG && sk === 'h' && (DEC || PER) && !(o.leaf && o.leaf[0] > 300)) { hh = 22 + Math.round(R() * 28); ss = 68; ll = Math.max(ll, 40) + 6; }
+    else if (!EG && sk === 'v' && !o.leaf) { hh = 88 + Math.round(R() * 18); ss = 52; ll += 8; }
+    else if (!EG && sk === 'w' && PER) { hh = 40; ss = 22; ll = 40; }
+    return M(`hsl(${hh},${ss}%,${Math.round(ll)}%)`); }, fcol = o.flower || `hsl(${hue},62%,64%)`, bark = M(kind === 'bjork' ? '#E8E4DA' : kind === 'tall' ? '#9A5B34' : '#6B4A2A');
   const blob = (r, x, y, z, sy, m) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, seg[0], seg[1]), m); b.position.set(x, y, z); b.scale.y = sy || 1; b.castShadow = true; b.receiveShadow = true; gr.add(b); return b; };
   const cyl = (r0, r1, len, x, y, z, m, rz, ry) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, len, lo ? 6 : 10), m); c.position.set(x, y, z); if (rz) c.rotation.z = rz; if (ry) c.rotation.y = ry; c.castShadow = true; gr.add(c); return c; };
   const cone = (r, len, x, y, z, m, rz, ry) => { const c = new THREE.Mesh(new THREE.ConeGeometry(r, len, lo ? 8 : 16), m); c.position.set(x, y, z); if (rz) c.rotation.z = rz; if (ry != null) c.rotation.y = ry; c.castShadow = true; gr.add(c); return c; };
-  const flowers = (n, r, cy, spread, col) => { const m = M(col || `hsl(${hue},62%,64%)`); for (let i = 0; i < n; i++) { const a = R() * 6.283, d = Math.sqrt(R()) * spread; blob(r, Math.cos(a) * d, cy + (R() - 0.3) * r * 3, Math.sin(a) * d, 1, m); } };
+  const flowers = (n, r, cy, spread, col) => { if (!showFl && !col) return; if (!showFl) return; const m = M(col || fcol); for (let i = 0; i < n; i++) { const a = R() * 6.283, d = Math.sqrt(R()) * spread; blob(r, Math.cos(a) * d, cy + (R() - 0.3) * r * 3, Math.sin(a) * d, 1, m); } };
   const crown = (cy, cw, ch, n, l) => { const nb = lo ? Math.min(n, 4) : n; blob(Math.min(cw, ch) * 0.7, 0, cy, 0, ch / Math.min(cw, ch), green(l || 34)); for (let i = 0; i < nb; i++) { const a = i / nb * 6.283 + R() * 0.8, d = cw * (0.35 + R() * 0.25), rb = cw * (0.38 + R() * 0.18); blob(rb, Math.cos(a) * d, cy + (R() - 0.45) * ch * 0.9, Math.sin(a) * d, Math.max(0.7, Math.min(1.4, ch / cw)), green((l || 34) + Math.round(R() * 10 - 4))); } };
   if (kind === 'lov' || kind === 'frukt' || kind === 'bjork' || kind === 'pelarlov') {
     const th = h * (kind === 'frukt' ? 0.3 : 0.36), rt = Math.max(0.05, Math.min(0.6, h * 0.02 + w * 0.01)), cw = kind === 'pelarlov' ? w / 2 : w / 2, ch = (h - th) / 2;
     cyl(rt * 0.6, rt, th + ch * 0.6, 0, (th + ch * 0.6) / 2, 0, bark);
     if (!lo) for (let i = 0; i < 3; i++) { const a = i * 2.1 + R(), L = cw * 0.7; const b = cyl(rt * 0.25, rt * 0.4, L, Math.cos(a) * L * 0.35, th + L * 0.25, Math.sin(a) * L * 0.35, bark, 0.9, -a); b.rotation.order = 'YXZ'; }
-    crown(th + ch, cw, ch, kind === 'bjork' ? 5 : 7, kind === 'bjork' ? 40 : 32);
-    if (kind === 'frukt' || o.fruit) { const fm = M(o.fruitCol || '#C8322B'); for (let i = 0; i < (lo ? 6 : 16); i++) { const a = R() * 6.283, d = cw * (0.6 + R() * 0.35); blob(Math.max(0.04, w * 0.018), Math.cos(a) * d, th + ch * (0.5 + R()), Math.sin(a) * d, 1, fm); } }
-    if (o.bloom) flowers(lo ? 8 : 20, Math.max(0.05, w * 0.025), th + ch * 1.2, cw * 0.9, o.bloom);
+    if (bare) { for (let i = 0; i < (lo ? 5 : 11); i++) { const a = i / 11 * 6.283 + R(), L = cw * (0.9 + R() * 0.7), b = cyl(rt * 0.12, rt * 0.3, L, Math.cos(a) * L * 0.3, th + ch * (0.2 + R() * 1.1), Math.sin(a) * L * 0.3, bark, 0.7 + R() * 0.5, -a); b.rotation.order = 'YXZ'; } }
+    else crown(th + ch, cw, ch, kind === 'bjork' ? 5 : 7, kind === 'bjork' ? 40 : 32);
+    if (!bare && sk === 'v' && (kind === 'frukt' || o.fruit)) flowers(lo ? 8 : 22, Math.max(0.05, w * 0.025), th + ch * 1.2, cw * 0.9, '#F8E4EC');
+    if (!bare && showFruit && (kind === 'frukt' || o.fruit)) { const fm = M(o.fruitCol || '#C8322B'); for (let i = 0; i < (lo ? 6 : 16); i++) { const a = R() * 6.283, d = cw * (0.6 + R() * 0.35); blob(Math.max(0.04, w * 0.018), Math.cos(a) * d, th + ch * (0.5 + R()), Math.sin(a) * d, 1, fm); } }
+    if (!bare && o.bloom && showFl) flowers(lo ? 8 : 20, Math.max(0.05, w * 0.025), th + ch * 1.2, cw * 0.9, o.bloom);
   } else if (kind === 'gran') { const m = green(22, 30); cyl(Math.max(0.04, w * 0.03), Math.max(0.06, w * 0.04), h * 0.25, 0, h * 0.125, 0, bark); const n = lo ? 3 : 5; for (let i = 0; i < n; i++) { const f = i / n; cone(w / 2 * (1 - f * 0.75), h * 0.38, 0, h * 0.12 + f * h * 0.7 + h * 0.19, 0, m, 0, R()); } }
   else if (kind === 'tall') { cyl(Math.max(0.05, w * 0.03), Math.max(0.08, w * 0.045), h * 0.75, 0, h * 0.375, 0, bark); const m = green(26, 30); for (let i = 0; i < (lo ? 3 : 6); i++) { const a = R() * 6.283, d = w * 0.25 * R(); blob(w * (0.2 + R() * 0.12), Math.cos(a) * d, h * (0.72 + R() * 0.2), Math.sin(a) * d, 0.55, m); } }
   else if (kind === 'pelare') { const m = green(24, 32); cone(w / 2, h, 0, h / 2, 0, m); if (!lo) blob(w * 0.42, 0, h * 0.28, 0, 1.6, m); }
   else if (kind === 'krypbarr') { const m = green(30, 30); for (let i = 0; i < (lo ? 3 : 6); i++) { const a = i * 1.05 + R(), d = w * 0.3; blob(w * 0.28, Math.cos(a) * d, h * 0.4, Math.sin(a) * d, Math.max(0.25, h / (w * 0.56)), m); } }
   else if (kind === 'buske' || kind === 'bar' || kind === 'ros') {
     const n = lo ? 3 : 6, rb = w * 0.3, sy = Math.max(0.5, Math.min(2.2, h / (rb * 2.4)));
+    if (bare) { for (let i = 0; i < (lo ? 5 : 12); i++) { const a = i / 12 * 6.283 + R(), d = w * 0.12 * R(); cyl(0.008, 0.02, h * (0.6 + R() * 0.4), Math.cos(a) * d, h * 0.35, Math.sin(a) * d, bark, (R() - 0.3) * 0.6, a); } return gr; }
     blob(rb * 1.1, 0, Math.max(rb * sy, h - rb * sy * 1.1), 0, sy, green(33));
     for (let i = 0; i < n; i++) { const a = i / n * 6.283 + R(), d = w * 0.22; blob(rb * (0.8 + R() * 0.3), Math.cos(a) * d, rb * sy * (0.9 + R() * 0.6), Math.sin(a) * d, sy, green(30 + Math.round(R() * 10))); }
-    if (kind === 'bar') { const bm = M(o.berry || '#3B1F3A'); for (let i = 0; i < (lo ? 6 : 18); i++) { const a = R() * 6.283, d = w * (0.3 + R() * 0.2); blob(Math.max(0.025, w * 0.02), Math.cos(a) * d, h * (0.3 + R() * 0.5), Math.sin(a) * d, 1, bm); } }
-    if (kind === 'ros' || o.bloom) flowers(lo ? 6 : 16, Math.max(0.035, w * 0.04), h * 0.75, w * 0.42, o.bloom || `hsl(${hue % 40 + 330},65%,68%)`);
-  } else if (kind === 'gras') { const m = M(`hsl(${70 + hue % 20},35%,52%)`); for (let i = 0; i < (lo ? 4 : 9); i++) { const a = i / 9 * 6.283; cone(Math.max(0.02, w * 0.07), h, Math.cos(a) * w * 0.12, h / 2, Math.sin(a) * w * 0.12, m, (R() - 0.5) * 0.5, a); } }
-  else if (kind === 'lok') { const lm = green(40); cyl(0.01, 0.012, h, 0, h / 2, 0, lm); if (!lo) [0.4, -0.4].forEach(r => cone(0.02, h * 0.55, 0, h * 0.27, 0, lm, r)); blob(Math.max(0.03, Math.min(0.12, w * 0.5)), 0, h, 0, 1.2, M(`hsl(${hue},68%,62%)`)); }
+    if (kind === 'bar' && showFruit) { const bm = M(o.berry || '#3B1F3A'); for (let i = 0; i < (lo ? 6 : 18); i++) { const a = R() * 6.283, d = w * (0.3 + R() * 0.2); blob(Math.max(0.025, w * 0.02), Math.cos(a) * d, h * (0.3 + R() * 0.5), Math.sin(a) * d, 1, bm); } }
+    if ((kind === 'ros' || o.bloom) && showFl) flowers(lo ? 6 : 16, Math.max(0.035, w * 0.04), h * 0.75, w * 0.42, o.bloom || o.flower || `hsl(${hue % 40 + 330},65%,68%)`);
+  } else if (kind === 'gras') { const m = M(sk === 'w' ? '#CDBB8A' : sk === 'h' ? '#C9A85A' : `hsl(${70 + hue % 20},35%,52%)`); for (let i = 0; i < (lo ? 4 : 9); i++) { const a = i / 9 * 6.283; cone(Math.max(0.02, w * 0.07), h, Math.cos(a) * w * 0.12, h / 2, Math.sin(a) * w * 0.12, m, (R() - 0.5) * 0.5, a); } }
+  else if (kind === 'lok') { if (bare || sk === 'h') return gr; const lm = green(40), br = Math.max(0.03, Math.min(0.12, w * 0.5)), fc = M(fcol); cyl(0.01, 0.012, h, 0, h / 2, 0, lm); if (!lo) [0.5, -0.5, 0.25].forEach(r => cone(Math.max(0.02, w * 0.12), h * 0.6, 0, h * 0.28, 0, lm, r, r * 3));
+    if (showFl || sk === 'v') { if (o.bulb === 'allium') blob(br * 1.5, 0, h, 0, 1, fc); else if (o.bulb === 'tulip') { const c = cone(br * 0.9, br * 2.4, 0, h, 0, fc); c.rotation.x = Math.PI; } else if (o.bulb === 'narciss') { cyl(br * 0.45, br * 0.3, br * 1.6, 0, h, 0, M('#F0A020')); blob(br * 1.15, 0, h - br * 0.4, 0, 0.25, fc); } else if (o.bulb === 'croc') { const c = cone(br * 0.8, br * 1.8, 0, h * 0.6, 0, fc); c.rotation.x = Math.PI; } else blob(br, 0, h, 0, 1.2, fc); } }
+  else if (kind === 'blad') { if (bare) { blob(w * 0.25, 0, 0.03, 0, 0.12, green(34)); return gr; } for (let i = 0; i < (lo ? 5 : 10); i++) { const a = i / 10 * 6.283 + R() * 0.4, d = w * 0.22, b = blob(Math.max(0.05, w * 0.22), Math.cos(a) * d, h * 0.25 + (i % 3) * h * 0.08, Math.sin(a) * d, 0.22, green(30 + (i % 3) * 6)); b.rotation.z = Math.cos(a) * 0.3; b.rotation.x = Math.sin(a) * 0.3; }
+    if (showFl && h > 0.25) { cyl(0.008, 0.01, h, 0, h * 0.6, 0, green(40)); flowers(lo ? 3 : 6, Math.max(0.02, w * 0.03), h * 1.0, w * 0.06); } }
+  else if (kind === 'svard') { if (bare) { cone(w * 0.12, h * 0.25, 0, h * 0.12, 0, M('#8A7B5A')); return gr; } const gm = green(34); for (let i = 0; i < (lo ? 4 : 9); i++) { const a = (i - 4) * 0.22 + R() * 0.1, c = cone(Math.max(0.02, w * 0.05), h * 0.85, Math.sin(a) * w * 0.3, h * 0.42, 0, gm); c.rotation.z = -a * 0.9; c.scale.z = 0.25; }
+    if (showFl) for (let i = 0; i < (lo ? 2 : 4); i++) { const x = (R() - 0.5) * w * 0.5; cyl(0.01, 0.012, h * 1.2, x, h * 0.6, 0, green(40)); blob(Math.max(0.03, w * 0.07), x, h * 1.22, 0, 1, M(fcol)); } }
+  else if (kind === 'solros') { cyl(0.025, 0.035, h, 0, h / 2, 0, green(36)); if (!lo) [1, -1].forEach(sd => blob(Math.max(0.08, w * 0.25), sd * w * 0.22, h * 0.45, 0, 0.18, green(34))); if (showFl) { const hd = Math.max(0.08, Math.min(0.3, w * 0.4)), d = new THREE.Mesh(new THREE.CylinderGeometry(hd, hd, 0.03, lo ? 8 : 18), M(o.flower || '#F5C400')); d.position.set(0, h, 0); d.rotation.x = 1.25; gr.add(d); const c = new THREE.Mesh(new THREE.CylinderGeometry(hd * 0.55, hd * 0.55, 0.05, lo ? 8 : 14), M('#4A2F18')); c.position.set(0, h - 0.01, hd * 0.04); c.rotation.x = 1.25; gr.add(c); } }
+  else if (kind === 'ormbunke') { if (bare) { blob(w * 0.12, 0, 0.04, 0, 0.3, M('#8A7B5A')); return gr; } const fm = green(32); for (let i = 0; i < (lo ? 5 : 11); i++) { const a = i / 11 * 6.283 + R() * 0.3, c = cone(Math.max(0.02, w * 0.07), h * 0.9, Math.cos(a) * w * 0.2, h * 0.42, Math.sin(a) * w * 0.2, fm, 0.7 + R() * 0.3, -a); c.rotation.order = 'YXZ'; c.scale.z = 0.35; } }
   else if (kind === 'klatter') { cyl(0.02, 0.02, h, 0, h / 2, 0, M('#B49A78')); for (let i = 0; i < (lo ? 3 : 7); i++) blob(w * 0.22, (R() - 0.5) * w * 0.4, h * (i + 0.5) / 7, (R() - 0.5) * w * 0.2, 1.3, green(32)); if (o.bloom !== false) flowers(lo ? 4 : 10, Math.max(0.03, w * 0.05), h * 0.6, w * 0.3); }
   else if (kind === 'marktack') { for (let i = 0; i < (lo ? 2 : 5); i++) { const a = i * 1.3 + R(), d = w * 0.25 * R(); blob(w * 0.3, Math.cos(a) * d, h * 0.3, Math.sin(a) * d, Math.max(0.15, h / (w * 0.6)), green(40)); } flowers(lo ? 4 : 10, Math.max(0.015, w * 0.04), h * 0.6, w * 0.4); }
   else { // perenn, sommar, krydda, grönsaker
     const base = Math.min(h, Math.max(0.15, h * (h > 0.7 ? 0.45 : 0.8))), rb = w * 0.3;
     for (let i = 0; i < (lo ? 2 : 4); i++) { const a = i * 1.6 + R(), d = w * 0.15; blob(rb, Math.cos(a) * d, base * 0.5, Math.sin(a) * d, Math.max(0.4, base / (rb * 2)), green(34 + Math.round(R() * 8))); }
     const veg = ['gron', 'rot', 'krydda'].includes(kind);
-    if (h > 0.7 && !veg) { const sm = M(`hsl(${hue},60%,62%)`), st = green(38); for (let i = 0; i < (lo ? 2 : 5); i++) { const a = R() * 6.283, d = w * 0.18 * R(), x = Math.cos(a) * d, z = Math.sin(a) * d; cyl(0.008, 0.012, h - base * 0.4, x, base * 0.4 + (h - base * 0.4) / 2, z, st); cone(Math.max(0.025, w * 0.06), h * 0.3, x, h - h * 0.12, z, sm); } }
+    if (h > 0.7 && !veg && !showFl) { /* utan blommor */ }
+    else if (h > 0.7 && !veg) { const sm = M(fcol), st = green(38); for (let i = 0; i < (lo ? 2 : 5); i++) { const a = R() * 6.283, d = w * 0.18 * R(), x = Math.cos(a) * d, z = Math.sin(a) * d; cyl(0.008, 0.012, h - base * 0.4, x, base * 0.4 + (h - base * 0.4) / 2, z, st); cone(Math.max(0.025, w * 0.06), h * 0.3, x, h - h * 0.12, z, sm); } }
     else if (!veg) flowers(lo ? 4 : 9, Math.max(0.02, w * 0.06), base * 0.9, w * 0.32);
-    if (o.fruit) { const fm = M(o.fruitCol || '#D2553F'); for (let i = 0; i < (lo ? 3 : 8); i++) { const a = R() * 6.283, d = w * 0.3; blob(Math.max(0.025, w * 0.05), Math.cos(a) * d, base * (0.3 + R() * 0.6), Math.sin(a) * d, 1, fm); } }
+    if (o.fruit && showFruit) { const fm = M(o.fruitCol || '#D2553F'); for (let i = 0; i < (lo ? 3 : 8); i++) { const a = R() * 6.283, d = w * 0.3; blob(Math.max(0.025, w * 0.05), Math.cos(a) * d, base * (0.3 + R() * 0.6), Math.sin(a) * d, 1, fm); } }
   }
   return gr;
 }
-function opt3d(p) { const g = genusOf(p), n = (p.swedish_name || '').toLowerCase();
+const FLOWER3 = [[/Lavandula|Perovskia|Nepeta|Salvia/, '#8E6BD1', 'sh'], [/Tulipa/, '#D9342B', 'v'], [/Narcissus/, '#F5D030', 'v'], [/Paeonia/, '#F28BB0', 's'], [/Digitalis/, '#C58BD1', 's'], [/Echinacea/, '#D95C9A', 'sh'],
+  [/Rudbeckia/, '#F2B01E', 'sh'], [/Helianthus/, '#F5C400', 'sh'], [/Papaver/, '#E5382B', 's'], [/^Iris/, '#6B5BD1', 's'], [/Allium/, '#B58BD8', 's'], [/Crocus/, '#9C6BD1', 'v'], [/Galanthus|Leucojum/, '#F5F5F0', 'v'], [/Calendula/, '#F2A31E', 'sh'], [/Tagetes/, '#F29A1E', 'sh'],
+  [/Viola|Pensé|pensé/, '#7B52C9', 'vsh'], [/Phlox/, '#E873B5', 's'], [/Aquilegia/, '#7A62C9', 'v'], [/Geranium/, '#9B6FD0', 's'], [/Delphinium|Lupinus/, '#4F6FD6', 's'], [/Astilbe/, '#F08FB5', 's'], [/Sedum|Hylotelephium/, '#D96A9A', 'h'], [/Hemerocallis/, '#F2A22A', 's'],
+  [/Campanula/, '#7A8CE0', 's'], [/Myosotis/, '#7FB2F0', 'v'], [/Achillea/, '#F0E060', 'sh'], [/Clematis/, '#9B5BD1', 's'], [/Wisteria/, '#B08BD8', 'v'], [/Lathyrus/, '#E873B5', 's'], [/Petunia|Pelargonium/, '#E0457B', 'sh'], [/Aster|Symphyotrichum/, '#9A7BD6', 'h'],
+  [/Hydrangea/, '#C9D8F2', 'sh'], [/Rosa|Rosor|ros$/, '#E56A93', 'sh'], [/Syringa/, '#B796D6', 'v'], [/Forsythia/, '#F2C230', 'v'], [/Magnolia/, '#F3D9E4', 'v'], [/Rhododendron/, '#C65FA6', 'v'], [/Spiraea|Philadelphus/, '#F5F2EA', 's'], [/Cosmos/, '#E873B5', 'sh'], [/Zinnia/, '#E8553A', 'sh'], [/Tropaeolum|Krasse/, '#F28A1E', 'sh'], [/Dahlia/, '#D9342B', 'sh']];
+const LEAF3 = [[/Prunus cerasifera|Nigra|Acer palmatum|Berberis thunbergii|Cotinus|Physocarpus opulifolius 'Diabolo'|Purpurea|Atropurpurea|Heuchera|Oxalis triangularis|Tradescantia pallida|Coleus|Iresine/, [345, 38, 28]], [/Lavandula|Elaeagnus|Artemisia|Stachys|Hippophae|Santolina|Perovskia|Cerastium|Helichrysum|Salix alba|silver/, [150, 12, 56]],
+  [/Picea pungens|blågran/, [190, 22, 42]], [/Gold|Luteus|Aurea|Tuff Gold|Lemon/, [58, 62, 46]], [/Hosta/, [140, 30, 40]], [/Buxus|Ilex|Rhododendron|Hedera|Vinca|Pachysandra|Mahonia|Skimmia|Cotoneaster/, [140, 36, 24]], [/Acer platanoides 'Crimson|Fagus sylvatica 'Atropunicea|Blodbok/, [350, 36, 26]]];
+const EVERG3 = /Buxus|Ilex|Rhododendron|Hedera|Vinca|Pachysandra|Mahonia|Skimmia|Cotoneaster|Calluna|Erica|Bergenia|Helleborus|Lavandula|Thymus|Sempervivum/;
+function look3d(p, o) {
+  const nm = (p.latin_name || '') + ' ' + (p.swedish_name || '');
+  for (const [re, c, w] of FLOWER3) if (re.test(nm)) { o.flower = c; o.when = w; break; }
+  for (const [re, c] of LEAF3) if (re.test(nm)) { o.leaf = c; break; }
+  if (EVERG3.test(nm)) o.everg = true;
+  const n = (p.swedish_name || '').toLowerCase(); if (/tulpan/.test(n)) o.bulb = 'tulip'; else if (/allium|prydnadslök|jättelök/.test(n)) o.bulb = 'allium'; else if (/påsklilja|narciss/.test(n)) o.bulb = 'narciss'; else if (/krokus/.test(n)) o.bulb = 'croc';
+  return o;
+}
+const seed3 = id => Math.abs(Math.round(id * 7919));
+function indoor3d(THREE, M, p, ok, seed) {
+  const g = new THREE.Group(), R = rng3(seed), lo = S.low3d, nm = ((p.latin_name || '') + ' ' + (p.swedish_name || '')), lc = ok === false ? '#B9A23F' : null;
+  const col = (h, sat, l) => M(lc || `hsl(${h + Math.round(R() * 12)},${sat}%,${l + Math.round(R() * 6)}%)`);
+  const add = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; g.add(o); return o; };
+  let leafH = 128; if (/Tradescantia|Oxalis|Calathea|Coleus|Iresine|Maranta|Stromanthe/.test(nm)) leafH = 330;
+  if (/Aeonium|Echeveria|Sempervivum|Graptopetalum/.test(nm)) leafH = 175;
+  const lm = (l) => col(leafH, leafH > 300 ? 28 : leafH === 175 ? 25 : 40, l || 34);
+  const cat = p.category;
+  if (/Opuntia|Cereus|Echinocactus|Mammillaria|Echinopsis|Ferocactus|Gymnocalycium|Astrophytum|Rebutia|kaktus/i.test(nm) && !/Schlumbergera|Hatiora|Rhipsalis|Julkaktus/.test(nm)) {
+    if (/Opuntia|fikon/i.test(nm)) { [[0, 0.5, 0], [-0.1, 0.78, 0], [0.1, 0.82, 0]].forEach(([x, y, z], i) => { const b = add(new THREE.SphereGeometry(0.12, 10, 8), lm(28), x, y, z); b.scale.set(1, 1.3, 0.35); }); }
+    else if (/Cereus|Echinopsis|Ferocactus/.test(nm)) { add(new THREE.CylinderGeometry(0.1, 0.11, 0.62, 12), lm(30), 0, 0.55, 0); add(new THREE.CylinderGeometry(0.06, 0.06, 0.3, 10), lm(30), 0.17, 0.62, 0).rotation.z = 0; }
+    else add(new THREE.SphereGeometry(0.17, 12, 10), lm(32), 0, 0.42, 0);
+    return g; }
+  if (/Aloe|Echeveria|Haworth|Gasteria|Sempervivum|Aeonium|Crassula|Pengaträd|Kalanchoe|Sedum|Graptopetalum|Lithops|Jade/i.test(nm) || cat === 'Kaktus') {
+    const crass = /Crassula|Pengaträd|Jade/.test(nm);
+    if (crass) { add(new THREE.CylinderGeometry(0.03, 0.045, 0.3, 8), M('#8A6A47'), 0, 0.42, 0); for (let i = 0; i < (lo ? 4 : 8); i++) { const a = i / 8 * 6.283, b = add(new THREE.SphereGeometry(0.08, 8, 6), lm(32), Math.cos(a) * 0.1, 0.6 + (i % 2) * 0.05, Math.sin(a) * 0.1); b.scale.set(1, 0.7, 1); } return g; }
+    const n = lo ? 6 : 11; for (let i = 0; i < n; i++) { const a = i / n * 6.283, c = add(new THREE.ConeGeometry(0.055, 0.34, 6), lm(32), Math.cos(a) * 0.09, 0.45, Math.sin(a) * 0.09); c.rotation.z = Math.cos(a) * -0.75; c.rotation.x = Math.sin(a) * 0.75; }
+    if (/Kalanchoe|Schlumbergera|Julkaktus/.test(nm)) for (let i = 0; i < 5; i++) add(new THREE.SphereGeometry(0.035, 6, 5), M(/Schlumb|Julkaktus/.test(nm) ? '#E8508C' : '#E8452B'), (R() - 0.5) * 0.2, 0.68 + R() * 0.06, (R() - 0.5) * 0.2);
+    return g; }
+  if (/Schlumbergera|Hatiora|Rhipsalis|Julkaktus|Epiphyllum/.test(nm)) { for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283, b = add(new THREE.SphereGeometry(0.07, 7, 6), lm(32), Math.cos(a) * 0.15, 0.38 - (i % 3) * 0.04, Math.sin(a) * 0.15); b.scale.set(1.2, 0.6, 0.8); } for (let i = 0; i < 4; i++) add(new THREE.SphereGeometry(0.035, 6, 5), M('#E8508C'), Math.cos(i * 1.6) * 0.17, 0.3, Math.sin(i * 1.6) * 0.17); return g; }
+  if (cat === 'Orkidé' || /Phalaenopsis|Orchid|orkidé|Dendrobium|Cymbidium|Oncidium|Paphiopedilum|Vanda/i.test(nm)) {
+    [[-0.12, 0.4], [0.12, 0.38], [0, 0.42]].forEach(([x, y], i) => { const b = add(new THREE.SphereGeometry(0.11, 8, 6), lm(30), x, y, (i - 1) * 0.04); b.scale.set(1.4, 0.18, 0.55); b.rotation.z = x * 1.5; });
+    add(new THREE.CylinderGeometry(0.008, 0.01, 0.55, 5), M('#6E8F4A'), 0.08, 0.7, 0).rotation.z = -0.35; for (let i = 0; i < 5; i++) add(new THREE.SphereGeometry(0.045, 8, 6), M(ok === false ? '#B9A23F' : '#F3E6EE'), 0.03 + i * 0.045, 0.78 + i * 0.03 - (i > 2 ? (i - 2) * 0.05 : 0), 0); return g; }
+  if (/Dracaena trifasciata|Sansevieria|Svärmors|Zamioculcas|Yucca|Aspidistra/i.test(nm)) {
+    const n = lo ? 4 : 7; for (let i = 0; i < n; i++) { const a = i / n * 6.283 + R() * 0.4, hh = 0.5 + R() * 0.45, c = add(new THREE.ConeGeometry(0.06, hh, 4), M(ok === false ? '#B9A23F' : `hsl(${135 + Math.round(R() * 20)},38%,${26 + Math.round(R() * 10)}%)`), Math.cos(a) * 0.07, 0.28 + hh / 2, Math.sin(a) * 0.07); c.scale.z = 0.35; c.rotation.y = a; c.rotation.z = Math.cos(a) * 0.12; }
+    return g; }
+  if (/Palm|Howea|Chamaedorea|Areca|Dypsis|Phoenix|Rhapis|Kentia|Cycas|Livistona|Chrysalidocarpus/i.test(nm)) {
+    add(new THREE.CylinderGeometry(0.03, 0.045, 0.45, 8), M('#7A5B3A'), 0, 0.5, 0); for (let i = 0; i < (lo ? 5 : 8); i++) { const a = i / 8 * 6.283, c = add(new THREE.ConeGeometry(0.045, 0.8, 5), lm(32), Math.cos(a) * 0.22, 0.85, Math.sin(a) * 0.22); c.rotation.z = Math.cos(a) * -1.0; c.rotation.x = Math.sin(a) * 1.0; c.scale.z = 0.3; }
+    return g; }
+  if (/Nephrolepis|Asplenium|Pteris|Adiantum|ormbunke|Davallia|Platycerium/i.test(nm)) { for (let i = 0; i < (lo ? 6 : 12); i++) { const a = i / 12 * 6.283 + R() * 0.3, c = add(new THREE.ConeGeometry(0.05, 0.55, 5), lm(32), Math.cos(a) * 0.2, 0.5, Math.sin(a) * 0.2); c.rotation.z = Math.cos(a) * -0.95; c.rotation.x = Math.sin(a) * 0.95; c.scale.z = 0.3; } return g; }
+  if (/Epipremnum|Gullranka|Chlorophytum|Grönlilja|Tradescantia|Hedera|Murgröna|Ceropegia|Senecio|Scindapsus|Philodendron scandens|Hoya|Pilea glauc/i.test(nm)) {
+    for (let i = 0; i < (lo ? 4 : 7); i++) { const a = i / 7 * 6.283, b = add(new THREE.SphereGeometry(0.13, 8, 6), lm(34), Math.cos(a) * 0.1, 0.45, Math.sin(a) * 0.1); b.scale.set(1, 0.7, 1); }
+    for (let i = 0; i < (lo ? 3 : 6); i++) { const a = i / 6 * 6.283 + 0.4, L = 0.35 + R() * 0.35; add(new THREE.CylinderGeometry(0.012, 0.012, L, 5), lm(32), Math.cos(a) * 0.19, 0.22 - L / 2 + 0.1, Math.sin(a) * 0.19); add(new THREE.SphereGeometry(0.045, 6, 5), lm(36), Math.cos(a) * 0.19, 0.1 - L / 2 + 0.1, Math.sin(a) * 0.19); }
+    return g; }
+  if (/Monstera|Philodendron|Alocasia|Colocasia|Calathea|Maranta|Spathiphyllum|Fredskalla|Anthurium|Ficus lyrata|Fiddle|Caladium|Strelitzia|Musa|Aglaonema|Dieffenbachia/i.test(nm)) {
+    const big = /Monstera|Alocasia|Colocasia|Strelitzia|Musa|lyrata/.test(nm); for (let i = 0; i < (lo ? 4 : 7); i++) { const a = i / 7 * 6.283 + R() * 0.4, hh = 0.5 + (i % 3) * 0.14, d = 0.06 + (i % 3) * 0.05; add(new THREE.CylinderGeometry(0.008, 0.01, hh, 5), M('#5C8F46'), Math.cos(a) * d * 0.6, 0.3 + hh / 2, Math.sin(a) * d * 0.6); const b = add(new THREE.SphereGeometry(big ? 0.17 : 0.12, 9, 7), lm(30 + (i % 3) * 3), Math.cos(a) * d, 0.32 + hh, Math.sin(a) * d); b.scale.set(1, 0.14, 1.25); b.rotation.y = a; b.rotation.x = 0.25; }
+    if (/Spathiphyllum|Fredskalla|Anthurium/.test(nm)) { const sc = add(new THREE.SphereGeometry(0.06, 8, 6), M(/Anthurium/.test(nm) ? '#D9342B' : '#F4F1E8'), 0.03, 0.85, 0); sc.scale.set(0.7, 1.4, 0.25); }
+    return g; }
+  const tree = /Ficus|Schefflera|Pachira|Dracaena|Cordyline|Coffea|Citrus|Olea|Laurus|Murraya|Gummi|Benjamin|Brachychiton|Radermachera/i.test(nm);
+  if (tree) { add(new THREE.CylinderGeometry(0.025, 0.035, 0.45, 8), M('#7A5B3A'), 0, 0.5, 0); for (let i = 0; i < (lo ? 3 : 6); i++) { const a = i / 6 * 6.283, b = add(new THREE.SphereGeometry(0.17, 9, 7), lm(30), Math.cos(a) * 0.12, 0.85 + (i % 2) * 0.12, Math.sin(a) * 0.12); b.scale.y = 0.85; } add(new THREE.SphereGeometry(0.2, 10, 8), lm(32), 0, 1.0, 0); return g; }
+  // övriga: bladbuske med några blommor för kända blommare
+  for (let i = 0; i < (lo ? 4 : 8); i++) { const a = i / 8 * 6.283 + R(), d = 0.08 + R() * 0.08, b = add(new THREE.SphereGeometry(0.14, 8, 6), lm(32), Math.cos(a) * d, 0.42 + R() * 0.22, Math.sin(a) * d); b.scale.y = 0.85; }
+  if (/Saintpaulia|Cyclamen|Begonia|Pelargonium|Primula|Hibiscus|Gerbera|Impatiens|Kalanchoe/i.test(nm)) for (let i = 0; i < 5; i++) add(new THREE.SphereGeometry(0.045, 6, 5), M(/Saintpaulia/.test(nm) ? '#7B52C9' : /Cyclamen|Begonia/.test(nm) ? '#E8508C' : '#E8452B'), (R() - 0.5) * 0.3, 0.72 + R() * 0.05, (R() - 0.5) * 0.3);
+  return g;
+}
+function opt3d(p) { return look3d(p, opt3dBase(p)); }
+function opt3dBase(p) { const g = genusOf(p), n = (p.swedish_name || '').toLowerCase();
   if (/^Malus/.test(g) || /äpple/.test(n)) return { fruit: true, fruitCol: '#C8322B' }; if (/Pyrus/.test(g)) return { fruit: true, fruitCol: '#C9B43A' }; if (/Prunus/.test(g) && /plommon|körsbär/.test(n)) return { fruit: true, fruitCol: /plommon/.test(n) ? '#4B2A5E' : '#9E1B22' };
   if (/Solanum lycopersicum/.test(p.latin_name || '')) return { fruit: true, fruitCol: '#D2392C' }; if (/Capsicum/.test(g)) return { fruit: true, fruitCol: '#D6452B' }; if (/Cucurbita/.test(g)) return { fruit: true, fruitCol: '#E28B2A' };
   if (/Ribes rubrum|röda vinbär/i.test(p.latin_name + n)) return { berry: '#C21E2B' }; if (/vita vinbär/.test(n)) return { berry: '#EDE3B8' }; if (/krusbär/.test(n)) return { berry: '#8DB34A' }; if (/hallon|Rubus idaeus/i.test(n + p.latin_name)) return { berry: '#C2264A' }; if (/havtorn/.test(n)) return { berry: '#E8892A' }; if (/blåbär|Vaccinium/i.test(n + p.latin_name)) return { berry: '#3A4E8C' };
@@ -5286,6 +5377,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.80', 'Nu', ['Växterna i 3D ser mer ut som de riktiga: egen lövfärg och blomfärg för många arter, nya former för bland annat hosta, iris, ormbunkar, tulpaner, allium, solrosor, kaktusar, palmer och orkidéer', 'Ny knapp Säsong i 3D-vyn: sommar, höst, vinter och vår. Träd tappar löven på vintern, blommor och frukt kommer och går']],
   ['1.79', 'Nu', ['Växtdatabasen kan nu sorteras efter typ: träd, fruktträd, barrväxter, buskar, rosor, bär, perenner, lökar, gräs, klätterväxter, marktäckare, ormbunkar, sommarblommor, grönsaker, rotfrukter och kryddor']],
   ['1.78', 'Nu', ['Hjärtat på en växt sparar den nu som favorit, inte i Samling. Favoriter finns under Samling, i fliken Favoriter', 'I Samling lägger du bara växter du har. Använd knappen Lägg till i min samling på växtens sida, och + En till för fler av samma']],
   ['1.77', 'Nu', ['Välj färgtema i Inställningar, Utseende: Roothood, Hav, Solnedgång, Lavendel, Körsbär, Lime eller Svartvit. Fungerar både i mörkt och ljust läge']],
@@ -5790,7 +5882,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.79';
+const APP_VERSION = '1.80';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
