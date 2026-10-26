@@ -1584,7 +1584,7 @@ async function run(fn, ok) {
   catch (e) { toast(errMsg(e)); }
   render();
 }
-function go(t) { stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'mine' && S.user && !S.push) refreshPush(); if (t === 'me') loadMe(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
+function go(t) { if (window.dropKb) dropKb(); stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'mine' && S.user && !S.push) refreshPush(); if (t === 'me') loadMe(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
 function openPlant(id, myId) { S.myCur = myId || null; S.sel = id; S.logForm = null; S.logAll = null; render(); $('#main').scrollTop = 0; }
 function openModal(m, prefill, latin, ap) { S.modal = m; if (m === 'add' || m === 'addp') S.addRemind = undefined; S.logForm = null; S.logAll = null; S.msg = ''; S.prefill = prefill || ''; S.prefillLatin = latin || ''; if (m === 'add' || m === 'addp') S.ap = ap || null; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
 function closeModal() { S.modal = null; S.msg = ''; S.limitHit = false; render(); }
@@ -6047,7 +6047,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.88';
+const APP_VERSION = '1.88.1';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -6336,5 +6336,12 @@ async function init() {
   if (S.user) refreshPush();
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.modal) closeModal(); });
+// Tangentbordsförslagen (de små orden längst ner) ska försvinna när man är klar med sökningen
+{ const isSearch = el => el && el.matches && el.matches('input[type=search],input[type=text],input:not([type]),textarea');
+  const drop = () => { const a = document.activeElement; if (isSearch(a)) a.blur(); };
+  document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.matches && e.target.matches('input[type=search]')) e.target.blur(); });
+  document.addEventListener('pointerdown', e => { const a = document.activeElement; if (isSearch(a) && !(e.target.closest && e.target.closest('input,textarea,label,select'))) a.blur(); }, true);
+  document.addEventListener('scroll', () => { const a = document.activeElement; if (a && a.matches && a.matches('input[type=search]')) a.blur(); }, true);
+  window.dropKb = drop; }
 init();
 </script></body></html>
