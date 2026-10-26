@@ -815,6 +815,7 @@ button.pw{cursor:pointer}
 .mycard h3 .svn{display:block;font-size:.78em;font-weight:600;opacity:.85}
 .myname .sci{font-weight:700}
 .myname .svn{margin-left:6px;font-weight:600;color:var(--mut)}
+.cnt{display:flex;align-items:center;gap:12px}.cnt b{min-width:24px;text-align:center;font-size:18px}
 .pdprev{display:flex;flex-direction:column;gap:1px;background:var(--bg);border-radius:12px;padding:8px 12px;margin:6px 0 12px}
 .pdprev small{font-size:11.5px;color:var(--mut);font-weight:700}
 .pdprev b{font-size:15px}
@@ -1720,6 +1721,7 @@ function openDetails(id) {
   if (document.activeElement) document.activeElement.blur();
 }
 function keepScroll() { const md = $('.modal'), y = md ? md.scrollTop : 0; render(); const m2 = $('.modal'); if (m2) m2.scrollTop = y; }
+function pdCount(x) { S.pd.count = Math.max(1, Math.min(99, (+S.pd.count || 1) + x)); keepScroll(); }
 function pdSet(k, v) { S.pd[k] = S.pd[k] === v ? null : v; keepScroll(); }
 function pdSoil(v) { const a = S.pd.soil || []; S.pd.soil = a.includes(v) ? a.filter(x => x !== v) : a.concat(v); keepScroll(); }
 function pdChips(k, multi) { return `<div class="chips2">${PD[k].map(v => { const on = multi ? (S.pd.soil || []).includes(v) : S.pd[k] === v; return `<button class="${on ? 'on' : ''}" aria-pressed="${on}" onclick="${multi ? `pdSoil('${v}')` : `pdSet('${k}','${v}')`}">${v}</button>`; }).join('')}</div>`; }
@@ -1732,6 +1734,7 @@ function pdetV() {
   <div class="two"><div><label class="fl" for="pdsort" style="margin-top:0">Sort</label><input id="pdsort" maxlength="60" list="sortlist" placeholder="t.ex. ${esc((sortSuggest(m)[0]) || 'Gyllene Kitajka')}" value="${esc(d.sort || '')}" oninput="S.pd.sort=this.value;pdPrev()"><datalist id="sortlist">${sortSuggest(m).map(x => `<option value="${esc(x)}">`).join('')}</datalist></div>
   <div><label class="fl" for="pdnick" style="margin-top:0">Svenskt namn</label><input id="pdnick" maxlength="60" placeholder="${esc(m.baseName || m.name)}" value="${esc(d.nick || '')}" oninput="S.pd.nick=this.value;pdPrev()"></div></div>
   <div class="pdprev" id="pdprev">${pdPrevHtml(m, d)}</div>
+  <label class="fl">Samplanterade i samma kruka</label><div class="cnt"><button class="btn sm line" onclick="pdCount(-1)" aria-label="Färre">−</button><b>${+d.count > 1 ? d.count : 1}</b><button class="btn sm line" onclick="pdCount(1)" aria-label="Fler">+</button><small class="mut">${+d.count > 1 ? 'Visas som en växtprofil med antal' : 'Bara en växt i krukan'}</small></div>
   ${outd ? outFormV(m, d, ps) + `<button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="saveDetails()">${S.busy ? 'Sparar…' : 'Spara'}</button>${S.pdNew ? '<button class="link3" style="margin:8px auto 0;display:block" onclick="closeDetails()">Hoppa över</button>' : ''}</div>` : `
   <label class="fl" style="margin-top:0">Hur är den planterad?</label>${pdChips('place')}
   ${pot ? `<div class="two"><div><label class="fl" for="pdcm">Krukans diameter (cm)</label><input id="pdcm" type="number" inputmode="numeric" min="1" max="300" value="${d.cm || ''}" oninput="S.pd.cm=+this.value||null"></div>
@@ -3224,7 +3227,7 @@ function render() {
     m.innerHTML = html;
     if (!S.sel && (S.tool === 'db' || (!S.tool && S.tab === 'home'))) renderList();
   }
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   $('#ov').insertAdjacentHTML('beforeend', instBanner());
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); }
   const lv = $('#lv'); if (lv && lightStream) { lv.srcObject = lightStream; lv.hidden = false; lv.play().catch(() => {}); }
@@ -4286,8 +4289,24 @@ function renderList() {
   }).join('') + `<div class="empty"><p>${r.length ? 'Saknas din växt?' : 'Ingen växt matchar sökningen.'} Lägg till den själv och föreslå den till databasen.</p><button class="btn sm" onclick="addCustomStart()">Lägg till egen växt</button></div>`;
   loadPhotos();
 }
+function dupV() {
+  const p = plantById(S.dupId) || {}, n = S.mine.filter(m => m.plant_id === S.dupId).length;
+  return `<div class="mh"><h2>${esc(p.swedish_name || 'Växten')}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <p class="mut" style="margin:0 0 14px">Du har redan ${n === 1 ? 'den här' : n + ' av den här'} i din samling. Hur vill du lägga till en till?</p>
+  <button class="btn wide" onclick="dupSep()">Som en egen växt (egen profil)</button>
+  <p class="mut" style="font-size:13px;margin:6px 0 14px">Passar när de står i varsin kruka. De får var sin vattning, var sina foton och egen plats.</p>
+  <button class="btn wide line" onclick="dupTogether()">Samplanterad i samma kruka</button>
+  <p class="mut" style="font-size:13px;margin:6px 0 4px">Passar när flera sitter ihop. De visas som en växtprofil i Samling, med antal.</p>`;
+}
+function dupSep() { const id = S.dupId; closeModal(); addPlant(id, true); }
+async function dupTogether() {
+  const copies = S.mine.filter(m => m.plant_id === S.dupId), m = copies.find(x => x.id === S.myCur) || copies[0]; if (!m) return closeModal();
+  const d = JSON.parse(JSON.stringify(m.details || {})); d.count = (+d.count || 1) + 1;
+  try { await api.saveDetails(m.id, d); S.mine = await api.mine(); toast('Nu ' + d.count + ' samplanterade i samma kruka'); } catch (e) { toast(errMsg(e)); }
+  closeModal();
+}
 function heart(id) {
-  if (S.mine.some(m => m.plant_id === id)) return toast('Finns redan i din samling');
+  if (S.mine.some(m => m.plant_id === id)) { if (!S.user) return openModal('login'); S.dupId = id; return openModal('dup'); }
   addPlant(id, true);
 }
 function shortTemp(t) { const m = /\d+\s*–\s*\d+\s*°C/.exec(t || ''); return m ? m[0] : (t || '').split(',')[0]; }
@@ -4352,7 +4371,7 @@ function mineV() {
   const rows = shown.map(m => {
     const d = left(m), pct = m.interval ? Math.round((m.interval - d) / m.interval * 100) : 0;
     const status = d === null ? `<span class="mut">${m.remind === false ? 'Ingen påminnelse, du sköter vattningen' : 'Växer ute, vattna vid torka'}</span>` : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
-    return `<div class="mrow"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${nameHtml(m)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${roomOf(m) && !S.mroom ? `<span class="mini rtag">${ic(DOORI, 'currentColor', 11)} ${esc(roomOf(m).name)}</span>` : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
+    return `<div class="mrow"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${nameHtml(m)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${m.details && +m.details.count > 1 ? `<span class="mini">× ${+m.details.count} samplanterade i samma kruka</span>` : ''}${roomOf(m) && !S.mroom ? `<span class="mini rtag">${ic(DOORI, 'currentColor', 11)} ${esc(roomOf(m).name)}</span>` : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
       <div class="side"><label onclick="photoPick(event,this)" class="pbtn" title="Ta eller välj ett foto" aria-label="Lägg till foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
   }).join('');
   return `${topbar('Min samling')}
@@ -5136,6 +5155,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.74', 'Nu', ['Flera av samma växt är separata i Samling, var och en med egen profil', 'Tryck på hjärtat på en växt du redan har så väljer du: egen växt, eller samplanterad i samma kruka (visas som en profil med antal)', 'Du kan ändra antal samplanterade under Berätta mer om din växt']],
   ['1.73', 'Nu', ['Admin och moderatorer: en ny sida där rapporter granskas och inlägg kan döljas eller behållas', 'Inlägg och svar döljs automatiskt när tre olika personer har rapporterat dem', 'Du kan blockera användare. Då ser du inte deras inlägg', 'Admin kan göra andra till moderatorer']],
   ['1.72.1', 'Nu', ['Växter i 3D går inte längre genom väggar. De flyttas till närmaste fria plats vid väggen']],
   ['1.72', '26 okt', ['Notisklockan finns nu på Hem också, så den syns på alla sidor', 'Vänförfrågningar visas som en tydlig ruta högst upp på Hem med knapparna Acceptera och Neka']],
@@ -5631,7 +5651,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.73';
+const APP_VERSION = '1.74';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 function applyPrefs() {
