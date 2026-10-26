@@ -1431,6 +1431,7 @@ const sbApi = {
     await sb.auth.updateUser({ data: { display_name: p.display_name } });
   },
   async changePassword(pw) { const { error } = await sb.auth.updateUser({ password: pw }); if (error) throw error; },
+  async signInGoogle() { const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'https://armbowscarman.github.io/roothood/' } }); if (error) throw error; },
   async signIn(email, pw) { const { error } = await sb.auth.signInWithPassword({ email, password: pw }); if (error) throw error; },
   async signUp(email, pw, name) {
     const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { display_name: name }, emailRedirectTo: location.origin + location.pathname } });
@@ -3340,6 +3341,11 @@ function renderModalKeep(form) {
   const p = form.querySelector('.formmsg') || document.createElement('p');
   p.className = 'formmsg'; p.textContent = S.msg; form.querySelector('.formbtn').before(p);
 }
+async function googleLogin() {
+  if (DEMO || !sb) return toast('Google-inloggning finns inte i demoläget');
+  try { S.busy = true; render(); await api.signInGoogle(); }
+  catch (e) { S.busy = false; S.msg = 'Google-inloggningen är inte påslagen än. ' + errMsg(e); render(); }
+}
 async function doAuth(form) {
   const d = Object.fromEntries(new FormData(form));
   S.authEmail = d.email; S.authName = d.name || '';
@@ -4836,6 +4842,8 @@ function loginV() {
   const up = S.authMode === 'up';
   return `<div class="mh"><h2>${up ? 'Skapa konto' : 'Logga in'}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div class="seg"><button class="${up ? '' : 'on'}" onclick="S.authMode='in';S.msg='';render()">Logga in</button><button class="${up ? 'on' : ''}" onclick="S.authMode='up';S.msg='';render()">Skapa konto</button></div>
+  <button type="button" class="btn wide" style="background:#fff;color:#1f1f1f;border:1px solid var(--line);margin-bottom:10px" onclick="googleLogin()" ${S.busy ? 'disabled' : ''}><svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:-4px;margin-right:8px"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Fortsätt med Google</button>
+  <p class="mut" style="text-align:center;margin:0 0 10px;font-size:12.5px">eller med e-post</p>
   <form onsubmit="event.preventDefault();doAuth(this)">
   ${up ? '<label>Namn som andra ser<input name="name" required maxlength="40" autocomplete="nickname" value="' + esc(S.authName) + '"></label>' : ''}
   <label>E-post<input name="email" type="email" required autocomplete="email" value="${esc(S.authEmail)}"></label>
@@ -5613,6 +5621,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.95', 'Nu', ['Logga in med Google: knappen Fortsätt med Google högst upp i inloggningsrutan']],
   ['1.94', 'Nu', ['Trädgårdar nära dig under Utforska → Verktyg: handelsträdgårdar, botaniska trädgårdar och parker inom 15 km, med vägbeskrivning. Uppgifter från OpenStreetMap']],
   ['1.93', 'Nu', ['Byt profilbild: tryck på kameran på din profil. Bilden syns också i kommentarer och vänlistor']],
   ['1.92.2', 'Nu', ['Ljusmätare och Kompass ligger under en egen rubrik, Verktyg, i Utforska']],
@@ -6236,7 +6245,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.94.5';
+const APP_VERSION = '1.95';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
