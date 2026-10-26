@@ -4592,7 +4592,7 @@ const QUICK = () => [
   ['people', 'Hitta vänner', PEOPLEI, 'xp', 'openPeople()'], ['inspo', 'Odlare att följa', INSPI, 'inspo', 'openInspo()'], ['season', 'Säsongstips', I.leaf, 'sun', 'openSeason()'], ['sow', 'Såkalender', I.soil, 'db', 'openSow()'], ['perma', 'Permakultur', I.leaf, 'inspo', 'openPerma()'],
   ['mine', 'Min samling', I.plant || I.leaf, 'db', "go('mine')"], ['notif', 'Notiser', BELLI, 'house', 'openNotif()'], ['cfg', 'Anpassa Hem', PEN, 'smart', "go('home');openHomeCfg()"],
 ];
-const QGROUPS = [['Växter', ['db', 'id', 'season', 'sow', 'light', 'compass']], ['Lär dig', ['perma']], ['Hjälp med växterna', ['doc', 'expert']], ['Hem och trädgård', ['house', 'bed', 'smart']], ['Djur', ['pets']], ['Community', ['comm', 'forum', 'swap', 'detect', 'people', 'inspo']], ['Mitt', ['mine', 'notif', 'cfg']]];
+const QGROUPS = [['Växter', ['db', 'id', 'season', 'sow']], ['Verktyg', ['light', 'compass']], ['Lär dig', ['perma']], ['Hjälp med växterna', ['doc', 'expert']], ['Hem och trädgård', ['house', 'bed', 'smart']], ['Djur', ['pets']], ['Community', ['comm', 'forum', 'swap', 'detect', 'people', 'inspo']], ['Mitt', ['mine', 'notif', 'cfg']]];
 const favs = () => { const f = store.get('favQuick', null); return Array.isArray(f) ? f : ['db', 'id', 'doc']; };
 function qBtn(q, edit) { const [k, n, icon, cls, act, pro] = q, on = favs().includes(k); return `<button class="qbtn q-${cls || 'cam'} ${edit ? 'editing' : ''}" onclick="${edit ? `togFav('${k}')` : act}"><span class="tic ${cls}">${ic(icon, 'currentColor', 22)}${pro && !S.pro ? '<em>PRO</em>' : ''}${edit ? `<i class="fav ${on ? 'on' : ''}">${on ? '★' : '☆'}</i>` : ''}</span><span>${n}</span></button>`; }
 function quickV() { const Q = QUICK(), f = favs().map(k => Q.find(q => q[0] === k)).filter(Boolean).slice(0, 7);
@@ -5595,6 +5595,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.92.2', 'Nu', ['Ljusmätare och Kompass ligger under en egen rubrik, Verktyg, i Utforska']],
   ['1.92', 'Nu', ['Ny Kompass under Utforska: visar vilket väderstreck telefonen pekar mot, med en röd norrpil']],
   ['1.91', 'Nu', ['Kameran för Identifiera växt har blixt (ficklampa), zoom och närläge när din telefon klarar det']],
   ['1.90', 'Nu', ['Önskelista: på varje växt finns knappen Önskelista. Under Min samling finns en ny flik där du ser växterna du vill ha, skriver var du ska köpa dem och trycker Köpt när du har dem. SQL-steg 033 behövs för att spara på flera enheter']],
@@ -6165,7 +6166,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.92.1';
+const APP_VERSION = '1.92.2';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
