@@ -2061,7 +2061,7 @@ async function mount3d() {
         T3.g = { d, m }; }
       T3.dirty = true; });
     const up = e => { T3.ptr.delete(e.pointerId); T3.g = null; }; c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
-    c.addEventListener('wheel', e => { e.preventDefault(); T3.st.dist = Math.max(2, Math.min(400, T3.st.dist * (e.deltaY > 0 ? 1.1 : 0.9))); T3.dirty = true; }, { passive: false });
+    c.addEventListener('wheel', e => { if (c.style.touchAction === 'pan-y') return; e.preventDefault(); T3.st.dist = Math.max(2, Math.min(400, T3.st.dist * (e.deltaY > 0 ? 1.1 : 0.9))); T3.dirty = true; }, { passive: false });
     build3d(true); T3.justBuilt = true;
   }
   const l = box.querySelector('.l3'); if (l) l.remove();
@@ -5231,6 +5231,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.76.1', 'Nu', ['Åtgärdat: när du scrollar över 3D-vyn av Mitt hem på Hem och Profil scrollar nu hela sidan som vanligt, i stället för att 3D-vyn zoomas']],
   ['1.76', 'Nu', ['Mitt hem i 3D visas nu också på din Profil, och på andras profiler om de vill visa det', 'Du väljer om ditt hem ska synas för alla, bara vänner eller ingen under Inställningar']],
   ['1.75.1', 'Nu', ['Ny flik Vänner under Community. Där ser du dina vänner, vänförfrågningar och kan skriva till dem']],
   ['1.75', 'Nu', ['Privata meddelanden till dina vänner. Öppna en väns profil och tryck Skriv, eller gå via Meddelanden på Profil', 'Du kan skriva ett meddelande när du skickar en vänförfrågan, så personen ser varför du vill bli vän', 'Olästa meddelanden syns på notisklockan']],
@@ -5731,7 +5732,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.76';
+const APP_VERSION = '1.76.1';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 function applyPrefs() {
