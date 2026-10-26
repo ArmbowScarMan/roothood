@@ -2972,7 +2972,8 @@ function addWin(pt, pt2) {
       const dd = segDist(pt.x, pt.y, seg), along = ['t', 'b'].includes(s) ? pt.x - x : pt.y - y; cands.push({ d: dd, r, s, L, along });
       if (!best || dd < best.d) best = { d: dd, r, s, L, along }; }); });
   if (kind === 'open' && !pt2) { const ok = cands.filter(c => c.d <= 0.8 && c.along >= -0.1 && c.along <= c.L + 0.1 && solidPieces(c.r, c.s).some(q => c.along >= q[0] - 0.1 && c.along <= q[1] + 0.1)).sort((a2, b2) => a2.d - b2.d); if (ok.length) best = ok[0]; }
-  if (!best || best.d > 0.8) return toast('Tryck närmare en vägg');
+  if (!best) return toast('Fönster och dörrar sätts på ett rums vägg. Rita först ett rum under Rum → + Nytt rum.');
+  if (best.d > 0.8) return toast(planWalls().some(wl => wl.h !== 'hedge' && segDist(pt.x, pt.y, [wl.x1, wl.y1, wl.x2, wl.y2]) < 0.8) ? 'Fönster och dörrar sätts på ett rums vägg, inte på en fri vägg. Rita ett rum under Rum → + Nytt rum.' : 'Tryck närmare ett rums vägg');
   pushUndo();
   const r = best.r, L = best.L;
   if (kind === 'bay') {
@@ -5462,6 +5463,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.85', 'Nu', ['Notiser i mobilen när du får ett meddelande, en vänförfrågan eller när någon accepterar dig. Slå på under Inställningar → Påminnelser. Tryck på notisen så öppnas rätt sida']],
   ['1.84', 'Nu', ['Enklare rumsredigering i Ritning: välj ett rum och byt namn, ändra bredd och djup med + och −, eller kopiera rummet direkt i rutan']],
   ['1.83', 'Nu', ['Ny flik i Ritning: Byggnader (växthus, garage, carport, förråd, lekstuga, pergola). Möbler har kvar inne- och utemöbler']],
   ['1.82', 'Nu', ['Fler utomhusobjekt i Ritning: garage, carport, pergola, altan, pool, damm, studsmatta, sandlåda, lekstuga, eldstad, grill, utemöbler, bikupa', 'Nytt inomhus: Växtskåp']],
@@ -5971,7 +5973,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.84';
+const APP_VERSION = '1.85';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -6166,13 +6168,13 @@ function pushCard() {
   else if (st === 'denied') inner = '<p style="margin:0 0 6px"><b>Notiser är blockerade</b></p><p class="mut" style="margin:0">Tryck på ikonen till vänster om adressen i Chrome, välj <b>Behörigheter</b> och slå på <b>Aviseringar</b>. Ladda sedan om sidan.</p>';
   else if (st === 'on') inner = `<p class="on">✓ Påminnelser är på</p><p class="mut" style="margin:0">Du får en notis när en växt behöver vattnas, även när appen är stängd.</p>
   <label class="fl" for="phour">Tid för påminnelsen</label><select id="phour" onchange="setPushHour(+this.value)">${Array.from({ length: 17 }, (_, i) => i + 6).map(h => `<option value="${h}" ${store.get('pushHour', 8) === h ? 'selected' : ''}>kl ${String(h).padStart(2, '0')}.00</option>`).join('')}</select><div class="row2"><button class="btn sm"${busy} onclick="testPush()">Skicka testnotis</button><button class="btn sm line"${busy} onclick="disablePush()">Stäng av</button></div>`;
-  else inner = `<p class="mut" style="margin:0">Få en notis när en växt behöver vattnas, även när appen är stängd. Du väljer själv tiden.</p><div class="row2"><button class="btn sm"${busy} onclick="enablePush()">${ic(BELL, 'currentColor', 16)} Slå på påminnelser</button></div>`;
+  else inner = `<p class="mut" style="margin:0">Få en notis när en växt behöver vattnas, och när du får ett meddelande eller en vänförfrågan, även när appen är stängd. Du väljer själv tiden för vattning.</p><div class="row2"><button class="btn sm"${busy} onclick="enablePush()">${ic(BELL, 'currentColor', 16)} Slå på påminnelser</button></div>`;
   const def = store.get('remindDefault', true);
   return `<div class="setcard pushc">${inner}</div>
   <label class="remrow" style="margin-top:10px"><input type="checkbox" ${def ? 'checked' : ''} onchange="store.set('remindDefault', this.checked);toast(this.checked ? 'Nya växter får påminnelser' : 'Nya växter får inga påminnelser')"><span><b>Påminnelser för nya växter</b><span class="mut">Bocka ur om du vill sköta vattningen själv. Du kan ändra för varje växt i skötseldagboken.</span></span></label>`;
 }
 // Notisen öppnar Min samling
-if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.tab) go(e.data.tab); });
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.tool === 'msgs') openMsgs(); else if (e.data && e.data.tool === 'notif') openNotif(); else if (e.data && e.data.tab) go(e.data.tab); });
 
 // ===== Välj kamera eller galleri =====
 // Android öppnar annars bara kameran (med capture) eller bara galleriet (utan). Vi frågar själva.
@@ -6252,6 +6254,7 @@ async function init() {
   const startTab = new URLSearchParams(location.search).get('tab');
   if (startTab === 'mine') { S.tab = 'mine'; try { history.replaceState(null, '', location.pathname); } catch (e) {} }
   const startTool = new URLSearchParams(location.search).get('tool');
+  if (startTool === 'msgs' || startTool === 'notif') { try { history.replaceState(null, '', location.pathname); } catch (e) {} setTimeout(() => { if (S.user) startTool === 'msgs' ? openMsgs() : openNotif(); }, 600); }
   if (startTool === 'id') { try { history.replaceState(null, '', location.pathname); } catch (e) {} setTimeout(() => { openTool('id'); if (S.tool === 'id') startIdCam(); }); }
   render();
   if (restoreY) setTimeout(() => { const m = $('#main'); if (m) m.scrollTop = restoreY; }, 350);
