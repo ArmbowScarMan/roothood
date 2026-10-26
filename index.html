@@ -597,6 +597,8 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 .bar.due i{background:var(--cop)}
 .due-t{color:var(--cop)}
 .post{border-radius:22px}
+.avwrap{position:relative;width:84px;margin:0 auto 12px}.avwrap .bigav{margin:0 auto}.avimg{overflow:hidden;background:var(--surf)!important}.avimg img{width:100%;height:100%;object-fit:cover;display:block}.bigav.avimg{width:84px;height:84px}.av.avimg{width:38px;height:38px}
+.avedit{position:absolute;right:-4px;bottom:-4px;width:32px;height:32px;border-radius:50%;background:var(--pri);color:var(--onpri);display:grid;place-items:center;font-size:15px;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.25)}
 .bigav{box-shadow:0 10px 24px rgba(40,30,15,.15)}
 
 
@@ -1237,7 +1239,8 @@ const demoApi = {
   async resend() {},
   async resetPw() {},
   async user() { return { id: 'demo', name: (store.get('profile', {}) || {}).display_name || 'Du' }; },
-  async getProfile() { return Object.assign({ display_name: 'Du', city: '', interests: [], share_photos: store.get('share', true) }, store.get('profile', {})); },
+  async saveAvatar(url) { store.set('avatarDemo', url || null); return; },
+  async getProfile() { return Object.assign({ avatar_url: store.get('avatarDemo', null), display_name: 'Du', city: '', interests: [], share_photos: store.get('share', true) }, store.get('profile', {})); },
   async saveProfile(p) { store.set('profile', { display_name: p.display_name, city: p.city, interests: p.interests, vis: p.vis || (store.get('profile', {}).vis) }); },
   async changePassword() {},
   _raw() {
@@ -1413,8 +1416,10 @@ const sbApi = {
     const u = data.session && data.session.user;
     return u ? { id: u.id, name: (u.user_metadata && u.user_metadata.display_name) || u.email, email: u.email } : null;
   },
+  async saveAvatar(url) { const { error } = await sb.from('profiles').update({ avatar_url: url }).eq('id', S.user.id); if (error) throw /avatar/.test(error.message || '') ? new Error('AVATAR_NOT_READY') : error; },
   async getProfile() {
-    let { data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos,vis').eq('id', S.user.id);
+    let { data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos,vis,avatar_url').eq('id', S.user.id);
+    if (error && /avatar/.test(error.message || '')) ({ data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos,vis').eq('id', S.user.id));
     if (error && /vis/.test(error.message || '')) ({ data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos').eq('id', S.user.id));
     if (error) throw error;
     return (data && data[0]) || { display_name: S.user.name, city: '', interests: [] };
@@ -4403,7 +4408,8 @@ async function loadPeople() {
 }
 function openPeople() { if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'people'; render(); $('#main').scrollTop = 0; loadPeople(); }
 function pqInput(v) { S.pq = v; clearTimeout(peopleT); peopleT = setTimeout(loadPeople, 300); }
-function avBig(name, cls) { return `<div class="${cls || 'av'}" style="background:hsl(${hueOf(name)} 40% 38%)">${esc((name || '?')[0].toUpperCase())}</div>`; }
+function avBig(name, cls, url) { if (url) return `<div class="${cls || 'av'} avimg"><img src="${esc(url)}" alt=""></div>`; return `<div class="${cls || 'av'}" style="background:hsl(${hueOf(name)} 40% 38%)">${esc((name || '?')[0].toUpperCase())}</div>`; }
+function avSmall(name, url) { if (url) return `<div class="av avimg"><img src="${esc(url)}" alt=""></div>`; return `<div class="av" style="background:hsl(${hueOf(name)} 40% 38%)">${esc((name || '?')[0])}</div>`; }
 function personRow(u) {
   const f = (S.follows || []).includes(u.id), same = S.city && u.city && u.city.toLowerCase() === S.city.toLowerCase();
   return `<div class="prow2"><button class="popen" onclick="openUser('${esc(u.id)}')">${avBig(u.display_name)}<span class="grow"><b>${esc(u.display_name)}</b><span>${[u.city ? (same ? '📍 ' : '') + esc(u.city) : '', u.plants != null ? u.plants + ' växter' : '', u.followers ? u.followers + ' följare' : ''].filter(Boolean).join(' · ')}</span></span></button>
@@ -4460,7 +4466,7 @@ async function toggleFollow(id) {
   const u = S.ucard && S.ucard.id === id ? S.ucard : (S.ppl || []).find(x => x.id === id); if (u) toast(on ? 'Du följer nu ' + u.display_name : 'Du följer inte längre ' + u.display_name);
 }
 function meCardNow() { const r = S.meCard || {}, c = r.card || {}, pr = r.prof || {};
-  return { id: S.user.id, display_name: S.user.name + (S.pro ? '' : ''), city: pr.city || S.city || c.city || '', interests: pr.interests || c.interests || [], plants: S.mine.length, posts: r.posts ? r.posts.length : (c.posts || 0), followers: c.followers || 0, following: c.following || (S.follows || []).length,
+  return { id: S.user.id, avatar_url: pr.avatar_url || null, display_name: S.user.name + (S.pro ? '' : ''), city: pr.city || S.city || c.city || '', interests: pr.interests || c.interests || [], plants: S.mine.length, posts: r.posts ? r.posts.length : (c.posts || 0), followers: c.followers || 0, following: c.following || (S.follows || []).length,
     plant_list: S.mine.map(m => ({ name: m.name, plant_id: m.plant_id, photo: m.photo || null })) }; }
 async function loadMe() { if (!S.user) return; const out = {}; try { out.prof = await api.getProfile(); } catch (e) {} try { out.card = await api.userCard(S.user.id); } catch (e) {} try { out.posts = await api.userPosts(S.user.id); } catch (e) { out.posts = []; } S.meCard = out; if (S.tab === 'me' && !S.tool && !S.sel) render(); }
 async function openUser(id, fromHash) {
@@ -4505,7 +4511,7 @@ function profPets(c, self) {
 }
 function userBody(c, uposts, self) {
   const f = (S.follows || []).includes(c.id), posts = uposts || [];
-  return `  <div class="uhero">${avBig(c.display_name, 'bigav')}<div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? '📍 ' + esc(c.city) : 'Ingen ort angiven'}</span>
+  return `  <div class="uhero"><div class="avwrap">${avBig(c.display_name, 'bigav', c.avatar_url)}${self ? `<label class="avedit" aria-label="Byt profilbild">📷<input type="file" accept="image/*" class="sr" onchange="changeAvatar(this.files[0]);this.value=''"></label>` : ''}</div><div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? '📍 ' + esc(c.city) : 'Ingen ort angiven'}</span>
     ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">✏️ Redigera profil</button>` : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow('${esc(c.id)}')">${f ? 'Följer ✓' : '+ Följ'}</button>${frBtns(c)}${c.friend_status === 'friends' ? `<button class="btn sm" onclick="openChat('${esc(c.id)}','${esc(c.display_name)}')">💬 Skriv</button>` : ''}</div><button class="link2" style="margin-top:8px;align-self:flex-start" onclick="blockUser('${esc(c.id)}',${!(S.blocks || []).includes(c.id)})">${(S.blocks || []).includes(c.id) ? 'Avblockera' : '🚫 Blockera'}</button>`}</div></div>
   <div class="ustats"><div><b>${c.plants || 0}</b><span>växter</span></div><div><b>${c.posts || 0}</b><span>inlägg</span></div><div><b>${c.followers || 0}</b><span>följare</span></div><div><b>${c.friends != null ? c.friends : (self && S.friends ? S.friends.length : 0)}</b><span>vänner</span></div></div>
   ${self ? friendsSec() : ''}
@@ -4928,6 +4934,18 @@ async function insertUP(row) {
   if (r.error && /photos/.test(r.error.message || '')) { delete row.photos; r = await sb.from('user_plants').insert(row); }
   if (r.error) throw r.error;
 }
+async function changeAvatar(file) {
+  if (!file) return; if (!S.user) return openModal('login');
+  try {
+    const blob = (await fileShrink(file, 400)) || file;
+    let url;
+    if (DEMO) { url = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); }); }
+    else { const path = S.user.id + '/avatar-' + Date.now() + '.jpg'; const { error } = await sb.storage.from('plant-photos').upload(path, blob, { contentType: 'image/jpeg' }); if (error) throw error; url = sb.storage.from('plant-photos').getPublicUrl(path).data.publicUrl; }
+    await api.saveAvatar(url);
+    S.meCard = null; S.avatarNow = url; toast('Profilbilden är bytt'); loadMe(); render();
+  } catch (e) { toast(e.message === 'AVATAR_NOT_READY' ? 'Profilbilder är inte påslagna i databasen än (steg 034).' : 'Kunde inte byta profilbild. ' + errMsg(e)); }
+}
+async function removeAvatar() { try { await api.saveAvatar(null); S.meCard = null; S.avatarNow = null; toast('Profilbilden är borttagen'); loadMe(); render(); } catch (e) { toast(errMsg(e)); } }
 async function uploadPhoto(file) {
   try {
     const blob = (await fileShrink(file, 900)) || file;
@@ -5034,7 +5052,7 @@ function sendReport(form) {
 function whoP(o, sub, pill) { return who(o.author, sub, pill, o.author_pro, o.user_id); }
 function who(name, sub, pill, pro, uid) {
   const link = uid && uid !== myId() && !String(uid).startsWith('seed') ? ` role="button" tabindex="0" class="whol" onclick="event.stopPropagation();openUser('${esc(uid)}')" onkeydown="if(event.key==='Enter')openUser('${esc(uid)}')" aria-label="Visa ${esc(name)}s profil"` : '';
-  return `<div class="who"><span${link || ' class="whol0"'}><div class="av" style="background:hsl(${hueOf(name)} 40% 38%)">${esc((name || '?')[0])}</div><div><b>${esc(name)}</b>${pro ? proBadge() : ''}<br><span class="mut">${esc(sub)}</span></div></span>${pill || ''}</div>`;
+  return `<div class="who"><span${link || ' class="whol0"'}>${avSmall(name)}<div><b>${esc(name)}</b>${pro ? proBadge() : ''}<br><span class="mut">${esc(sub)}</span></div></span>${pill || ''}</div>`;
 }
 function likeBtn(p) {
   const on = !!(S.user && p.likers.includes(S.user.id));
@@ -5595,6 +5613,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.93', 'Nu', ['Byt profilbild: tryck på kameran på din profil. Bilden syns också i kommentarer och vänlistor']],
   ['1.92.2', 'Nu', ['Ljusmätare och Kompass ligger under en egen rubrik, Verktyg, i Utforska']],
   ['1.92', 'Nu', ['Ny Kompass under Utforska: visar vilket väderstreck telefonen pekar mot, med en röd norrpil']],
   ['1.91', 'Nu', ['Kameran för Identifiera växt har blixt (ficklampa), zoom och närläge när din telefon klarar det']],
@@ -6166,7 +6185,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.92.2';
+const APP_VERSION = '1.93';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
