@@ -3566,12 +3566,10 @@ window.addEventListener('popstate', () => {
 });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && curHash) saveView(); });
 function restoreView() {
+  // Appen startar alltid på Hem. Gammal vy och gammal adress återställs inte.
   const h = location.hash;
-  if (h && !/access_token|error=|type=/.test(h) && applyView(h)) return null;
-  const v = store.get('lastView', null);
-  if (!v || Date.now() - v.t > 12 * 3600e3) return null;
-  if (typeof v.q === 'string') S.q = v.q; if (v.cat) S.cat = v.cat;
-  return applyView(v.h) ? v.y : null;
+  if (h && !/access_token|error=|type=/.test(h)) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
+  return null;
 }
 const INDOOR = ['Krukväxt', 'Orkidé', 'Kaktus', 'Akvarieväxt'], OUTDOOR = ['Köksträdgård', 'Trädgård'];
 const envCats = () => S.env === 'in' ? INDOOR : S.env === 'out' ? OUTDOOR : CATS;
@@ -5536,6 +5534,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.88', 'Nu', ['Appen startar alltid på Hem, även om du stängde den i Mitt hem eller en annan sida']],
   ['1.87', 'Nu', ['Ny + -knapp på Hem och Min samling: sök en växt och lägg till den med ett enda tryck. Du kan lägga till flera i rad, eller identifiera med foto och lägga till egen växt från samma ruta']],
   ['1.86', 'Nu', ['Fönster och dörrar går nu att sätta på fristående väggar, även snedställda. Nya väggar fäster bättre mot rummens hörn, väggar och andra väggar']],
   ['1.85', 'Nu', ['Notiser i mobilen när du får ett meddelande, en vänförfrågan eller när någon accepterar dig. Slå på under Inställningar → Påminnelser. Tryck på notisen så öppnas rätt sida']],
@@ -6048,7 +6047,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.87.1';
+const APP_VERSION = '1.88';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
