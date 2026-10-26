@@ -1,0 +1,7 @@
+-- Roothood 038: perenner (zon 4 och kallare) och några sorter som saknades.
+-- Zonerna är ungefärliga, kontrollera mot en plantskola. Kör en gång i Supabase. Befintliga hoppas över.
+insert into plants (swedish_name, latin_name, category, light_level, water_level, light_text, water_text, water_interval_days, soil, temperature, humidity, pet_safe, toxicity_text, propagation, common_problems, tips, hardiness_zone, family, genus, species, cultivar)
+select * from (values
+
+) as v(swedish_name, latin_name, category, light_level, water_level, light_text, water_text, water_interval_days, soil, temperature, humidity, pet_safe, toxicity_text, propagation, common_problems, tips, hardiness_zone, family, genus, species, cultivar)
+where not exists (select 1 from plants p where lower(p.latin_name) = lower(v.latin_name) or lower(p.swedish_name) = lower(v.swedish_name));
