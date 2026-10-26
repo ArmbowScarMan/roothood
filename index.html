@@ -1555,7 +1555,7 @@ function addPlant(id, quick) {
   if (overLimit()) { S.limitHit = true; return openModal('pro'); }
   if (!quick) { S.addp = id; return openModal('addp'); }
   const p = S.plants.find(x => x.id === id);
-  run(() => api.addMine(p), p.swedish_name + ' finns nu i din samling').then(afterAdd);
+  run(() => api.addMine(p), p.swedish_name + ' finns nu i din samling');
 }
 function openMine(id) {
   const m = S.mine.find(x => x.id === id); if (!m) return;
@@ -5155,6 +5155,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.74.1', 'Nu', ['Hjärtat på en växt sparar den direkt, utan att någon ruta med frågor dyker upp. Vill du berätta mer om växten trycker du på den i Samling']],
   ['1.74', 'Nu', ['Flera av samma växt är separata i Samling, var och en med egen profil', 'Tryck på hjärtat på en växt du redan har så väljer du: egen växt, eller samplanterad i samma kruka (visas som en profil med antal)', 'Du kan ändra antal samplanterade under Berätta mer om din växt']],
   ['1.73', 'Nu', ['Admin och moderatorer: en ny sida där rapporter granskas och inlägg kan döljas eller behållas', 'Inlägg och svar döljs automatiskt när tre olika personer har rapporterat dem', 'Du kan blockera användare. Då ser du inte deras inlägg', 'Admin kan göra andra till moderatorer']],
   ['1.72.1', 'Nu', ['Växter i 3D går inte längre genom väggar. De flyttas till närmaste fria plats vid väggen']],
@@ -5651,7 +5652,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.74';
+const APP_VERSION = '1.74.1';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 function applyPrefs() {
