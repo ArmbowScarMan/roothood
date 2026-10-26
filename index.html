@@ -678,6 +678,7 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 .planbox .bpanel .bdims input{width:50px;padding:5px 6px;font-size:14px}
 .planbox .bpanel .btn.sm{padding:5px 10px;font-size:12.5px}
 .psel{margin:12px 18px 0;background:var(--surf);border-radius:20px;box-shadow:var(--sh);padding:12px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rquick{flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px}.rname{flex:1 1 120px;min-width:0;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-weight:700;border-radius:12px;padding:8px 10px}.rstep{display:flex;align-items:center;gap:4px;background:var(--bg);border-radius:12px;padding:3px}.rstep button{width:34px;height:34px;border:0;border-radius:10px;background:var(--surf);color:var(--ink);font:inherit;font-size:20px;font-weight:800;cursor:pointer}.rstep span{display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--mut);min-width:54px}.rstep b{font-size:13px;color:var(--ink)}
 .psel.col{flex-direction:column;align-items:stretch}
 .psel .grow{flex:1;min-width:120px;display:flex;flex-direction:column}
 .psel .grow span{font-size:13px;color:var(--mut)}
@@ -2744,7 +2745,7 @@ function planSelInner() {
   if (PL().mode === 'bed') return bedPanelV();
   const sel = PL().sel; if (!sel) return '';
   if (sel.k === 'room') { const r = S.home.find(x => x.id === sel.id); if (!r) return '';
-    return `<div class="psel"><div class="grow"><b>${esc(r.name)}</b><span>${esc(dirTxt(r))} · ${roomLightWord(r)}</span></div><button class="btn sm" onclick="openHouse('${r.id}')">Öppna</button><button class="btn sm line" onclick="editRoom('${r.id}')">Ändra</button><button class="x" onclick="unplanRoom('${r.id}')">Ta bort</button></div>`; }
+    return `<div class="psel"><div class="grow"><b>${esc(r.name)}</b><span>${esc(dirTxt(r))} · ${roomLightWord(r)}</span></div><button class="btn sm" onclick="openHouse('${r.id}')">Öppna</button><button class="btn sm line" onclick="editRoom('${r.id}')">Ändra</button><button class="x" onclick="unplanRoom('${r.id}')">Ta bort</button><div class="rquick"><input class="rname" value="${esc(r.name)}" maxlength="40" aria-label="Rumsnamn" onchange="roomName('${r.id}',this.value)">${['w', 'h'].map(d => `<div class="rstep"><button onclick="roomDim('${r.id}','${d}',-0.5)" aria-label="Mindre">−</button><span>${d === 'w' ? 'Bredd' : 'Djup'}<b>${r.rect[d]} m</b></span><button onclick="roomDim('${r.id}','${d}',0.5)" aria-label="Större">+</button></div>`).join('')}<button class="btn sm line" onclick="roomDup('${r.id}')">Kopiera rum</button></div></div>`; }
   if (sel.k === 'area') { const a = planAreas().find(x => x.id === sel.id); if (!a) return '';
     return `<div class="psel"><div class="grow"><b>${UK_M[a.t][1]}</b><span>${polyArea(a.pts)} m² · ${(a.spots || []).length ? a.spots.length + ' plantor' : a.pts.length + ' hörn'}</span></div>${['bed', 'veg'].includes(a.t) ? `<button class="btn sm" onclick="PL().bedId='${a.id}';planMode('bed')">🌷 Planera</button>` : ''}<select class="asel" onchange="areaType('${a.id}',this.value)" aria-label="Typ av yta">${UK.filter(u => u[2] === 'poly').map(u => `<option value="${u[0]}" ${u[0] === a.t ? 'selected' : ''}>${u[1]}</option>`).join('')}</select>${P_vsel(a) ? `<button class="btn sm line" onclick="delVtx('${a.id}')">Ta bort hörnet</button>` : ''}<button class="x" onclick="delArea('${a.id}')">Ta bort</button></div>`; }
   if (sel.k === 'gitem') { const g = planGarden().find(x => x.id === sel.id); if (!g) return '';
@@ -3014,6 +3015,10 @@ function pairOpen(r, el) { // öppen planlösning: samma öppning i rummet på a
 }
 function winShift(dp) { pushUndo(); const sel = PL().sel, r = S.home.find(x => x.id === sel.id), w = r.wins[sel.i], L = sideLen(r, w.s); w.p = Math.max(0, Math.min(L - w.l, r1(w.p + dp))); if (w.k === 'open' || w.k === 'door') pairOpen(r, w); saveHomeSoon(); render(); replaceWinWords(r); }
 function delWin() { pushUndo(); const sel = PL().sel, r = S.home.find(x => x.id === sel.id), w0 = r.wins.splice(sel.i, 1)[0]; if (w0 && w0.pair) planRooms().forEach(o => { if (o.wins) o.wins = o.wins.filter(x => x.pair !== w0.pair); }); r.winsTouched = true; syncDirs(r); PL().sel = null; saveHomeSoon(); render(); replaceWinWords(r); }
+function roomName(id, v) { const r = S.home.find(x => x.id === id); v = (v || '').trim(); if (!r || !v || v === r.name) return; pushUndo(); r.name = v; saveHomeSoon(); render(); }
+function roomDim(id, d, dl) { const r = S.home.find(x => x.id === id); if (!r || !r.rect) return; pushUndo(); const R = r.rect; R[d] = Math.max(1, Math.round((R[d] + dl) * 10) / 10);
+  r.wins = (r.wins || []).filter(w => w.p + w.l <= (['t', 'b'].includes(w.s) ? R.w : R.h)); r.bays = (r.bays || []).filter(b => b.p + b.l <= sideLen(r, b.s)); syncDirs(r); saveHomeSoon(); render(); }
+function roomDup(id) { const r = S.home.find(x => x.id === id); if (!r || !r.rect) return; pushUndo(); const c = JSON.parse(JSON.stringify(r)); c.id = 'r' + Date.now().toString(36); c.name = r.name + ' 2'; c.rect.x = Math.round((r.rect.x + r.rect.w + 0.2) * 10) / 10; delete c.plants; S.home.push(c); PL().sel = { k: 'room', id: c.id }; saveHomeSoon(); render(); toast('Rummet är kopierat'); }
 function unplanRoom(id) { pushUndo(); const r = S.home.find(x => x.id === id); delete r.rect; delete r.wins; delete r.bays; PL().sel = null; saveHomeSoon(); render(); toast(r.name + ' finns kvar under Rum'); }
 async function unplacePlant(id) { const m = S.mine.find(x => x.id === id), d = JSON.parse(JSON.stringify(m.details || {})); delete d.pos; PL().sel = null; try { await api.saveDetails(id, d); S.mine = await api.mine(); } catch (e) { toast(errMsg(e)); } render(); }
 function delDev(id) { pushUndo(); S.hplan.items = planItems().filter(x => x.id !== id); PL().sel = null; saveHomeSoon(); render(); }
@@ -5457,6 +5462,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.84', 'Nu', ['Enklare rumsredigering i Ritning: välj ett rum och byt namn, ändra bredd och djup med + och −, eller kopiera rummet direkt i rutan']],
   ['1.83', 'Nu', ['Ny flik i Ritning: Byggnader (växthus, garage, carport, förråd, lekstuga, pergola). Möbler har kvar inne- och utemöbler']],
   ['1.82', 'Nu', ['Fler utomhusobjekt i Ritning: garage, carport, pergola, altan, pool, damm, studsmatta, sandlåda, lekstuga, eldstad, grill, utemöbler, bikupa', 'Nytt inomhus: Växtskåp']],
   ['1.81', 'Nu', ['Våningar i Ritning: lägg till Plan 2, vind, källare eller suterräng och rita varje våning för sig. Våningen under syns som en svag skugga', 'Våningarna staplas i 3D. Ny knapp för att dölja övre våningar och se in. Ny möbel: Trappa']],
@@ -5965,7 +5971,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.83';
+const APP_VERSION = '1.84';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
