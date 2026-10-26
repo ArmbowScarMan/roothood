@@ -768,6 +768,9 @@ button.pw{cursor:pointer}
 .tgrid small{font-size:11px;color:var(--mut)}
 .tgrid b{font-size:13.5px}
 .tuv{margin:8px 0 0;font-size:13.5px;line-height:1.45}
+.fab{position:absolute;right:18px;bottom:calc(96px + env(safe-area-inset-bottom,0));z-index:20;width:58px;height:58px;border:0;border-radius:20px;background:var(--pri);color:var(--onpri);display:grid;place-items:center;box-shadow:0 10px 24px rgba(20,50,30,.35);cursor:pointer}.fab[hidden]{display:none}
+.qrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--bg);margin-top:6px}.qrow .grow{flex:1;min-width:0;display:flex;flex-direction:column}.qrow .grow b{font-size:15px}.qrow .grow span{font-size:12.5px;color:var(--mut);font-style:italic}.qrow button{flex:none;border:0;border-radius:12px;background:var(--pri);color:var(--onpri);font:inherit;font-weight:800;font-size:13.5px;padding:9px 12px;cursor:pointer}.qrow button.have{background:var(--soft);color:var(--ink)}
+.qacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .bhits{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .bhits button{all:unset;box-sizing:border-box;display:flex;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:12px;background:var(--bg);cursor:pointer;font-size:14px}
 .bhits button span{color:var(--mut);font-size:12.5px}
@@ -1121,6 +1124,7 @@ button.pw{cursor:pointer}
 <button data-t="comm" onclick="go('comm')" aria-label="Community"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14v10h-7l-4 4v-4H5z"/></svg><span>Community</span></button>
 <button data-t="me" onclick="go('me')" aria-label="Profil"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></svg><span>Profil</span></button>
 </nav>
+<button id="fab" class="fab" onclick="openQAdd()" aria-label="Lägg till växt" hidden><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
 <div id="ov"></div><div id="toast" class="toast" hidden role="status"></div>
 </div>
 <script>
@@ -1590,6 +1594,28 @@ function addPlant(id, quick) {
   if (!quick) { S.addp = id; return openModal('addp'); }
   const p = S.plants.find(x => x.id === id);
   run(() => api.addMine(p), p.swedish_name + ' finns nu i din samling');
+}
+function openQAdd() { S.qaq = ''; openModal('qadd'); setTimeout(() => { const i = $('#qaq'); if (i) i.focus(); }, 60); }
+function qaHits() {
+  const q = (S.qaq || '').trim().toLowerCase(); if (q.length < 2) return '<p class="mut" style="margin:14px 0 0;font-size:14px">Skriv namnet på växten, så kan du lägga till den med ett tryck.</p>';
+  const nm = p => (p.swedish_name || '').toLowerCase(), lt = p => (p.latin_name || '').toLowerCase();
+  const L = S.plants.filter(p => nm(p).includes(q) || lt(p).includes(q)).sort((a, b) => (nm(b).startsWith(q) - nm(a).startsWith(q)) || nm(a).localeCompare(nm(b), 'sv')).slice(0, 12);
+  if (!L.length) return `<div class="empty" style="margin-top:12px"><p>Hittar ingen växt som heter så.</p><button class="btn sm" onclick="openModal('add','${esc(S.qaq).replace(/'/g, '')}')">Lägg till den som egen växt</button></div>`;
+  return L.map(p => { const n = S.mine.filter(m => m.plant_id === p.id).length; return `<div class="qrow"><span class="grow"><b>${esc(p.swedish_name)}</b>${p.latin_name ? `<span>${esc(p.latin_name)}</span>` : ''}</span><button class="${n ? 'have' : ''}" onclick="qaAdd(${p.id})">${n ? '✓ ' + n + ' · En till' : '+ Lägg till'}</button></div>`; }).join('');
+}
+function qaRefresh() { const h = $('#qahits'); if (h) h.innerHTML = qaHits(); }
+async function qaAdd(id) {
+  if (!S.user) return openModal('login');
+  if (overLimit()) { S.limitHit = true; return openModal('pro'); }
+  const p = S.plants.find(x => x.id === id); if (!p) return;
+  try { await api.addMine(p); S.mine = await api.mine(); toast(p.swedish_name + ' finns nu i din samling'); qaRefresh(); }
+  catch (e) { toast(errMsg(e)); }
+}
+function qaddV() {
+  return `<div class="mh"><h2>Lägg till växt</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <div class="search" style="margin:0"><input id="qaq" type="search" placeholder="Sök t.ex. monstera eller tomat" value="${esc(S.qaq || '')}" oninput="S.qaq=this.value;qaRefresh()" aria-label="Sök växt" autocomplete="off"></div>
+  <div id="qahits">${qaHits()}</div>
+  <div class="qacts"><button class="btn sm line" onclick="closeModal();openTool('id')">📷 Identifiera med foto</button><button class="btn sm line" onclick="openModal('add',S.qaq||'')">✍️ Egen växt</button></div>`;
 }
 function openMine(id) {
   const m = S.mine.find(x => x.id === id); if (!m) return;
@@ -3476,6 +3502,7 @@ function topbar(title, backFn, extra) {
 function otherHome() { const h = S.uhome; return S.tool === 'user' && !S.sel && S.ucard && h && h.uid === S.uid && S.ucard.id !== (S.user && S.user.id) && h.visible && h.data && Array.isArray(h.data.rooms) ? { rooms: h.data.rooms, plan: h.data.plan || {} } : null; }
 function render() {
   HV = otherHome();
+  { const fb = $('#fab'); if (fb) fb.hidden = !!(S.sel || S.tool || S.modal || !['home', 'mine'].includes(S.tab)); }
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tab));
   const m = $('#main');
   if (S.loading) m.innerHTML = '<div class="center mut"><div class="lsp"><span></span><span></span><span></span></div><div style="margin-top:14px">Hämtar växter…</div></div>';
@@ -3486,7 +3513,7 @@ function render() {
     m.innerHTML = html;
     if (!S.sel && (S.tool === 'db' || (!S.tool && S.tab === 'home'))) renderList();
   }
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'qadd' ? qaddV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   $('#ov').insertAdjacentHTML('beforeend', instBanner());
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); }
   const lv = $('#lv'); if (lv && lightStream) { lv.srcObject = lightStream; lv.hidden = false; lv.play().catch(() => {}); }
@@ -5509,6 +5536,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.87', 'Nu', ['Ny + -knapp på Hem och Min samling: sök en växt och lägg till den med ett enda tryck. Du kan lägga till flera i rad, eller identifiera med foto och lägga till egen växt från samma ruta']],
   ['1.86', 'Nu', ['Fönster och dörrar går nu att sätta på fristående väggar, även snedställda. Nya väggar fäster bättre mot rummens hörn, väggar och andra väggar']],
   ['1.85', 'Nu', ['Notiser i mobilen när du får ett meddelande, en vänförfrågan eller när någon accepterar dig. Slå på under Inställningar → Påminnelser. Tryck på notisen så öppnas rätt sida']],
   ['1.84', 'Nu', ['Enklare rumsredigering i Ritning: välj ett rum och byt namn, ändra bredd och djup med + och −, eller kopiera rummet direkt i rutan']],
@@ -6020,7 +6048,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.86.1';
+const APP_VERSION = '1.87';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
