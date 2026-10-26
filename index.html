@@ -2141,7 +2141,13 @@ function build3dInner(first) {
     (r.wins || []).forEach(w => { const q = wallSeg(r, w); if (!w.k) winDetail(q, WH, TH, box); else if (w.k === 'door') doorDetail(q, WH, TH, box); });
     const lab = label3d(r.name); if (lab) { const c0 = roomPoly(r).reduce((s2, q) => [s2[0] + q[0], s2[1] + q[1]], [0, 0]).map(v2 => v2 / roomPoly(r).length); lab.position.set(c0[0], WH + 0.6, c0[1]); (cur || sc).add(lab); }
   });
-  planWalls().filter(wl => wl.h === 'hedge' || floorVis(flOf(wl))).forEach(wl => { if (wl.h === 'hedge') { cur = null; hedge3d(wl, THREE, M, sc, box); } else { cur = grp(flOf(wl)); box(wl.x1, wl.y1, wl.x2, wl.y2, 0, wl.h === 'half' ? Math.min(1.1, WH) : WH, TH, '#F4EFE6'); } });
+  planWalls().filter(wl => wl.h === 'hedge' || floorVis(flOf(wl))).forEach(wl => { if (wl.h === 'hedge') { cur = null; hedge3d(wl, THREE, M, sc, box); } else { cur = grp(flOf(wl)); const hh = wl.h === 'half' ? Math.min(1.1, WH) : WH;
+    if (wl.h === 'half' || !(wl.ops || []).length) box(wl.x1, wl.y1, wl.x2, wl.y2, 0, hh, TH, '#F4EFE6');
+    else { let a = 0; const Lw = fwLen(wl), part = (p0, p1) => { if (p1 - p0 > 0.02) { const q = fwSeg(wl, p0, p1 - p0); box(q[0], q[1], q[2], q[3], 0, hh, TH, '#F4EFE6'); } };
+      (wl.ops || []).slice().sort((x, y) => x.p - y.p).forEach(o => { part(a, o.p); const q = fwSeg(wl, o.p, o.l);
+        if (o.k === 'win') { box(q[0], q[1], q[2], q[3], 0, Math.min(0.9, WH), TH, '#F4EFE6', { noext: 1 }); if (WH > 0.9) { box(q[0], q[1], q[2], q[3], 0.9, Math.min(WH, 2.1) - 0.9, 0.03, '#9FD3EF', { noext: 1, mat: { transparent: true, opacity: 0.35, roughness: 0.1 } }); if (WH > 2.1) box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6', { noext: 1 }); } winDetail(q, WH, TH, box); }
+        else { if (WH > 2.1) box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6', { noext: 1 }); doorDetail(q, WH, TH, box); }
+        a = o.p + o.l; }); part(a, Lw); } } });
   cur = null;
   // möbler
   planFurn().filter(f => OUT3[f.t]).forEach(f => OUT3[f.t](f, THREE, M, sc));
@@ -2676,7 +2682,11 @@ function planInner() {
   });
   planWalls().forEach(wl => { const on = sel.k === 'fwall' && sel.id === wl.id, half = wl.h === 'half';
     if (wl.h === 'hedge') { out += `<line x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="${on ? 'var(--acc)' : '#4E8B3A'}" stroke-width="${Math.max(6, 0.8 * z).toFixed(1)}" stroke-linecap="round" opacity=".75" pointer-events="none"/><line data-k="fwall" data-id="${wl.id}" x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="transparent" stroke-width="26"/>`; return; }
-    out += `<line x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="${on ? 'var(--acc)' : half ? 'var(--mut)' : 'var(--ink)'}" stroke-width="${half ? 8 : 3.2}" stroke-linecap="round" ${half ? 'opacity=".35"' : ''} pointer-events="none"/>${half ? `<line x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="${on ? 'var(--acc)' : 'var(--mut)'}" stroke-width="2" stroke-linecap="round" pointer-events="none"/>` : ''}<line data-k="fwall" data-id="${wl.id}" x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="transparent" stroke-width="26"/>`; });
+    const pcs = half ? [[wl.x1, wl.y1, wl.x2, wl.y2]] : fwPieces(wl);
+    out += pcs.map(g => `<line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="${on ? 'var(--acc)' : half ? 'var(--mut)' : 'var(--ink)'}" stroke-width="${half ? 8 : 3.2}" stroke-linecap="round" ${half ? 'opacity=".35"' : ''} pointer-events="none"/>`).join('');
+    if (!half) (wl.ops || []).forEach(o => { const [a, b, c, d] = fwSeg(wl, o.p, o.l); if (o.k === 'win') out += `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="var(--wat)" stroke-width="9" pointer-events="none"/><line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="#fff" stroke-width="2" pointer-events="none"/>`;
+      else { const L0 = fwLen(wl) || 1, nx = -(wl.y2 - wl.y1) / L0, ny = (wl.x2 - wl.x1) / L0, ex = a + nx * o.l, ey = b + ny * o.l; out += `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(ex)}" y2="${Y(ey)}" stroke="var(--ink)" stroke-width="2" pointer-events="none"/><path d="M${X(ex)} ${Y(ey)} A${(o.l * z).toFixed(1)} ${(o.l * z).toFixed(1)} 0 0 0 ${X(c)} ${Y(d)}" fill="none" stroke="var(--mut)" stroke-width="1.2" stroke-dasharray="3 3" pointer-events="none"/>`; } });
+    out += `${half ? `<line x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="${on ? 'var(--acc)' : 'var(--mut)'}" stroke-width="2" stroke-linecap="round" pointer-events="none"/>` : ''}<line data-k="fwall" data-id="${wl.id}" x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="transparent" stroke-width="26"/>`; });
   if (P.ldraft) { const d = P.ldraft; out += `<line x1="${X(d.x0)}" y1="${Y(d.y0)}" x2="${X(d.x1)}" y2="${Y(d.y1)}" stroke="var(--pri)" stroke-width="4" stroke-linecap="round" stroke-dasharray="6 5"/><text x="${X((d.x0 + d.x1) / 2)}" y="${(P.oy + ((d.y0 + d.y1) / 2) * z - 10).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--pri)">${r1(Math.hypot(d.x1 - d.x0, d.y1 - d.y0))} m</text>`; }
   if (z < 6 && rs.length) { const [hx, hy] = mapCenter(); out += `<g transform="translate(${X(hx)},${Y(hy)})" pointer-events="none"><path d="M0 0c-7-9-11-14-11-19a11 11 0 0 1 22 0c0 5-4 10-11 19z" fill="var(--acc)" stroke="#fff" stroke-width="2"/><circle cy="-19" r="4" fill="#fff"/></g>`; }
   if (z >= 6) planFurn().slice().sort((a, b) => FLAT.has(b.t) - FLAT.has(a.t)).forEach(f => { const on = sel.k === 'furn' && sel.id === f.id, W = f.w * z, H = f.h * z, nm = (FURN_M[f.t] || [0, 'Möbel'])[1], rug = FLAT.has(f.t), round = ROUNDS.has(f.t);
@@ -2754,7 +2764,7 @@ function planSelInner() {
     return `<div class="psel"><span style="font-size:22px">${F[4]}</span><div class="grow"><b>${F[1]}</b><span>${f.w.toFixed(2).replace(/0$/, '')} × ${f.h.toFixed(2).replace(/0$/, '')} m</span></div><div class="stepr"><small>Bredd</small><button onclick="furnEdit('w',-0.1)" aria-label="Smalare">−</button><button onclick="furnEdit('w',0.1)" aria-label="Bredare">+</button></div><div class="stepr"><small>Djup</small><button onclick="furnEdit('h',-0.1)" aria-label="Grundare">−</button><button onclick="furnEdit('h',0.1)" aria-label="Djupare">+</button></div><button class="btn sm line" onclick="furnRot()" aria-label="Vrid">↻ Vrid</button><button class="x" onclick="delFurn('${f.id}')">Ta bort</button></div>`; }
   if (sel.k === 'fwall') { const wl = planWalls().find(x => x.id === sel.id); if (!wl) return '';
     if (wl.h === 'hedge') return `<div class="psel"><div class="grow"><b>Häck</b><span>${r1(Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1))} m lång</span></div><button class="x" onclick="delFWall('${wl.id}')">Ta bort</button></div>`;
-    return `<div class="psel"><div class="grow"><b>${wl.h === 'half' ? 'Halvvägg' : 'Vägg'}</b><span>${r1(Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1))} m lång</span></div><button class="btn sm line" onclick="toggleHalf('${wl.id}')">${wl.h === 'half' ? 'Gör hel' : 'Gör halv'}</button><button class="x" onclick="delFWall('${wl.id}')">Ta bort</button></div>`; }
+    return `<div class="psel"><div class="grow"><b>${wl.h === 'half' ? 'Halvvägg' : 'Vägg'}</b><span>${r1(Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1))} m lång</span></div><button class="btn sm line" onclick="toggleHalf('${wl.id}')">${wl.h === 'half' ? 'Gör hel' : 'Gör halv'}</button>${(wl.ops || []).length ? `<button class="btn sm line" onclick="fwOpsClear('${wl.id}')">Ta bort fönster/dörrar</button>` : ''}<button class="x" onclick="delFWall('${wl.id}')">Ta bort</button></div>`; }
   if (sel.k === 'bay') { const r = S.home.find(x => x.id === sel.id), by = r && (r.bays || [])[sel.i]; if (!by) return '';
     return `<div class="psel"><div class="grow"><b>Burspråk</b><span>${esc(r.name)} · ${baySegs(r, by).map(g => angDir(g[1])).join(', ')} · ${by.l} × ${by.d} m</span></div><div class="stepr"><small>Bredd</small><button onclick="bayEdit('l',-0.5)" aria-label="Smalare">−</button><button onclick="bayEdit('l',0.5)" aria-label="Bredare">+</button></div><div class="stepr"><small>Djup</small><button onclick="bayEdit('d',-0.2)" aria-label="Grundare">−</button><button onclick="bayEdit('d',0.2)" aria-label="Djupare">+</button></div><button class="x" onclick="delBay()">Ta bort</button></div>`; }
   if (sel.k === 'win') { const r = S.home.find(x => x.id === sel.id), w = r && r.wins[sel.i]; if (!w) return '';
@@ -2910,6 +2920,7 @@ function snapPoint(x, y) {
   planWalls().forEach(wl => [[wl.x1, wl.y1], [wl.x2, wl.y2]].forEach(c => { const dd = Math.hypot(c[0] - x, c[1] - y); if (dd < lim * 1.4 && (!best || dd < best[2])) best = [c[0], c[1], dd]; }));
   if (best) return [best[0], best[1]];
   for (const [a, b, c, d] of wallLines()) { if (segDist(x, y, [a, b, c, d]) < lim) { if (a === c) return [a, Math.round(y * 4) / 4]; if (b === d) return [Math.round(x * 4) / 4, b]; } }
+  for (const [a, b, c, d] of wallLines()) { if (a === c || b === d) continue; const dx = c - a, dy = d - b, L2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - a) * dx + (y - b) * dy) / L2)), px = a + t * dx, py = b + t * dy; if (Math.hypot(px - x, py - y) < lim) return [Math.round(px * 100) / 100, Math.round(py * 100) / 100]; }
   return [Math.round(x * 4) / 4, Math.round(y * 4) / 4];
 }
 function snapLineEnd(x0, y0, x, y, free) {
@@ -2949,12 +2960,28 @@ function removeFreeWall(pt, pt2) {
   const w = fw.w, dx = w.x2 - w.x1, dy = w.y2 - w.y1, L2 = dx * dx + dy * dy || 1, L = Math.sqrt(L2), tOf = q => Math.max(0, Math.min(1, ((q.x - w.x1) * dx + (q.y - w.y1) * dy) / L2));
   pushUndo(); let rest = planWallsAll().filter(x => x !== w), cut = L;
   if (pt2) { let t0 = tOf(pt), t1 = tOf(pt2); if (t0 > t1) [t0, t1] = [t1, t0];
-    if ((t1 - t0) * L >= 0.2) { cut = (t1 - t0) * L; const mk = (a, b, id) => ({ id, x1: r1(w.x1 + dx * a), y1: r1(w.y1 + dy * a), x2: r1(w.x1 + dx * b), y2: r1(w.y1 + dy * b), h: w.h, fl: w.fl });
+    if ((t1 - t0) * L >= 0.2) { cut = (t1 - t0) * L; const mk = (a, b, id) => ({ id, x1: r1(w.x1 + dx * a), y1: r1(w.y1 + dy * a), x2: r1(w.x1 + dx * b), y2: r1(w.y1 + dy * b), h: w.h, fl: w.fl, ops: (w.ops || []).filter(o => o.p >= a * L - 0.01 && o.p + o.l <= b * L + 0.01).map(o => ({ ...o, p: r1(o.p - a * L) })) });
       if (t0 * L > 0.1) rest.push(mk(0, t0, w.id + 'a')); if ((1 - t1) * L > 0.1) rest.push(mk(t1, 1, w.id + 'b')); } }
   S.hplan.walls = rest; saveHomeSoon();
   return `${w.h === 'half' ? 'Halvväggen' : 'Väggen'} är borttagen (${r1(cut)} m). Ångra om det blev fel.`;
 }
 function insideSeg(pt, g, m) { const dx = g[2] - g[0], dy = g[3] - g[1], L = Math.hypot(dx, dy) || 1, t = ((pt.x - g[0]) * dx + (pt.y - g[1]) * dy) / L; return t > m && t < L - m; }
+// Fönster och dörrar på fria väggar: wl.ops = [{k:'win'|'door', p, l}] där p är avståndet från väggens början
+function fwLen(wl) { return Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1); }
+function fwSeg(wl, p, l) { const L = fwLen(wl) || 1, ux = (wl.x2 - wl.x1) / L, uy = (wl.y2 - wl.y1) / L; return [wl.x1 + ux * p, wl.y1 + uy * p, wl.x1 + ux * (p + l), wl.y1 + uy * (p + l)]; }
+function fwPieces(wl) { const ops = (wl.ops || []).filter(o => o.k === 'door').sort((a, b) => a.p - b.p), L = fwLen(wl), out = []; let a = 0; ops.forEach(o => { if (o.p - a > 0.02) out.push(fwSeg(wl, a, o.p - a)); a = Math.max(a, o.p + o.l); }); if (L - a > 0.02) out.push(fwSeg(wl, a, L - a)); return out; }
+function nearestFree(pt) { let best = null; planWalls().filter(w => w.h !== 'hedge').forEach(w => { const d = segDist(pt.x, pt.y, [w.x1, w.y1, w.x2, w.y2]); if (d < 0.8 && (!best || d < best.d)) { const L = fwLen(w) || 1, along = ((pt.x - w.x1) * (w.x2 - w.x1) + (pt.y - w.y1) * (w.y2 - w.y1)) / L; best = { w, d, along, L }; } }); return best; }
+function addFreeOp(kind, h, pt) {
+  const { w, along, L } = h;
+  if (kind !== 'win' && kind !== 'door') return toast('Burspråk, element och ventiler går bara på ett rums vägg. Fönster och dörrar går också på fria väggar.');
+  if (w.h === 'half') return toast('Halvväggar kan inte ha fönster eller dörrar. Välj Gör hel först.');
+  const ex = (w.ops || []).findIndex(o => o.k === kind && along >= o.p - 0.3 && along <= o.p + o.l + 0.3);
+  if (ex >= 0) { pushUndo(); w.ops.splice(ex, 1); saveHomeSoon(); return planMsg(kind === 'win' ? 'Fönstret är borttaget.' : 'Dörren är borttagen.'); }
+  const l = Math.min(WL[kind], L), p = Math.max(0, Math.min(L - l, Math.round((along - l / 2) * 4) / 4));
+  pushUndo(); w.ops = (w.ops || []).filter(o => !(o.p < p + l && p < o.p + o.l)).concat({ k: kind, p: r1(p), l });
+  saveHomeSoon(); return planMsg((kind === 'win' ? 'Fönster' : 'Dörr') + ' på den fria väggen. Tryck på den igen för att ta bort den.');
+}
+function fwOpsClear(id) { pushUndo(); const w = planWalls().find(x => x.id === id); if (w) delete w.ops; saveHomeSoon(); render(); }
 function addWin(pt, pt2) {
   const P = PL(), kind = P.wkind || 'win', cands = [];
   if (kind === 'open') { const m = removeFreeWall(pt, pt2); if (m) return planMsg(m); }
@@ -2972,8 +2999,10 @@ function addWin(pt, pt2) {
       const dd = segDist(pt.x, pt.y, seg), along = ['t', 'b'].includes(s) ? pt.x - x : pt.y - y; cands.push({ d: dd, r, s, L, along });
       if (!best || dd < best.d) best = { d: dd, r, s, L, along }; }); });
   if (kind === 'open' && !pt2) { const ok = cands.filter(c => c.d <= 0.8 && c.along >= -0.1 && c.along <= c.L + 0.1 && solidPieces(c.r, c.s).some(q => c.along >= q[0] - 0.1 && c.along <= q[1] + 0.1)).sort((a2, b2) => a2.d - b2.d); if (ok.length) best = ok[0]; }
-  if (!best) return toast('Fönster och dörrar sätts på ett rums vägg. Rita först ett rum under Rum → + Nytt rum.');
-  if (best.d > 0.8) return toast(planWalls().some(wl => wl.h !== 'hedge' && segDist(pt.x, pt.y, [wl.x1, wl.y1, wl.x2, wl.y2]) < 0.8) ? 'Fönster och dörrar sätts på ett rums vägg, inte på en fri vägg. Rita ett rum under Rum → + Nytt rum.' : 'Tryck närmare ett rums vägg');
+  const fwH = !pt2 && ['win', 'door', 'bay', 'rad', 'vent'].includes(kind) ? nearestFree(pt) : null;
+  if (fwH && (!best || fwH.d < best.d - 0.02)) return addFreeOp(kind, fwH, pt);
+  if (!best) return toast('Tryck närmare en vägg');
+  if (best.d > 0.8) return toast('Tryck närmare en vägg');
   pushUndo();
   const r = best.r, L = best.L;
   if (kind === 'bay') {
@@ -5463,6 +5492,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.86', 'Nu', ['Fönster och dörrar går nu att sätta på fristående väggar, även snedställda. Nya väggar fäster bättre mot rummens hörn, väggar och andra väggar']],
   ['1.85', 'Nu', ['Notiser i mobilen när du får ett meddelande, en vänförfrågan eller när någon accepterar dig. Slå på under Inställningar → Påminnelser. Tryck på notisen så öppnas rätt sida']],
   ['1.84', 'Nu', ['Enklare rumsredigering i Ritning: välj ett rum och byt namn, ändra bredd och djup med + och −, eller kopiera rummet direkt i rutan']],
   ['1.83', 'Nu', ['Ny flik i Ritning: Byggnader (växthus, garage, carport, förråd, lekstuga, pergola). Möbler har kvar inne- och utemöbler']],
@@ -5973,7 +6003,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.85';
+const APP_VERSION = '1.86';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
