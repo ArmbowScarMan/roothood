@@ -815,6 +815,7 @@ button.pw{cursor:pointer}
 .mycard h3 .svn{display:block;font-size:.78em;font-weight:600;opacity:.85}
 .myname .sci{font-weight:700}
 .myname .svn{margin-left:6px;font-weight:600;color:var(--mut)}
+.chatl{display:flex;flex-direction:column;gap:8px;padding-bottom:90px}.bub{max-width:80%;align-self:flex-start;background:var(--surf);border-radius:16px 16px 16px 4px;padding:9px 12px;display:flex;flex-direction:column;gap:2px;word-break:break-word}.bub.me{align-self:flex-end;background:var(--pri);color:#04130E;border-radius:16px 16px 4px 16px}.bub small{opacity:.65;font-size:11px}.chatf{position:sticky;bottom:0;display:flex;gap:8px;align-items:flex-end;padding:10px 14px;background:var(--bg);border-top:1px solid var(--line,#ffffff22)}.chatf textarea{flex:1;min-height:40px;max-height:120px;resize:none}
 .cnt{display:flex;align-items:center;gap:12px}.cnt b{min-width:24px;text-align:center;font-size:18px}
 .pdprev{display:flex;flex-direction:column;gap:1px;background:var(--bg);border-radius:12px;padding:8px 12px;margin:6px 0 12px}
 .pdprev small{font-size:11.5px;color:var(--mut);font-weight:700}
@@ -1189,7 +1190,7 @@ const demoApi = {
   _fr() { const f = store.get('friends', null); if (f) return f; return { 'u-lena': { st: 'pending_in', at: new Date(Date.now() - 36e5).toISOString() } }; },
   async userCard(id) { const u = this._people().find(x => x.id === id || x.id === 'u-' + String(id).toLowerCase()); if (!u) return null; const f = (this._fr()[u.id] || {}).st || 'none', fr = f === 'friends', vis = (store.get('profile', {}).vis) || {};
     return Object.assign({ following: 4, friends: 3 }, u, { followers: u.followers + (store.get('follows', []).includes(id) ? 1 : 0), friend_status: f, friend_req: u.id, pets: fr ? (u.pets || []) : null, hidden: fr ? [] : ['pets'] }); },
-  async friendReq(id) { const f = this._fr(); f[id] = { st: 'pending_out', at: new Date().toISOString() }; store.set('friends', f); },
+  async friendReq(id, msg) { const f = this._fr(); f[id] = { st: 'pending_out', at: new Date().toISOString(), msg: msg || '' }; store.set('friends', f); },
   async friendAnswer(reqId, accept) { const f = this._fr(); if (accept) f[reqId] = { st: 'friends', at: new Date().toISOString() }; else delete f[reqId]; store.set('friends', f); },
   async friendRemove(id) { const f = this._fr(); delete f[id]; store.set('friends', f); },
   async myFriends() { const f = this._fr(); return this._people().filter(u => (f[u.id] || {}).st === 'friends').map(u => ({ id: u.id, display_name: u.display_name, city: u.city })); },
@@ -1316,11 +1317,16 @@ const demoApi = {
   async feed(kind) { kind = kind || 'question'; const pro = store.get('pro', false); if (kind === 'listing') this._swapSeed(this._feed()); if (kind === 'mystery') this._caseSeed(this._feed()); return JSON.parse(JSON.stringify(this._feed().filter(p => (p.kind || 'question') === kind))).map(p => { if (p.user_id === 'demo') p.author_pro = pro; p.answers.forEach(a => { if (a.user_id === 'demo') a.author_pro = pro; }); return p; }); },
   async newThread(cat, title, body, photo) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.unshift({ id: Date.now(), kind: 'thread', user_id: 'demo', author: 'Du', category: cat, title, body, photo_url: url, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
   async ask(cat, body, photo) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.unshift({ id: Date.now(), kind: 'question', user_id: 'demo', author: 'Du', category: cat, body, photo_url: url, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
-  async notifs() { const me = 'demo', out = []; this._feed().filter(p => p.user_id === me).forEach(p => (p.answers || []).filter(a => a.user_id !== me).forEach(a => out.push({ t: 'reply', at: a.created_at, who: a.author, body: a.body, post_id: p.id, kind: p.kind || 'question', cat: p.category, ptitle: p.title || p.body }))); (store.get('xq', []) || []).filter(q => q.answer).forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer })); Object.entries(this._fr()).forEach(([id, v]) => { const u = this._people().find(x => x.id === id); if (u && v.st === 'pending_in') out.push({ t: 'friend', pending: true, at: v.at, who: u.display_name, req: id, from: id }); }); return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 50); },
+  async notifs() { const me = 'demo', out = []; this._feed().filter(p => p.user_id === me).forEach(p => (p.answers || []).filter(a => a.user_id !== me).forEach(a => out.push({ t: 'reply', at: a.created_at, who: a.author, body: a.body, post_id: p.id, kind: p.kind || 'question', cat: p.category, ptitle: p.title || p.body }))); (store.get('xq', []) || []).filter(q => q.answer).forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer })); Object.entries(this._fr()).forEach(([id, v]) => { const u = this._people().find(x => x.id === id); if (u && v.st === 'pending_in') out.push({ t: 'friend', pending: true, at: v.at, who: u.display_name, req: id, from: id, msg: v.msg || (id === 'u-lena' ? 'Hej! Jag såg din fina monstera och vill gärna byta sticklingar.' : '') }); }); return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 50); },
   async answer(pid, body, photo) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.find(p => p.id === pid).answers.push({ id: Date.now(), user_id: 'demo', author: 'Du', body, photo_url: url, created_at: new Date().toISOString() }); this._save(f); },
   async like(pid, on) { const f = this._feed(), p = f.find(x => x.id === pid); p.likers = p.likers.filter(x => x !== 'demo'); if (on) p.likers.push('demo'); this._save(f); },
   async best(pid, aid) { const f = this._feed(); f.find(p => p.id === pid).best_answer_id = aid; this._save(f); },
   async report() {},
+  _dm() { return store.get('dm', {}); },
+  async inbox() { const d = this._dm(); return Object.entries(d).filter(([, l]) => l.length).map(([id, l]) => { const u = this._people().find(x => x.id === id) || {}, z = l[l.length - 1]; return { other: id, name: u.display_name || 'Vän', last_body: z.body, last_at: z.at, last_mine: z.from === 'me', unread: l.filter(m => m.from !== 'me' && !m.read).length }; }).sort((a, b) => Date.parse(b.last_at) - Date.parse(a.last_at)); },
+  async thread(id) { return (this._dm()[id] || []).map((m, i) => ({ id: i, mine: m.from === 'me', body: m.body, created_at: m.at })); },
+  async sendMsg(id, body) { const d = this._dm(); (d[id] = d[id] || []).push({ from: 'me', body, at: new Date().toISOString(), read: true }); store.set('dm', d); },
+  async markRead(id) { const d = this._dm(); (d[id] || []).forEach(m => m.read = true); store.set('dm', d); },
   async myRole() { return 'admin'; },
   async myBlocks() { return store.get('blocks', []); },
   async blockedList() { const b = store.get('blocks', []); return this._people().filter(u => b.includes(u.id)).map(u => ({ id: u.id, display_name: u.display_name })); },
@@ -1351,7 +1357,7 @@ const sbApi = {
   async answerExpert(id, text) { const { error } = await sb.from('expert_questions').update({ answer: text, answered_by: S.user.id, answered_at: new Date().toISOString() }).eq('id', id); if (error) throw error; },
   async findUsers(q) { const { data, error } = await sb.rpc('find_users', { q: q || '' }); if (error) throw /find_users/.test(error.message || '') ? new Error('USERS_NOT_READY') : error; return data || []; },
   async userCard(id) { const { data, error } = await sb.rpc('user_card', { p_id: id }); if (error) throw /user_card/.test(error.message || '') ? new Error('USERS_NOT_READY') : error; return (data && data[0]) || null; },
-  async friendReq(id) { const { error } = await sb.from('friend_requests').insert({ to_user: id }); if (error && !/duplicate|unique/.test(error.message || '')) throw /friend_requests/.test(error.message || '') ? new Error('FRIENDS_NOT_READY') : error; },
+  async friendReq(id, msg) { const row = { to_user: id }; if (msg) row.message = msg; let { error } = await sb.from('friend_requests').insert(row); if (error && msg && /message/.test(error.message || '')) { error = (await sb.from('friend_requests').insert({ to_user: id })).error; } if (error && !/duplicate|unique/.test(error.message || '')) throw /friend_requests/.test(error.message || '') ? new Error('FRIENDS_NOT_READY') : error; },
   async friendAnswer(reqId, accept) { const r = accept ? await sb.from('friend_requests').update({ status: 'accepted', responded_at: new Date().toISOString() }).eq('id', reqId) : await sb.from('friend_requests').delete().eq('id', reqId); if (r.error) throw r.error; },
   async friendRemove(id) { const me = S.user.id, { error } = await sb.from('friend_requests').delete().or(`and(from_user.eq.${me},to_user.eq.${id}),and(from_user.eq.${id},to_user.eq.${me})`); if (error) throw error; },
   async myFriends() { const { data, error } = await sb.rpc('my_friends'); if (error) return []; return data || []; },
@@ -1500,9 +1506,9 @@ const sbApi = {
     if (!mp.error && mp.data.length) { const byId = Object.fromEntries(mp.data.map(p => [p.id, p])), an = await sb.from('answers').select('id,post_id,user_id,body,created_at').in('post_id', mp.data.map(p => p.id)).neq('user_id', me).order('created_at', { ascending: false }).limit(60);
       if (!an.error && an.data.length) { const pr = await sb.from('profiles').select('id,display_name').in('id', [...new Set(an.data.map(a => a.user_id))]), nm = Object.fromEntries(((pr.data) || []).map(x => [x.id, x.display_name]));
         an.data.forEach(a => { const p = byId[a.post_id]; out.push({ t: 'reply', at: a.created_at, who: nm[a.user_id], body: a.body, post_id: a.post_id, kind: p.kind || 'question', cat: p.category, ptitle: p.title || p.body }); }); } }
-    try { const fr = await sb.from('friend_requests').select('id,from_user,to_user,status,created_at,responded_at').or(`to_user.eq.${me},from_user.eq.${me}`).order('created_at', { ascending: false }).limit(40);
+    try { const fr = await sb.from('friend_requests').select('*').or(`to_user.eq.${me},from_user.eq.${me}`).order('created_at', { ascending: false }).limit(40);
       if (!fr.error && fr.data.length) { const ids = [...new Set(fr.data.map(f => f.from_user === me ? f.to_user : f.from_user))], pr = await sb.from('profiles').select('id,display_name').in('id', ids), nm = Object.fromEntries(((pr.data) || []).map(x => [x.id, x.display_name]));
-        fr.data.forEach(f => { if (f.status === 'pending' && f.to_user === me) out.push({ t: 'friend', pending: true, at: f.created_at, who: nm[f.from_user], req: f.id, from: f.from_user }); else if (f.status === 'accepted' && f.from_user === me) out.push({ t: 'friend_ok', at: f.responded_at || f.created_at, who: nm[f.to_user], from: f.to_user }); }); } } catch (e) {}
+        fr.data.forEach(f => { if (f.status === 'pending' && f.to_user === me) out.push({ t: 'friend', pending: true, at: f.created_at, who: nm[f.from_user], req: f.id, from: f.from_user, msg: f.message || '' }); else if (f.status === 'accepted' && f.from_user === me) out.push({ t: 'friend_ok', at: f.responded_at || f.created_at, who: nm[f.to_user], from: f.to_user }); }); } } catch (e) {}
     const xq = await sb.from('expert_questions').select('id,answer,answered_at').eq('asker', me).not('answer', 'is', null).order('answered_at', { ascending: false }).limit(20);
     if (!xq.error) xq.data.forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer }));
     return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 60);
@@ -1519,6 +1525,10 @@ const sbApi = {
     if (error && kind === 'photo' && /duplicate|unique/.test(error.message || '')) return;
     if (error) throw kind === 'photo' && /photo_url|target_check|reports_check/.test(error.message || '') ? new Error('REPORT_PHOTO_NOT_READY') : error;
   },
+  async inbox() { const { data, error } = await sb.rpc('inbox'); if (error) throw /inbox/.test(error.message || '') ? new Error('MSG_NOT_READY') : error; return data || []; },
+  async thread(id) { const me = S.user.id, { data, error } = await sb.from('messages').select('*').or(`and(from_user.eq.${me},to_user.eq.${id}),and(from_user.eq.${id},to_user.eq.${me})`).order('created_at', { ascending: false }).limit(100); if (error) throw error; return (data || []).reverse().map(m => ({ id: m.id, mine: m.from_user === me, body: m.body, created_at: m.created_at })); },
+  async sendMsg(id, body) { const { error } = await sb.from('messages').insert({ to_user: id, body }); if (error) throw /BLOCKED/.test(error.message || '') ? new Error('BLOCKED') : /row-level|messages/.test(error.message || '') ? new Error('MSG_DENIED') : error; },
+  async markRead(id) { await sb.rpc('mark_read', { p_other: id }); },
   async myRole() { const { data, error } = await sb.rpc('my_role'); return error ? 'user' : (data || 'user'); },
   async myBlocks() { const { data, error } = await sb.from('blocks').select('blocked').eq('blocker', S.user.id); return error ? [] : (data || []).map(x => x.blocked); },
   async blockedList() { const ids = await this.myBlocks(); if (!ids.length) return []; const { data } = await sb.from('profiles').select('id,display_name').in('id', ids); return data || []; },
@@ -2921,7 +2931,7 @@ function smartV() {
 function friendReqCard() {
   const l = (S.notifs || []).filter(n => n.t === 'friend');
   if (!S.user || !l.length) return '';
-  return `<div class="frcard">${l.slice(0, 3).map(n => `<div class="frc"><span class="frem">👋</span><div class="grow"><b>${esc(n.who || 'Någon')} vill bli din vän</b><span>Vill du acceptera vänförfrågan?</span><div class="fbtns"><button class="btn sm" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',true)">Acceptera</button><button class="btn sm line" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',false)">Neka</button><button class="link3" onclick="openUser('${esc(n.from)}')">Visa profil</button></div></div></div>`).join('')}</div>`;
+  return `<div class="frcard">${l.slice(0, 3).map(n => `<div class="frc"><span class="frem">👋</span><div class="grow"><b>${esc(n.who || 'Någon')} vill bli din vän</b><span>${n.msg ? '”' + esc(n.msg) + '”' : 'Vill du acceptera vänförfrågan?'}</span><div class="fbtns"><button class="btn sm" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',true)">Acceptera</button><button class="btn sm line" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',false)">Neka</button><button class="link3" onclick="openUser('${esc(n.from)}')">Visa profil</button></div></div></div>`).join('')}</div>`;
 }
 function todoItems() {
   const t = [];
@@ -3227,7 +3237,7 @@ function render() {
     m.innerHTML = html;
     if (!S.sel && (S.tool === 'db' || (!S.tool && S.tab === 'home'))) renderList();
   }
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   $('#ov').insertAdjacentHTML('beforeend', instBanner());
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); }
   const lv = $('#lv'); if (lv && lightStream) { lv.srcObject = lightStream; lv.hidden = false; lv.play().catch(() => {}); }
@@ -3680,11 +3690,43 @@ function openAqDb() { S.env = 'in'; S.cat = 'Akvarieväxt'; S.q = ''; openDb(); 
 // ===== Notiser: svar på mina inlägg, expertsvar, vattning =====
 function notifSeen() { return store.get('notifSeen', 0); }
 function notifUnseen() { return (S.notifs || []).filter(n => n.pending || Date.parse(n.at) > notifSeen()).length; }
-async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); } catch (e) { S.notifs = S.notifs || []; } if (isMod()) { try { S.modOpen = await api.modOpen(); } catch (e) {} } if (!S.tool && !S.modal) render(); }
-function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due + (isMod() ? (S.modOpen || 0) : 0); return `<button class="circ bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
+async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); } catch (e) { S.notifs = S.notifs || []; } if (isMod()) { try { S.modOpen = await api.modOpen(); } catch (e) {} } await loadInbox(); if (!S.tool && !S.modal) render(); }
+function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due + (isMod() ? (S.modOpen || 0) : 0) + msgUnread(); return `<button class="circ bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
 function notifAllRead() { S.prevSeen = Date.now(); store.set('notifSeen', Date.now()); keepMain(); toast('Alla notiser är markerade som lästa'); }
 function openNotif() { if (!S.user) return openModal('login'); stopLight(); S.sel = null; S.modal = null; S.prevSeen = notifSeen(); S.tool = 'notif'; render(); $('#main').scrollTop = 0; store.set('notifSeen', Date.now()); loadNotifs().then(() => { if (S.tool === 'notif') render(); }); }
 function goPost(kind, id, cat) { S.tool = null; S.sel = null; S.tab = 'comm'; S.ctab = KIND_TAB[kind] || 'q'; S.forum = kind === 'thread' ? cat : null; S.post = id; S.newCase = false; S.newL = false; S.newThread = false; render(); $('#main').scrollTop = 0; loadFeed(); }
+// ===== Meddelanden =====
+const msgUnread = () => (S.inbox || []).reduce((a, c) => a + (c.unread || 0), 0);
+async function loadInbox() { if (!S.user) return; try { S.inbox = await api.inbox(); S.msgErr = null; } catch (e) { S.inbox = S.inbox || []; S.msgErr = e.message === 'MSG_NOT_READY' ? 'Meddelanden är inte påslagna i databasen än (steg 029).' : null; } }
+function openMsgs() { if (!S.user) return openModal('login'); stopLight(); S.sel = null; S.modal = null; S.tool = 'msgs'; render(); $('#main').scrollTop = 0; if (S.friends == null) api.myFriends().then(l => { S.friends = l; if (S.tool === 'msgs') keepMain(); }).catch(() => { S.friends = []; }); loadInbox().then(() => { if (S.tool === 'msgs') keepMain(); }); }
+function msgsV() {
+  const I = S.inbox, F = S.friends || [];
+  return `${topbar('Meddelanden', 'S.tool=null;render()')}
+  ${S.msgErr ? `<p class="formmsg" style="margin:16px 18px">${esc(S.msgErr)}</p>` : ''}
+  <div class="pad nlist" style="padding-top:8px">${I == null ? '<p class="mut">Hämtar…</p>' : I.length ? I.map(c => `<button class="nrow ${c.unread ? 'new' : ''}" onclick="openChat('${esc(c.other)}','${esc(c.name || '')}')"><span class="nic">${avBig(c.name || '?')}</span><span class="grow"><b>${esc(c.name || 'Okänd')}</b><span>${c.last_mine ? 'Du: ' : ''}${esc((c.last_body || '').slice(0, 70))}</span></span><small>${c.unread ? c.unread + ' nya · ' : ''}${ago(c.last_at)}</small></button>`).join('') : '<p class="mut" style="margin:8px 0">Inga meddelanden än. Välj en vän nedan för att skriva.</p>'}</div>
+  <div class="sec"><h2>Skriv till en vän</h2></div><div class="pad">${F.length ? `<div class="chips2">${F.map(f => `<button onclick="openChat('${esc(f.id)}','${esc(f.display_name)}')">${esc(f.display_name)}</button>`).join('')}</div>` : '<p class="mut">Du kan skriva till dem som har accepterat din vänförfrågan.</p>'}</div>`;
+}
+async function openChat(id, name) {
+  if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'chat'; S.chatId = id; S.chatName = name || ''; S.chatMsgs = null; S.dmDraft = ''; render();
+  await loadChat(true); clearInterval(S.chatT); S.chatT = setInterval(() => { if (S.tool !== 'chat' || document.visibilityState !== 'visible') { if (S.tool !== 'chat') clearInterval(S.chatT); return; } loadChat(false); }, 7000);
+}
+async function loadChat(force) {
+  const id = S.chatId; if (!id) return;
+  try { const m = await api.thread(id), n0 = (S.chatMsgs || []).length; S.chatMsgs = m; S.chatErr = null; api.markRead(id).then(loadInbox).then(() => { if (!S.tool) render(); }); if (S.tool === 'chat' && (force || m.length !== n0)) { render(); const mn = $('#main'); mn.scrollTop = mn.scrollHeight; } }
+  catch (e) { S.chatMsgs = S.chatMsgs || []; S.chatErr = errMsg(e); if (S.tool === 'chat' && force) render(); }
+}
+async function sendChat() {
+  const body = (S.dmDraft || '').trim(); if (!body || S.chatBusy) return; S.chatBusy = true;
+  try { await api.sendMsg(S.chatId, body); S.dmDraft = ''; await loadChat(true); }
+  catch (e) { toast(e.message === 'BLOCKED' ? 'Du kan inte skriva till den här personen.' : e.message === 'MSG_DENIED' ? 'Ni måste vara vänner för att skriva till varandra. Meddelanden kräver också att steg 029 är körd.' : errMsg(e)); }
+  S.chatBusy = false;
+}
+function chatV() {
+  const M = S.chatMsgs;
+  return `${topbar(esc(S.chatName || 'Meddelanden'), "openMsgs()")}
+  <div class="pad chatl">${S.chatErr ? `<p class="formmsg">${esc(S.chatErr)}</p>` : M == null ? '<p class="mut">Hämtar…</p>' : M.length ? M.map(m => `<div class="bub ${m.mine ? 'me' : ''}"><span>${esc(m.body)}</span><small>${ago(m.created_at)}</small></div>`).join('') : '<p class="mut" style="text-align:center;margin:24px 0">Skriv det första meddelandet.</p>'}</div>
+  <form class="chatf" onsubmit="event.preventDefault();sendChat()"><textarea id="dmt" rows="1" maxlength="1000" placeholder="Skriv ett meddelande" oninput="S.dmDraft=this.value">${esc(S.dmDraft || '')}</textarea><button class="btn sm" ${S.chatBusy ? 'disabled' : ''}>Skicka</button></form>`;
+}
 // ===== Moderering =====
 function openMod(tab) { if (!isMod()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'mod'; S.modTab = tab || 'open'; S.modData = null; S.modErr = null; render(); $('#main').scrollTop = 0; loadMod(); }
 async function loadMod() {
@@ -3741,11 +3783,12 @@ function notifV() {
   const what = { question: 'din fråga', thread: 'din tråd', listing: 'din annons', mystery: 'ditt detektivfall' };
   const row = (icon, title, sub, at, act, isNew) => `<button class="nrow ${isNew ? 'new' : ''}" onclick="${act}"><span class="nic">${icon}</span><span class="grow"><b>${title}</b>${sub ? `<span>${sub}</span>` : ''}</span>${at ? `<small>${ago(at)}</small>` : ''}</button>`;
   const todo = due.map(m => row('💧', `${esc(m.name)} behöver vatten idag`, '', null, `S.tool=null;go('mine')`, false)).concat(out.map(([m, t]) => row('🌦️', esc(m.name), esc(t.split('.')[0]), null, `S.tool=null;openMine(${m.id})`, false)));
-  const frq = (N || []).filter(n => n.t === 'friend').map(n => `<div class="nrow new frow"><span class="nic">👋</span><span class="grow"><b>${esc(n.who || 'Någon')} vill bli din vän</b><span class="fbtns"><button class="btn sm" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',true)">Acceptera</button><button class="btn sm line" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',false)">Neka</button><button class="link3" onclick="openUser('${esc(n.from)}')">Visa profil</button></span></span><small>${ago(n.at)}</small></div>`);
+  const frq = (N || []).filter(n => n.t === 'friend').map(n => `<div class="nrow new frow"><span class="nic">👋</span><span class="grow"><b>${esc(n.who || 'Någon')} vill bli din vän</b>${n.msg ? `<span>”${esc(n.msg)}”</span>` : ''}<span class="fbtns"><button class="btn sm" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',true)">Acceptera</button><button class="btn sm line" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',false)">Neka</button><button class="link3" onclick="openUser('${esc(n.from)}')">Visa profil</button></span></span><small>${ago(n.at)}</small></div>`);
   const act = (N || []).filter(n => n.t !== 'friend').map(n => n.t === 'friend_ok' ? row('🤝', `${esc(n.who || 'Någon')} accepterade din vänförfrågan`, 'Ni är nu vänner', n.at, `openUser('${esc(n.from)}')`, Date.parse(n.at) > seen) : n.t === 'expert' ? row('🎓', `${esc(n.who || 'En expert')} har svarat på din expertfråga`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `openExperts()`, Date.parse(n.at) > seen)
     : row(n.kind === 'mystery' ? '🔎' : n.kind === 'listing' ? '🔁' : '💬', `${esc(n.who || 'Någon')} svarade på ${what[n.kind] || 'ditt inlägg'}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”${n.ptitle ? ` · ${esc(n.ptitle.slice(0, 40))}` : ''}`, n.at, `goPost('${n.kind}',${n.post_id},'${esc(n.cat || '')}')`, Date.parse(n.at) > seen));
   return `${topbar('Notiser', 'S.tool=null;render()')}
   ${frq.length ? `<div class="sec"><h2>Vänförfrågningar</h2></div><div class="pad nlist">${frq.join('')}</div>` : ''}
+  ${(S.inbox || []).some(c => c.unread) ? `<div class="sec"><h2>Meddelanden</h2></div><div class="pad nlist">${S.inbox.filter(c => c.unread).slice(0, 5).map(c => `<button class="nrow new" onclick="openChat('${esc(c.other)}','${esc(c.name || '')}')"><span class="nic">💬</span><span class="grow"><b>${esc(c.name || 'Någon')}</b><span>${esc((c.last_body || '').slice(0, 70))}</span></span><small>${c.unread} nya</small></button>`).join('')}</div>` : ''}
   ${isMod() && S.modOpen ? `<div class="sec"><h2>Moderering</h2></div><div class="pad nlist"><button class="nrow new" onclick="openMod('open')"><span class="nic">🛡️</span><span class="grow"><b>${S.modOpen} ${S.modOpen === 1 ? 'rapport väntar' : 'rapporter väntar'}</b><span>Tryck för att granska</span></span></button></div>` : ''}
   ${todo.length ? `<div class="sec"><h2>Att göra idag</h2></div><div class="pad nlist">${todo.join('')}</div>` : ''}
   <div class="sec"><h2>Svar och aktivitet</h2>${(N || []).some(n => n.t !== 'friend' && Date.parse(n.at) > seen) ? '<button class="viewall" onclick="notifAllRead()">✓ Markera alla som lästa</button>' : ''}</div><div class="pad nlist">${N == null ? '<p class="mut">Hämtar…</p>' : act.length ? act.join('') : '<p class="mut" style="margin:0">Inga svar än. När någon svarar på dina frågor, trådar, annonser eller detektivfall syns det här.</p>'}</div>
@@ -4085,9 +4128,17 @@ function peopleV() {
   <div style="height:24px"></div>`;
 }
 const FR_ERR = e => e.message === 'FRIENDS_NOT_READY' ? 'Vänner är inte påslaget i databasen än (steg 027).' : /BLOCKED/.test(e.message || '') ? 'Du kan inte skicka vänförfrågan till den här personen.' : errMsg(e);
-async function friendAsk(id) {
-  if (needLogin()) return;
-  try { await api.friendReq(id); if (S.ucard && S.ucard.id === id) S.ucard.friend_status = 'pending_out'; toast('Vänförfrågan är skickad'); } catch (e) { toast(FR_ERR(e)); }
+function friendAsk(id) { if (needLogin()) return; S.frTo = id; S.frMsg = ''; openModal('frask'); }
+function friendAskV() {
+  const u = (S.ucard && S.ucard.id === S.frTo ? S.ucard.display_name : '') || 'personen';
+  return `<div class="mh"><h2>Bli vän med ${esc(u)}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <label class="fl" for="frmsg" style="margin-top:0">Skriv varför du vill bli vän (valfritt)</label>
+  <textarea id="frmsg" maxlength="300" rows="4" placeholder="t.ex. Hej! Jag såg dina kaktusar och vill gärna byta tips." oninput="S.frMsg=this.value">${esc(S.frMsg || '')}</textarea>
+  <button class="btn wide formbtn" onclick="friendAskSend()">Skicka vänförfrågan</button>`;
+}
+async function friendAskSend() { const id = S.frTo, msg = (S.frMsg || '').trim(); closeModal(); await friendAsk2(id, msg); }
+async function friendAsk2(id, msg) {
+  try { await api.friendReq(id, msg); if (S.ucard && S.ucard.id === id) S.ucard.friend_status = 'pending_out'; toast('Vänförfrågan är skickad'); } catch (e) { toast(FR_ERR(e)); }
   keepMain();
 }
 async function friendAnswer(req, from, accept) {
@@ -4139,7 +4190,7 @@ function userV() {
 function friendsSec() {
   if (S.friends == null) { if (!S.frLoad) { S.frLoad = true; api.myFriends().then(l => { S.friends = l; S.frLoad = false; if (S.tab === 'me' && !S.tool && !S.sel) render(); }).catch(() => { S.friends = []; S.frLoad = false; }); } return ''; }
   if (!S.friends.length) return '';
-  return `<div class="sec"><h2>Vänner</h2></div><div class="pad"><div class="chips2">${S.friends.map(f => `<button onclick="openUser('${esc(f.id)}')">${esc(f.display_name)}</button>`).join('')}</div></div>`;
+  return `<div class="sec"><h2>Vänner</h2><button class="btn sm line" onclick="openMsgs()">💬 Meddelanden${msgUnread() ? ' (' + msgUnread() + ')' : ''}</button></div><div class="pad"><div class="chips2">${S.friends.map(f => `<button onclick="openUser('${esc(f.id)}')">${esc(f.display_name)}</button>`).join('')}</div></div>`;
 }
 function profPets(c, self) {
   if (self && !S.pets && !S.petsLoading) { S.petsLoading = true; loadPets().then(() => { S.petsLoading = false; if (S.tab === 'me' && !S.tool && !S.sel) render(); }); }
@@ -4154,7 +4205,7 @@ function profPets(c, self) {
 function userBody(c, uposts, self) {
   const f = (S.follows || []).includes(c.id), posts = uposts || [];
   return `  <div class="uhero">${avBig(c.display_name, 'bigav')}<div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? '📍 ' + esc(c.city) : 'Ingen ort angiven'}</span>
-    ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">✏️ Redigera profil</button>` : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow('${esc(c.id)}')">${f ? 'Följer ✓' : '+ Följ'}</button>${frBtns(c)}</div><button class="link2" style="margin-top:8px;align-self:flex-start" onclick="blockUser('${esc(c.id)}',${!(S.blocks || []).includes(c.id)})">${(S.blocks || []).includes(c.id) ? 'Avblockera' : '🚫 Blockera'}</button>`}</div></div>
+    ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">✏️ Redigera profil</button>` : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow('${esc(c.id)}')">${f ? 'Följer ✓' : '+ Följ'}</button>${frBtns(c)}${c.friend_status === 'friends' ? `<button class="btn sm" onclick="openChat('${esc(c.id)}','${esc(c.display_name)}')">💬 Skriv</button>` : ''}</div><button class="link2" style="margin-top:8px;align-self:flex-start" onclick="blockUser('${esc(c.id)}',${!(S.blocks || []).includes(c.id)})">${(S.blocks || []).includes(c.id) ? 'Avblockera' : '🚫 Blockera'}</button>`}</div></div>
   <div class="ustats"><div><b>${c.plants || 0}</b><span>växter</span></div><div><b>${c.posts || 0}</b><span>inlägg</span></div><div><b>${c.followers || 0}</b><span>följare</span></div><div><b>${c.friends != null ? c.friends : (self && S.friends ? S.friends.length : 0)}</b><span>vänner</span></div></div>
   ${self ? friendsSec() : ''}
   ${(c.interests || []).length ? `<div class="sec"><h2>Intressen</h2></div><div class="pad"><div class="chips2">${c.interests.map(i => `<span class="tag lime">${esc(i)}</span>`).join('')}</div></div>` : ''}
@@ -5070,7 +5121,7 @@ function docV() {
 }
 function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { stopLight(); if (S.tool === 'house' && S.hDirty) saveHomeNow(true); S.tool = null; render(); }
-function toolV() { return S.tool === 'explore' ? exploreV() : S.tool === 'notif' ? notifV() : S.tool === 'mod' ? modV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'news' ? newsV() : S.tool === 'sow' ? sowV() : S.tool === 'perma' ? permaV() : S.tool === 'smart' ? smartV() : lightV(); }
+function toolV() { return S.tool === 'explore' ? exploreV() : S.tool === 'notif' ? notifV() : S.tool === 'msgs' ? msgsV() : S.tool === 'chat' ? chatV() : S.tool === 'mod' ? modV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'news' ? newsV() : S.tool === 'sow' ? sowV() : S.tool === 'perma' ? permaV() : S.tool === 'smart' ? smartV() : lightV(); }
 
 // --- Säsongstips ---
 // Varje tips: [typ, rubrik, text, månader i zon 1–2, zon 3–5, zon 6–8]. En lista gäller alla zoner.
@@ -5155,6 +5206,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.75', 'Nu', ['Privata meddelanden till dina vänner. Öppna en väns profil och tryck Skriv, eller gå via Meddelanden på Profil', 'Du kan skriva ett meddelande när du skickar en vänförfrågan, så personen ser varför du vill bli vän', 'Olästa meddelanden syns på notisklockan']],
   ['1.74.1', 'Nu', ['Hjärtat på en växt sparar den direkt, utan att någon ruta med frågor dyker upp. Vill du berätta mer om växten trycker du på den i Samling']],
   ['1.74', 'Nu', ['Flera av samma växt är separata i Samling, var och en med egen profil', 'Tryck på hjärtat på en växt du redan har så väljer du: egen växt, eller samplanterad i samma kruka (visas som en profil med antal)', 'Du kan ändra antal samplanterade under Berätta mer om din växt']],
   ['1.73', 'Nu', ['Admin och moderatorer: en ny sida där rapporter granskas och inlägg kan döljas eller behållas', 'Inlägg och svar döljs automatiskt när tre olika personer har rapporterat dem', 'Du kan blockera användare. Då ser du inte deras inlägg', 'Admin kan göra andra till moderatorer']],
@@ -5652,7 +5704,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.74.1';
+const APP_VERSION = '1.75';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 function applyPrefs() {
