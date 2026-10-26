@@ -3419,6 +3419,7 @@ function dbV() {
   <div class="searchrow"><div class="search">${ic(I.search, null, 20)}<input type="search" placeholder="Sök växt eller vetenskapligt namn" value="${esc(S.q)}" oninput="S.q=this.value;renderList()" aria-label="Sök växter"></div></div>
   <div class="sec"><h2>Alla växter</h2><span class="mut" id="count"></span></div>
   <div class="tabs" role="tablist">${['Alla'].concat(envCats()).map(c => `<button class="tab ${c === S.cat ? 'on' : ''}" role="tab" aria-selected="${c === S.cat}" onclick="S.cat='${c}';render()">${c}</button>`).join('')}${store.get('zone', 0) && S.env !== 'in' ? `<button class="tab ${S.cat === 'zon' ? 'on' : ''}" role="tab" aria-selected="${S.cat === 'zon'}" onclick="S.cat='zon';render()">Klarar zon ${store.get('zone', 0)}</button>` : ''}</div>
+  <div class="mchips" id="tchips" aria-label="Växttyp"></div>
   <div class="grid" id="list"></div>`;
 }
 
@@ -4362,11 +4363,18 @@ function homeCfgV() {
   <div style="display:flex;gap:10px;margin-top:14px"><button class="btn wide" onclick="closeModal()">Klar</button><button class="btn sm line" onclick="hcReset()">Återställ</button></div>`;
 }
 
+const TYPE_G = { trad: 'Träd', frukt: 'Fruktträd', barr: 'Barrväxter', buske: 'Buskar', ros: 'Rosor', bar: 'Bär och bärbuskar', perenn: 'Perenner', lok: 'Lökar och knölar', gras: 'Gräs', klatter: 'Klätterväxter', marktack: 'Marktäckare', ormbunke: 'Ormbunkar', sommar: 'Sommarblommor', gron: 'Grönsaker', rot: 'Rotfrukter', krydda: 'Kryddor' };
+const TYPE_ORDER = ['Träd', 'Fruktträd', 'Barrväxter', 'Buskar', 'Rosor', 'Bär och bärbuskar', 'Perenner', 'Lökar och knölar', 'Gräs', 'Klätterväxter', 'Marktäckare', 'Ormbunkar', 'Sommarblommor', 'Grönsaker', 'Rotfrukter', 'Kryddor'];
+const typeOf = p => OUTDOOR.includes(p.category) ? TYPE_G[guessType(p)] || null : null;
 function renderList() {
   if (!$('#list')) return;
   const q = S.q.trim().toLowerCase();
   const z = store.get('zone', 0), zok = p => { const r = zoneOf(p); return r && r[1] >= z; };
-  const r = S.plants.filter(p => (S.cat === 'zon' ? zok(p) : envCats().includes(p.category) && (S.cat === 'Alla' || p.category === S.cat)) && (p.swedish_name + ' ' + p.latin_name + ' ' + (p.family || '')).toLowerCase().includes(q));
+  const base = S.plants.filter(p => (S.cat === 'zon' ? zok(p) : envCats().includes(p.category) && (S.cat === 'Alla' || p.category === S.cat)) && (p.swedish_name + ' ' + p.latin_name + ' ' + (p.family || '')).toLowerCase().includes(q));
+  const cnt = {}; base.forEach(p => { const g = typeOf(p); if (g) cnt[g] = (cnt[g] || 0) + 1; });
+  const present = TYPE_ORDER.filter(g => cnt[g]), pt = present.includes(S.ptype) ? S.ptype : 'Alla';
+  const tc = $('#tchips'); if (tc) tc.innerHTML = present.length > 1 ? ['Alla'].concat(present).map(g => `<button class="${pt === g ? 'on' : ''}" onclick="S.ptype='${g}';renderList()">${g}${g === 'Alla' ? '' : ' <small>' + cnt[g] + '</small>'}</button>`).join('') : '';
+  const r = pt === 'Alla' ? base : base.filter(p => typeOf(p) === pt);
   $('#count').textContent = r.length + (r.length === 1 ? ' växt' : ' växter');
   $('#list').innerHTML = r.map(p => {
     const has = isFav(p.id);
@@ -5278,6 +5286,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.79', 'Nu', ['Växtdatabasen kan nu sorteras efter typ: träd, fruktträd, barrväxter, buskar, rosor, bär, perenner, lökar, gräs, klätterväxter, marktäckare, ormbunkar, sommarblommor, grönsaker, rotfrukter och kryddor']],
   ['1.78', 'Nu', ['Hjärtat på en växt sparar den nu som favorit, inte i Samling. Favoriter finns under Samling, i fliken Favoriter', 'I Samling lägger du bara växter du har. Använd knappen Lägg till i min samling på växtens sida, och + En till för fler av samma']],
   ['1.77', 'Nu', ['Välj färgtema i Inställningar, Utseende: Roothood, Hav, Solnedgång, Lavendel, Körsbär, Lime eller Svartvit. Fungerar både i mörkt och ljust läge']],
   ['1.76.1', 'Nu', ['Åtgärdat: när du scrollar över 3D-vyn av Mitt hem på Hem och Profil scrollar nu hela sidan som vanligt, i stället för att 3D-vyn zoomas']],
@@ -5781,7 +5790,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.78';
+const APP_VERSION = '1.79';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
