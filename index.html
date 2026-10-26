@@ -5708,19 +5708,20 @@ function stepSpan(st, F) {
 }
 function stepIn(sp, m, y) { if (sp.months) return sp.months.includes(m); const s = new Date(y, m - 1, 1), e = new Date(y, m, 0, 23, 59); return sp.a <= e && sp.b >= s; }
 // ===== Trädgårdar nära dig: handelsträdgårdar, botaniska trädgårdar och parker (OpenStreetMap) =====
-let nbState = { st: 'idle', list: [], err: null, at: null };
+let nbState = { st: 'idle', list: [], err: null, at: null }, nbKm = 15;
+function nbSetKm(k) { nbKm = k; if (nbState.st !== 'busy') nbFind(); else render(); }
 function openNearby() { stopLight(); S.sel = null; S.modal = null; S.tool = 'nearby'; render(); $('#main').scrollTop = 0; }
 const nbDist = (a, b) => { const R = 6371, t = x => x * Math.PI / 180, dl = t(b.lat - a.lat), dn = t(b.lon - a.lon); const h = Math.sin(dl / 2) ** 2 + Math.cos(t(a.lat)) * Math.cos(t(b.lat)) * Math.sin(dn / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
 function nbFind() {
   if (!navigator.geolocation) { nbState = { st: 'err', err: 'Mobilen kan inte ge din position. Tillåt platsen i Chrome.' }; return render(); }
   nbState = { st: 'busy' }; render();
   navigator.geolocation.getCurrentPosition(async pos => {
-    const here = { lat: pos.coords.latitude, lon: pos.coords.longitude }, R = 15000;
+    const here = { lat: pos.coords.latitude, lon: pos.coords.longitude }, R = nbKm * 1000;
     const a = `(around:${R},${here.lat},${here.lon})`;
-    const q = `[out:json][timeout:25];(nwr${a}["shop"="garden_centre"];nwr${a}["landuse"="horticulture"];nwr${a}["leisure"="garden"];nwr${a}["leisure"="park"]["name"];);out center tags 120;`;
+    const q = `[out:json][timeout:40];(nwr${a}["shop"="garden_centre"];nwr${a}["landuse"="horticulture"];nwr${a}["leisure"="garden"];nwr${a}["leisure"="park"]["name"];);out center tags 120;`;
     let j = null, why = '';
     for (const url of ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter']) {
-      const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 20000);
+      const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 45000);
       try { const r = await fetch(url, { method: 'POST', signal: ac.signal, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(q) }); if (!r.ok) { why = 'svarkod ' + r.status; continue; } j = await r.json(); break; }
       catch (e) { why = e && e.name === 'AbortError' ? 'för lång väntetid' : 'ingen anslutning'; }
       finally { clearTimeout(tm); }
@@ -5738,13 +5739,14 @@ function nbFind() {
 function nbV() {
   const st = nbState.st, fmt = d => d < 1 ? Math.round(d * 1000) + ' m' : (Math.round(d * 10) / 10).toString().replace('.', ',') + ' km';
   let body;
-  if (st === 'idle') body = `<p class="mut" style="margin:0 0 14px">Hitta handelsträdgårdar, botaniska trädgårdar och parker inom 15 km. Uppgifterna kommer från OpenStreetMap, så de kan saknas eller vara gamla.</p><button class="btn" onclick="nbFind()">Hitta nära mig</button>`;
+  const kmChips = `<div class="chips2" style="margin:0 0 12px">${[10, 15, 30, 50].map(k => `<button class="${nbKm === k ? 'on' : ''}" onclick="nbSetKm(${k})">${k} km</button>`).join('')}</div>`;
+  if (st === 'idle') body = `<p class="mut" style="margin:0 0 14px">Hitta handelsträdgårdar, botaniska trädgårdar och parker. Uppgifterna kommer från OpenStreetMap, så de kan saknas eller vara gamla.</p>${kmChips}<button class="btn" onclick="nbFind()">Hitta nära mig</button>`;
   else if (st === 'busy') body = '<div class="center mut"><div class="lsp"><span></span><span></span><span></span></div><div style="margin-top:14px">Letar…</div></div>';
   else if (st === 'err') body = `<p class="mut">${esc(nbState.err)}</p><button class="btn sm line" onclick="nbFind()">Försök igen</button>`;
-  else body = nbState.list.length ? `<p class="mut" style="margin:0 0 10px;font-size:13px">${nbState.list.length} platser inom 15 km, närmast först. Öppettider finns där OpenStreetMap har dem. Ring gärna före besöket.</p>` +
+  else body = nbState.list.length ? `${kmChips}<p class="mut" style="margin:0 0 10px;font-size:13px">${nbState.list.length} platser inom ${nbKm} km, närmast först. Öppettider finns där OpenStreetMap har dem. Ring gärna före besöket.</p>` +
       nbState.list.map(x => `<div class="setcard" style="padding:12px 14px;margin-bottom:8px;text-align:left"><div class="grow"><b style="font-size:15px">${esc(x.name)}</b><span style="display:block;color:var(--mut);font-size:13px">${esc(x.kind)} · ${fmt(x.d)}${x.hours ? ' · ' + esc(x.hours) : ''}</span></div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><a class="btn sm" href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lon}" target="_blank" rel="noopener">Vägbeskrivning</a>${x.web ? `<a class="btn sm line" href="${esc(x.web)}" target="_blank" rel="noopener">Hemsida</a>` : ''}</div></div>`).join('') +
       `<button class="btn sm line" style="margin-top:6px" onclick="nbFind()">Uppdatera</button>`
-    : `<p class="mut">Inga trädgårdar eller parker hittades inom 15 km. Prova att uppdatera igen.</p><button class="btn sm line" onclick="nbFind()">Uppdatera</button>`;
+    : `${kmChips}<p class="mut">Inga trädgårdar eller parker hittades inom ${nbKm} km. Prova ett större avstånd.</p><button class="btn sm line" onclick="nbFind()">Uppdatera</button>`;
   return `${topbar('Trädgårdar nära dig', 'closeTool()')}<div class="pad">${body}</div>`;
 }
 // ===== Kompass: visar vilket håll telefonen pekar mot =====
@@ -6226,7 +6228,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.94.1';
+const APP_VERSION = '1.94.2';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
