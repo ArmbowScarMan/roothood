@@ -1327,6 +1327,7 @@ const demoApi = {
   async thread(id) { return (this._dm()[id] || []).map((m, i) => ({ id: i, mine: m.from === 'me', body: m.body, created_at: m.at })); },
   async sendMsg(id, body) { const d = this._dm(); (d[id] = d[id] || []).push({ from: 'me', body, at: new Date().toISOString(), read: true }); store.set('dm', d); },
   async markRead(id) { const d = this._dm(); (d[id] || []).forEach(m => m.read = true); store.set('dm', d); },
+  async userHome(id) { return { visible: true, data: { rooms: [{ id: 'r1', name: 'Vardagsrum', rect: { x: 0, y: 0, w: 5, h: 4 }, dirs: ['S'], wins: [{ s: 'b', p: 1, l: 1.5 }] }, { id: 'r2', name: 'Kök', rect: { x: 5, y: 0, w: 3, h: 4 }, dirs: ['S'], wins: [] }], plan: {} } }; },
   async myRole() { return 'admin'; },
   async myBlocks() { return store.get('blocks', []); },
   async blockedList() { const b = store.get('blocks', []); return this._people().filter(u => b.includes(u.id)).map(u => ({ id: u.id, display_name: u.display_name })); },
@@ -1529,6 +1530,7 @@ const sbApi = {
   async thread(id) { const me = S.user.id, { data, error } = await sb.from('messages').select('*').or(`and(from_user.eq.${me},to_user.eq.${id}),and(from_user.eq.${id},to_user.eq.${me})`).order('created_at', { ascending: false }).limit(100); if (error) throw error; return (data || []).reverse().map(m => ({ id: m.id, mine: m.from_user === me, body: m.body, created_at: m.created_at })); },
   async sendMsg(id, body) { const { error } = await sb.from('messages').insert({ to_user: id, body }); if (error) throw /BLOCKED/.test(error.message || '') ? new Error('BLOCKED') : /row-level|messages/.test(error.message || '') ? new Error('MSG_DENIED') : error; },
   async markRead(id) { await sb.rpc('mark_read', { p_other: id }); },
+  async userHome(id) { const { data, error } = await sb.rpc('user_home', { p_id: id }); if (error) throw error; return (data && data[0]) || { visible: false }; },
   async myRole() { const { data, error } = await sb.rpc('my_role'); return error ? 'user' : (data || 'user'); },
   async myBlocks() { const { data, error } = await sb.from('blocks').select('blocked').eq('blocker', S.user.id); return error ? [] : (data || []).map(x => x.blocked); },
   async blockedList() { const ids = await this.myBlocks(); if (!ids.length) return []; const { data } = await sb.from('profiles').select('id,display_name').in('id', ids); return data || []; },
@@ -1653,8 +1655,8 @@ function lbV() {
   <img class="lbimg" src="${esc(x.url)}" alt="${esc((p ? p.swedish_name : 'Växt') + ' fotograferad av ' + (x.display_name || 'en växtvän'))}">
   <div style="display:flex;align-items:center;margin-top:10px"><p class="mut" style="margin:0;flex:1">Foto: <b>${esc(x.display_name || 'Växtvän')}</b></p><button class="x" onclick="reportPhoto()">Rapportera bild</button></div>${nav}`;
 }
-const VIS_ITEMS = [['city', 'Ort'], ['interests', 'Intressen'], ['plants', 'Mina växter'], ['pets', 'Mina djur'], ['posts', 'Inlägg']];
-const visOf = k => { const v = S.prof && S.prof.vis && S.prof.vis[k]; return v || (k === 'pets' ? 'friends' : k === 'plants' && S.prof && S.prof.share_photos === false ? 'none' : 'all'); };
+const VIS_ITEMS = [['city', 'Ort'], ['interests', 'Intressen'], ['plants', 'Mina växter'], ['pets', 'Mina djur'], ['home', 'Mitt hem'], ['posts', 'Inlägg']];
+const visOf = k => { const v = S.prof && S.prof.vis && S.prof.vis[k]; return v || (k === 'pets' || k === 'home' ? 'friends' : k === 'plants' && S.prof && S.prof.share_photos === false ? 'none' : 'all'); };
 async function setVis(k, v) {
   S.prof.vis = Object.assign({}, S.prof.vis || {}, { [k]: v }); if (k === 'plants') S.prof.share_photos = v !== 'none';
   try { await api.saveVis(S.prof.vis, S.prof.share_photos !== false); S.meCard = undefined; } catch (e) { toast(FR_ERR(e)); }
@@ -2120,7 +2122,7 @@ function build3d(first) {
   const wallSegs = []; planRooms().forEach(r => { const pg = roomPoly(r); pg.forEach((q, i) => { const n = pg[(i + 1) % pg.length]; wallSegs.push([q[0], q[1], n[0], n[1]]); }); }); planWalls().filter(wl => wl.h !== 'hedge').forEach(wl => wallSegs.push([wl.x1, wl.y1, wl.x2, wl.y2]));
   const clr = (x, y, r) => { for (let it = 0; it < 4; it++) wallSegs.forEach(([x1, y1, x2, y2]) => { const dx = x2 - x1, dy = y2 - y1, L = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / L)), nx = x1 + t * dx, ny = y1 + t * dy, d = Math.hypot(x - nx, y - ny);
       if (d < r) { if (d < 1e-4) { const ln = Math.sqrt(L); x += -dy / ln * r; y += dx / ln * r; } else { x = nx + (x - nx) / d * r; y = ny + (y - ny) / d * r; } } }); return [x, y]; };
-  S.mine.filter(m => m.details && m.details.pos).forEach(m => { const pp = plantById(m.plant_id), isOut = OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel'].includes(m.details.place);
+  (HV ? [] : S.mine).filter(m => m.details && m.details.pos).forEach(m => { const pp = plantById(m.plant_id), isOut = OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel'].includes(m.details.place);
     const rad = isOut ? Math.min(2.5, ((m.details.w || pSize(pp || {})[1]) / 100) / 2) + TH / 2 + 0.02 : 0.32 + TH / 2 + 0.03, [x, y] = clr(m.details.pos.x, m.details.pos.y, rad);
     if (OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel'].includes(m.details.place)) { const g3 = plant3d(pp || { id: m.id, swedish_name: m.name, latin_name: m.latin || '', category: m.category }, THREE, M, m.details.h, m.details.w, m.id * 31); g3.position.set(x, 0, y); sc.add(g3); if (S.hview === '3d' && !S.low3d && (m.details.h || m.details.w)) { const lab = label3d(m.name); if (lab) { lab.position.set(x, Math.min(40, (m.details.h || pSize(pp || {})[0]) / 100) + 0.5, y); lab.scale.multiplyScalar ? lab.scale.multiplyScalar(0.7) : 0; sc.add(lab); } } return; }
     const ok = plantMarkerOk(m), gr = new THREE.Group();
@@ -2289,8 +2291,10 @@ const DEVS = { sensor: ['Växtsensor', '🌱'], thermo: ['Termometer', '🌡️'
 const PL = () => S.pl || (S.pl = { mode: 'move', sel: null, z: 34, ox: 20, oy: 20, fit: true });
 const r1 = v => Math.round(v * 10) / 10, snap = v => Math.round(v * 2) / 2;
 const okn = (...v) => v.every(x => typeof x === 'number' && isFinite(x));
-function planRooms() { return (S.home || []).filter(r => r && r.rect && okn(r.rect.x, r.rect.y, r.rect.w, r.rect.h)); }
-function planWalls() { return ((S.hplan && S.hplan.walls) || []).filter(w => w && okn(w.x1, w.y1, w.x2, w.y2)); }
+let HV = null;
+const hRooms = () => HV ? HV.rooms : S.home, hPlan = () => HV ? HV.plan : S.hplan;
+function planRooms() { return (hRooms() || []).filter(r => r && r.rect && okn(r.rect.x, r.rect.y, r.rect.w, r.rect.h)); }
+function planWalls() { return ((hPlan() && hPlan().walls) || []).filter(w => w && okn(w.x1, w.y1, w.x2, w.y2)); }
 const FURN = [['sofa', 'Soffa', 2.1, 0.9, '🛋️'], ['chair2', 'Fåtölj', 0.8, 0.8, '💺'], ['bed2', 'Dubbelsäng', 1.6, 2.0, '🛏️'], ['bed1', 'Enkelsäng', 0.9, 2.0, '🛏️'], ['table', 'Soffbord', 1.2, 0.6, '🟫'], ['dtable', 'Matbord', 1.8, 0.9, '🍽️'], ['chair', 'Stol', 0.45, 0.45, '🪑'], ['desk', 'Skrivbord', 1.2, 0.6, '💻'], ['shelf', 'Bokhylla', 0.8, 0.3, '📚'], ['pshelf', 'Växthylla', 0.8, 0.35, '🪴'], ['dresser', 'Byrå', 0.8, 0.45, '🗄️'], ['ward', 'Garderob', 1.0, 0.6, '🚪'], ['tv', 'Tv-bänk', 1.6, 0.4, '📺'], ['counter', 'Köksbänk', 2.4, 0.6, '🔪'], ['stove', 'Spis', 0.6, 0.6, '🍳'], ['fridge', 'Kylskåp', 0.6, 0.65, '🧊'], ['bath', 'Badkar', 1.7, 0.7, '🛁'], ['shower', 'Dusch', 0.9, 0.9, '🚿'], ['wc', 'Toalett', 0.4, 0.65, '🚽'], ['sink', 'Handfat', 0.5, 0.4, '🚰'], ['rug', 'Matta', 2.0, 1.4, '🟪'], ['round', 'Runt bord', 0.9, 0.9, '⚪']];
 const FURN_OUT = [['ghouse', 'Växthus', 3, 2.4, '🏡'], ['rbed', 'Odlingslåda', 1.2, 0.8, '🥬'], ['shed', 'Förråd', 2.5, 2, '🛖'], ['compost', 'Kompost', 1, 1, '♻️']];
 const FURN_M = Object.fromEntries(FURN.concat(FURN_OUT).map(f => [f[0], f]));
@@ -2343,8 +2347,8 @@ const UK = [['lot', 'Tomt', 'poly', '📐'], ['lawn', 'Gräsmatta', 'poly', '�
 const UK_M = Object.fromEntries(UK.map(u => [u[0], u]));
 const AREA_ST = { lot: ['rgba(120,170,90,.08)', '#5E9E48', '7 5'], lawn: ['rgba(110,175,80,.40)', '#5E9E48'], bed: ['rgba(150,100,60,.40)', '#8A5A34'], veg: ['rgba(125,90,50,.48)', '#6B4A2A'], path: ['rgba(175,168,152,.65)', '#8C857A'], patio: ['rgba(196,154,108,.6)', '#9A6E44'], pond: ['rgba(80,150,205,.55)', '#3B8DB0'] };
 const GR = { tree: 2.5, fruit: 1.6, conifer: 1.5, bush: 0.7 };
-function planAreas() { return ((S.hplan && S.hplan.areas) || []).filter(a => a && typeof a.t === 'string' && (a.t === 'lot' || UK_M[a.t]) && Array.isArray(a.pts) && a.pts.length >= 3 && a.pts.every(q => Array.isArray(q) && okn(q[0], q[1]))); }
-function planGarden() { return ((S.hplan && S.hplan.garden) || []).filter(g => g && okn(g.x, g.y)); }
+function planAreas() { return ((hPlan() && hPlan().areas) || []).filter(a => a && typeof a.t === 'string' && (a.t === 'lot' || UK_M[a.t]) && Array.isArray(a.pts) && a.pts.length >= 3 && a.pts.every(q => Array.isArray(q) && okn(q[0], q[1]))); }
+function planGarden() { return ((hPlan() && hPlan().garden) || []).filter(g => g && okn(g.x, g.y)); }
 function polyArea(pts) { let a = 0; pts.forEach((q, i) => { const n = pts[(i + 1) % pts.length]; a += q[0] * n[1] - n[0] * q[1]; }); return Math.round(Math.abs(a) / 2 * 10) / 10; }
 function gardenBelow() {
   const P = PL(), z = P.z, sel = P.sel || {}, X = x => (P.ox + x * z).toFixed(1), Y = y => (P.oy + y * z).toFixed(1);
@@ -2377,7 +2381,7 @@ function gEdit(dv) { pushUndo(); const g = planGarden().find(x => x.id === PL().
 function gEditH(dv) { pushUndo(); const g = planGarden().find(x => x.id === PL().sel.id); g.h = Math.max(0.3, Math.min(40, r1((g.h || gDefH(g)) + dv))); saveHomeSoon(); render(); }
 function delG(id) { pushUndo(); S.hplan.garden = planGarden().filter(x => x.id !== id); PL().sel = null; saveHomeSoon(); render(); }
 function uteKind(k) { const P = PL(); if (P.upoly && P.upoly.length >= 3 && P.ukind !== k) finishPoly(); P.ukind = k; P.upoly = []; P.msg = null; render(); }
-function planFurn() { return ((S.hplan && S.hplan.furn) || []).filter(f => f && okn(f.x, f.y)); }
+function planFurn() { return ((hPlan() && hPlan().furn) || []).filter(f => f && okn(f.x, f.y)); }
 function planItems() { return (S.hplan && S.hplan.items) || []; }
 function northDeg() { return (S.hplan && S.hplan.north) || 0; }
 function wallSeg(r, w) { const { x, y, w: W, h: H } = r.rect;
@@ -3226,7 +3230,9 @@ function topbar(title, backFn, extra) {
 }
 
 // ===== Vyer =====
+function otherHome() { const h = S.uhome; return S.tool === 'user' && !S.sel && S.ucard && h && h.uid === S.uid && S.ucard.id !== (S.user && S.user.id) && h.visible && h.data && Array.isArray(h.data.rooms) ? { rooms: h.data.rooms, plan: h.data.plan || {} } : null; }
 function render() {
+  HV = otherHome();
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tab));
   const m = $('#main');
   if (S.loading) m.innerHTML = '<div class="center mut"><div class="lsp"><span></span><span></span><span></span></div><div style="margin-top:14px">Hämtar växter…</div></div>';
@@ -4172,7 +4178,8 @@ function meCardNow() { const r = S.meCard || {}, c = r.card || {}, pr = r.prof |
 async function loadMe() { if (!S.user) return; const out = {}; try { out.prof = await api.getProfile(); } catch (e) {} try { out.card = await api.userCard(S.user.id); } catch (e) {} try { out.posts = await api.userPosts(S.user.id); } catch (e) { out.posts = []; } S.meCard = out; if (S.tab === 'me' && !S.tool && !S.sel) render(); }
 async function openUser(id, fromHash) {
   if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.uBack = fromHash ? null : (S.tool === 'people' ? 'people' : S.tab === 'comm' ? 'comm' : null);
-  S.tool = 'user'; S.uid = id; S.ucard = null; S.uposts = null; render(); $('#main').scrollTop = 0;
+  S.tool = 'user'; S.uid = id; S.ucard = null; S.uposts = null; S.uhome = null; render(); $('#main').scrollTop = 0;
+  api.userHome(id).then(h => { S.uhome = Object.assign({ uid: id }, h); if (S.tool === 'user' && S.uid === id) render(); }).catch(() => { S.uhome = { uid: id, off: true }; });
   try { const [c, ps, fol] = await Promise.all([api.userCard(id), api.userPosts(id), S.follows ? Promise.resolve(S.follows) : api.myFollows()]); S.ucard = c || { missing: 1 }; S.uposts = ps; S.follows = fol; }
   catch (e) { S.ucard = { err: e.message }; }
   if (S.tool === 'user' && S.uid === id) render();
@@ -4191,6 +4198,13 @@ function friendsSec() {
   if (S.friends == null) { if (!S.frLoad) { S.frLoad = true; api.myFriends().then(l => { S.friends = l; S.frLoad = false; if (S.tab === 'me' && !S.tool && !S.sel) render(); }).catch(() => { S.friends = []; S.frLoad = false; }); } return ''; }
   if (!S.friends.length) return '';
   return `<div class="sec"><h2>Vänner</h2><button class="btn sm line" onclick="openMsgs()">💬 Meddelanden${msgUnread() ? ' (' + msgUnread() + ')' : ''}</button></div><div class="pad"><div class="chips2">${S.friends.map(f => `<button onclick="openUser('${esc(f.id)}')">${esc(f.display_name)}</button>`).join('')}</div></div>`;
+}
+function profHome(c, self) {
+  if (self) { if (!S.user) return ''; return `${home3dV('s')}<p class="mut" style="margin:8px 18px 0;font-size:13px">Du väljer vem som ser ditt hem under Inställningar, Vad andra ser på din profil.</p>`; }
+  const h = S.uhome; if (!h || h.off || h.uid !== S.uid) return '';
+  if (!h.visible) return `<div class="sec"><h2>Hem</h2></div><div class="pad"><p class="mut" style="margin:0;font-size:14px">${esc(c.display_name)} visar inte sitt hem för dig.</p></div>`;
+  const n = ((h.data || {}).rooms || []).length; if (!n) return '';
+  return `<div class="sec cap2"><h2>Hem</h2></div><div class="h3card"><div class="planbox home3d sz-s" id="box3d"><p class="l3">Laddar 3D…</p></div><div class="h3bar"><span class="mut">${n} rum</span></div></div>`;
 }
 function profPets(c, self) {
   if (self && !S.pets && !S.petsLoading) { S.petsLoading = true; loadPets().then(() => { S.petsLoading = false; if (S.tab === 'me' && !S.tool && !S.sel) render(); }); }
@@ -4214,6 +4228,7 @@ function userBody(c, uposts, self) {
       return `<button class="upl" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${pl.photo ? `<div class="ph has-img"><img src="${esc(pl.photo)}" alt="" loading="lazy"></div>` : db ? plantPh(db) : ph('', 'Krukväxt', pl.name)}<span>${esc(pl.name || 'Växt')}</span></button>`; }).join('')}</div>`
     : `<p class="mut" style="margin:0;font-size:14px">${self ? 'Din samling är tom eller dold för andra.' : esc(c.display_name) + ((c.hidden || []).includes('plants') ? ' visar inte sina växter för dig.' : ' visar inte sin samling.')}</p>`}</div>
   ${profPets(c, self)}
+  ${profHome(c, self)}
   <div class="sec"><h2>Inlägg</h2></div>
   <div class="pad">${(c.hidden || []).includes('posts') ? `<p class="mut" style="margin:0;font-size:14px">${esc(c.display_name)} visar inte sina inlägg för dig.</p>` : uposts == null ? '<p class="mut">Hämtar…</p>' : posts.length ? `<div class="norm">${posts.map(p => `<button class="nrow" onclick="openUserPost(${p.id},'${p.kind || 'question'}','${esc(p.category || '')}')"><span class="grow"><small class="mut">${KIND_NAME[p.kind || 'question']} · ${ago(p.created_at)}</small>${esc((p.title || p.body || '').slice(0, 90))}</span>${ic(I.back, 'var(--mut)', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button>`).join('')}</div>` : `<p class="mut" style="margin:0;font-size:14px">Inga inlägg än.</p>`}</div>
   <div style="height:24px"></div>`;
@@ -5216,6 +5231,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.76', 'Nu', ['Mitt hem i 3D visas nu också på din Profil, och på andras profiler om de vill visa det', 'Du väljer om ditt hem ska synas för alla, bara vänner eller ingen under Inställningar']],
   ['1.75.1', 'Nu', ['Ny flik Vänner under Community. Där ser du dina vänner, vänförfrågningar och kan skriva till dem']],
   ['1.75', 'Nu', ['Privata meddelanden till dina vänner. Öppna en väns profil och tryck Skriv, eller gå via Meddelanden på Profil', 'Du kan skriva ett meddelande när du skickar en vänförfrågan, så personen ser varför du vill bli vän', 'Olästa meddelanden syns på notisklockan']],
   ['1.74.1', 'Nu', ['Hjärtat på en växt sparar den direkt, utan att någon ruta med frågor dyker upp. Vill du berätta mer om växten trycker du på den i Samling']],
@@ -5715,7 +5731,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.75.1';
+const APP_VERSION = '1.76';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 function applyPrefs() {

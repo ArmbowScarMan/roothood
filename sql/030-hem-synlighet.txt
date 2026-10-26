@@ -1,0 +1,29 @@
+-- Roothood steg 030: visa "Mitt hem" på profilen, med val för vem som får se det.
+-- Kräver steg 027. Det gör inget om du kör den två gånger.
+
+-- Standard: bara vänner ser ditt hem. Ändras under Inställningar > Vad andra ser på din profil.
+create or replace function public.can_see(p_owner uuid, p_item text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select p_owner = auth.uid() or case coalesce(
+      (select vis ->> p_item from profiles where id = p_owner),
+      case p_item when 'pets' then 'friends'
+        when 'home' then 'friends'
+        when 'plants' then (case when coalesce((select share_photos from profiles where id = p_owner), true) then 'all' else 'none' end)
+        else 'all' end)
+    when 'all' then true
+    when 'friends' then public.are_friends(p_owner, auth.uid())
+    else false end;
+$$;
+grant execute on function public.can_see(uuid, text) to authenticated;
+
+-- Någon annans hem (bara rum och ritning, inga växtplatser). Tomt om personen inte vill visa det för dig.
+create or replace function public.user_home(p_id uuid)
+returns table (visible boolean, data jsonb)
+language sql stable security definer set search_path = public as $$
+  select public.can_see(p_id, 'home'),
+    case when public.can_see(p_id, 'home') then (
+      select case when jsonb_typeof(h.rooms) = 'array' then jsonb_build_object('rooms', h.rooms, 'plan', '{}'::jsonb)
+        else jsonb_build_object('rooms', coalesce(h.rooms -> 'rooms', '[]'::jsonb), 'plan', coalesce(h.rooms -> 'plan', '{}'::jsonb)) end
+      from homes h where h.user_id = p_id) end;
+$$;
+grant execute on function public.user_home(uuid) to authenticated;
