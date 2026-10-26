@@ -1,0 +1,14 @@
+-- Roothood steg 031: favoritväxter (hjärtat). Det gör inget om du kör den två gånger.
+create table if not exists public.plant_favs (
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  plant_id bigint not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, plant_id)
+);
+alter table public.plant_favs enable row level security;
+drop policy if exists "Läs egna favoriter" on public.plant_favs;
+create policy "Läs egna favoriter" on public.plant_favs for select using (auth.uid() = user_id);
+drop policy if exists "Spara egen favorit" on public.plant_favs;
+create policy "Spara egen favorit" on public.plant_favs for insert with check (auth.uid() = user_id);
+drop policy if exists "Ta bort egen favorit" on public.plant_favs;
+create policy "Ta bort egen favorit" on public.plant_favs for delete using (auth.uid() = user_id);
