@@ -1945,6 +1945,23 @@ function roomSun(r, win) {
   return Math.max(0, Math.min(3.4, v));
 }
 function roomLightWord(r, win) { const v = roomSun(r, win); return v >= 2.5 ? 'Mycket ljust' : v >= 1.7 ? 'Ljust' : v >= 0.9 ? 'Halvskugga' : 'Mörkt'; }
+// Var i hemmet trivs växten? Jämför växtens ljusbehov med varje rum och föreslår avstånd till fönstret.
+function homeFit(p) {
+  if (!p || !INDOOR.includes(p.category) || !(S.home || []).length) return [];
+  const need = { 1: 0.8, 2: 1.6, 3: 2.4 }[p.light_level] || 1.6, POS = ['I fönstret', 'Ca 1 m bort', '2 m eller mer'];
+  return (S.home || []).filter(r => r && r.name && !['Trädgård'].includes(r.type)).map(r => {
+    const hasWin = (r.dirs || []).length || r.lamp;
+    let best = null; (hasWin ? POS : [null]).forEach(w => { const v = roomSun(r, w), d = Math.abs(v - need); if (!best || d < best.d) best = { w, v, d }; });
+    const ok = best.d <= 0.5, near = best.d <= 1.0;
+    const tip = !hasWin ? 'Inget fönster där. Behöver växtlampa' : best.w === 'I fönstret' ? 'Ställ den i fönstret' : best.w === 'Ca 1 m bort' ? 'Ställ den ca 1 m från fönstret' : 'Klarar sig 2 m eller mer från fönstret';
+    return { r, d: best.d, tone: ok ? 's' : near ? 'w' : 'd', word: ok ? 'Passar bra' : near ? 'Går an' : (best.v < need ? 'För mörkt' : 'För starkt ljus'), tip: ok || near ? tip : (best.v < need ? 'Prova ett annat rum eller en växtlampa' : 'Ställ den en bit in i rummet') };
+  }).sort((a, b) => a.d - b.d);
+}
+function homeFitV(p) {
+  const L = homeFit(p); if (!L.length) return '';
+  const ic2 = { s: '✅', w: '⚠️', d: '⛔' };
+  return `<div class="sec"><h2>Var i ditt hem?</h2></div><div class="aqchk">${L.slice(0, 5).map(x => `<div class="ac ${x.tone}"><span>${ic2[x.tone]}</span><span><b>${esc(x.r.name)}</b> · ${x.word}. ${esc(x.tip)}.</span></div>`).join('')}</div>`;
+}
 function roomHints(p, r, win) {
   const h = []; if (!p) return h;
   const v = roomSun(r, win), need = { 1: 0.8, 2: 1.6, 3: 2.4 }[p.light_level] || 1.6, nm = p.swedish_name;
@@ -4708,6 +4725,7 @@ function detail() {
   ${my ? sensorCard(my) : ''}
   ${my ? detailsV(my) : ''}
   ${my ? diaryV(my) : ''}
+  ${homeFitV(p)}
   <div class="sec"><h2>Skötsel</h2></div>
   <div class="tiles">
   ${tile('Ljus', LIGHT[p.light_level - 1], p.light_text, I.sun, 'var(--sun)')}
@@ -5534,6 +5552,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.89', 'Nu', ['Var i ditt hem trivs växten? På varje inomhusväxt ser du vilka av dina rum som passar och hur långt från fönstret den ska stå. Det visas också när du identifierar en växt']],
   ['1.88', 'Nu', ['Appen startar alltid på Hem, även om du stängde den i Mitt hem eller en annan sida']],
   ['1.87', 'Nu', ['Ny + -knapp på Hem och Min samling: sök en växt och lägg till den med ett enda tryck. Du kan lägga till flera i rad, eller identifiera med foto och lägga till egen växt från samma ruta']],
   ['1.86', 'Nu', ['Fönster och dörrar går nu att sätta på fristående väggar, även snedställda. Nya väggar fäster bättre mot rummens hörn, väggar och andra väggar']],
@@ -5771,7 +5790,7 @@ function idV() {
 }
 function idRow(r) {
   const p = matchPlant(r.latin, r.genus);
-  return `<div class="idr"><div class="grow"><b>${esc(r.common || r.latin)}</b><i>${esc(r.latin)}</i>${S.idDemo ? '<small style="color:var(--mut)">Exempel, inte ditt foto</small>' : `<div class="bar"><i style="width:${Math.round(r.score * 100)}%"></i></div><small>${Math.round(r.score * 100)} % säker</small>`}</div>
+  return `<div class="idr"><div class="grow"><b>${esc(r.common || r.latin)}</b><i>${esc(r.latin)}</i>${(() => { const hf = p ? homeFit(p).filter(x => x.tone !== 'd')[0] : null; return hf ? `<small style="color:var(--pri2);font-weight:700">Trivs i ${esc(hf.r.name)}. ${esc(hf.tip)}</small>` : ''; })()}${S.idDemo ? '<small style="color:var(--mut)">Exempel, inte ditt foto</small>' : `<div class="bar"><i style="width:${Math.round(r.score * 100)}%"></i></div><small>${Math.round(r.score * 100)} % säker</small>`}</div>
   ${p ? `<button class="btn sm" onclick="S.tool=null;openPlant(${p.id})">Skötselråd</button>` : `<button class="btn sm line" onclick="addFromIdx(${S.idRes.indexOf(r)})">Lägg till</button>`}</div>`;
 }
 function matchPlant(latin, genus) {
@@ -6047,7 +6066,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.88.1';
+const APP_VERSION = '1.89';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
