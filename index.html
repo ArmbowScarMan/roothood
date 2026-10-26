@@ -918,6 +918,19 @@ button.pw{cursor:pointer}
 .acc .accb p{margin:0 0 8px;color:var(--mut)}
 .acc .accb ul{margin:0;padding-left:18px}
 .acc .accb li{margin-bottom:6px}
+.lsp{display:flex;gap:8px;justify-content:center}
+.lsp span{width:14px;height:14px;border-radius:50% 0 50% 0;background:var(--pri);animation:lsp 1s ease-in-out infinite}
+.lsp span:nth-child(2){animation-delay:.15s}.lsp span:nth-child(3){animation-delay:.3s}
+@keyframes lsp{0%,100%{transform:translateY(0) rotate(0);opacity:.4}50%{transform:translateY(-10px) rotate(45deg);opacity:1}}
+.todoc{margin:0 18px;background:var(--surf);border-radius:20px;padding:6px 14px;box-shadow:var(--sh)}
+.todoc.empty{display:flex;gap:10px;align-items:center;padding:12px 16px;margin-top:12px}
+.todor{display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.todor:first-child{border-top:0}
+.tchk{flex:none;width:26px;height:26px;border-radius:8px;border:2px solid var(--pri);background:none;cursor:pointer}
+.tchk:active{background:var(--pri)}
+.ttxt{all:unset;cursor:pointer;font-size:15px;line-height:1.35;flex:1}
+.instban{position:fixed;left:12px;right:12px;bottom:84px;z-index:60;display:flex;gap:10px;align-items:center;background:var(--surf);border-radius:20px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.28)}
+.instban b{display:block;font-size:15px}.instban span{font-size:13px;color:var(--mut)}
 .pchips{display:flex;flex-wrap:wrap;gap:8px}
 .pchip{display:flex;gap:10px;align-items:center;background:var(--surf);border-radius:16px;padding:8px 14px 8px 10px;box-shadow:var(--sh)}
 .pchip>span:first-child{font-size:26px;line-height:1}
@@ -1474,7 +1487,7 @@ async function run(fn, ok) {
   render();
 }
 function go(t) { stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'mine' && S.user && !S.push) refreshPush(); if (t === 'me') loadMe(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
-function openPlant(id) { S.sel = id; S.logForm = null; S.logAll = null; render(); $('#main').scrollTop = 0; }
+function openPlant(id, myId) { S.myCur = myId || null; S.sel = id; S.logForm = null; S.logAll = null; render(); $('#main').scrollTop = 0; }
 function openModal(m, prefill, latin, ap) { S.modal = m; if (m === 'add' || m === 'addp') S.addRemind = undefined; S.logForm = null; S.logAll = null; S.msg = ''; S.prefill = prefill || ''; S.prefillLatin = latin || ''; if (m === 'add' || m === 'addp') S.ap = ap || null; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
 function closeModal() { S.modal = null; S.msg = ''; S.limitHit = false; render(); }
 function addPlant(id, quick) {
@@ -1486,7 +1499,7 @@ function addPlant(id, quick) {
 }
 function openMine(id) {
   const m = S.mine.find(x => x.id === id); if (!m) return;
-  if (m.plant_id && S.plants.some(p => p.id === m.plant_id)) return openPlant(m.plant_id);
+  if (m.plant_id && S.plants.some(p => p.id === m.plant_id)) return openPlant(m.plant_id, id);
   S.myv = id; openModal('myplant');
 }
 function myplantV() {
@@ -1511,6 +1524,7 @@ async function confirmAddp() {
   await run(() => api.addMine(p, photo), p.swedish_name + ' finns nu i din samling' + (photo ? ' med ditt foto' : ''));
   S.ap = null; photoWarnCheck(); afterAdd();
 }
+const PRO_FREE = true; // allt öppet under testperioden och vid lansering
 const myItem = id => S.mine.find(x => x.id === id);
 function applyNick(m) { const d = m.details || {}; m.baseName = m.name; m.baseLatin = m.latin; m.sv = d.nick || m.name;
   if (d.sort) { const base = (m.latin || '').replace(/\s*'[^']*'$/, ''); m.latin = base ? `${base} '${d.sort}'` : `'${d.sort}'`; m.name = base ? m.latin : `${m.sv} '${d.sort}'`; } else m.name = m.sv; return m; }
@@ -1955,8 +1969,8 @@ async function mount3d() {
     r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
     T3.scene = new THREE.Scene(); T3.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 2000);
     const c = r.domElement; c.style.touchAction = 'none'; c.style.display = 'block';
-    c.addEventListener('pointerdown', e => { T3.auto = false; if (c.style.touchAction !== 'pan-y') c.setPointerCapture(e.pointerId); T3.ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); T3.g = null; });
-    c.addEventListener('pointermove', e => { const P = T3.ptr; if (!P.has(e.pointerId)) return; const o = P.get(e.pointerId), st = T3.st;
+    c.addEventListener('pointerdown', e => { if (c.style.touchAction !== 'pan-y') T3.auto = false; if (c.style.touchAction !== 'pan-y') c.setPointerCapture(e.pointerId); T3.ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); T3.g = null; });
+    c.addEventListener('pointermove', e => { if (c.style.touchAction === 'pan-y') return; const P = T3.ptr; if (!P.has(e.pointerId)) return; const o = P.get(e.pointerId), st = T3.st;
       if (P.size === 1) { st.az -= (e.clientX - o.x) * 0.008; st.el = Math.max(0.12, Math.min(1.52, st.el + (e.clientY - o.y) * 0.006)); }
       P.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (P.size === 2) { const [a, b] = [...P.values()], d = Math.hypot(a.x - b.x, a.y - b.y), m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
@@ -2829,6 +2843,21 @@ function smartV() {
   <div style="height:20px"></div>`;
 }
 
+function todoItems() {
+  const t = [];
+  S.mine.filter(m => left(m) === 0 && !sensorDry(m)).forEach(m => t.push({ id: 'w' + m.id, txt: 'Vattna ' + m.name, act: `water(${m.id})`, open: `openMine(${m.id})` }));
+  S.mine.filter(sensorDry).forEach(m => t.push({ id: 's' + m.id, txt: 'Kolla jorden i ' + m.name + ' (sensorn säger torrt)', act: `water(${m.id})`, open: `openMine(${m.id})` }));
+  if (S.pets) { petWarnings().filter(x => x.lv === 'd').slice(0, 2).forEach(x => t.push({ id: 'p' + x.m.id + x.a.id, txt: x.m.name + ' är farlig för ' + x.a.name + '. Flytta den.', open: 'openPets()' })); }
+  if (S.wx && S.wx.d) outWeatherAlerts().slice(0, 3).forEach(([m, msg]) => t.push({ id: 'o' + m.id, txt: m.name + ': ' + msg.split('.')[0], open: `openMine(${m.id})` }));
+  return t;
+}
+function todoV() {
+  if (!S.user) return '';
+  const l = todoItems();
+  if (!l.length) return `<div class="todoc empty"><span>✅</span><b>Inget att göra just nu</b></div>`;
+  return `<div class="sec cap2"><h2>Att göra</h2><span class="mut" style="font-size:13px">${l.length} ${l.length === 1 ? 'sak' : 'saker'}</span></div>
+  <div class="todoc">${l.slice(0, 8).map(x => `<div class="todor"><button class="tchk" aria-label="Klart" ${x.act ? `onclick="${x.act}"` : 'disabled'}></button><button class="ttxt" onclick="${x.open}">${esc(x.txt)}</button></div>`).join('')}${l.length > 8 ? `<small class="mut">och ${l.length - 8} till</small>` : ''}</div>`;
+}
 function homeAlerts(sz) {
   if (!S.user) return '';
   const a = [];
@@ -2934,7 +2963,7 @@ async function doAuth(form) {
       const active = await api.signUp(d.email.trim(), d.pw, d.name.trim());
       if (!active) { S.busy = false; S.authMode = 'in'; S.msgOk = true; S.msg = 'Vi har skickat en länk till ' + d.email + '. Klicka på den och logga sedan in här.'; return render(); }
     } else await api.signIn(d.email.trim(), d.pw);
-    S.user = await api.user(); S.mine = await api.mine(); S.pro = await api.getPro(); loadHome();
+    S.user = await api.user(); S.mine = await api.mine(); S.pro = PRO_FREE || await api.getPro(); loadHome();
     S.busy = false; S.modal = null; render(); toast('Välkommen, ' + S.user.name + '!');
   } catch (e) {
     S.busy = false; S.msgOk = false; S.msg = errMsg(e);
@@ -2965,10 +2994,10 @@ function newPwV() {
 }
 async function saveNewPw(form) {
   const pw = new FormData(form).get('pw');
-  try { await api.changePassword(pw); S.modal = null; S.user = await api.user(); S.mine = await api.mine(); S.pro = await api.getPro(); render(); toast('Nytt lösenord sparat. Du är inloggad!'); }
+  try { await api.changePassword(pw); S.modal = null; S.user = await api.user(); S.mine = await api.mine(); S.pro = PRO_FREE || await api.getPro(); render(); toast('Nytt lösenord sparat. Du är inloggad!'); }
   catch (e) { S.msgOk = false; S.msg = errMsg(e); render(); }
 }
-async function signOut() { await api.signOut(); S.user = null; S.mine = []; S.home = []; S.hplan = {}; S.pro = false; render(); toast('Du är utloggad'); }
+async function signOut() { await api.signOut(); S.user = null; S.mine = []; S.home = []; S.hplan = {}; S.pro = PRO_FREE; render(); toast('Du är utloggad'); }
 
 // ===== Foton från Wikipedia (illustration visas om inget foto finns) =====
 const IMG = store.get('imgs', {});
@@ -3110,13 +3139,14 @@ function topbar(title, backFn, extra) {
 function render() {
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tab));
   const m = $('#main');
-  if (S.loading) m.innerHTML = '<div class="center mut">Hämtar växter…</div>';
+  if (S.loading) m.innerHTML = '<div class="center mut"><div class="lsp"><span></span><span></span><span></span></div><div style="margin-top:14px">Hämtar växter…</div></div>';
   else if (S.err) m.innerHTML = `<div class="center"><h2>Kunde inte hämta växterna</h2><p class="mut">Kontrollera internetanslutningen och försök igen.</p><p class="mut">${esc(S.err.message || S.err)}</p></div>`;
   else {
     m.innerHTML = S.sel ? detail() : S.tool ? toolV() : S.tab === 'home' ? home() : S.tab === 'mine' ? mineV() : S.tab === 'me' ? meV() : comm();
     if (!S.sel && (S.tool === 'db' || (!S.tool && S.tab === 'home'))) renderList();
   }
   $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
+  $('#ov').insertAdjacentHTML('beforeend', instBanner());
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); }
   const lv = $('#lv'); if (lv && lightStream) { lv.srcObject = lightStream; lv.hidden = false; lv.play().catch(() => {}); }
   loadPhotos();
@@ -3975,6 +4005,7 @@ function userBody(c, uposts, self) {
 // ===== Anpassa startskärmen =====
 const HB = [
   ['weather', 'Väder', 'Väder där du bor och varningar för dina växter'],
+  ['todo', 'Att göra', 'Checklista för idag, till exempel vattning'],
   ['alerts', 'Varningar', 'Torr jord, luftfukt och vattning idag'],
   ['quick', 'Snabbval', 'De viktigaste funktionerna som knappar'],
   ['mine', 'Mina växter', 'Dina växter med temperatur, fukt och ljus'],
@@ -4020,7 +4051,8 @@ function homeBlocks(intro) {
     const sz = sizeOf(x);
     if (HB_M[x.k][3] === 'tool') { tiles.push(toolTile(x.k, sz)); return; }
     flush();
-    if (x.k === 'alerts') out.push(homeAlerts(sz));
+    if (x.k === 'todo') out.push(todoV());
+    else if (x.k === 'alerts') out.push(homeAlerts(sz));
     else if (x.k === 'weather') out.push(weatherV(sz));
     else if (x.k === 'home3d') out.push(home3dV(sz));
     else if (x.k === 'mine') out.push(S.user && S.mine.length ? `<div class="sec cap2"><h2>Mina växter</h2><button class="viewall" onclick="go('mine')">Visa alla</button></div><div class="mycards big sz-${sz}">${S.mine.map(myCard).join('')}</div>` : intro);
@@ -4100,7 +4132,7 @@ function tile(label, value, desc, icon, color, bad) {
   return `<div class="ti">${ic(icon, color)}<small>${label}</small><b class="${bad ? 'bad' : ''}">${esc(value)}</b>${desc ? `<p>${esc(desc)}</p>` : ''}</div>`;
 }
 function detail() {
-  const p = S.plants.find(x => x.id === S.sel), my = S.mine.find(m => m.plant_id === p.id);
+  const p = S.plants.find(x => x.id === S.sel), copies = S.mine.filter(m => m.plant_id === p.id), my = copies.find(m => m.id === S.myCur) || copies[0];
   const d = my ? left(my) : null;
   const water = p.water_interval_days ? `Var ${p.water_interval_days}${ord(p.water_interval_days)} dag` : WATER[p.water_level - 1];
   const tips = [['Tips', p.tips], ['Vanliga problem', p.common_problems], ['Förökning', p.propagation], ['Odlingszon', p.hardiness_zone && 'Härdig i zon ' + p.hardiness_zone]].filter(t => t[1]);
@@ -4116,6 +4148,7 @@ function detail() {
     ${p.humidity ? `<div><small>Luftfuktighet</small><b>${esc(p.humidity)}</b></div>` : ''}
     <div><small>Husdjur</small><b class="${p.pet_safe ? '' : 'bad'}">${petWord(p)}</b></div>
   </div></div>${credit}
+  ${copies.length > 1 ? `<div class="pad" style="margin:10px 0"><small class="mut">Du har ${copies.length} av den här. Välj vilken du ändrar:</small><div class="chips2 sm" style="margin-top:6px">${copies.map((c, i) => `<button class="${c.id === my.id ? 'on' : ''}" onclick="S.myCur=${c.id};keepMain()">Nr ${i + 1}${c.details && c.details.nick ? ' · ' + esc(c.details.nick) : ''}</button>`).join('')}</div></div>` : ''}
   ${my ? galleryV(my) : ''}
   <div class="sheet2">
   <div class="dname"><h1>${esc(p.swedish_name)}</h1>${my && my.name !== p.swedish_name ? `<span class="myname">Din: ${nameHtml(my)} <button class="link3" onclick="openDetails(${my.id})">Ändra</button></span>` : ''}<i>${esc(p.latin_name)}</i>${p.family || p.genus ? `<span class="taxline">${[p.family && 'Familj ' + p.family, p.genus && 'Släkte ' + p.genus, p.cultivar && "Sort '" + p.cultivar + "'"].filter(Boolean).map(esc).join(' · ')}</span>` : ''}<i style="display:none"></i><div class="tags">${status}<span class="tag lime">${esc(p.category)}</span>${zoneTag(p)}${p.status === 'pending' ? '<span class="tag">Väntar på granskning</span>' : ''}</div></div>
@@ -4855,7 +4888,7 @@ function docV() {
 }
 function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { stopLight(); if (S.tool === 'house' && S.hDirty) saveHomeNow(true); S.tool = null; render(); }
-function toolV() { return S.tool === 'explore' ? exploreV() : S.tool === 'notif' ? notifV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'sow' ? sowV() : S.tool === 'perma' ? permaV() : S.tool === 'smart' ? smartV() : lightV(); }
+function toolV() { return S.tool === 'explore' ? exploreV() : S.tool === 'notif' ? notifV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'news' ? newsV() : S.tool === 'sow' ? sowV() : S.tool === 'perma' ? permaV() : S.tool === 'smart' ? smartV() : lightV(); }
 
 // --- Säsongstips ---
 // Varje tips: [typ, rubrik, text, månader i zon 1–2, zon 3–5, zon 6–8]. En lista gäller alla zoner.
@@ -4938,6 +4971,16 @@ function seasonV() {
   <div style="height:20px"></div>`;
 }
 
+// ===== Uppdateringslogg =====
+const NEWS = [
+  ['1.68', 'Nu', ['Att göra på Hem: en checklista där du bockar av vattning', 'Snyggare laddningsruta', 'Huset på Hem snurrar inte längre när du scrollar', 'Åtgärdat: foton hamnade på alla exemplar av samma växt', 'Installera-ruta när appen kan installeras', 'Uppdateringslogg', 'Alla funktioner är öppna för alla under testperioden']],
+  ['1.67', '26 okt', ['Mina djur syns på din profil', 'Såkalender: när du ska så, förodla och plantera ut i din zon', 'Permakultur och design: guide med zoner, gillen och planering']],
+  ['1.66', '24 okt', ['Kugghjul för Inställningar bredvid klockan på Profil']],
+  ['1.65', 'Tidigare', ['Fåglar i Mina djur', 'Utforska-knapp med alla funktioner', 'Väder högst upp på Hem', 'Bilder i forum och svar', 'Alla notiser som lästa']],
+  ['1.5x', 'Tidigare', ['Rabattläge med växtavstånd och djup', 'Utomhus i 3D med höjd på träd och buskar', 'Reptiler, akvarium och giftvarningar', 'Äppelsorter och bärbuskar för zon 4 och uppåt', 'Vetenskapliga namn först, svenska under']],
+];
+function openNews() { stopLight(); S.sel = null; S.modal = null; S.tool = 'news'; render(); $('#main').scrollTop = 0; }
+function newsV() { return `${topbar('Uppdateringar', 'closeTool()')}<div class="pad">${NEWS.map(n => `<div class="setcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b>Version ${n[0]}</b><span class="mut" style="font-size:13px">${n[1]}</span></div><ul style="margin:8px 0 0;padding-left:18px;font-size:14.5px;line-height:1.5">${n[2].map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div><div style="height:24px"></div>`; }
 // ===== Såkalender =====
 const FROST = { 1: [6, 10], 2: [6, 1], 3: [5, 25], 4: [5, 18], 5: [5, 12], 6: [5, 5], 7: [4, 25], 8: [4, 15] };
 const SOWL = { inne: 'Förså inomhus', ute: 'Så direkt ute', plant: 'Plantera ut', sat: 'Sätt', forgro: 'Förgro' };
@@ -5411,13 +5454,14 @@ function stopLight() {
   if (lightSensor) lightSensor.stop(); lightSensor = null;
 }
 function proCard() {
+  if (PRO_FREE) return '';
   return `<button class="procard" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 24)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Roothood Pro'}</b><span>${S.pro ? 'Kamera, ljusmätare och obegränsad samling' : 'Lås upp kamera, ljusmätare och mer'}</span></span>${S.pro ? '' : `<span class="protag">${PRO_PRICE}</span>`}</button>`;
 }
 
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.67';
+const APP_VERSION = '1.68';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
@@ -5513,7 +5557,8 @@ function settingsV() {
   </div></div>
   <div class="sec"><h2>Påminnelser</h2></div><div class="pad">${pushCard()}</div>
   ${account}
-  <div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
+  <div class="sec"><h2>Nytt i appen</h2></div><div class="pad"><button class="setrow" onclick="openNews()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Uppdateringslogg</b><span>Se vad som är nytt i version ${APP_VERSION}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
+  ${PRO_FREE ? '' : `<div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`}
   <div class="sec"><h2>Om Roothood</h2></div><div class="pad"><div class="setcard about2">
     <img src="${LOGO}" alt="" width="56" height="56"><div><b>Roothood ${APP_VERSION}</b><span>Växtfolk som hjälper varandra.</span><span>Foton: Wikipedia. Identifiering: Pl@ntNet.</span></div></div>
     ${DEMO ? `<button class="btn wide line" style="margin-top:12px" onclick="resetDemo()">${S.del === 'reset' ? 'Tryck igen för att börja om' : 'Återställ demodata'}</button>` : ''}
@@ -5637,7 +5682,9 @@ function pickFrom(cam) {
 // ===== Installera som app =====
 let installEvt = null;
 const isInstalled = () => window.matchMedia && matchMedia('(display-mode: standalone)').matches;
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (S.tab === 'me') render(); });
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; const t = +store.get('instNo', 0); S.instAsk = !isInstalled() && Date.now() - t > 7 * 864e5; render(); });
+function instNo() { store.set('instNo', Date.now()); S.instAsk = false; render(); }
+function instBanner() { return S.instAsk && installEvt && !isInstalled() ? `<div class="instban" role="dialog"><span class="tic">${ic('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', 'currentColor', 22)}</span><div class="grow"><b>Installera Roothood</b><span>Få appen på startskärmen.</span></div><button class="btn sm" onclick="S.instAsk=false;installApp()">Installera</button><button class="x" onclick="instNo()" aria-label="Inte nu">Inte nu</button></div>` : ''; }
 window.addEventListener('appinstalled', () => { installEvt = null; toast('Roothood är installerad på startskärmen!'); render(); });
 async function installApp() {
   if (!installEvt) return;
@@ -5674,7 +5721,7 @@ async function init() {
     S.plants = await api.plants();
     S.user = await api.user();
     S.mine = S.user ? await api.mine() : [];
-    S.pro = S.user ? await api.getPro() : false;
+    S.pro = PRO_FREE || (S.user ? await api.getPro() : false);
     if (S.user) { try { const pr = await api.getProfile(); S.city = pr.city || ''; applyInterests(pr.interests); } catch (e) {} }
     if (S.user) loadHome();
   } catch (e) { S.err = e; }
