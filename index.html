@@ -931,6 +931,10 @@ button.pw{cursor:pointer}
 .ttxt{all:unset;cursor:pointer;font-size:15px;line-height:1.35;flex:1}
 .instban{position:fixed;left:12px;right:12px;bottom:84px;z-index:60;display:flex;gap:10px;align-items:center;background:var(--surf);border-radius:20px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.28)}
 .instban b{display:block;font-size:15px}.instban span{font-size:13px;color:var(--mut)}
+.visrow{margin-top:10px}
+.visrow>span{display:block;font-size:14px;font-weight:700;margin-bottom:4px}
+.frow .fbtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.frow{align-items:flex-start}
 .pchips{display:flex;flex-wrap:wrap;gap:8px}
 .pchip{display:flex;gap:10px;align-items:center;background:var(--surf);border-radius:16px;padding:8px 14px 8px 10px;box-shadow:var(--sh)}
 .pchip>span:first-child{font-size:26px;line-height:1}
@@ -1162,13 +1166,20 @@ const demoApi = {
   async expertInbox() { return []; },
   async answerExpert() {},
   _people() { return [
-    { id: 'u-lena', display_name: 'Lena', city: S.city || 'Piteå', interests: ['Krukväxt', 'Orkidé'], plants: 34, posts: 12, followers: 8, share: true, plant_list: [{ name: 'Monstera Thai Constellation' }, { name: 'Phalaenopsis' }, { name: 'Hoya kerrii' }] },
+    { id: 'u-lena', display_name: 'Lena', pets: [{ kind: 'katt', name: 'Misse', sp: '' }, { kind: 'fisk', name: 'Neontetra', sp: 'Neontetra', n: 8 }], city: S.city || 'Piteå', interests: ['Krukväxt', 'Orkidé'], plants: 34, posts: 12, followers: 8, share: true, plant_list: [{ name: 'Monstera Thai Constellation' }, { name: 'Phalaenopsis' }, { name: 'Hoya kerrii' }] },
     { id: 'u-ahmed', display_name: 'Ahmed', city: 'Luleå', interests: ['Köksträdgård'], plants: 18, posts: 5, followers: 3, share: true, plant_list: [{ name: 'Chili' }, { name: 'Tomat' }] },
     { id: 'u-maria', display_name: 'Maria', city: S.city || 'Piteå', interests: ['Trädgård', 'Krukväxt'], plants: 52, posts: 21, followers: 15, share: false, plant_list: null },
     { id: 'u-johan', display_name: 'Johan', city: 'Umeå', interests: ['Kaktus'], plants: 61, posts: 9, followers: 6, share: true, plant_list: [{ name: 'Kaktusfikon' }, { name: 'Lithops' }] },
     { id: 'u-sara', display_name: 'Sara', city: 'Stockholm', interests: ['Krukväxt'], plants: 27, posts: 3, followers: 2, share: true, plant_list: [{ name: 'Kalatea' }] }]; },
   async findUsers(q) { q = (q || '').toLowerCase(); return this._people().filter(u => !q || u.display_name.toLowerCase().includes(q) || (u.city || '').toLowerCase().includes(q)); },
-  async userCard(id) { const u = this._people().find(x => x.id === id || x.id === 'u-' + String(id).toLowerCase()); return u ? Object.assign({ following: 4 }, u, { followers: u.followers + (store.get('follows', []).includes(id) ? 1 : 0) }) : null; },
+  _fr() { const f = store.get('friends', null); if (f) return f; return { 'u-lena': { st: 'pending_in', at: new Date(Date.now() - 36e5).toISOString() } }; },
+  async userCard(id) { const u = this._people().find(x => x.id === id || x.id === 'u-' + String(id).toLowerCase()); if (!u) return null; const f = (this._fr()[u.id] || {}).st || 'none', fr = f === 'friends', vis = (store.get('profile', {}).vis) || {};
+    return Object.assign({ following: 4, friends: 3 }, u, { followers: u.followers + (store.get('follows', []).includes(id) ? 1 : 0), friend_status: f, friend_req: u.id, pets: fr ? (u.pets || []) : null, hidden: fr ? [] : ['pets'] }); },
+  async friendReq(id) { const f = this._fr(); f[id] = { st: 'pending_out', at: new Date().toISOString() }; store.set('friends', f); },
+  async friendAnswer(reqId, accept) { const f = this._fr(); if (accept) f[reqId] = { st: 'friends', at: new Date().toISOString() }; else delete f[reqId]; store.set('friends', f); },
+  async friendRemove(id) { const f = this._fr(); delete f[id]; store.set('friends', f); },
+  async myFriends() { const f = this._fr(); return this._people().filter(u => (f[u.id] || {}).st === 'friends').map(u => ({ id: u.id, display_name: u.display_name, city: u.city })); },
+  async saveVis(vis, share) { const pr = store.get('profile', {}); pr.vis = vis; store.set('profile', pr); store.set('share', share); },
   async userPosts(id) { const u = this._people().find(x => x.id === id || x.id === 'u-' + String(id).toLowerCase()) || {}; return this._feed().filter(p => p.user_id === id || p.author === u.display_name).slice(0, 20); },
   async myFollows() { return store.get('follows', []); },
   async follow(id, on) { const f = store.get('follows', []).filter(x => x !== id); if (on) f.push(id); store.set('follows', f); },
@@ -1185,7 +1196,7 @@ const demoApi = {
   async resetPw() {},
   async user() { return { id: 'demo', name: (store.get('profile', {}) || {}).display_name || 'Du' }; },
   async getProfile() { return Object.assign({ display_name: 'Du', city: '', interests: [], share_photos: store.get('share', true) }, store.get('profile', {})); },
-  async saveProfile(p) { store.set('profile', { display_name: p.display_name, city: p.city, interests: p.interests }); },
+  async saveProfile(p) { store.set('profile', { display_name: p.display_name, city: p.city, interests: p.interests, vis: p.vis || (store.get('profile', {}).vis) }); },
   async changePassword() {},
   _raw() {
     let m = store.get('mine', null);
@@ -1291,7 +1302,7 @@ const demoApi = {
   async feed(kind) { kind = kind || 'question'; const pro = store.get('pro', false); if (kind === 'listing') this._swapSeed(this._feed()); if (kind === 'mystery') this._caseSeed(this._feed()); return JSON.parse(JSON.stringify(this._feed().filter(p => (p.kind || 'question') === kind))).map(p => { if (p.user_id === 'demo') p.author_pro = pro; p.answers.forEach(a => { if (a.user_id === 'demo') a.author_pro = pro; }); return p; }); },
   async newThread(cat, title, body, photo) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.unshift({ id: Date.now(), kind: 'thread', user_id: 'demo', author: 'Du', category: cat, title, body, photo_url: url, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
   async ask(cat, body, photo) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.unshift({ id: Date.now(), kind: 'question', user_id: 'demo', author: 'Du', category: cat, body, photo_url: url, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
-  async notifs() { const me = 'demo', out = []; this._feed().filter(p => p.user_id === me).forEach(p => (p.answers || []).filter(a => a.user_id !== me).forEach(a => out.push({ t: 'reply', at: a.created_at, who: a.author, body: a.body, post_id: p.id, kind: p.kind || 'question', cat: p.category, ptitle: p.title || p.body }))); (store.get('xq', []) || []).filter(q => q.answer).forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer })); return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 50); },
+  async notifs() { const me = 'demo', out = []; this._feed().filter(p => p.user_id === me).forEach(p => (p.answers || []).filter(a => a.user_id !== me).forEach(a => out.push({ t: 'reply', at: a.created_at, who: a.author, body: a.body, post_id: p.id, kind: p.kind || 'question', cat: p.category, ptitle: p.title || p.body }))); (store.get('xq', []) || []).filter(q => q.answer).forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer })); Object.entries(this._fr()).forEach(([id, v]) => { const u = this._people().find(x => x.id === id); if (u && v.st === 'pending_in') out.push({ t: 'friend', pending: true, at: v.at, who: u.display_name, req: id, from: id }); }); return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 50); },
   async answer(pid, body, photo) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.find(p => p.id === pid).answers.push({ id: Date.now(), user_id: 'demo', author: 'Du', body, photo_url: url, created_at: new Date().toISOString() }); this._save(f); },
   async like(pid, on) { const f = this._feed(), p = f.find(x => x.id === pid); p.likers = p.likers.filter(x => x !== 'demo'); if (on) p.likers.push('demo'); this._save(f); },
   async best(pid, aid) { const f = this._feed(); f.find(p => p.id === pid).best_answer_id = aid; this._save(f); },
@@ -1314,6 +1325,11 @@ const sbApi = {
   async answerExpert(id, text) { const { error } = await sb.from('expert_questions').update({ answer: text, answered_by: S.user.id, answered_at: new Date().toISOString() }).eq('id', id); if (error) throw error; },
   async findUsers(q) { const { data, error } = await sb.rpc('find_users', { q: q || '' }); if (error) throw /find_users/.test(error.message || '') ? new Error('USERS_NOT_READY') : error; return data || []; },
   async userCard(id) { const { data, error } = await sb.rpc('user_card', { p_id: id }); if (error) throw /user_card/.test(error.message || '') ? new Error('USERS_NOT_READY') : error; return (data && data[0]) || null; },
+  async friendReq(id) { const { error } = await sb.from('friend_requests').insert({ to_user: id }); if (error && !/duplicate|unique/.test(error.message || '')) throw /friend_requests/.test(error.message || '') ? new Error('FRIENDS_NOT_READY') : error; },
+  async friendAnswer(reqId, accept) { const r = accept ? await sb.from('friend_requests').update({ status: 'accepted', responded_at: new Date().toISOString() }).eq('id', reqId) : await sb.from('friend_requests').delete().eq('id', reqId); if (r.error) throw r.error; },
+  async friendRemove(id) { const me = S.user.id, { error } = await sb.from('friend_requests').delete().or(`and(from_user.eq.${me},to_user.eq.${id}),and(from_user.eq.${id},to_user.eq.${me})`); if (error) throw error; },
+  async myFriends() { const { data, error } = await sb.rpc('my_friends'); if (error) return []; return data || []; },
+  async saveVis(vis, share) { const { error } = await sb.from('profiles').update({ vis, share_photos: share }).eq('id', S.user.id); if (error) throw /vis/.test(error.message || '') ? new Error('FRIENDS_NOT_READY') : error; },
   async userPosts(id) { const { data, error } = await sb.from('posts').select('id,kind,title,body,category,created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(20); if (error) throw error; return data || []; },
   async myFollows() { const { data, error } = await sb.from('follows').select('followee').eq('follower', S.user.id); if (error) return []; return (data || []).map(x => x.followee); },
   async follow(id, on) { const r = on ? await sb.from('follows').insert({ follower: S.user.id, followee: id }) : await sb.from('follows').delete().eq('follower', S.user.id).eq('followee', id); if (r.error && !/duplicate/.test(r.error.message || '')) throw /follows/.test(r.error.message || '') ? new Error('USERS_NOT_READY') : r.error; },
@@ -1338,7 +1354,8 @@ const sbApi = {
     return u ? { id: u.id, name: (u.user_metadata && u.user_metadata.display_name) || u.email, email: u.email } : null;
   },
   async getProfile() {
-    const { data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos').eq('id', S.user.id);
+    let { data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos,vis').eq('id', S.user.id);
+    if (error && /vis/.test(error.message || '')) ({ data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos').eq('id', S.user.id));
     if (error) throw error;
     return (data && data[0]) || { display_name: S.user.name, city: '', interests: [] };
   },
@@ -1457,6 +1474,9 @@ const sbApi = {
     if (!mp.error && mp.data.length) { const byId = Object.fromEntries(mp.data.map(p => [p.id, p])), an = await sb.from('answers').select('id,post_id,user_id,body,created_at').in('post_id', mp.data.map(p => p.id)).neq('user_id', me).order('created_at', { ascending: false }).limit(60);
       if (!an.error && an.data.length) { const pr = await sb.from('profiles').select('id,display_name').in('id', [...new Set(an.data.map(a => a.user_id))]), nm = Object.fromEntries(((pr.data) || []).map(x => [x.id, x.display_name]));
         an.data.forEach(a => { const p = byId[a.post_id]; out.push({ t: 'reply', at: a.created_at, who: nm[a.user_id], body: a.body, post_id: a.post_id, kind: p.kind || 'question', cat: p.category, ptitle: p.title || p.body }); }); } }
+    try { const fr = await sb.from('friend_requests').select('id,from_user,to_user,status,created_at,responded_at').or(`to_user.eq.${me},from_user.eq.${me}`).order('created_at', { ascending: false }).limit(40);
+      if (!fr.error && fr.data.length) { const ids = [...new Set(fr.data.map(f => f.from_user === me ? f.to_user : f.from_user))], pr = await sb.from('profiles').select('id,display_name').in('id', ids), nm = Object.fromEntries(((pr.data) || []).map(x => [x.id, x.display_name]));
+        fr.data.forEach(f => { if (f.status === 'pending' && f.to_user === me) out.push({ t: 'friend', pending: true, at: f.created_at, who: nm[f.from_user], req: f.id, from: f.from_user }); else if (f.status === 'accepted' && f.from_user === me) out.push({ t: 'friend_ok', at: f.responded_at || f.created_at, who: nm[f.to_user], from: f.to_user }); }); } } catch (e) {}
     const xq = await sb.from('expert_questions').select('id,answer,answered_at').eq('asker', me).not('answer', 'is', null).order('answered_at', { ascending: false }).limit(20);
     if (!xq.error) xq.data.forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer }));
     return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 60);
@@ -1582,6 +1602,13 @@ function lbV() {
   return `<div class="mh"><h2>${esc(p ? p.swedish_name : 'Bild')}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <img class="lbimg" src="${esc(x.url)}" alt="${esc((p ? p.swedish_name : 'Växt') + ' fotograferad av ' + (x.display_name || 'en växtvän'))}">
   <div style="display:flex;align-items:center;margin-top:10px"><p class="mut" style="margin:0;flex:1">Foto: <b>${esc(x.display_name || 'Växtvän')}</b></p><button class="x" onclick="reportPhoto()">Rapportera bild</button></div>${nav}`;
+}
+const VIS_ITEMS = [['city', 'Ort'], ['interests', 'Intressen'], ['plants', 'Mina växter'], ['pets', 'Mina djur'], ['posts', 'Inlägg']];
+const visOf = k => { const v = S.prof && S.prof.vis && S.prof.vis[k]; return v || (k === 'pets' ? 'friends' : k === 'plants' && S.prof && S.prof.share_photos === false ? 'none' : 'all'); };
+async function setVis(k, v) {
+  S.prof.vis = Object.assign({}, S.prof.vis || {}, { [k]: v }); if (k === 'plants') S.prof.share_photos = v !== 'none';
+  try { await api.saveVis(S.prof.vis, S.prof.share_photos !== false); S.meCard = undefined; } catch (e) { toast(FR_ERR(e)); }
+  render();
 }
 async function toggleShare(on) {
   try { await api.setShare(on); if (S.prof) S.prof.share_photos = on; toast(on ? 'Dina växtfoton visas för andra' : 'Dina växtfoton visas bara för dig'); }
@@ -2847,6 +2874,7 @@ function todoItems() {
   const t = [];
   S.mine.filter(m => left(m) === 0 && !sensorDry(m)).forEach(m => t.push({ id: 'w' + m.id, txt: 'Vattna ' + m.name, act: `water(${m.id})`, open: `openMine(${m.id})` }));
   S.mine.filter(sensorDry).forEach(m => t.push({ id: 's' + m.id, txt: 'Kolla jorden i ' + m.name + ' (sensorn säger torrt)', act: `water(${m.id})`, open: `openMine(${m.id})` }));
+  (S.notifs || []).filter(n => n.t === 'friend').slice(0, 3).forEach(n => t.push({ id: 'f' + n.req, txt: (n.who || 'Någon') + ' vill bli din vän. Svara på förfrågan.', open: 'openNotif()' }));
   if (S.pets) { petWarnings().filter(x => x.lv === 'd').slice(0, 2).forEach(x => t.push({ id: 'p' + x.m.id + x.a.id, txt: x.m.name + ' är farlig för ' + x.a.name + '. Flytta den.', open: 'openPets()' })); }
   if (S.wx && S.wx.d) outWeatherAlerts().slice(0, 3).forEach(([m, msg]) => t.push({ id: 'o' + m.id, txt: m.name + ': ' + msg.split('.')[0], open: `openMine(${m.id})` }));
   return t;
@@ -3597,7 +3625,7 @@ function openAqDb() { S.env = 'in'; S.cat = 'Akvarieväxt'; S.q = ''; openDb(); 
 
 // ===== Notiser: svar på mina inlägg, expertsvar, vattning =====
 function notifSeen() { return store.get('notifSeen', 0); }
-function notifUnseen() { return (S.notifs || []).filter(n => Date.parse(n.at) > notifSeen()).length; }
+function notifUnseen() { return (S.notifs || []).filter(n => n.pending || Date.parse(n.at) > notifSeen()).length; }
 async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); } catch (e) { S.notifs = S.notifs || []; } const b = $('.bellb .dot'); if (!S.tool && !S.modal) render(); }
 function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due; return `<button class="circ bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
 function notifAllRead() { S.prevSeen = Date.now(); store.set('notifSeen', Date.now()); keepMain(); toast('Alla notiser är markerade som lästa'); }
@@ -3608,11 +3636,13 @@ function notifV() {
   const what = { question: 'din fråga', thread: 'din tråd', listing: 'din annons', mystery: 'ditt detektivfall' };
   const row = (icon, title, sub, at, act, isNew) => `<button class="nrow ${isNew ? 'new' : ''}" onclick="${act}"><span class="nic">${icon}</span><span class="grow"><b>${title}</b>${sub ? `<span>${sub}</span>` : ''}</span>${at ? `<small>${ago(at)}</small>` : ''}</button>`;
   const todo = due.map(m => row('💧', `${esc(m.name)} behöver vatten idag`, '', null, `S.tool=null;go('mine')`, false)).concat(out.map(([m, t]) => row('🌦️', esc(m.name), esc(t.split('.')[0]), null, `S.tool=null;openMine(${m.id})`, false)));
-  const act = (N || []).map(n => n.t === 'expert' ? row('🎓', `${esc(n.who || 'En expert')} har svarat på din expertfråga`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `openExperts()`, Date.parse(n.at) > seen)
+  const frq = (N || []).filter(n => n.t === 'friend').map(n => `<div class="nrow new frow"><span class="nic">👋</span><span class="grow"><b>${esc(n.who || 'Någon')} vill bli din vän</b><span class="fbtns"><button class="btn sm" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',true)">Acceptera</button><button class="btn sm line" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',false)">Neka</button><button class="link3" onclick="openUser('${esc(n.from)}')">Visa profil</button></span></span><small>${ago(n.at)}</small></div>`);
+  const act = (N || []).filter(n => n.t !== 'friend').map(n => n.t === 'friend_ok' ? row('🤝', `${esc(n.who || 'Någon')} accepterade din vänförfrågan`, 'Ni är nu vänner', n.at, `openUser('${esc(n.from)}')`, Date.parse(n.at) > seen) : n.t === 'expert' ? row('🎓', `${esc(n.who || 'En expert')} har svarat på din expertfråga`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `openExperts()`, Date.parse(n.at) > seen)
     : row(n.kind === 'mystery' ? '🔎' : n.kind === 'listing' ? '🔁' : '💬', `${esc(n.who || 'Någon')} svarade på ${what[n.kind] || 'ditt inlägg'}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”${n.ptitle ? ` · ${esc(n.ptitle.slice(0, 40))}` : ''}`, n.at, `goPost('${n.kind}',${n.post_id},'${esc(n.cat || '')}')`, Date.parse(n.at) > seen));
   return `${topbar('Notiser', 'S.tool=null;render()')}
+  ${frq.length ? `<div class="sec"><h2>Vänförfrågningar</h2></div><div class="pad nlist">${frq.join('')}</div>` : ''}
   ${todo.length ? `<div class="sec"><h2>Att göra idag</h2></div><div class="pad nlist">${todo.join('')}</div>` : ''}
-  <div class="sec"><h2>Svar och aktivitet</h2>${(N || []).some(n => Date.parse(n.at) > seen) ? '<button class="viewall" onclick="notifAllRead()">✓ Markera alla som lästa</button>' : ''}</div><div class="pad nlist">${N == null ? '<p class="mut">Hämtar…</p>' : act.length ? act.join('') : '<p class="mut" style="margin:0">Inga svar än. När någon svarar på dina frågor, trådar, annonser eller detektivfall syns det här.</p>'}</div>
+  <div class="sec"><h2>Svar och aktivitet</h2>${(N || []).some(n => n.t !== 'friend' && Date.parse(n.at) > seen) ? '<button class="viewall" onclick="notifAllRead()">✓ Markera alla som lästa</button>' : ''}</div><div class="pad nlist">${N == null ? '<p class="mut">Hämtar…</p>' : act.length ? act.join('') : '<p class="mut" style="margin:0">Inga svar än. När någon svarar på dina frågor, trådar, annonser eller detektivfall syns det här.</p>'}</div>
   <p class="mut" style="font-size:12.5px;margin:14px 18px 24px">Notiser i mobilen när du inte har appen öppen gäller än så länge bara vattning.</p>`;
 }
 function cPhotoBtn() { return S.cph ? `<span class="cph"><img src="${esc(S.cphUrl)}" alt="Vald bild"><button onclick="S.cph=null;S.cphUrl=null;keepMain()" aria-label="Ta bort bilden">×</button></span>` : `<label onclick="photoPick(event,this)" class="btn sm line cphb">📷 Bild<input type="file" accept="image/*" class="sr" onchange="cPhoto(this)"></label>`; }
@@ -3948,6 +3978,29 @@ function peopleV() {
     : q ? sec(list.length + (list.length === 1 ? ' träff' : ' träffar'), list) : sec('Du följer', following) + sec('Nära dig i ' + esc(S.city || ''), near) + sec('Fler växtvänner', rest)}
   <div style="height:24px"></div>`;
 }
+const FR_ERR = e => e.message === 'FRIENDS_NOT_READY' ? 'Vänner är inte påslaget i databasen än (steg 027).' : errMsg(e);
+async function friendAsk(id) {
+  if (needLogin()) return;
+  try { await api.friendReq(id); if (S.ucard && S.ucard.id === id) S.ucard.friend_status = 'pending_out'; toast('Vänförfrågan är skickad'); } catch (e) { toast(FR_ERR(e)); }
+  keepMain();
+}
+async function friendAnswer(req, from, accept) {
+  try { await api.friendAnswer(DEMO ? from : +req, accept); toast(accept ? 'Ni är nu vänner' : 'Förfrågan är nekad'); S.friends = null; if (S.ucard && S.ucard.id === from) S.ucard = await api.userCard(from); } catch (e) { toast(FR_ERR(e)); }
+  await loadNotifs(); keepMain();
+}
+async function friendRemove(id) {
+  if (S.del !== 'fr' + id) { S.del = 'fr' + id; return keepMain(); }
+  S.del = null;
+  try { await api.friendRemove(id); if (S.ucard && S.ucard.id === id) S.ucard = await api.userCard(id); S.friends = null; toast('Borttagen från dina vänner'); } catch (e) { toast(FR_ERR(e)); }
+  keepMain();
+}
+function frBtns(c) {
+  const st = c.friend_status || 'none', id = esc(c.id);
+  return st === 'friends' ? `<button class="btn sm line" onclick="friendRemove('${id}')">${S.del === 'fr' + c.id ? 'Bekräfta: ta bort vän' : 'Vänner ✓'}</button>`
+    : st === 'pending_out' ? `<button class="btn sm line" onclick="friendRemove('${id}')">${S.del === 'fr' + c.id ? 'Bekräfta: ta tillbaka' : 'Förfrågan skickad'}</button>`
+    : st === 'pending_in' ? `<button class="btn sm" onclick="friendAnswer('${esc(String(c.friend_req))}','${id}',true)">Acceptera vän</button><button class="btn sm line" onclick="friendAnswer('${esc(String(c.friend_req))}','${id}',false)">Neka</button>`
+    : `<button class="btn sm cop" onclick="friendAsk('${id}')">+ Lägg till vän</button>`;
+}
 async function toggleFollow(id) {
   if (needLogin()) return; const on = !(S.follows || []).includes(id);
   S.follows = on ? (S.follows || []).concat(id) : S.follows.filter(x => x !== id);
@@ -3977,6 +4030,11 @@ function userV() {
   if (c.err || c.missing) return `${topbar('Profil', back)}<p class="mut" style="margin:16px 18px">${c.err === 'USERS_NOT_READY' ? 'Profiler är inte påslagna i databasen än (steg 022).' : 'Profilen hittades inte.'}</p>`;
   return `${topbar(c.display_name, back)}${userBody(c, S.uposts, false)}`;
 }
+function friendsSec() {
+  if (S.friends == null) { if (!S.frLoad) { S.frLoad = true; api.myFriends().then(l => { S.friends = l; S.frLoad = false; if (S.tab === 'me' && !S.tool && !S.sel) render(); }).catch(() => { S.friends = []; S.frLoad = false; }); } return ''; }
+  if (!S.friends.length) return '';
+  return `<div class="sec"><h2>Vänner</h2></div><div class="pad"><div class="chips2">${S.friends.map(f => `<button onclick="openUser('${esc(f.id)}')">${esc(f.display_name)}</button>`).join('')}</div></div>`;
+}
 function profPets(c, self) {
   if (self && !S.pets && !S.petsLoading) { S.petsLoading = true; loadPets().then(() => { S.petsLoading = false; if (S.tab === 'me' && !S.tool && !S.sel) render(); }); }
   const L = self ? petsList() : (c.pets || []);
@@ -3990,16 +4048,17 @@ function profPets(c, self) {
 function userBody(c, uposts, self) {
   const f = (S.follows || []).includes(c.id), posts = uposts || [];
   return `  <div class="uhero">${avBig(c.display_name, 'bigav')}<div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? '📍 ' + esc(c.city) : 'Ingen ort angiven'}</span>
-    ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">✏️ Redigera profil</button>` : `<button class="btn sm ${f ? 'line' : ''}" style="margin-top:10px;align-self:flex-start" onclick="toggleFollow('${esc(c.id)}')">${f ? 'Följer ✓' : '+ Följ'}</button>`}</div></div>
-  <div class="ustats"><div><b>${c.plants || 0}</b><span>växter</span></div><div><b>${c.posts || 0}</b><span>inlägg</span></div><div><b>${c.followers || 0}</b><span>följare</span></div><div><b>${c.following || 0}</b><span>följer</span></div></div>
+    ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">✏️ Redigera profil</button>` : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow('${esc(c.id)}')">${f ? 'Följer ✓' : '+ Följ'}</button>${frBtns(c)}</div>`}</div></div>
+  <div class="ustats"><div><b>${c.plants || 0}</b><span>växter</span></div><div><b>${c.posts || 0}</b><span>inlägg</span></div><div><b>${c.followers || 0}</b><span>följare</span></div><div><b>${c.friends != null ? c.friends : (self && S.friends ? S.friends.length : 0)}</b><span>vänner</span></div></div>
+  ${self ? friendsSec() : ''}
   ${(c.interests || []).length ? `<div class="sec"><h2>Intressen</h2></div><div class="pad"><div class="chips2">${c.interests.map(i => `<span class="tag lime">${esc(i)}</span>`).join('')}</div></div>` : ''}
   <div class="sec"><h2>Växter</h2></div>
   <div class="pad">${c.plant_list && c.plant_list.length ? `<div class="uplants">${c.plant_list.slice(0, 30).map(pl => { const db = pl.plant_id ? S.plants.find(x => x.id === pl.plant_id) : S.plants.find(x => x.swedish_name === pl.name);
       return `<button class="upl" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${pl.photo ? `<div class="ph has-img"><img src="${esc(pl.photo)}" alt="" loading="lazy"></div>` : db ? plantPh(db) : ph('', 'Krukväxt', pl.name)}<span>${esc(pl.name || 'Växt')}</span></button>`; }).join('')}</div>`
-    : `<p class="mut" style="margin:0;font-size:14px">${self ? 'Din samling är tom eller dold för andra.' : esc(c.display_name) + ' visar inte sin samling.'}</p>`}</div>
+    : `<p class="mut" style="margin:0;font-size:14px">${self ? 'Din samling är tom eller dold för andra.' : esc(c.display_name) + ((c.hidden || []).includes('plants') ? ' visar inte sina växter för dig.' : ' visar inte sin samling.')}</p>`}</div>
   ${profPets(c, self)}
   <div class="sec"><h2>Inlägg</h2></div>
-  <div class="pad">${uposts == null ? '<p class="mut">Hämtar…</p>' : posts.length ? `<div class="norm">${posts.map(p => `<button class="nrow" onclick="openUserPost(${p.id},'${p.kind || 'question'}','${esc(p.category || '')}')"><span class="grow"><small class="mut">${KIND_NAME[p.kind || 'question']} · ${ago(p.created_at)}</small>${esc((p.title || p.body || '').slice(0, 90))}</span>${ic(I.back, 'var(--mut)', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button>`).join('')}</div>` : `<p class="mut" style="margin:0;font-size:14px">Inga inlägg än.</p>`}</div>
+  <div class="pad">${(c.hidden || []).includes('posts') ? `<p class="mut" style="margin:0;font-size:14px">${esc(c.display_name)} visar inte sina inlägg för dig.</p>` : uposts == null ? '<p class="mut">Hämtar…</p>' : posts.length ? `<div class="norm">${posts.map(p => `<button class="nrow" onclick="openUserPost(${p.id},'${p.kind || 'question'}','${esc(p.category || '')}')"><span class="grow"><small class="mut">${KIND_NAME[p.kind || 'question']} · ${ago(p.created_at)}</small>${esc((p.title || p.body || '').slice(0, 90))}</span>${ic(I.back, 'var(--mut)', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button>`).join('')}</div>` : `<p class="mut" style="margin:0;font-size:14px">Inga inlägg än.</p>`}</div>
   <div style="height:24px"></div>`;
 }
 // ===== Anpassa startskärmen =====
@@ -4973,7 +5032,8 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
-  ['1.68', 'Nu', ['Att göra på Hem: en checklista där du bockar av vattning', 'Snyggare laddningsruta', 'Huset på Hem snurrar inte längre när du scrollar', 'Åtgärdat: foton hamnade på alla exemplar av samma växt', 'Installera-ruta när appen kan installeras', 'Uppdateringslogg', 'Alla funktioner är öppna för alla under testperioden']],
+  ['1.69', 'Nu', ['Vänförfrågningar med notis där du accepterar eller nekar', 'Välj vad andra ser på din profil: ort, intressen, växter, djur och inlägg (alla, bara vänner eller ingen)', 'Vänner visas på din profil']],
+  ['1.68', '26 okt', ['Att göra på Hem: en checklista där du bockar av vattning', 'Snyggare laddningsruta', 'Huset på Hem snurrar inte längre när du scrollar', 'Åtgärdat: foton hamnade på alla exemplar av samma växt', 'Installera-ruta när appen kan installeras', 'Uppdateringslogg', 'Alla funktioner är öppna för alla under testperioden']],
   ['1.67', '26 okt', ['Mina djur syns på din profil', 'Såkalender: när du ska så, förodla och plantera ut i din zon', 'Permakultur och design: guide med zoner, gillen och planering']],
   ['1.66', '24 okt', ['Kugghjul för Inställningar bredvid klockan på Profil']],
   ['1.65', 'Tidigare', ['Fåglar i Mina djur', 'Utforska-knapp med alla funktioner', 'Väder högst upp på Hem', 'Bilder i forum och svar', 'Alla notiser som lästa']],
@@ -5461,7 +5521,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.68';
+const APP_VERSION = '1.69';
 function applyPrefs() {
   const th = store.get('theme', 'system'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
@@ -5537,6 +5597,9 @@ function settingsV() {
       <label class="fl">Mina intressen</label><div class="chips2">${CATS.map(c => `<button class="${P.interests.includes(c) ? 'on' : ''}" aria-pressed="${P.interests.includes(c)}" onclick="toggleInterest('${c}',this)">${c}</button>`).join('')}</div>
       <p class="mut" style="margin:8px 0 0;font-size:13px">Intressena styr vad appen visar först.</p>
       <label class="sharerow"><input type="checkbox" ${P.share_photos !== false ? 'checked' : ''} onchange="toggleShare(this.checked)"><span><b style="display:block">Visa mina växter och foton för andra</b><span class="mut" style="font-size:13px">Dina foton syns under "Andras bilder" på växtens sida, med ditt namn.</span></span></label>
+      <label class="fl" style="margin-top:16px">Vad andra ser på din profil</label>
+      ${VIS_ITEMS.map(([k, t]) => `<div class="visrow"><span>${t}</span>${seg3([['all', 'Alla'], ['friends', 'Vänner'], ['none', 'Ingen']], visOf(k), `(v=>setVis('${k}',v))`)}</div>`).join('')}
+      <p class="mut" style="margin:6px 0 0;font-size:13px">Vänner är de som du har accepterat en vänförfrågan med. Ditt namn syns alltid.</p>
       <div style="margin-top:14px"><button class="btn sm" onclick="saveProfile()">Spara profil</button></div></div>`;
   const account = S.user && !DEMO ? `<div class="sec"><h2>Konto</h2></div><div class="pad"><div class="setcard">
       ${S.user.email ? `<label class="fl">E-post</label><p style="margin:0 0 4px">${esc(S.user.email)}</p>` : ''}
