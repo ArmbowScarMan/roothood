@@ -2077,7 +2077,11 @@ function build3d(first) {
   planFurn().filter(f => !OUT3[f.t]).forEach(f => { const h = FH[f.t] || 0.8, m = new THREE.Mesh(f.t === 'round' ? new THREE.CylinderGeometry(f.w / 2, f.w / 2, h, 28) : new THREE.BoxGeometry(f.w, h, f.h), M(FC[f.t] || '#C9A57D', f.t === 'shower' || f.t === 'ghouse' ? { transparent: true, opacity: 0.55 } : null));
     m.position.set(f.x, h / 2 + 0.01, f.y); m.rotation.y = -(f.rot || 0) * Math.PI / 180; add(m); });
   // växter i samlingen
-  S.mine.filter(m => m.details && m.details.pos).forEach(m => { const { x, y } = m.details.pos, pp = plantById(m.plant_id);
+  const wallSegs = []; planRooms().forEach(r => { const pg = roomPoly(r); pg.forEach((q, i) => { const n = pg[(i + 1) % pg.length]; wallSegs.push([q[0], q[1], n[0], n[1]]); }); }); planWalls().filter(wl => wl.h !== 'hedge').forEach(wl => wallSegs.push([wl.x1, wl.y1, wl.x2, wl.y2]));
+  const clr = (x, y, r) => { for (let it = 0; it < 4; it++) wallSegs.forEach(([x1, y1, x2, y2]) => { const dx = x2 - x1, dy = y2 - y1, L = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / L)), nx = x1 + t * dx, ny = y1 + t * dy, d = Math.hypot(x - nx, y - ny);
+      if (d < r) { if (d < 1e-4) { const ln = Math.sqrt(L); x += -dy / ln * r; y += dx / ln * r; } else { x = nx + (x - nx) / d * r; y = ny + (y - ny) / d * r; } } }); return [x, y]; };
+  S.mine.filter(m => m.details && m.details.pos).forEach(m => { const pp = plantById(m.plant_id), isOut = OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel'].includes(m.details.place);
+    const rad = isOut ? Math.min(2.5, ((m.details.w || pSize(pp || {})[1]) / 100) / 2) + TH / 2 + 0.02 : 0.32 + TH / 2 + 0.03, [x, y] = clr(m.details.pos.x, m.details.pos.y, rad);
     if (OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel'].includes(m.details.place)) { const g3 = plant3d(pp || { id: m.id, swedish_name: m.name, latin_name: m.latin || '', category: m.category }, THREE, M, m.details.h, m.details.w, m.id * 31); g3.position.set(x, 0, y); sc.add(g3); if (S.hview === '3d' && !S.low3d && (m.details.h || m.details.w)) { const lab = label3d(m.name); if (lab) { lab.position.set(x, Math.min(40, (m.details.h || pSize(pp || {})[0]) / 100) + 0.5, y); lab.scale.multiplyScalar ? lab.scale.multiplyScalar(0.7) : 0; sc.add(lab); } } return; }
     const ok = plantMarkerOk(m), gr = new THREE.Group();
     const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.28, 18), M('#C2643F')); pot.position.y = 0.14; pot.castShadow = true; gr.add(pot);
@@ -5053,7 +5057,8 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
-  ['1.72', 'Nu', ['Notisklockan finns nu på Hem också, så den syns på alla sidor', 'Vänförfrågningar visas som en tydlig ruta högst upp på Hem med knapparna Acceptera och Neka']],
+  ['1.72.1', 'Nu', ['Växter i 3D går inte längre genom väggar. De flyttas till närmaste fria plats vid väggen']],
+  ['1.72', '26 okt', ['Notisklockan finns nu på Hem också, så den syns på alla sidor', 'Vänförfrågningar visas som en tydlig ruta högst upp på Hem med knapparna Acceptera och Neka']],
   ['1.71.1', '26 okt', ['Åtgärdat: Mitt hem gick inte att öppna för den som hade fönster och växter utplacerade i ett rum']],
   ['1.71', 'Nu', ['Nytt mörkt neonutseende som matchar logotypen (du kan byta till ljust under Inställningar → Utseende)']],
   ['1.70', '26 okt', ['Ny logotyp: ett träd med kretsmönster', 'Ny ikon på startskärmen', 'Tydligare felruta om en vy kraschar, så att felet kan rättas']],
@@ -5546,7 +5551,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.72';
+const APP_VERSION = '1.72.1';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 function applyPrefs() {
