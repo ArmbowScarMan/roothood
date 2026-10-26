@@ -1320,6 +1320,18 @@ const demoApi = {
   async like(pid, on) { const f = this._feed(), p = f.find(x => x.id === pid); p.likers = p.likers.filter(x => x !== 'demo'); if (on) p.likers.push('demo'); this._save(f); },
   async best(pid, aid) { const f = this._feed(); f.find(p => p.id === pid).best_answer_id = aid; this._save(f); },
   async report() {},
+  async myRole() { return 'admin'; },
+  async myBlocks() { return store.get('blocks', []); },
+  async blockedList() { const b = store.get('blocks', []); return this._people().filter(u => b.includes(u.id)).map(u => ({ id: u.id, display_name: u.display_name })); },
+  async block(id, on) { let b = store.get('blocks', []).filter(x => x !== id); if (on) b.push(id); store.set('blocks', b); },
+  _mr() { let r = store.get('demoMods', null); if (!r) { r = [{ id: 1, kind: 'post', target: '1', reason: 'Reklam eller spam', created_at: new Date(Date.now() - 36e5).toISOString(), reporter: 'Maria', author: 'Spammaren', excerpt: 'Köp billiga växter på nätet, klicka här!', hidden: false, n: 2, status: 'open' }, { id: 2, kind: 'answer', target: '2', reason: 'Olämpligt', created_at: new Date(Date.now() - 72e5).toISOString(), reporter: 'Ted', author: 'Okänd', excerpt: 'Det där är ett dumt svar.', hidden: false, n: 1, status: 'open' }]; store.set('demoMods', r); } return r; },
+  async modReports(st) { return this._mr().filter(r => st === 'all' || r.status === st); },
+  async modAct(id, a) { const r = this._mr(); r.filter(x => x.id === id).forEach(x => { x.status = a === 'hide' ? 'hidden' : 'kept'; x.hidden = a === 'hide'; }); store.set('demoMods', r); },
+  async modOpen() { return this._mr().filter(r => r.status === 'open').length; },
+  async modFeed() { return this._feed().slice(0, 12).map(p => ({ kind: 'post', id: p.id, author: p.author, excerpt: (p.title ? p.title + ' ' : '') + (p.body || ''), created_at: p.created_at, hidden: false })); },
+  async modHide() {},
+  async listStaff() { return [{ id: 'demo', display_name: 'Du (admin)', role: 'admin' }, { id: 'u-maria', display_name: 'Maria', role: 'mod' }]; },
+  async setRole() {},
   async delPost(id) { this._save(this._feed().filter(p => p.id !== id)); },
   async delAnswer(id) { const f = this._feed(); f.forEach(p => { p.answers = p.answers.filter(a => a.id !== id); if (p.best_answer_id === id) p.best_answer_id = null; }); this._save(f); }
 };
@@ -1454,7 +1466,7 @@ const sbApi = {
     if (!posts.length) return [];
     const ids = posts.map(p => p.id);
     const [a, l] = await Promise.all([
-      sb.from('answers').select('id,post_id,user_id,body,created_at,photo_url').in('post_id', ids).order('created_at').then(r => r.error && /photo_url/.test(r.error.message || '') ? sb.from('answers').select('id,post_id,user_id,body,created_at').in('post_id', ids).order('created_at') : r),
+      sb.from('answers').select('*').in('post_id', ids).order('created_at'),
       sb.from('likes').select('post_id,user_id').in('post_id', ids)]);
     if (a.error) throw a.error;
     if (l.error) throw l.error;
@@ -1506,10 +1518,24 @@ const sbApi = {
     if (error && kind === 'photo' && /duplicate|unique/.test(error.message || '')) return;
     if (error) throw kind === 'photo' && /photo_url|target_check|reports_check/.test(error.message || '') ? new Error('REPORT_PHOTO_NOT_READY') : error;
   },
+  async myRole() { const { data, error } = await sb.rpc('my_role'); return error ? 'user' : (data || 'user'); },
+  async myBlocks() { const { data, error } = await sb.from('blocks').select('blocked').eq('blocker', S.user.id); return error ? [] : (data || []).map(x => x.blocked); },
+  async blockedList() { const ids = await this.myBlocks(); if (!ids.length) return []; const { data } = await sb.from('profiles').select('id,display_name').in('id', ids); return data || []; },
+  async block(id, on) { const { error } = on ? await sb.from('blocks').insert({ blocked: id }) : await sb.from('blocks').delete().eq('blocker', S.user.id).eq('blocked', id); if (error && !/duplicate/.test(error.message || '')) throw /blocks/.test(error.message || '') ? new Error('MOD_NOT_READY') : error; },
+  async modReports(st) { const { data, error } = await sb.rpc('mod_reports', { p_status: st }); if (error) throw /mod_reports/.test(error.message || '') ? new Error('MOD_NOT_READY') : error; return data || []; },
+  async modAct(id, a) { const { error } = await sb.rpc('mod_act', { p_report: id, p_action: a }); if (error) throw error; },
+  async modOpen() { const { data, error } = await sb.rpc('mod_open_count'); return error ? 0 : (data || 0); },
+  async modFeed() { const { data, error } = await sb.rpc('mod_feed'); if (error) throw error; return data || []; },
+  async modHide(kind, id, on) { const { error } = await sb.rpc('mod_hide', { p_kind: kind, p_id: id, p_hide: on }); if (error) throw error; },
+  async listStaff() { const { data, error } = await sb.rpc('list_staff'); if (error) throw error; return data || []; },
+  async setRole(id, role) { const { error } = await sb.rpc('set_role', { p_user: id, p_role: role }); if (error) throw error; },
   async delPost(id) { const { error } = await sb.from('posts').delete().eq('id', id); if (error) throw error; },
   async delAnswer(id) { const { error } = await sb.from('answers').delete().eq('id', id); if (error) throw error; }
 };
 let api = demoApi;
+function cleanFeed(l) { const bl = S.blocks || []; return (l || []).filter(p => !p.hidden && !bl.includes(p.user_id)).map(p => ({ ...p, answers: (p.answers || []).filter(a => !a.hidden && !bl.includes(a.user_id)) })); }
+[demoApi, sbApi].forEach(a => { const f = a.feed; a.feed = async function (k) { return cleanFeed(await f.call(a, k)); }; });
+const isMod = () => S.role === 'mod' || S.role === 'admin', isAdmin = () => S.role === 'admin';
 
 // ===== Åtgärder =====
 let toastT;
@@ -1867,7 +1893,8 @@ function roomHints(p, r, win) {
   if (r.temp === 'Svalt' && p.category !== 'Kaktus' && p.light_level >= 2 && /tropi|monstera|filodendron|philodendron|alokasia|alocasia|calathea/i.test((p.swedish_name || '') + (p.latin_name || ''))) h.push(['warn', `${nm} kommer från tropikerna och vill inte ha det kallare än cirka 16 °C.`]);
   return h;
 }
-async function loadHome() { if (!S.user) return; try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
+async function loadRole() { if (!S.user) return; try { S.role = await api.myRole(); S.blocks = await api.myBlocks(); if (isMod()) S.modOpen = await api.modOpen(); } catch (e) {} }
+async function loadHome() { if (!S.user) return; loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
 function openHouse(id) { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'house'; S.room = id || null; if (S.pl) { S.pl.sel = null; S.pl.mode = 'move'; S.pl.fit = true; } render(); $('#main').scrollTop = 0; }
 function compassSvg(dirs, size) {
   const sz = size || 44, c = sz / 2, R = c - 3;
@@ -3650,11 +3677,62 @@ function openAqDb() { S.env = 'in'; S.cat = 'Akvarieväxt'; S.q = ''; openDb(); 
 // ===== Notiser: svar på mina inlägg, expertsvar, vattning =====
 function notifSeen() { return store.get('notifSeen', 0); }
 function notifUnseen() { return (S.notifs || []).filter(n => n.pending || Date.parse(n.at) > notifSeen()).length; }
-async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); } catch (e) { S.notifs = S.notifs || []; } const b = $('.bellb .dot'); if (!S.tool && !S.modal) render(); }
-function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due; return `<button class="circ bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
+async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); } catch (e) { S.notifs = S.notifs || []; } if (isMod()) { try { S.modOpen = await api.modOpen(); } catch (e) {} } if (!S.tool && !S.modal) render(); }
+function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due + (isMod() ? (S.modOpen || 0) : 0); return `<button class="circ bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
 function notifAllRead() { S.prevSeen = Date.now(); store.set('notifSeen', Date.now()); keepMain(); toast('Alla notiser är markerade som lästa'); }
 function openNotif() { if (!S.user) return openModal('login'); stopLight(); S.sel = null; S.modal = null; S.prevSeen = notifSeen(); S.tool = 'notif'; render(); $('#main').scrollTop = 0; store.set('notifSeen', Date.now()); loadNotifs().then(() => { if (S.tool === 'notif') render(); }); }
 function goPost(kind, id, cat) { S.tool = null; S.sel = null; S.tab = 'comm'; S.ctab = KIND_TAB[kind] || 'q'; S.forum = kind === 'thread' ? cat : null; S.post = id; S.newCase = false; S.newL = false; S.newThread = false; render(); $('#main').scrollTop = 0; loadFeed(); }
+// ===== Moderering =====
+function openMod(tab) { if (!isMod()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'mod'; S.modTab = tab || 'open'; S.modData = null; S.modErr = null; render(); $('#main').scrollTop = 0; loadMod(); }
+async function loadMod() {
+  const t = S.modTab; S.modBusy = true;
+  try {
+    if (t === 'open') S.modData = await api.modReports('open');
+    else if (t === 'done') S.modData = (await api.modReports('all')).filter(r => r.status !== 'open');
+    else if (t === 'feed') S.modData = await api.modFeed();
+    else if (t === 'team') { S.modData = await api.listStaff(); }
+    S.modErr = null; S.modOpen = await api.modOpen();
+  } catch (e) { S.modData = []; S.modErr = e.message === 'MOD_NOT_READY' || /mod_|NOT_MOD/.test(e.message || '') ? 'Modereringen är inte påslagen i databasen än (steg 028).' : errMsg(e); }
+  S.modBusy = false; if (S.tool === 'mod') { const y = $('#main').scrollTop; render(); $('#main').scrollTop = y; }
+}
+function modTab(t) { S.modTab = t; S.modData = null; S.modQ = ''; S.modRes = null; render(); loadMod(); }
+async function modAct(id, a) { try { await api.modAct(id, a); toast(a === 'hide' ? 'Dolt för alla' : a === 'keep' ? 'Behålls' : 'Visas igen'); } catch (e) { toast(errMsg(e)); } loadMod(); }
+async function modHide(kind, id, on) { try { await api.modHide(kind, id, on); toast(on ? 'Dolt för alla' : 'Visas igen'); } catch (e) { toast(errMsg(e)); } loadMod(); }
+async function modRole(id, role) { try { await api.setRole(id, role); toast(role === 'mod' ? 'Är nu moderator' : 'Är inte längre moderator'); } catch (e) { toast(errMsg(e)); } S.modRes = null; S.modTab = 'team'; loadMod(); }
+async function modFind(form) { S.modQ = form.mq.value.trim(); try { S.modRes = S.modQ ? await api.findUsers(S.modQ) : []; } catch (e) { S.modRes = []; toast(errMsg(e)); } render(); }
+const KIND_SV = { post: 'Inlägg', answer: 'Svar', photo: 'Foto' };
+function modV() {
+  const t = S.modTab || 'open', D = S.modData, tabs = [['open', 'Rapporter' + (S.modOpen ? ' (' + S.modOpen + ')' : '')], ['done', 'Hanterade'], ['feed', 'Community']].concat(isAdmin() ? [['team', 'Team']] : []);
+  let body;
+  if (S.modErr) body = `<p class="formmsg" style="margin:16px 18px">${esc(S.modErr)}</p>`;
+  else if (D == null) body = '<p class="mut" style="margin:16px 18px">Hämtar…</p>';
+  else if (t === 'open' || t === 'done') {
+    const seen = new Set(), rows = D.filter(r => { const k = r.kind + r.target + r.status; if (seen.has(k)) return false; seen.add(k); return true; });
+    const reasons = r => D.filter(x => x.kind === r.kind && x.target === r.target).map(x => `${esc(x.reporter || 'Någon')}: ${esc(x.reason || '')}`).join(' · ');
+    body = rows.length ? `<div class="pad">${rows.map(r => `<div class="card modc" style="padding:14px;margin-bottom:12px"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="tag lime">${KIND_SV[r.kind] || r.kind}</span>${r.hidden ? '<span class="tag">Dolt</span>' : ''}<small class="mut">${r.n} ${r.n === 1 ? 'rapport' : 'rapporter'} · ${ago(r.created_at)}</small></div>
+      ${r.kind === 'photo' ? `<img src="${esc(r.target)}" alt="Rapporterat foto" style="max-width:100%;max-height:200px;border-radius:12px;margin-top:10px">` : `<p style="margin:10px 0 4px">”${esc((r.excerpt || '').slice(0, 200))}”</p>`}
+      <small class="mut">Av ${esc(r.author || 'okänd')}</small><br><small class="mut">${reasons(r)}</small>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${r.status === 'open' ? `<button class="btn sm" onclick="modAct(${r.id},'hide')">Dölj</button><button class="btn sm line" onclick="modAct(${r.id},'keep')">Behåll</button>` : r.hidden ? `<button class="btn sm line" onclick="modAct(${r.id},'unhide')">Visa igen</button>` : `<button class="btn sm" onclick="modAct(${r.id},'hide')">Dölj ändå</button>`}</div></div>`).join('')}</div>` : `<p class="mut" style="margin:16px 18px">${t === 'open' ? 'Inga rapporter att granska. 🎉' : 'Inga hanterade rapporter än.'}</p>`;
+  } else if (t === 'feed') {
+    body = D.length ? `<div class="pad">${D.map(r => `<div class="card" style="padding:12px;margin-bottom:10px"><div style="display:flex;gap:8px;align-items:center"><span class="tag lime">${KIND_SV[r.kind]}</span>${r.hidden ? '<span class="tag">Dolt</span>' : ''}<small class="mut">${esc(r.author || 'okänd')} · ${ago(r.created_at)}</small></div><p style="margin:8px 0">${esc((r.excerpt || '').slice(0, 160))}</p><button class="btn sm ${r.hidden ? '' : 'line'}" onclick="modHide('${r.kind}',${r.id},${!r.hidden})">${r.hidden ? 'Visa igen' : 'Dölj'}</button></div>`).join('')}</div>` : '<p class="mut" style="margin:16px 18px">Inget i communityt än.</p>';
+  } else {
+    body = `<div class="sec"><h2>Moderatorer</h2></div><div class="pad">${D.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b><span class="mut" style="display:block;font-size:13px">${u.role === 'admin' ? 'Admin' : 'Moderator'}</span></span>${u.role === 'mod' ? `<button class="btn sm line" onclick="modRole('${esc(u.id)}','user')">Ta bort</button>` : ''}</div>`).join('')}</div>
+    <div class="sec"><h2>Lägg till moderator</h2></div><div class="pad"><form onsubmit="event.preventDefault();modFind(this)" style="display:flex;gap:8px"><input name="mq" placeholder="Sök på namn" value="${esc(S.modQ || '')}" style="flex:1"><button class="btn sm">Sök</button></form>
+    ${(S.modRes || []).map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name)}</b></span>${D.some(x => x.id === u.id) ? '<small class="mut">Redan i teamet</small>' : `<button class="btn sm" onclick="modRole('${esc(u.id)}','mod')">Gör till moderator</button>`}</div>`).join('')}
+    ${S.modRes && !S.modRes.length ? '<p class="mut">Ingen hittades.</p>' : ''}<p class="mut" style="font-size:13px">Moderatorer kan granska rapporter och dölja inlägg och svar. Bara du som admin kan lägga till eller ta bort moderatorer.</p></div>`;
+  }
+  return `${topbar('Moderering', 'S.tool=null;render()')}
+  <div class="pad" style="padding-top:8px"><div class="chips2">${tabs.map(([k, l]) => `<button class="${t === k ? 'on' : ''}" onclick="modTab('${k}')">${l}</button>`).join('')}</div></div>${body}
+  <p class="mut" style="font-size:12.5px;margin:14px 18px 24px">Ett inlägg eller svar döljs automatiskt när tre olika personer har rapporterat det. Du kan välja att behålla det eller dölja det.</p>`;
+}
+// ===== Blockera =====
+async function blockUser(id, on) {
+  if (on && !confirm('Blockera den här personen? Du ser inte längre personens inlägg, och ni kan inte skicka vänförfrågningar till varandra.')) return;
+  try { await api.block(id, on); } catch (e) { toast(e.message === 'MOD_NOT_READY' ? 'Blockering är inte påslaget i databasen än (steg 028).' : errMsg(e)); return; }
+  S.blocks = (S.blocks || []).filter(x => x !== id); if (on) { S.blocks.push(id); S.follows = (S.follows || []).filter(x => x !== id); S.friends = null; if (S.ucard && S.ucard.id === id) S.ucard.friend_status = 'none'; }
+  S.feed = null; S.blockedL = null; toast(on ? 'Personen är blockerad' : 'Blockeringen är borttagen'); keepMain(); if (S.tab === 'comm') loadFeed();
+}
+async function loadBlocked() { try { S.blockedL = await api.blockedList(); } catch (e) { S.blockedL = []; } if (S.tool === 'settings') keepMain(); }
 function notifV() {
   const due = S.mine.filter(m => left(m) === 0), out = typeof outWeatherAlerts === 'function' && S.wx && S.wx.d ? outWeatherAlerts() : [], N = S.notifs, seen = S.prevSeen || 0;
   const what = { question: 'din fråga', thread: 'din tråd', listing: 'din annons', mystery: 'ditt detektivfall' };
@@ -3665,6 +3743,7 @@ function notifV() {
     : row(n.kind === 'mystery' ? '🔎' : n.kind === 'listing' ? '🔁' : '💬', `${esc(n.who || 'Någon')} svarade på ${what[n.kind] || 'ditt inlägg'}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”${n.ptitle ? ` · ${esc(n.ptitle.slice(0, 40))}` : ''}`, n.at, `goPost('${n.kind}',${n.post_id},'${esc(n.cat || '')}')`, Date.parse(n.at) > seen));
   return `${topbar('Notiser', 'S.tool=null;render()')}
   ${frq.length ? `<div class="sec"><h2>Vänförfrågningar</h2></div><div class="pad nlist">${frq.join('')}</div>` : ''}
+  ${isMod() && S.modOpen ? `<div class="sec"><h2>Moderering</h2></div><div class="pad nlist"><button class="nrow new" onclick="openMod('open')"><span class="nic">🛡️</span><span class="grow"><b>${S.modOpen} ${S.modOpen === 1 ? 'rapport väntar' : 'rapporter väntar'}</b><span>Tryck för att granska</span></span></button></div>` : ''}
   ${todo.length ? `<div class="sec"><h2>Att göra idag</h2></div><div class="pad nlist">${todo.join('')}</div>` : ''}
   <div class="sec"><h2>Svar och aktivitet</h2>${(N || []).some(n => n.t !== 'friend' && Date.parse(n.at) > seen) ? '<button class="viewall" onclick="notifAllRead()">✓ Markera alla som lästa</button>' : ''}</div><div class="pad nlist">${N == null ? '<p class="mut">Hämtar…</p>' : act.length ? act.join('') : '<p class="mut" style="margin:0">Inga svar än. När någon svarar på dina frågor, trådar, annonser eller detektivfall syns det här.</p>'}</div>
   <p class="mut" style="font-size:12.5px;margin:14px 18px 24px">Notiser i mobilen när du inte har appen öppen gäller än så länge bara vattning.</p>`;
@@ -4002,7 +4081,7 @@ function peopleV() {
     : q ? sec(list.length + (list.length === 1 ? ' träff' : ' träffar'), list) : sec('Du följer', following) + sec('Nära dig i ' + esc(S.city || ''), near) + sec('Fler växtvänner', rest)}
   <div style="height:24px"></div>`;
 }
-const FR_ERR = e => e.message === 'FRIENDS_NOT_READY' ? 'Vänner är inte påslaget i databasen än (steg 027).' : errMsg(e);
+const FR_ERR = e => e.message === 'FRIENDS_NOT_READY' ? 'Vänner är inte påslaget i databasen än (steg 027).' : /BLOCKED/.test(e.message || '') ? 'Du kan inte skicka vänförfrågan till den här personen.' : errMsg(e);
 async function friendAsk(id) {
   if (needLogin()) return;
   try { await api.friendReq(id); if (S.ucard && S.ucard.id === id) S.ucard.friend_status = 'pending_out'; toast('Vänförfrågan är skickad'); } catch (e) { toast(FR_ERR(e)); }
@@ -4072,7 +4151,7 @@ function profPets(c, self) {
 function userBody(c, uposts, self) {
   const f = (S.follows || []).includes(c.id), posts = uposts || [];
   return `  <div class="uhero">${avBig(c.display_name, 'bigav')}<div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? '📍 ' + esc(c.city) : 'Ingen ort angiven'}</span>
-    ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">✏️ Redigera profil</button>` : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow('${esc(c.id)}')">${f ? 'Följer ✓' : '+ Följ'}</button>${frBtns(c)}</div>`}</div></div>
+    ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">✏️ Redigera profil</button>` : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow('${esc(c.id)}')">${f ? 'Följer ✓' : '+ Följ'}</button>${frBtns(c)}</div><button class="link2" style="margin-top:8px;align-self:flex-start" onclick="blockUser('${esc(c.id)}',${!(S.blocks || []).includes(c.id)})">${(S.blocks || []).includes(c.id) ? 'Avblockera' : '🚫 Blockera'}</button>`}</div></div>
   <div class="ustats"><div><b>${c.plants || 0}</b><span>växter</span></div><div><b>${c.posts || 0}</b><span>inlägg</span></div><div><b>${c.followers || 0}</b><span>följare</span></div><div><b>${c.friends != null ? c.friends : (self && S.friends ? S.friends.length : 0)}</b><span>vänner</span></div></div>
   ${self ? friendsSec() : ''}
   ${(c.interests || []).length ? `<div class="sec"><h2>Intressen</h2></div><div class="pad"><div class="chips2">${c.interests.map(i => `<span class="tag lime">${esc(i)}</span>`).join('')}</div></div>` : ''}
@@ -4972,7 +5051,7 @@ function docV() {
 }
 function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { stopLight(); if (S.tool === 'house' && S.hDirty) saveHomeNow(true); S.tool = null; render(); }
-function toolV() { return S.tool === 'explore' ? exploreV() : S.tool === 'notif' ? notifV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'news' ? newsV() : S.tool === 'sow' ? sowV() : S.tool === 'perma' ? permaV() : S.tool === 'smart' ? smartV() : lightV(); }
+function toolV() { return S.tool === 'explore' ? exploreV() : S.tool === 'notif' ? notifV() : S.tool === 'mod' ? modV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'news' ? newsV() : S.tool === 'sow' ? sowV() : S.tool === 'perma' ? permaV() : S.tool === 'smart' ? smartV() : lightV(); }
 
 // --- Säsongstips ---
 // Varje tips: [typ, rubrik, text, månader i zon 1–2, zon 3–5, zon 6–8]. En lista gäller alla zoner.
@@ -5057,6 +5136,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.73', 'Nu', ['Admin och moderatorer: en ny sida där rapporter granskas och inlägg kan döljas eller behållas', 'Inlägg och svar döljs automatiskt när tre olika personer har rapporterat dem', 'Du kan blockera användare. Då ser du inte deras inlägg', 'Admin kan göra andra till moderatorer']],
   ['1.72.1', 'Nu', ['Växter i 3D går inte längre genom väggar. De flyttas till närmaste fria plats vid väggen']],
   ['1.72', '26 okt', ['Notisklockan finns nu på Hem också, så den syns på alla sidor', 'Vänförfrågningar visas som en tydlig ruta högst upp på Hem med knapparna Acceptera och Neka']],
   ['1.71.1', '26 okt', ['Åtgärdat: Mitt hem gick inte att öppna för den som hade fönster och växter utplacerade i ett rum']],
@@ -5551,7 +5631,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.72.1';
+const APP_VERSION = '1.73';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 function applyPrefs() {
@@ -5651,6 +5731,8 @@ function settingsV() {
     <p class="mut" style="margin:8px 0 0;font-size:13px">Sverige delas in i odlingszoner från 1 (mildast) till 8. Växtsidorna visar då om en trädgårdsväxt klarar vintern där du bor.</p>
   </div></div>
   <div class="sec"><h2>Påminnelser</h2></div><div class="pad">${pushCard()}</div>
+  ${isMod() ? `<div class="sec"><h2>Moderering</h2></div><div class="pad"><button class="setrow" onclick="openMod('open')"><span class="tic">🛡️</span><span class="grow"><b>Moderering${S.modOpen ? ' (' + S.modOpen + ')' : ''}</b><span>${isAdmin() ? 'Du är admin. Granska rapporter och hantera moderatorer.' : 'Du är moderator. Granska rapporter och community.'}</span></span></button></div>` : ''}
+  ${S.user ? `<div class="sec"><h2>Blockerade</h2></div><div class="pad"><div class="setcard">${S.blockedL == null ? (loadBlocked(), '<p class="mut" style="margin:0">Hämtar…</p>') : S.blockedL.length ? S.blockedL.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b></span><button class="btn sm line" onclick="blockUser('${esc(u.id)}',false)">Avblockera</button></div>`).join('') : '<p class="mut" style="margin:0">Du har inte blockerat någon.</p>'}</div></div>` : ''}
   ${account}
   <div class="sec"><h2>Nytt i appen</h2></div><div class="pad"><button class="setrow" onclick="openNews()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Uppdateringslogg</b><span>Se vad som är nytt i version ${APP_VERSION}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   ${PRO_FREE ? '' : `<div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`}
