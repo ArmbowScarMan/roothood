@@ -1,0 +1,17 @@
+-- Roothood steg 033: önskelista (växter du vill ha). Det gör inget om du kör den två gånger.
+create table if not exists public.plant_wishes (
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  plant_id bigint not null,
+  note text check (note is null or char_length(note) <= 200),
+  created_at timestamptz not null default now(),
+  primary key (user_id, plant_id)
+);
+alter table public.plant_wishes enable row level security;
+drop policy if exists "Läs egen önskelista" on public.plant_wishes;
+create policy "Läs egen önskelista" on public.plant_wishes for select using (auth.uid() = user_id);
+drop policy if exists "Spara egen önskan" on public.plant_wishes;
+create policy "Spara egen önskan" on public.plant_wishes for insert with check (auth.uid() = user_id);
+drop policy if exists "Ändra egen önskan" on public.plant_wishes;
+create policy "Ändra egen önskan" on public.plant_wishes for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "Ta bort egen önskan" on public.plant_wishes;
+create policy "Ta bort egen önskan" on public.plant_wishes for delete using (auth.uid() = user_id);

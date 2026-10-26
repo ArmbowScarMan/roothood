@@ -1974,7 +1974,7 @@ function roomHints(p, r, win) {
   return h;
 }
 async function loadRole() { if (!S.user) return; try { S.role = await api.myRole(); S.blocks = await api.myBlocks(); if (isMod()) S.modOpen = await api.modOpen(); } catch (e) {} }
-async function loadHome() { if (!S.user) return; loadFavs(); loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
+async function loadHome() { if (!S.user) return; loadFavs(); loadWishes(); loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
 function openHouse(id) { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'house'; S.room = id || null; if (S.pl) { S.pl.sel = null; S.pl.mode = 'move'; S.pl.fit = true; } render(); $('#main').scrollTop = 0; }
 function compassSvg(dirs, size) {
   const sz = size || 44, c = sz / 2, R = c - 3;
@@ -4680,6 +4680,46 @@ async function heart(id) {
   toast(on ? 'Sparad i Favoriter' : 'Borttagen från Favoriter');
   if (S.tool === 'db') renderList(); else keepMain();
 }
+// ===== Önskelista (växter jag vill ha) =====
+const wishKey = () => 'wish_' + (S.user ? S.user.id : 'anon');
+const wishList = () => (S.wishK === wishKey() && S.wish) || store.get(wishKey(), []);
+const isWish = id => wishList().some(w => w.id === id);
+async function loadWishes() {
+  let l = store.get(wishKey(), []);
+  if (S.user && !DEMO && typeof sb !== 'undefined' && sb) { try { const r = await sb.from('plant_wishes').select('plant_id,note,created_at'); if (!r.error && r.data) { const have = new Set(l.map(x => x.id)); r.data.forEach(x => { if (!have.has(x.plant_id)) l.push({ id: x.plant_id, note: x.note || '' }); }); } } catch (e) {} }
+  S.wish = l; S.wishK = wishKey();
+}
+function wishSet(l) { S.wish = l; S.wishK = wishKey(); store.set(wishKey(), l); }
+async function toggleWish(id) {
+  if (!S.user) return openModal('login');
+  const cur = wishList(), on = !cur.some(w => w.id === id);
+  wishSet(on ? cur.concat({ id, note: '' }) : cur.filter(w => w.id !== id));
+  if (!DEMO && sb) { try { if (on) await sb.from('plant_wishes').insert({ plant_id: id }); else await sb.from('plant_wishes').delete().eq('user_id', S.user.id).eq('plant_id', id); } catch (e) {} }
+  toast(on ? 'Tillagd på önskelistan' : 'Borttagen från önskelistan');
+  keepMain();
+}
+async function wishNote(id, v) {
+  v = (v || '').trim().slice(0, 200); const l = wishList().map(w => w.id === id ? { ...w, note: v } : w); wishSet(l);
+  if (!DEMO && sb && S.user) { try { await sb.from('plant_wishes').update({ note: v || null }).eq('user_id', S.user.id).eq('plant_id', id); } catch (e) {} }
+}
+async function wishBought(id) {
+  if (!S.user) return openModal('login');
+  if (overLimit()) { S.limitHit = true; return openModal('pro'); }
+  const p = S.plants.find(x => x.id === id); if (!p) return;
+  try { await api.addMine(p); S.mine = await api.mine(); } catch (e) { return toast(errMsg(e)); }
+  wishSet(wishList().filter(w => w.id !== id));
+  if (!DEMO && sb) { try { await sb.from('plant_wishes').delete().eq('user_id', S.user.id).eq('plant_id', id); } catch (e) {} }
+  toast(p.swedish_name + ' finns nu i din samling'); await afterAdd();
+}
+function wishV() {
+  const L = wishList().map(w => [w, S.plants.find(p => p.id === w.id)]).filter(x => x[1]);
+  return `${topbar('Min samling')}${mtabBar()}
+  <div class="sec"><h2>Önskelista</h2><span class="mut">${L.length} ${L.length === 1 ? 'växt' : 'växter'}</span></div>
+  ${L.length ? `<div class="pad" style="display:flex;flex-direction:column;gap:10px">${L.map(([w, p]) => `<div class="setcard" style="padding:12px 14px"><div style="display:flex;gap:10px;align-items:center"><button class="link3" style="flex:1;text-align:left;font-size:16px;font-weight:800" onclick="openPlant(${p.id})">${esc(p.swedish_name)}<small style="display:block;font-weight:400;font-style:italic;color:var(--mut)">${esc(p.latin_name || '')}</small></button><button class="btn sm" onclick="wishBought(${p.id})">Köpt! Lägg till</button></div>
+  <input class="rname" style="width:100%;margin-top:8px;box-sizing:border-box" value="${esc(w.note || '')}" maxlength="200" placeholder="Anteckning, t.ex. köp hos Plantagen eller byt med Maria" onchange="wishNote(${p.id},this.value)" aria-label="Anteckning">
+  <button class="link3" style="margin-top:6px;color:var(--mut)" onclick="toggleWish(${p.id})">Ta bort från önskelistan</button></div>`).join('')}</div>`
+  : `<div class="list"><div class="empty"><p>Här samlas växter du vill ha. Öppna en växt i Växtdatabasen och tryck Önskelista. När du köpt den trycker du Köpt, så hamnar den i din samling.</p><button class="btn sm" onclick="openDb(true)">Sök växter</button></div></div>`}`;
+}
 function addAnother(id) { if (!S.user) return openModal('login'); S.dupId = id; openModal('dup'); }
 function plantMini(p) {
   const mine = S.mine.some(m => m.plant_id === p.id);
@@ -4692,7 +4732,7 @@ function favV() {
   <div class="sec"><h2>Favoriter</h2><span class="mut">${L.length} ${L.length === 1 ? 'växt' : 'växter'}</span></div>
   ${L.length ? `<div class="grid">${L.map(plantMini).join('')}</div>` : `<div class="list"><div class="empty"><p>Här samlas växter du gillar. Tryck på hjärtat vid en växt i Växtdatabasen så sparas den här. Den hamnar inte i Samling, dit lägger du bara växter du har.</p><button class="btn sm" onclick="openDb(true)">Sök växter</button></div></div>`}`;
 }
-function mtabBar() { const t = S.mtab || 'mine'; return `<div class="seg2" role="tablist">${[['mine', 'Min samling'], ['fav', 'Favoriter']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="S.mtab='${k}';render()">${n}</button>`).join('')}</div>`; }
+function mtabBar() { const t = S.mtab || 'mine'; return `<div class="seg2" role="tablist">${[['mine', 'Min samling'], ['fav', 'Favoriter'], ['wish', 'Önskelista']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="S.mtab='${k}';render()">${n}</button>`).join('')}</div>`; }
 function shortTemp(t) { const m = /\d+\s*–\s*\d+\s*°C/.exec(t || ''); return m ? m[0] : (t || '').split(',')[0]; }
 function tile(label, value, desc, icon, color, bad) {
   return `<div class="ti">${ic(icon, color)}<small>${label}</small><b class="${bad ? 'bad' : ''}">${esc(value)}</b>${desc ? `<p>${esc(desc)}</p>` : ''}</div>`;
@@ -4706,7 +4746,8 @@ function detail() {
   const similar = S.plants.filter(x => x.category === p.category && x.id !== p.id).slice(0, 8);
   const status = my ? `<span class="tag green">${d === null ? 'I din samling' : d === 0 ? 'Vattna idag' : 'Vattnas om ' + d + (d === 1 ? ' dag' : ' dagar')}</span>` : '';
   const fv = `<button class="btn line" onclick="heart(${p.id})" aria-pressed="${isFav(p.id)}">${isFav(p.id) ? '♥ Favorit' : '♡ Favorit'}</button>`;
-  const cta = !my ? `<button class="btn" onclick="addPlant(${p.id})">Lägg till i min samling</button>${fv}`
+  const wv = `<button class="btn line" onclick="toggleWish(${p.id})" aria-pressed="${isWish(p.id)}">${isWish(p.id) ? '★ På önskelistan' : '☆ Önskelista'}</button>`;
+  const cta = !my ? `<button class="btn" onclick="addPlant(${p.id})">Lägg till i min samling</button>${fv}${wv}`
     : (my.interval ? `<button class="btn" onclick="water(${my.id})">Markera som vattnad</button>` : '') + `<button class="btn line" onclick="addAnother(${p.id})">+ En till</button>${fv}`;
   return `${topbar(p.category, 'S.sel=null;render()')}
   <div class="dtop">${my && my.photo ? myPh(my) : plantPh(p)}<div class="dstats">
@@ -4751,6 +4792,7 @@ function snooze(id) {
 }
 function mineV() {
   if (S.mtab === 'fav') return favV();
+  if (S.mtab === 'wish') return wishV();
   if (!S.user) return `${topbar('Min samling')}${mtabBar()}<div class="list"><div class="empty"><p>Logga in för att spara dina växter och få vattningspåminnelser.</p><button class="btn sm" onclick="openModal('login')">Logga in eller skapa konto</button></div></div>`;
   const due = S.mine.filter(m => left(m) === 0).length, rooms = S.home || [];
   if (S.mroom && S.mroom !== '-' && !rooms.some(r => r.id === S.mroom)) S.mroom = null;
@@ -5552,6 +5594,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.90', 'Nu', ['Önskelista: på varje växt finns knappen Önskelista. Under Min samling finns en ny flik där du ser växterna du vill ha, skriver var du ska köpa dem och trycker Köpt när du har dem. SQL-steg 033 behövs för att spara på flera enheter']],
   ['1.89', 'Nu', ['Var i ditt hem trivs växten? På varje inomhusväxt ser du vilka av dina rum som passar och hur långt från fönstret den ska stå. Det visas också när du identifierar en växt']],
   ['1.88', 'Nu', ['Appen startar alltid på Hem, även om du stängde den i Mitt hem eller en annan sida']],
   ['1.87', 'Nu', ['Ny + -knapp på Hem och Min samling: sök en växt och lägg till den med ett enda tryck. Du kan lägga till flera i rad, eller identifiera med foto och lägga till egen växt från samma ruta']],
@@ -6066,7 +6109,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.89';
+const APP_VERSION = '1.90';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
