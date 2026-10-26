@@ -488,6 +488,10 @@ details.tech p b{color:var(--ink)}
 .ccard .cfoot{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
 .ccard .nm{font-size:13.5px;color:var(--mut);margin:6px 0 0;line-height:1.45}
 .seg2.four button{font-size:13px}
+.delacc{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.delacc p{font-size:14px;color:var(--mut);margin:6px 0 0;line-height:1.45}
+.dangerlink{color:#D9534F!important}
+.btn.danger{background:#D9534F;color:#fff;border-color:#D9534F}
 .diary{padding:0 18px}
 .diary.inm{padding:0;margin-top:18px}
 .diary h3{font-size:17px;margin:0 0 10px}
@@ -1261,6 +1265,7 @@ const demoApi = {
   async resetPw() {},
   async user() { return { id: 'demo', name: (store.get('profile', {}) || {}).display_name || 'Du' }; },
   async saveAvatar(url) { store.set('avatarDemo', url || null); return; },
+  async deleteAccount() { try { localStorage.clear(); } catch (e) {} },
   async getProfile() { return Object.assign({ avatar_url: store.get('avatarDemo', null), display_name: 'Du', city: '', interests: [], share_photos: store.get('share', true) }, store.get('profile', {})); },
   async saveProfile(p) { store.set('profile', { display_name: p.display_name, city: p.city, interests: p.interests, vis: p.vis || (store.get('profile', {}).vis) }); },
   async changePassword() {},
@@ -1463,6 +1468,18 @@ const sbApi = {
   async resend(email) { const { error } = await sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: location.origin + location.pathname } }); if (error) throw error; },
   async resetPw(email) { const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }); if (error) throw error; },
   async signOut() { await sb.auth.signOut(); },
+  async deleteAccount() {
+    const B = sb.storage.from('plant-photos'), dir = S.user.id;
+    for (let i = 0; i < 20; i++) {
+      const { data, error } = await B.list(dir, { limit: 100 });
+      if (error || !data || !data.length) break;
+      const { error: e2 } = await B.remove(data.map(f => dir + '/' + f.name));
+      if (e2) break;
+    }
+    const { error } = await sb.rpc('delete_my_account');
+    if (error) { if (/delete_my_account|function/i.test(error.message || '')) throw new Error('DEL_NOT_READY'); throw error; }
+    try { await sb.auth.signOut(); } catch (e) {}
+  },
   async mine() {
     const cols = 'id,plant_id,last_watered,custom_name,custom_latin,custom_category,custom_water_interval_days,notes,plants(swedish_name,latin_name,category,water_interval_days)';
     let res = await sb.from('user_plants').select(cols + ',photo_url,photos,show_own,details,remind').order('created_at');
@@ -3409,6 +3426,16 @@ async function saveNewPw(form) {
   const pw = new FormData(form).get('pw');
   try { await api.changePassword(pw); S.modal = null; S.user = await api.user(); S.mine = await api.mine(); S.pro = PRO_FREE || await api.getPro(); render(); toast('Nytt lösenord sparat. Du är inloggad!'); }
   catch (e) { S.msgOk = false; S.msg = errMsg(e); render(); }
+}
+async function deleteAccount() {
+  const w = (($('#delw') || {}).value || '').trim().toUpperCase();
+  if (w !== 'RADERA') return toast('Skriv RADERA i rutan för att bekräfta');
+  S.delBusy = true; render();
+  try {
+    await api.deleteAccount();
+    S.delBusy = false; S.delAcc = false; S.user = null; S.mine = []; S.home = []; S.hplan = {}; S.log = {}; S.prof = null; S.meCard = undefined; S.pro = PRO_FREE; S.tool = null; S.tab = 'home';
+    render(); toast('Ditt konto är raderat. Tack för att du använde Roothood 🌱');
+  } catch (e) { S.delBusy = false; render(); toast(e.message === 'DEL_NOT_READY' ? 'Det här är inte påslaget i databasen än.' : errMsg(e)); }
 }
 async function signOut() { await api.signOut(); S.user = null; S.mine = []; S.home = []; S.hplan = {}; S.pro = PRO_FREE; render(); toast('Du är utloggad'); }
 
@@ -5772,6 +5799,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.97', 'Nu', ['Radera konto: under Inställningar → Konto kan du radera ditt konto och allt som hör till det. SQL-steg 035 behövs']],
   ['1.96', 'Nu', ['Skötseldagboken har fått en egen flik, Dagbok, under Min samling och en knapp på Hem. Där ser du vad varje växt behöver den här månaden och nästa, och kan bläddra månad för månad', 'Tryck Gjort på en uppgift så sparas den i växtens dagbok. Tiderna anpassas efter din odlingszon', 'Hem visar inte samma funktion två gånger: finns den bland snabbvalen döljs den stora rutan']],
   ['1.95', 'Nu', ['Logga in med Google: knappen Fortsätt med Google högst upp i inloggningsrutan']],
   ['1.94', 'Nu', ['Trädgårdar nära dig under Utforska → Verktyg: handelsträdgårdar, botaniska trädgårdar och parker inom 15 km, med vägbeskrivning. Uppgifter från OpenStreetMap']],
@@ -6397,7 +6425,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.96';
+const APP_VERSION = '1.97';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -6486,7 +6514,11 @@ function settingsV() {
       <label class="fl" for="pw1">Nytt lösenord</label><input id="pw1" type="password" minlength="6" autocomplete="new-password">
       <label class="fl" for="pw2">Upprepa nytt lösenord</label><input id="pw2" type="password" minlength="6" autocomplete="new-password">
       ${S.pwMsg ? `<p class="formmsg" style="margin:10px 0 0">${esc(S.pwMsg)}</p>` : ''}
-      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn sm" onclick="changePw()">Byt lösenord</button><button class="btn sm line" onclick="signOut().then(() => { S.tool = null; render(); })">Logga ut</button></div></div></div>` : '';
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn sm" onclick="changePw()">Byt lösenord</button><button class="btn sm line" onclick="signOut().then(() => { S.tool = null; render(); })">Logga ut</button></div>
+      <div class="delacc">${S.delAcc ? `<b>Radera ditt konto?</b><p>Allt försvinner för alltid: dina växter, foton, skötseldagbok, Mitt hem, inlägg, kommentarer, meddelanden och vänner. Det går inte att ångra.</p>
+        <label class="fl" for="delw">Skriv RADERA för att bekräfta</label><input id="delw" autocomplete="off" autocapitalize="characters">
+        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn sm danger" onclick="deleteAccount()" ${S.delBusy ? 'disabled' : ''}>${S.delBusy ? 'Raderar…' : 'Radera kontot för alltid'}</button><button class="btn sm line" onclick="S.delAcc=false;render()">Avbryt</button></div>`
+        : `<button class="link3 dangerlink" onclick="S.delAcc=true;render();setTimeout(()=>{const i=$('#delw');if(i)i.scrollIntoView({block:'center'})},50)">Radera mitt konto</button>`}</div></div></div>` : '';
   return `${topbar('Inställningar', 'closeTool()')}
   <div class="sec" style="padding-top:8px"><h2>Profil</h2></div><div class="pad">${profile}</div>
   <div class="sec"><h2>Utseende</h2></div><div class="pad"><div class="setcard">

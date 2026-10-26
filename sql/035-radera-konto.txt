@@ -1,0 +1,45 @@
+-- 035: Radera konto. Användaren raderar sitt eget konto och allt som hör till det.
+-- Hjälpfunktion: tar bort rader och först allt i public som pekar på dem (utan egen "on delete cascade").
+create or replace function public.rh_delete_rows(t regclass, cond text, depth int default 0)
+returns void
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare r record;
+begin
+  if depth < 8 then
+    for r in
+      select c.conrelid::regclass as child, ca.attname as ccol, pa.attname as pcol
+      from pg_constraint c
+      join pg_class cl on cl.oid = c.conrelid
+      join pg_namespace n on n.oid = cl.relnamespace
+      join pg_attribute ca on ca.attrelid = c.conrelid and ca.attnum = c.conkey[1]
+      join pg_attribute pa on pa.attrelid = c.confrelid and pa.attnum = c.confkey[1]
+      where c.contype = 'f' and c.confrelid = t and n.nspname = 'public'
+        and array_length(c.conkey, 1) = 1
+        and c.confdeltype in ('a', 'r')
+        and not (c.conrelid = t)
+    loop
+      perform public.rh_delete_rows(r.child, format('%I in (select %I from %s where %s)', r.ccol, r.pcol, t, cond), depth + 1);
+    end loop;
+  end if;
+  execute format('delete from %s where %s', t, cond);
+end;
+$$;
+revoke all on function public.rh_delete_rows(regclass, text, int) from public, anon, authenticated;
+
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare uid uuid := auth.uid();
+begin
+  if uid is null then raise exception 'Inte inloggad'; end if;
+  perform public.rh_delete_rows('auth.users'::regclass, format('id = %L', uid));
+end;
+$$;
+revoke all on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;
