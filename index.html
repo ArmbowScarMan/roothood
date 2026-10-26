@@ -2142,11 +2142,13 @@ function build3dInner(first) {
     const lab = label3d(r.name); if (lab) { const c0 = roomPoly(r).reduce((s2, q) => [s2[0] + q[0], s2[1] + q[1]], [0, 0]).map(v2 => v2 / roomPoly(r).length); lab.position.set(c0[0], WH + 0.6, c0[1]); (cur || sc).add(lab); }
   });
   planWalls().filter(wl => wl.h === 'hedge' || floorVis(flOf(wl))).forEach(wl => { if (wl.h === 'hedge') { cur = null; hedge3d(wl, THREE, M, sc, box); } else { cur = grp(flOf(wl)); const hh = wl.h === 'half' ? Math.min(1.1, WH) : WH;
-    if (wl.h === 'half' || !(wl.ops || []).length) box(wl.x1, wl.y1, wl.x2, wl.y2, 0, hh, TH, '#F4EFE6');
+    const items = (wl.ops || []).filter(o => o.k === 'door' || (o.k === 'win' && wl.h !== 'half')).map(o => ({ ...o })).concat((wl.bays || []).map(b => ({ ...b, k: 'bay' }))).sort((x, y) => x.p - y.p);
+    if (!items.length) box(wl.x1, wl.y1, wl.x2, wl.y2, 0, hh, TH, '#F4EFE6');
     else { let a = 0; const Lw = fwLen(wl), part = (p0, p1) => { if (p1 - p0 > 0.02) { const q = fwSeg(wl, p0, p1 - p0); box(q[0], q[1], q[2], q[3], 0, hh, TH, '#F4EFE6'); } };
-      (wl.ops || []).slice().sort((x, y) => x.p - y.p).forEach(o => { part(a, o.p); const q = fwSeg(wl, o.p, o.l);
+      items.forEach(o => { part(a, o.p); const q = fwSeg(wl, o.p, o.l);
         if (o.k === 'win') { box(q[0], q[1], q[2], q[3], 0, Math.min(0.9, WH), TH, '#F4EFE6', { noext: 1 }); if (WH > 0.9) { box(q[0], q[1], q[2], q[3], 0.9, Math.min(WH, 2.1) - 0.9, 0.03, '#9FD3EF', { noext: 1, mat: { transparent: true, opacity: 0.35, roughness: 0.1 } }); if (WH > 2.1) box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6', { noext: 1 }); } winDetail(q, WH, TH, box); }
-        else { if (WH > 2.1) box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6', { noext: 1 }); doorDetail(q, WH, TH, box); }
+        else if (o.k === 'bay') fwBaySegs(wl, o).forEach(g => { box(g[0], g[1], g[2], g[3], 0, Math.min(0.9, WH), TH, '#F4EFE6'); if (WH > 0.9) { box(g[0], g[1], g[2], g[3], 0.9, Math.min(WH, 2.1) - 0.9, 0.03, '#9FD3EF', { noext: 1, mat: { transparent: true, opacity: 0.35, roughness: 0.1 } }); if (WH > 2.1) box(g[0], g[1], g[2], g[3], 2.1, WH - 2.1, TH, '#F4EFE6'); } });
+        else { if (WH > 2.1 && wl.h !== 'half') box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6', { noext: 1 }); if (wl.h !== 'half') doorDetail(q, WH, TH, box); }
         a = o.p + o.l; }); part(a, Lw); } } });
   cur = null;
   // möbler
@@ -2682,10 +2684,15 @@ function planInner() {
   });
   planWalls().forEach(wl => { const on = sel.k === 'fwall' && sel.id === wl.id, half = wl.h === 'half';
     if (wl.h === 'hedge') { out += `<line x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="${on ? 'var(--acc)' : '#4E8B3A'}" stroke-width="${Math.max(6, 0.8 * z).toFixed(1)}" stroke-linecap="round" opacity=".75" pointer-events="none"/><line data-k="fwall" data-id="${wl.id}" x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="transparent" stroke-width="26"/>`; return; }
-    const pcs = half ? [[wl.x1, wl.y1, wl.x2, wl.y2]] : fwPieces(wl);
+    const pcs = fwPieces(wl);
     out += pcs.map(g => `<line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="${on ? 'var(--acc)' : half ? 'var(--mut)' : 'var(--ink)'}" stroke-width="${half ? 8 : 3.2}" stroke-linecap="round" ${half ? 'opacity=".35"' : ''} pointer-events="none"/>`).join('');
-    if (!half) (wl.ops || []).forEach(o => { const [a, b, c, d] = fwSeg(wl, o.p, o.l); if (o.k === 'win') out += `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="var(--wat)" stroke-width="9" pointer-events="none"/><line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="#fff" stroke-width="2" pointer-events="none"/>`;
-      else { const L0 = fwLen(wl) || 1, nx = -(wl.y2 - wl.y1) / L0, ny = (wl.x2 - wl.x1) / L0, ex = a + nx * o.l, ey = b + ny * o.l; out += `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(ex)}" y2="${Y(ey)}" stroke="var(--ink)" stroke-width="2" pointer-events="none"/><path d="M${X(ex)} ${Y(ey)} A${(o.l * z).toFixed(1)} ${(o.l * z).toFixed(1)} 0 0 0 ${X(c)} ${Y(d)}" fill="none" stroke="var(--mut)" stroke-width="1.2" stroke-dasharray="3 3" pointer-events="none"/>`; } });
+    { const L0 = fwLen(wl) || 1, [fnx, fny] = fwNorm(wl);
+      (wl.ops || []).forEach(o => { const [a, b, c, d] = fwSeg(wl, o.p, o.l), sg = o.sg || 1;
+        if (o.k === 'win') out += `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="var(--wat)" stroke-width="9" pointer-events="none"/><line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="#fff" stroke-width="2" pointer-events="none"/>`;
+        else if (o.k === 'door') { const ex = a + fnx * o.l * sg, ey = b + fny * o.l * sg; out += `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(ex)}" y2="${Y(ey)}" stroke="var(--ink)" stroke-width="2" pointer-events="none"/><path d="M${X(ex)} ${Y(ey)} A${(o.l * z).toFixed(1)} ${(o.l * z).toFixed(1)} 0 0 ${sg > 0 ? 0 : 1} ${X(c)} ${Y(d)}" fill="none" stroke="var(--mut)" stroke-width="1.2" stroke-dasharray="3 3" pointer-events="none"/>`; }
+        else if (o.k === 'rad') { const f = 0.16 * sg, x1 = a + fnx * f, y1 = b + fny * f, x2 = c + fnx * f, y2 = d + fny * f; out += `<line x1="${X(x1)}" y1="${Y(y1)}" x2="${X(x2)}" y2="${Y(y2)}" stroke="#D9825C" stroke-width="7" stroke-linecap="round" pointer-events="none"/><line x1="${X(x1)}" y1="${Y(y1)}" x2="${X(x2)}" y2="${Y(y2)}" stroke="#fff" stroke-width="5" stroke-dasharray="1.5 3" pointer-events="none" opacity=".8"/>`; }
+        else if (o.k === 'vent') { const mx = (a + c) / 2 + fnx * 0.18 * sg, my = (b + d) / 2 + fny * 0.18 * sg; out += `<g transform="translate(${X(mx)},${Y(my)})" pointer-events="none"><rect x="-8" y="-8" width="16" height="16" rx="4" fill="var(--surf)" stroke="var(--mut)" stroke-width="1.6"/><path d="M-4.5 -3h9M-4.5 0h9M-4.5 3h9" stroke="var(--mut)" stroke-width="1.4"/></g>`; } });
+      (wl.bays || []).forEach(by => fwBaySegs(wl, by).forEach(g => { out += `<line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="var(--ink)" stroke-width="3.2" stroke-linecap="round" pointer-events="none"/><line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="var(--wat)" stroke-width="6" stroke-linecap="round" pointer-events="none" opacity=".7"/>`; })); }
     out += `${half ? `<line x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="${on ? 'var(--acc)' : 'var(--mut)'}" stroke-width="2" stroke-linecap="round" pointer-events="none"/>` : ''}<line data-k="fwall" data-id="${wl.id}" x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="transparent" stroke-width="26"/>`; });
   if (P.ldraft) { const d = P.ldraft; out += `<line x1="${X(d.x0)}" y1="${Y(d.y0)}" x2="${X(d.x1)}" y2="${Y(d.y1)}" stroke="var(--pri)" stroke-width="4" stroke-linecap="round" stroke-dasharray="6 5"/><text x="${X((d.x0 + d.x1) / 2)}" y="${(P.oy + ((d.y0 + d.y1) / 2) * z - 10).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--pri)">${r1(Math.hypot(d.x1 - d.x0, d.y1 - d.y0))} m</text>`; }
   if (z < 6 && rs.length) { const [hx, hy] = mapCenter(); out += `<g transform="translate(${X(hx)},${Y(hy)})" pointer-events="none"><path d="M0 0c-7-9-11-14-11-19a11 11 0 0 1 22 0c0 5-4 10-11 19z" fill="var(--acc)" stroke="#fff" stroke-width="2"/><circle cy="-19" r="4" fill="#fff"/></g>`; }
@@ -2764,7 +2771,7 @@ function planSelInner() {
     return `<div class="psel"><span style="font-size:22px">${F[4]}</span><div class="grow"><b>${F[1]}</b><span>${f.w.toFixed(2).replace(/0$/, '')} × ${f.h.toFixed(2).replace(/0$/, '')} m</span></div><div class="stepr"><small>Bredd</small><button onclick="furnEdit('w',-0.1)" aria-label="Smalare">−</button><button onclick="furnEdit('w',0.1)" aria-label="Bredare">+</button></div><div class="stepr"><small>Djup</small><button onclick="furnEdit('h',-0.1)" aria-label="Grundare">−</button><button onclick="furnEdit('h',0.1)" aria-label="Djupare">+</button></div><button class="btn sm line" onclick="furnRot()" aria-label="Vrid">↻ Vrid</button><button class="x" onclick="delFurn('${f.id}')">Ta bort</button></div>`; }
   if (sel.k === 'fwall') { const wl = planWalls().find(x => x.id === sel.id); if (!wl) return '';
     if (wl.h === 'hedge') return `<div class="psel"><div class="grow"><b>Häck</b><span>${r1(Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1))} m lång</span></div><button class="x" onclick="delFWall('${wl.id}')">Ta bort</button></div>`;
-    return `<div class="psel"><div class="grow"><b>${wl.h === 'half' ? 'Halvvägg' : 'Vägg'}</b><span>${r1(Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1))} m lång</span></div><button class="btn sm line" onclick="toggleHalf('${wl.id}')">${wl.h === 'half' ? 'Gör hel' : 'Gör halv'}</button>${(wl.ops || []).length ? `<button class="btn sm line" onclick="fwOpsClear('${wl.id}')">Ta bort fönster/dörrar</button>` : ''}<button class="x" onclick="delFWall('${wl.id}')">Ta bort</button></div>`; }
+    return `<div class="psel"><div class="grow"><b>${wl.h === 'half' ? 'Halvvägg' : 'Vägg'}</b><span>${r1(Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1))} m lång</span></div><button class="btn sm line" onclick="toggleHalf('${wl.id}')">${wl.h === 'half' ? 'Gör hel' : 'Gör halv'}</button>${((wl.ops || []).length || (wl.bays || []).length) ? `<button class="btn sm line" onclick="fwOpsClear('${wl.id}')">Ta bort fönster/dörrar</button>` : ''}<button class="x" onclick="delFWall('${wl.id}')">Ta bort</button></div>`; }
   if (sel.k === 'bay') { const r = S.home.find(x => x.id === sel.id), by = r && (r.bays || [])[sel.i]; if (!by) return '';
     return `<div class="psel"><div class="grow"><b>Burspråk</b><span>${esc(r.name)} · ${baySegs(r, by).map(g => angDir(g[1])).join(', ')} · ${by.l} × ${by.d} m</span></div><div class="stepr"><small>Bredd</small><button onclick="bayEdit('l',-0.5)" aria-label="Smalare">−</button><button onclick="bayEdit('l',0.5)" aria-label="Bredare">+</button></div><div class="stepr"><small>Djup</small><button onclick="bayEdit('d',-0.2)" aria-label="Grundare">−</button><button onclick="bayEdit('d',0.2)" aria-label="Djupare">+</button></div><button class="x" onclick="delBay()">Ta bort</button></div>`; }
   if (sel.k === 'win') { const r = S.home.find(x => x.id === sel.id), w = r && r.wins[sel.i]; if (!w) return '';
@@ -2969,19 +2976,29 @@ function insideSeg(pt, g, m) { const dx = g[2] - g[0], dy = g[3] - g[1], L = Mat
 // Fönster och dörrar på fria väggar: wl.ops = [{k:'win'|'door', p, l}] där p är avståndet från väggens början
 function fwLen(wl) { return Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1); }
 function fwSeg(wl, p, l) { const L = fwLen(wl) || 1, ux = (wl.x2 - wl.x1) / L, uy = (wl.y2 - wl.y1) / L; return [wl.x1 + ux * p, wl.y1 + uy * p, wl.x1 + ux * (p + l), wl.y1 + uy * (p + l)]; }
-function fwPieces(wl) { const ops = (wl.ops || []).filter(o => o.k === 'door').sort((a, b) => a.p - b.p), L = fwLen(wl), out = []; let a = 0; ops.forEach(o => { if (o.p - a > 0.02) out.push(fwSeg(wl, a, o.p - a)); a = Math.max(a, o.p + o.l); }); if (L - a > 0.02) out.push(fwSeg(wl, a, L - a)); return out; }
+function fwNorm(wl) { const L = fwLen(wl) || 1; return [-(wl.y2 - wl.y1) / L, (wl.x2 - wl.x1) / L]; }
+function fwBayPts(wl, by) { const L = by.l, d = Math.min(by.d, L / 2 - 0.05), [nx, ny] = fwNorm(wl), sg = by.sg || 1, pt = (a, o) => { const q = fwSeg(wl, a, 0); return [q[0] + nx * o * sg, q[1] + ny * o * sg]; }; return [pt(by.p, 0), pt(by.p + d, d), pt(by.p + L - d, d), pt(by.p + L, 0)]; }
+function fwBaySegs(wl, by) { const q = fwBayPts(wl, by); return [[...q[0], ...q[1]], [...q[1], ...q[2]], [...q[2], ...q[3]]]; }
+function fwGaps(wl) { return (wl.ops || []).filter(o => o.k === 'door').map(o => [o.p, o.p + o.l]).concat((wl.bays || []).map(b => [b.p, b.p + b.l])).sort((a, b) => a[0] - b[0]); }
+function fwPieces(wl) { const L = fwLen(wl), out = []; let a = 0; fwGaps(wl).forEach(([g0, g1]) => { if (g0 - a > 0.02) out.push(fwSeg(wl, a, g0 - a)); a = Math.max(a, g1); }); if (L - a > 0.02) out.push(fwSeg(wl, a, L - a)); return out; }
 function nearestFree(pt) { let best = null; planWalls().filter(w => w.h !== 'hedge').forEach(w => { const d = segDist(pt.x, pt.y, [w.x1, w.y1, w.x2, w.y2]); if (d < 0.8 && (!best || d < best.d)) { const L = fwLen(w) || 1, along = ((pt.x - w.x1) * (w.x2 - w.x1) + (pt.y - w.y1) * (w.y2 - w.y1)) / L; best = { w, d, along, L }; } }); return best; }
 function addFreeOp(kind, h, pt) {
-  const { w, along, L } = h;
-  if (kind !== 'win' && kind !== 'door') return toast('Burspråk, element och ventiler går bara på ett rums vägg. Fönster och dörrar går också på fria väggar.');
-  if (w.h === 'half') return toast('Halvväggar kan inte ha fönster eller dörrar. Välj Gör hel först.');
+  const { w, along, L } = h, [nx, ny] = fwNorm(w), sg = ((pt.x - w.x1) * nx + (pt.y - w.y1) * ny) >= 0 ? 1 : -1;
+  if (kind === 'bay') {
+    const bi = (w.bays || []).findIndex(b => along >= b.p - 0.3 && along <= b.p + b.l + 0.3);
+    if (bi >= 0) { pushUndo(); w.bays.splice(bi, 1); saveHomeSoon(); return planMsg('Burspråket är borttaget.'); }
+    const l = Math.min(2, L), p = Math.max(0, Math.min(L - l, Math.round((along - l / 2) * 4) / 4));
+    pushUndo(); w.ops = (w.ops || []).filter(o => !(o.p < p + l && p < o.p + o.l)); w.bays = (w.bays || []).filter(b => !(b.p < p + l && p < b.p + b.l)).concat({ p: r1(p), l, d: 0.6, sg });
+    saveHomeSoon(); return planMsg('Burspråk på den fria väggen. Tryck på det igen för att ta bort det.');
+  }
   const ex = (w.ops || []).findIndex(o => o.k === kind && along >= o.p - 0.3 && along <= o.p + o.l + 0.3);
-  if (ex >= 0) { pushUndo(); w.ops.splice(ex, 1); saveHomeSoon(); return planMsg(kind === 'win' ? 'Fönstret är borttaget.' : 'Dörren är borttagen.'); }
-  const l = Math.min(WL[kind], L), p = Math.max(0, Math.min(L - l, Math.round((along - l / 2) * 4) / 4));
-  pushUndo(); w.ops = (w.ops || []).filter(o => !(o.p < p + l && p < o.p + o.l)).concat({ k: kind, p: r1(p), l });
-  saveHomeSoon(); return planMsg((kind === 'win' ? 'Fönster' : 'Dörr') + ' på den fria väggen. Tryck på den igen för att ta bort den.');
+  if (ex >= 0) { pushUndo(); w.ops.splice(ex, 1); saveHomeSoon(); return planMsg({ win: 'Fönstret', door: 'Dörren', rad: 'Elementet', vent: 'Ventilen' }[kind] + ' är borttaget.'.replace('borttaget', kind === 'door' || kind === 'vent' ? 'borttagen' : 'borttaget')); }
+  const l = Math.min(WL[kind] || 1, L), step = kind === 'vent' ? 0.1 : 0.25, p = Math.max(0, Math.min(L - l, Math.round((along - l / 2) / step) * step)), sm = k => ['rad', 'vent'].includes(k);
+  pushUndo(); w.ops = (w.ops || []).filter(o => !(o.p < p + l && p < o.p + o.l && sm(o.k) === sm(kind))).concat({ k: kind, p: r1(p), l, sg });
+  if (kind === 'door') w.bays = (w.bays || []).filter(b => !(b.p < p + l && p < b.p + b.l));
+  saveHomeSoon(); return planMsg({ win: 'Fönster', door: 'Dörr', rad: 'Element', vent: 'Ventil' }[kind] + ' på den fria väggen. Tryck på det igen för att ta bort det.');
 }
-function fwOpsClear(id) { pushUndo(); const w = planWalls().find(x => x.id === id); if (w) delete w.ops; saveHomeSoon(); render(); }
+function fwOpsClear(id) { pushUndo(); const w = planWalls().find(x => x.id === id); if (w) { delete w.ops; delete w.bays; } saveHomeSoon(); render(); }
 function addWin(pt, pt2) {
   const P = PL(), kind = P.wkind || 'win', cands = [];
   if (kind === 'open') { const m = removeFreeWall(pt, pt2); if (m) return planMsg(m); }
@@ -6003,7 +6020,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.86';
+const APP_VERSION = '1.86.1';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
