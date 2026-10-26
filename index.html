@@ -5718,15 +5718,21 @@ function nbFind() {
     const here = { lat: pos.coords.latitude, lon: pos.coords.longitude }, R = 15000;
     const a = `(around:${R},${here.lat},${here.lon})`;
     const q = `[out:json][timeout:25];(nwr${a}["shop"="garden_centre"];nwr${a}["landuse"="horticulture"];nwr${a}["leisure"="garden"];nwr${a}["leisure"="park"]["name"];);out center tags 120;`;
+    let j = null, why = '';
+    for (const url of ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter']) {
+      const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 20000);
+      try { const r = await fetch(url, { method: 'POST', signal: ac.signal, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(q) }); if (!r.ok) { why = 'svarkod ' + r.status; continue; } j = await r.json(); break; }
+      catch (e) { why = e && e.name === 'AbortError' ? 'för lång väntetid' : 'ingen anslutning'; }
+      finally { clearTimeout(tm); }
+    }
     try {
-      const r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(q) });
-      if (!r.ok) throw new Error('fel ' + r.status);
-      const j = await r.json(), seen = new Set();
+      if (!j) throw new Error(why || 'okänt');
+      const seen = new Set();
       const kind = t => t.shop === 'garden_centre' || t.landuse === 'horticulture' ? 'Handelsträdgård' : t.leisure === 'garden' ? 'Botanisk trädgård' : 'Park';
       const list = (j.elements || []).map(e => { const t = e.tags || {}, la = e.lat != null ? e.lat : (e.center || {}).lat, lo = e.lon != null ? e.lon : (e.center || {}).lon; if (la == null || !t.name) return null; return { name: t.name, kind: kind(t), hours: t.opening_hours || '', web: t.website || t['contact:website'] || '', lat: la, lon: lo, d: nbDist(here, { lat: la, lon: lo }) }; }).filter(Boolean)
         .filter(x => { const k = x.name + x.kind; if (seen.has(k)) return false; seen.add(k); return true; }).sort((x, y) => x.d - y.d).slice(0, 25);
       nbState = { st: 'ok', list, at: Date.now() }; render();
-    } catch (e) { nbState = { st: 'err', err: 'Kunde inte hämta platserna just nu. Försök igen om en stund.' }; render(); }
+    } catch (e) { nbState = { st: 'err', err: 'Kunde inte hämta platserna just nu (' + (why || e.message) + '). Försök igen om en stund.' }; render(); }
   }, () => { nbState = { st: 'err', err: 'Tillåt platsen i Chrome för att hitta trädgårdar nära dig.' }; render(); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
 }
 function nbV() {
@@ -6220,7 +6226,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.94';
+const APP_VERSION = '1.94.1';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
