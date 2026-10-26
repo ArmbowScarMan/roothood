@@ -4593,12 +4593,12 @@ const EXPI = '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>
 // [nyckel, namn, ikon, färgklass, handling, pro]
 const QUICK = () => [
   ['db', 'Sök växter', I.search, 'db', 'openDb()'], ['id', 'Identifiera', CAM, '', "openTool('id')", 1], ['doc', 'Växtdoktorn', DOCI, 'doc', 'openDoc()'], ['expert', 'Fråga expert', XPI, 'xp', 'openExperts()', 1],
-  ['house', 'Mitt hem', DOORI, 'house', 'openHouse()', 1], ['bed', 'Planera rabatt', BEDI, 'db', "openHouse();setTimeout(()=>{if(S.tool==='house')planMode('bed')},60)", 1], ['light', 'Ljusmätare', I.sun, 'sun', "openTool('light')", 1], ['compass', 'Kompass', '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>', 'sun', 'openCompass()'], ['pets', 'Mina djur', I.paw, 'pets', 'openPets()'], ['smart', 'Smarta hemmet', HOMEI, 'smart', 'openSmart()'],
+  ['house', 'Mitt hem', DOORI, 'house', 'openHouse()', 1], ['bed', 'Planera rabatt', BEDI, 'db', "openHouse();setTimeout(()=>{if(S.tool==='house')planMode('bed')},60)", 1], ['light', 'Ljusmätare', I.sun, 'sun', "openTool('light')", 1], ['nearby', 'Trädgårdar nära dig', '<path d="M12 21s-6-5.2-6-10a6 6 0 0 1 12 0c0 4.8-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>', 'inspo', 'openNearby()'], ['compass', 'Kompass', '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>', 'sun', 'openCompass()'], ['pets', 'Mina djur', I.paw, 'pets', 'openPets()'], ['smart', 'Smarta hemmet', HOMEI, 'smart', 'openSmart()'],
   ['comm', 'Frågor', CHATI, 'db', "go('comm');setCtab('q')"], ['forum', 'Forum', CHATI, 'xp', "go('comm');setCtab('forum')"], ['swap', 'Byt och ge bort', SWAPI, 'inspo', "go('comm');setCtab('swap')"], ['detect', 'Växtdetektiver', I.search, 'sun', "go('comm');setCtab('detect')"],
   ['people', 'Hitta vänner', PEOPLEI, 'xp', 'openPeople()'], ['inspo', 'Odlare att följa', INSPI, 'inspo', 'openInspo()'], ['season', 'Säsongstips', I.leaf, 'sun', 'openSeason()'], ['sow', 'Såkalender', I.soil, 'db', 'openSow()'], ['perma', 'Permakultur', I.leaf, 'inspo', 'openPerma()'],
   ['mine', 'Min samling', I.plant || I.leaf, 'db', "go('mine')"], ['notif', 'Notiser', BELLI, 'house', 'openNotif()'], ['cfg', 'Anpassa Hem', PEN, 'smart', "go('home');openHomeCfg()"],
 ];
-const QGROUPS = [['Växter', ['db', 'id', 'season', 'sow']], ['Verktyg', ['light', 'compass']], ['Lär dig', ['perma']], ['Hjälp med växterna', ['doc', 'expert']], ['Hem och trädgård', ['house', 'bed', 'smart']], ['Djur', ['pets']], ['Community', ['comm', 'forum', 'swap', 'detect', 'people', 'inspo']], ['Mitt', ['mine', 'notif', 'cfg']]];
+const QGROUPS = [['Växter', ['db', 'id', 'season', 'sow']], ['Verktyg', ['light', 'compass', 'nearby']], ['Lär dig', ['perma']], ['Hjälp med växterna', ['doc', 'expert']], ['Hem och trädgård', ['house', 'bed', 'smart']], ['Djur', ['pets']], ['Community', ['comm', 'forum', 'swap', 'detect', 'people', 'inspo']], ['Mitt', ['mine', 'notif', 'cfg']]];
 const favs = () => { const f = store.get('favQuick', null); return Array.isArray(f) ? f : ['db', 'id', 'doc']; };
 function qBtn(q, edit) { const [k, n, icon, cls, act, pro] = q, on = favs().includes(k); return `<button class="qbtn q-${cls || 'cam'} ${edit ? 'editing' : ''}" onclick="${edit ? `togFav('${k}')` : act}"><span class="tic ${cls}">${ic(icon, 'currentColor', 22)}${pro && !S.pro ? '<em>PRO</em>' : ''}${edit ? `<i class="fav ${on ? 'on' : ''}">${on ? '★' : '☆'}</i>` : ''}</span><span>${n}</span></button>`; }
 function quickV() { const Q = QUICK(), f = favs().map(k => Q.find(q => q[0] === k)).filter(Boolean).slice(0, 7);
@@ -5528,7 +5528,7 @@ function docV() {
 }
 function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { stopLight(); if (S.tool === 'house' && S.hDirty) saveHomeNow(true); S.tool = null; render(); }
-function toolV() { return S.tool === 'explore' ? exploreV() : S.tool === 'notif' ? notifV() : S.tool === 'msgs' ? msgsV() : S.tool === 'chat' ? chatV() : S.tool === 'mod' ? modV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'news' ? newsV() : S.tool === 'sow' ? sowV() : S.tool === 'perma' ? permaV() : S.tool === 'smart' ? smartV() : S.tool === 'compass' ? compassV() : lightV(); }
+function toolV() { return S.tool === 'explore' ? exploreV() : S.tool === 'notif' ? notifV() : S.tool === 'msgs' ? msgsV() : S.tool === 'chat' ? chatV() : S.tool === 'mod' ? modV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'news' ? newsV() : S.tool === 'sow' ? sowV() : S.tool === 'perma' ? permaV() : S.tool === 'smart' ? smartV() : S.tool === 'compass' ? compassV() : S.tool === 'nearby' ? nbV() : lightV(); }
 
 // --- Säsongstips ---
 // Varje tips: [typ, rubrik, text, månader i zon 1–2, zon 3–5, zon 6–8]. En lista gäller alla zoner.
@@ -5613,6 +5613,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.94', 'Nu', ['Trädgårdar nära dig under Utforska → Verktyg: handelsträdgårdar, botaniska trädgårdar och parker inom 15 km, med vägbeskrivning. Uppgifter från OpenStreetMap']],
   ['1.93', 'Nu', ['Byt profilbild: tryck på kameran på din profil. Bilden syns också i kommentarer och vänlistor']],
   ['1.92.2', 'Nu', ['Ljusmätare och Kompass ligger under en egen rubrik, Verktyg, i Utforska']],
   ['1.92', 'Nu', ['Ny Kompass under Utforska: visar vilket väderstreck telefonen pekar mot, med en röd norrpil']],
@@ -5706,6 +5707,40 @@ function stepSpan(st, F) {
   const a = dAdd(F, st[1]), b = dAdd(F, st[2]); return { a, b, txt: dTxt(a) + ' – ' + dTxt(b) };
 }
 function stepIn(sp, m, y) { if (sp.months) return sp.months.includes(m); const s = new Date(y, m - 1, 1), e = new Date(y, m, 0, 23, 59); return sp.a <= e && sp.b >= s; }
+// ===== Trädgårdar nära dig: handelsträdgårdar, botaniska trädgårdar och parker (OpenStreetMap) =====
+let nbState = { st: 'idle', list: [], err: null, at: null };
+function openNearby() { stopLight(); S.sel = null; S.modal = null; S.tool = 'nearby'; render(); $('#main').scrollTop = 0; }
+const nbDist = (a, b) => { const R = 6371, t = x => x * Math.PI / 180, dl = t(b.lat - a.lat), dn = t(b.lon - a.lon); const h = Math.sin(dl / 2) ** 2 + Math.cos(t(a.lat)) * Math.cos(t(b.lat)) * Math.sin(dn / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+function nbFind() {
+  if (!navigator.geolocation) { nbState = { st: 'err', err: 'Mobilen kan inte ge din position. Tillåt platsen i Chrome.' }; return render(); }
+  nbState = { st: 'busy' }; render();
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const here = { lat: pos.coords.latitude, lon: pos.coords.longitude }, R = 15000;
+    const a = `(around:${R},${here.lat},${here.lon})`;
+    const q = `[out:json][timeout:25];(nwr${a}["shop"="garden_centre"];nwr${a}["landuse"="horticulture"];nwr${a}["leisure"="garden"];nwr${a}["leisure"="park"]["name"];);out center tags 120;`;
+    try {
+      const r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(q) });
+      if (!r.ok) throw new Error('fel ' + r.status);
+      const j = await r.json(), seen = new Set();
+      const kind = t => t.shop === 'garden_centre' || t.landuse === 'horticulture' ? 'Handelsträdgård' : t.leisure === 'garden' ? 'Botanisk trädgård' : 'Park';
+      const list = (j.elements || []).map(e => { const t = e.tags || {}, la = e.lat != null ? e.lat : (e.center || {}).lat, lo = e.lon != null ? e.lon : (e.center || {}).lon; if (la == null || !t.name) return null; return { name: t.name, kind: kind(t), hours: t.opening_hours || '', web: t.website || t['contact:website'] || '', lat: la, lon: lo, d: nbDist(here, { lat: la, lon: lo }) }; }).filter(Boolean)
+        .filter(x => { const k = x.name + x.kind; if (seen.has(k)) return false; seen.add(k); return true; }).sort((x, y) => x.d - y.d).slice(0, 25);
+      nbState = { st: 'ok', list, at: Date.now() }; render();
+    } catch (e) { nbState = { st: 'err', err: 'Kunde inte hämta platserna just nu. Försök igen om en stund.' }; render(); }
+  }, () => { nbState = { st: 'err', err: 'Tillåt platsen i Chrome för att hitta trädgårdar nära dig.' }; render(); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+}
+function nbV() {
+  const st = nbState.st, fmt = d => d < 1 ? Math.round(d * 1000) + ' m' : (Math.round(d * 10) / 10).toString().replace('.', ',') + ' km';
+  let body;
+  if (st === 'idle') body = `<p class="mut" style="margin:0 0 14px">Hitta handelsträdgårdar, botaniska trädgårdar och parker inom 15 km. Uppgifterna kommer från OpenStreetMap, så de kan saknas eller vara gamla.</p><button class="btn" onclick="nbFind()">Hitta nära mig</button>`;
+  else if (st === 'busy') body = '<div class="center mut"><div class="lsp"><span></span><span></span><span></span></div><div style="margin-top:14px">Letar…</div></div>';
+  else if (st === 'err') body = `<p class="mut">${esc(nbState.err)}</p><button class="btn sm line" onclick="nbFind()">Försök igen</button>`;
+  else body = nbState.list.length ? `<p class="mut" style="margin:0 0 10px;font-size:13px">${nbState.list.length} platser inom 15 km, närmast först. Öppettider finns där OpenStreetMap har dem. Ring gärna före besöket.</p>` +
+      nbState.list.map(x => `<div class="setcard" style="padding:12px 14px;margin-bottom:8px;text-align:left"><div class="grow"><b style="font-size:15px">${esc(x.name)}</b><span style="display:block;color:var(--mut);font-size:13px">${esc(x.kind)} · ${fmt(x.d)}${x.hours ? ' · ' + esc(x.hours) : ''}</span></div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><a class="btn sm" href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lon}" target="_blank" rel="noopener">Vägbeskrivning</a>${x.web ? `<a class="btn sm line" href="${esc(x.web)}" target="_blank" rel="noopener">Hemsida</a>` : ''}</div></div>`).join('') +
+      `<button class="btn sm line" style="margin-top:6px" onclick="nbFind()">Uppdatera</button>`
+    : `<p class="mut">Inga trädgårdar eller parker hittades inom 15 km. Prova att uppdatera igen.</p><button class="btn sm line" onclick="nbFind()">Uppdatera</button>`;
+  return `${topbar('Trädgårdar nära dig', 'closeTool()')}<div class="pad">${body}</div>`;
+}
 // ===== Kompass: visar vilket håll telefonen pekar mot =====
 let cmpOn = false, cmpHead = null, cmpAbs = false;
 function openCompass() { stopLight(); S.sel = null; S.modal = null; S.tool = 'compass'; render(); $('#main').scrollTop = 0; startCompass(); }
@@ -6185,7 +6220,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.93';
+const APP_VERSION = '1.94';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
