@@ -6108,7 +6108,7 @@ function meV() {
   if (S.meCard === undefined) { S.meCard = null; setTimeout(loadMe); }
   return `${topbar('Profil', null, gearBtn())}${userBody(meCardNow(), S.meCard ? S.meCard.posts : null, true)}${DEMO ? '<p class="mut" style="margin:0 18px">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}
   <div class="sec"><h2>Konto och inställningar</h2></div>
-  ${proCard()}
+  ${S.user ? proCard() : ''}
   ${installCard()}
   ${settingsRow()}
   <div class="pad" style="padding-top:12px"><button class="setrow" onclick="openPeople()"><span class="tic">${ic('ph-users', 'currentColor', 20)}</span><span class="grow"><b>Hitta användare</b><span>Sök på namn eller ort och följ andra växtvänner</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
@@ -6997,6 +6997,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.180', '27 okt 22:40', ['Profil: Roothood Pro-rutan visas för inloggade under testperioden, så att du kan prova och avsluta Pro']],
   ['1.179', '27 okt 22:30', ['Pro: provperioden på 7 dagar startas på servern och kan bara användas en gång per konto. Pro går inte längre att sätta direkt från appen']],
   ['1.178', '27 okt 21:55', ['Gemenskap: titeln på frågekorten tar hela kortets bredd, i stället för att brytas i en smal spalt bredvid texten']],
   ['1.177', '27 okt 21:50', ['Hem: plus-knappen för att lägga till växt ligger uppe i rubriken, bredvid meddelanden och notiser. Den täcker inte längre korten när du scrollar']],
@@ -7702,14 +7703,14 @@ function stopLight() {
   if (lightSensor) lightSensor.stop(); lightSensor = null;
 }
 function proCard() {
-  if (PRO_FREE) return '';
+  if (PRO_FREE && !S.user) return '';
   return `<button class="procard" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 24)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Roothood Pro'}</b><span>${S.pro ? 'Kamera, ljusmätare och obegränsad samling' : 'Lås upp kamera, ljusmätare och mer'}</span></span>${S.pro ? '' : `<span class="protag">${PRO_PRICE}</span>`}</button>`;
 }
 
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.179';
+const APP_VERSION = '1.180';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -7871,7 +7872,7 @@ function settingsV() {
   ${famV()}
   ${account}
   <div class="sec"><h2>Nytt i appen</h2></div><div class="pad"><button class="setrow" onclick="openNews()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Uppdateringslogg</b><span>Se vad som är nytt i version ${APP_VERSION}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
-  ${PRO_FREE ? '' : `<div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`}
+  ${PRO_FREE && !S.user ? '' : `<div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`}
   <div class="sec"><h2>Om Roothood</h2></div><div class="pad"><div class="setcard about2">
     <img src="${LOGO}" alt="" width="56" height="56"><div><b>Roothood ${APP_VERSION}</b><span>Växtfolk som hjälper varandra.</span><span>Foton: Wikipedia. Identifiering: Pl@ntNet.</span></div></div>
     <a class="btn wide line" style="margin-top:12px;display:flex;justify-content:center;text-decoration:none" href="licenser.html" target="_blank" rel="noopener">Källor och licenser</a>
