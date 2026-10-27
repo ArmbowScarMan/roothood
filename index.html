@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="sv"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Roothood</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -871,6 +872,16 @@ button.pw{cursor:pointer}
 .cph button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:var(--ink);color:var(--bg);font-size:13px;line-height:1;cursor:pointer}
 .pimg{display:block;width:100%;max-height:320px;object-fit:cover;border-radius:14px;margin:8px 0 4px;cursor:zoom-in}
 .pimg.big{max-height:none;object-fit:contain;cursor:zoom-out}
+.qhome{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 18px 0}
+.qc{all:unset;box-sizing:border-box;position:relative;display:flex;align-items:center;gap:10px;padding:12px;border-radius:16px;background:var(--surf);box-shadow:var(--sh);cursor:pointer;color:var(--ink);font-weight:700;font-size:14px;line-height:1.2}
+.qc>i.ph{font-size:22px;color:var(--pri);flex:none}
+.qc.big{grid-row:span 2;flex-direction:column;align-items:flex-start;justify-content:center;gap:14px;padding:18px 16px;font-size:18px}
+.qc.big>i.ph{font-size:44px}
+.qc.warn>i.ph{color:#B5543A}
+.qc .pro{position:absolute;top:6px;right:8px;font-style:normal;font-size:9px;font-weight:800;color:var(--acc)}
+.qbanner{all:unset;box-sizing:border-box;grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:16px;background:var(--pri);color:var(--onpri);font-weight:800;font-size:15px;cursor:pointer}
+.qbanner>i.ph:first-child{font-size:22px}
+.qbanner>i.ph:last-child{margin-left:auto;font-size:18px}
 .qgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:4px 18px 0}
 .qbtn{all:unset;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 2px;border-radius:16px;background:var(--surf);box-shadow:var(--sh);cursor:pointer;text-align:center}
 .qbtn .tic{position:relative;width:44px;height:44px;border-radius:14px;display:grid;place-items:center}
@@ -4785,8 +4796,17 @@ const QUICK = () => [
 const QGROUPS = [['Växter', ['db', 'id', 'care', 'season', 'sow']], ['Verktyg', ['light', 'compass', 'nearby']], ['Lär dig', ['perma']], ['Hjälp med växterna', ['doc', 'expert']], ['Hem och trädgård', ['house', 'bed', 'smart']], ['Djur', ['pets']], ['Community', ['comm', 'forum', 'swap', 'detect', 'people', 'inspo']], ['Mitt', ['mine', 'care', 'notif', 'cfg']]];
 const favs = () => { const f = store.get('favQuick', null); if (Array.isArray(f)) { if (!store.get('careFavAdded', false)) { store.set('careFavAdded', true); if (!f.includes('care') && f.length < 7) { f.push('care'); store.set('favQuick', f); } } return f; } return ['db', 'id', 'care', 'doc']; };
 function qBtn(q, edit) { const [k, n, icon, cls, act, pro] = q, on = favs().includes(k); return `<button class="qbtn q-${cls || 'cam'} ${edit ? 'editing' : ''}" onclick="${edit ? `togFav('${k}')` : act}"><span class="tic ${cls}">${ic(icon, 'currentColor', 22)}${pro && !S.pro ? '<em>PRO</em>' : ''}${edit ? `<i class="fav ${on ? 'on' : ''}">${on ? '★' : '☆'}</i>` : ''}</span><span>${n}</span></button>`; }
-function quickV() { const Q = QUICK(), f = favs().map(k => Q.find(q => q[0] === k)).filter(Boolean).slice(0, 7);
-  return `<div class="sec cap2"><h2>Vad vill du göra?</h2></div><div class="qgrid">${f.map(q => qBtn(q)).join('')}<button class="qbtn q-explore" onclick="openExplore()"><span class="tic">${ic(EXPI, 'currentColor', 22)}</span><span>Utforska</span></button></div>`; }
+const QPH = { db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-calendar-check', 'Dagbok'], doc: ['ph-first-aid-kit', 'Doktorn'], expert: ['ph-chats-circle', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: ['ph-plant', 'Såkalender'], perma: ['ph-tree', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Detektiver'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
+function qcard(q) {
+  const [k, n, , cls, act, pro] = q, [icn, lbl] = QPH[k] || ['ph-star', n];
+  const big = k === 'id';
+  return `<button class="qc${big ? ' big' : ''}${k === 'doc' ? ' warn' : ''}" onclick="${act}"><i class="ph ${icn}" aria-hidden="true"></i><span>${lbl}</span>${pro && !S.pro ? '<em class="pro">PRO</em>' : ''}</button>`;
+}
+function quickV() {
+  const Q = QUICK(), f = favs().map(k => Q.find(q => q[0] === k)).filter(Boolean).slice(0, 7);
+  const ordered = f.filter(q => q[0] === 'id').concat(f.filter(q => q[0] !== 'id'));
+  return `<div class="sec cap2"><h2>Vad vill du göra?</h2></div><div class="qhome">${ordered.map(qcard).join('')}<button class="qbanner" onclick="openExplore()"><i class="ph ph-squares-four" aria-hidden="true"></i><span>Utforska</span><i class="ph ph-caret-right" aria-hidden="true"></i></button></div>`;
+}
 function openExplore() { stopLight(); S.sel = null; S.modal = null; S.tool = 'explore'; S.favEdit = false; render(); $('#main').scrollTop = 0; }
 function togFav(k) { let f = favs(); if (f.includes(k)) f = f.filter(x => x !== k); else { if (f.length >= 7) return toast('Du kan ha högst 7 favoriter på Hem'); f = f.concat(k); } store.set('favQuick', f); keepMain(); }
 function exploreV() { const Q = QUICK(), by = k => Q.find(q => q[0] === k), f = favs().map(by).filter(Boolean), e = S.favEdit;
@@ -5800,6 +5820,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.98', 'Nu', ['Snabbknapparna på Hem har ny design: Phosphor-ikoner, korta namn och Utforska som en bred banner. Identifiera är större eftersom den används mest']],
   ['1.97.1', 'Nu', ['Hem: det går att scrolla förbi Mitt hem i 3D. Huset roterar fortfarande när du trycker på Visa stort']],
   ['1.97', 'Nu', ['Radera konto: under Inställningar → Konto kan du radera ditt konto och allt som hör till det. SQL-steg 035 behövs']],
   ['1.96', 'Nu', ['Skötseldagboken har fått en egen flik, Dagbok, under Min samling och en knapp på Hem. Där ser du vad varje växt behöver den här månaden och nästa, och kan bläddra månad för månad', 'Tryck Gjort på en uppgift så sparas den i växtens dagbok. Tiderna anpassas efter din odlingszon', 'Hem visar inte samma funktion två gånger: finns den bland snabbvalen döljs den stora rutan']],
@@ -6427,7 +6448,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.97.1';
+const APP_VERSION = '1.98';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
