@@ -2185,7 +2185,8 @@ function build3dInner(first) {
       if (WH > 2.1) doors.forEach(([d0, d1]) => { const q = wallSeg(r, { s, p: d0, l: d1 - d0 }); box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6', { noext: 1 }); });
     });
     (r.bays || []).forEach(by => baySegs(r, by).forEach(([q]) => { box(q[0], q[1], q[2], q[3], 0, Math.min(0.9, WH), TH, '#F4EFE6'); if (WH > 0.9) { box(q[0], q[1], q[2], q[3], 0.9, Math.min(WH, 2.1) - 0.9, 0.03, '#9FD3EF', { noext: 1, mat: { transparent: true, opacity: 0.35, roughness: 0.1 } }); if (WH > 2.1) box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6'); } }));
-    (r.wins || []).forEach(w => { const q = wallSeg(r, w); if (!w.k) { const sl = sill3d(q, r); if (sl) { const sm = new THREE.Mesh(new THREE.BoxGeometry(sl.L + 0.08, 0.04, 0.3), M('#C49A6C')); sm.position.set(sl.mx + sl.nx * 0.17, SILL_Y - 0.02, sl.mz + sl.nz * 0.17); sm.rotation.y = -Math.atan2(sl.uz, sl.ux); sm.castShadow = true; sm.receiveShadow = true; add(sm); } }
+    (r.bays || []).forEach(by => baySegs(r, by).forEach(([q]) => { const sm = sillMesh3(THREE, M, q, r); if (sm) add(sm); }));
+    (r.wins || []).forEach(w => { const q = wallSeg(r, w); if (!w.k) { const sm = sillMesh3(THREE, M, q, r); if (sm) add(sm); }
       if (!w.k) winDetail(q, WH, TH, box); else if (w.k === 'door') doorDetail(q, WH, TH, box); });
     const lab = label3d(r.name); if (lab) { const c0 = roomPoly(r).reduce((s2, q) => [s2[0] + q[0], s2[1] + q[1]], [0, 0]).map(v2 => v2 / roomPoly(r).length); lab.position.set(c0[0], WH + 0.6, c0[1]); (cur || sc).add(lab); }
   });
@@ -2218,7 +2219,7 @@ function build3dInner(first) {
     // Ampel: hänger från taket i tre linor. Annars: står växten på en möbel hamnar den ovanpå i stället för inuti.
     let lift = 0, sx = x, sy = y;
     if (m.details.place !== 'Ampel' && m.details.win === 'I fönstret' && pRoom) { let best = null;
-      (pRoom.wins || []).filter(w => !w.k).forEach(w => { const sl = sill3d(wallSeg(pRoom, w), pRoom); if (!sl) return; const t = Math.max(0.2, Math.min(sl.L - 0.2, (x - sl.q[0]) * sl.ux + (y - sl.q[1]) * sl.uz)), px = sl.q[0] + sl.ux * t, pz = sl.q[1] + sl.uz * t, d = Math.hypot(x - px, y - pz); if (!best || d < best.d) best = { d, px: px + sl.nx * 0.19, pz: pz + sl.nz * 0.19 }; });
+      winSegs(pRoom).forEach(([wq]) => { const sl = sill3d(wq, pRoom); if (!sl) return; const t = Math.max(0.2, Math.min(sl.L - 0.2, (x - sl.q[0]) * sl.ux + (y - sl.q[1]) * sl.uz)), px = sl.q[0] + sl.ux * t, pz = sl.q[1] + sl.uz * t, d = Math.hypot(x - px, y - pz); if (!best || d < best.d) best = { d, px: px + sl.nx * 0.19, pz: pz + sl.nz * 0.19 }; });
       if (best && best.d < 1.2) { sx = best.px; sy = best.pz; lift = SILL_Y; } }
     if (lift) { /* står redan på fönsterbrädan */ }
     else if (m.details.place === 'Ampel') { lift = 1.7; const top = 2.4 - lift, wm = M('#3A3A3A'), up = new THREE.Vector3(0, 1, 0);
@@ -2769,6 +2770,8 @@ function furn3d(f, THREE, M, add) {
 function sill3d(q, r) { const L = Math.hypot(q[2] - q[0], q[3] - q[1]); if (L < 0.2) return null; const ux = (q[2] - q[0]) / L, uz = (q[3] - q[1]) / L, pg = roomPoly(r), cx = pg.reduce((a, p) => a + p[0], 0) / pg.length, cz = pg.reduce((a, p) => a + p[1], 0) / pg.length, mx = (q[0] + q[2]) / 2, mz = (q[1] + q[3]) / 2;
   let nx = -uz, nz = ux; if ((cx - mx) * nx + (cz - mz) * nz < 0) { nx = -nx; nz = -nz; } return { L, ux, uz, nx, nz, mx, mz, q }; }
 const SILL_Y = 0.915;
+// Fönsterbräda som 3D-del (används för vanliga fönster och burspråkens tre delar)
+function sillMesh3(THREE, M, q, r) { const sl = sill3d(q, r); if (!sl) return null; const sm = new THREE.Mesh(new THREE.BoxGeometry(sl.L + 0.08, 0.04, 0.3), M('#C49A6C')); sm.position.set(sl.mx + sl.nx * 0.17, SILL_Y - 0.02, sl.mz + sl.nz * 0.17); sm.rotation.y = -Math.atan2(sl.uz, sl.ux); sm.castShadow = true; sm.receiveShadow = true; return sm; }
 function winDetail(q, WH, TH, box) { if (WH <= 2.1) return; const L = Math.hypot(q[2] - q[0], q[3] - q[1]); if (L < 0.2) return; const ux = (q[2] - q[0]) / L, uz = (q[3] - q[1]) / L, W = '#FFFFFF', f = 0.06;
   box(q[0], q[1], q[2], q[3], 2.1 - f, f, TH + 0.04, W, { noext: 1 }); box(q[0], q[1], q[2], q[3], 0.86, 0.05, TH + 0.14, W, { noext: 1 }); box(q[0], q[1], q[2], q[3], 0.9, f * 0.7, TH + 0.04, W, { noext: 1 });
   [[0, f], [L - f, L]].forEach(([a0, a1]) => box(q[0] + ux * a0, q[1] + uz * a0, q[0] + ux * a1, q[1] + uz * a1, 0.9, 1.2, TH + 0.04, W, { noext: 1 }));
@@ -6392,6 +6395,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.153', 'Nu', ['3D: burspråk har fönsterbrädor på alla tre fönsterdelarna, och växter i burspråket ställs på brädan']],
   ['1.152', 'Nu', ['3D: varje vanlig krukväxt ser ut som sig själv. Monstera har hål i bladen, alocasia pilformade blad med vita nerver, calathea ränder, maranta prickar, gullranka gula strimmor, murgröna flikiga blad, fiollöv sin fiolform och schefflera handflikiga blad. Gummiträd och fiollöv växer längs en stam, dracena har en tofs i toppen och pilea runda blad på skaft']],
   ['1.151', 'Nu', ['3D: rumsnamnen är små och lika stora oavsett hur nära du zoomar. Fönsterbrädorna är i ljust trä så att de syns mot väggen']],
   ['1.150', 'Nu', ['3D: bord och skrivbord har bordsskiva och ben, runda bord har en fot. Altanen, gångar och rabatter sticker inte längre upp genom golvet i huset. Fönster har fönsterbrädor på insidan, och växter som står i fönstret ställs på brädan']],
@@ -7077,7 +7081,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.152';
+const APP_VERSION = '1.153';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];

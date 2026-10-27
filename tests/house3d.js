@@ -34,6 +34,9 @@ const srv = http.createServer((q, r) => { const p = path.join(dir, q.url.split('
       // Altan helt utanför: vanlig grund används
       let slabUsed = false; area3d({ t: 'patio', pts: [[6, 5], [8, 5], [8, 7], [6, 7]] }, THREE, M, new Obj(), () => { slabUsed = true; }, shape, 0.005); out.altanUtanforOrort = slabUsed;
       // Fönsterbräda: riktningen ska peka in i rummet
+      // Burspråk: alla tre delarna får en bräda som pekar in i rummet
+      const bayRoom = { id: 'rb', name: 'Burspråk', rect: { x: 0, y: 0, w: 4, h: 3 }, dirs: ['S'], wins: [], bays: [{ s: 'b', p: 1, l: 2, d: 0.6 }] };
+      out.burspråk = baySegs(bayRoom, bayRoom.bays[0]).every(([q]) => { const b2 = sill3d(q, bayRoom), m3 = sillMesh3(THREE, M, q, bayRoom); return b2 && m3 && inPoly3(b2.mx + b2.nx * 0.3, b2.mz + b2.nz * 0.3, roomPoly(bayRoom)); });
       const sl = sill3d(wallSeg(room, room.wins[0]), room); const ix = sl.mx + sl.nx * 0.3, iz = sl.mz + sl.nz * 0.3; out.brada = !!sl && inPoly3(ix, iz, roomPoly(room));
     } finally { S.home = oldHome; }
     return out;
