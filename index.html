@@ -3129,9 +3129,43 @@ function opt3dBase(p) { const g = genusOf(p), n = (p.swedish_name || '').toLower
   if (/Sorbus|Crataegus/.test(g)) return { fruit: true, fruitCol: '#D2391F' };
   return {}; }
 // Planta i 3D från databasen, med egen höjd och bredd i cm om man skrivit in det
+function bead3(THREE, M, x, y, z, r, col, sx, sy, sz) { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 6, 4), M(col)); m.position.set(x, y, z); if (sx || sy || sz) m.scale.set(sx || 1, sy || 1, sz || 1); return m; }
+function bez3(a, b, c, t) { const u = 1 - t; return [0, 1, 2].map(i => u * u * a[i] + 2 * u * t * b[i] + t * t * c[i]); }
+// Löjtnantshjärta: bågformade stjälkar med hjärtformade rosa blommor som hänger ner
+function dicentra3d(THREE, M, h, w, seed) {
+  const g = new THREE.Group(), R = rng3(seed), SC = Math.max(0.5, Math.min(1.4, h));
+  for (let j = 0; j < 6; j++) { const a = j / 6 * Math.PI * 2 + R() * 0.5, rr = 0.07 * SC; g.add(bead3(THREE, M, Math.cos(a) * rr * 2, 0.012 * SC, Math.sin(a) * rr * 2, 0.05 * SC, '#4E7F3F', 1.8, 0.25, 1)); }
+  for (let i = 0; i < 7; i++) {
+    const a = R() * Math.PI * 2, reach = w * (0.25 + 0.3 * R()), top = h * (0.55 + 0.4 * R());
+    const p0 = [0, 0, 0], p1 = [Math.cos(a) * reach * 0.3, top * 0.95, Math.sin(a) * reach * 0.3], p2 = [Math.cos(a) * reach, top * 0.45, Math.sin(a) * reach];
+    for (let k = 0; k <= 10; k++) { const [x, y, z] = bez3(p0, p1, p2, k / 10); g.add(bead3(THREE, M, x, y, z, 0.006 * SC, '#5B8A46')); }
+    for (const t of [0.55, 0.7, 0.85, 1]) {
+      const [x, y, z] = bez3(p0, p1, p2, t);
+      g.add(bead3(THREE, M, x - 0.018 * SC, y - 0.02 * SC, z, 0.024 * SC, '#E8779E', 0.8, 1, 0.5));
+      g.add(bead3(THREE, M, x + 0.018 * SC, y - 0.02 * SC, z, 0.024 * SC, '#E8779E', 0.8, 1, 0.5));
+      g.add(bead3(THREE, M, x, y - 0.045 * SC, z, 0.01 * SC, '#FFF4F7'));
+    }
+  }
+  return g;
+}
+// Stjärnflocka: tunna stjälkar med platta, ljusrosa skärmar av små blommor och gröna hörblad
+function astrantia3d(THREE, M, h, w, seed) {
+  const g = new THREE.Group(), R = rng3(seed), H = Math.max(0.3, h), S = Math.max(0.5, Math.min(1.4, w * 1.2));
+  for (let j = 0; j < 6; j++) { const a = j / 6 * Math.PI * 2, rr = 0.12 * Math.max(0.5, w); g.add(bead3(THREE, M, Math.cos(a) * rr, 0.01, Math.sin(a) * rr, 0.04 * S, '#5E8C4A', 2, 0.2, 1)); }
+  for (let i = 0; i < 5; i++) {
+    const a = R() * Math.PI * 2, lean = 0.1 + 0.2 * R(), tip = [Math.cos(a) * lean * H * 0.4, H * (0.7 + 0.3 * R()), Math.sin(a) * lean * H * 0.4];
+    for (let k = 0; k <= 10; k++) g.add(bead3(THREE, M, tip[0] * k / 10, tip[1] * k / 10, tip[2] * k / 10, 0.004 * S, '#5E8C4A'));
+    for (let b = 0; b < 8; b++) { const ba = b / 8 * Math.PI * 2; g.add(bead3(THREE, M, tip[0] + Math.cos(ba) * 0.06 * S, tip[1] - 0.03 * S, tip[2] + Math.sin(ba) * 0.06 * S, 0.02 * S, '#4F7F3C', 1.2, 0.4, 1)); }
+    for (let k = 0; k < 14; k++) { const phi = R() * Math.PI * 0.5, th = R() * Math.PI * 2, rr = 0.05 * S; g.add(bead3(THREE, M, tip[0] + rr * Math.sin(phi) * Math.cos(th), tip[1] + rr * Math.cos(phi) * 0.6, tip[2] + rr * Math.sin(phi) * Math.sin(th), 0.012 * S, k % 3 ? '#EFC9DA' : '#F6E7EE')); }
+  }
+  return g;
+}
 function plant3d(p, THREE, M, hcm, wcm, seed) {
   const [h0, w0] = pSize(p), h = Math.max(0.05, Math.min(40, (hcm || h0) / 100)), w = Math.max(0.05, Math.min(25, (wcm || w0) / 100));
-  return veg3d(THREE, M, kind3d(p), h, w, seed != null ? seed : p.id * 13, plantHue(p.id), opt3d(p));
+  const nm = (p.latin_name || '') + ' ' + (p.swedish_name || ''), sd = seed != null ? seed : p.id * 13;
+  if (/Lamprocapnos|Dicentra/.test(nm)) return dicentra3d(THREE, M, h, w, sd);
+  if (/Astrantia/.test(nm)) return astrantia3d(THREE, M, h, w, sd);
+  return veg3d(THREE, M, kind3d(p), h, w, sd, plantHue(p.id), opt3d(p));
 }
 const GKIND = { tree: 'lov', fruit: 'frukt', conifer: 'gran', bush: 'buske' };
 function gDefH(g) { const R = g.r || 1.5; return g.t === 'tree' ? Math.max(4, R * 2.2 + 2.5) : g.t === 'fruit' ? R * 2 + 1.5 : g.t === 'conifer' ? Math.max(3, R * 3.5) : R * 1.4; }
@@ -6921,6 +6955,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.169', '27 okt 19:05', ['3D: Stjärnflocka (Astrantia) och löjtnantshjärta (Lamprocapnos) har egna modeller. Löjtnantshjärtan har rosa hjärtblommor som hänger på bågformade stjälkar, stjärnflockan har platta skärmar av små ljusrosa blommor']],
   ['1.168', '27 okt 18:30', ['Gemenskap: Fråga en expert och Ställ en fråga är nu små knappar högst upp, bredvid sökningen. De stora knapparna är borta så att fler inlägg syns direkt']],
   ['1.167', '27 okt 20:05', ['Frågor: filtreringsknapparna ligger på en rad som går att skrolla i sidled, i stället för att bryta ner till en ensam knapp. Texten "har samma problem" översätts på engelska']],
   ['1.166', '27 okt 19:58', ['Engelska: ordet varningar och några knappar på startsidan visas nu på engelska']],
@@ -7622,7 +7657,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.168';
+const APP_VERSION = '1.169';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
