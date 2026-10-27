@@ -2424,12 +2424,159 @@ function look3d(p, o) {
   return o;
 }
 const seed3 = id => Math.abs(Math.round(id * 7919));
+// ===== Bladbilder per art: silhuett (genomskinligt utanför bladet), mönster och nerver =====
+// Bilden är 128 x 256. Bladets bas är längst ner, spetsen högst upp.
+const LSHAPE = {
+  heart: (x, w, h) => { const c = w / 2; x.moveTo(c, h * 0.78); x.bezierCurveTo(c - w * 0.16, h * 0.92, w * 0.06, h * 1.0, w * 0.02, h * 0.8); x.bezierCurveTo(-w * 0.03, h * 0.52, w * 0.16, h * 0.2, c, 0); x.bezierCurveTo(w * 0.84, h * 0.2, w * 1.03, h * 0.52, w * 0.98, h * 0.8); x.bezierCurveTo(w * 0.94, h * 1.0, c + w * 0.16, h * 0.92, c, h * 0.78); },
+  arrow: (x, w, h) => { const c = w / 2; x.moveTo(c, h * 0.72); x.quadraticCurveTo(c - w * 0.12, h * 0.88, w * 0.05, h * 0.99); x.quadraticCurveTo(w * 0.0, h * 0.62, w * 0.18, h * 0.38); x.quadraticCurveTo(c - w * 0.16, h * 0.12, c, h * 0.0); x.quadraticCurveTo(c + w * 0.16, h * 0.12, w * 0.82, h * 0.38); x.quadraticCurveTo(w * 1.0, h * 0.62, w * 0.95, h * 0.99); x.quadraticCurveTo(c + w * 0.12, h * 0.88, c, h * 0.72); },
+  oval: (x, w, h) => { const c = w / 2; x.moveTo(c, h); x.bezierCurveTo(w * 0.02, h * 0.86, w * 0.0, h * 0.32, c, 0); x.bezierCurveTo(w, h * 0.32, w * 0.98, h * 0.86, c, h); },
+  round: (x, w, h) => { x.ellipse(w / 2, h / 2, w * 0.48, h * 0.48, 0, 0, 6.283); },
+  fiddle: (x, w, h) => { const c = w / 2; x.moveTo(c, h); x.bezierCurveTo(w * 0.3, h * 0.97, w * 0.24, h * 0.72, w * 0.12, h * 0.52); x.bezierCurveTo(w * -0.02, h * 0.28, w * 0.12, h * 0.02, c, h * 0.04); x.bezierCurveTo(w * 0.88, h * 0.02, w * 1.02, h * 0.28, w * 0.88, h * 0.52); x.bezierCurveTo(w * 0.76, h * 0.72, w * 0.7, h * 0.97, c, h); },
+  ivy: (x, w, h) => { const P = [[0.5, 0.82], [0.3, 0.96], [0.02, 0.86], [0.2, 0.66], [0.02, 0.44], [0.32, 0.4], [0.5, 0.02], [0.68, 0.4], [0.98, 0.44], [0.8, 0.66], [0.98, 0.86], [0.7, 0.96]]; x.moveTo(P[0][0] * w, P[0][1] * h); P.slice(1).forEach(p => x.lineTo(p[0] * w, p[1] * h)); },
+  palmate: (x, w, h) => { const bx = w / 2, by = h * 0.97; for (let i = 0; i < 7; i++) { const a = -1.25 + i * (2.5 / 6), L = h * (0.42 - Math.abs(i - 3) * 0.04); x.moveTo(bx, by); x.ellipse(bx + Math.sin(a) * L * 0.55, by - Math.cos(a) * L * 0.55 * 1.6, w * 0.08, L * 0.5, a, 0, 6.283); } },
+  sword: (x, w, h) => { x.moveTo(w * 0.12, h); x.lineTo(w * 0.06, h * 0.18); x.quadraticCurveTo(w / 2, -h * 0.03, w * 0.94, h * 0.18); x.lineTo(w * 0.88, h); },
+  paddle: (x, w, h) => { const c = w / 2; x.moveTo(c, h); x.bezierCurveTo(w * 0.0, h * 0.92, w * 0.0, h * 0.12, c, 0); x.bezierCurveTo(w, h * 0.12, w, h * 0.92, c, h); },
+};
+const LPAT = {
+  calathea: (x, w, h) => { x.fillStyle = 'rgba(30,70,38,.85)'; for (let i = 0; i < 9; i++) { const y = h * (0.12 + i * 0.09); [-1, 1].forEach(s => { x.beginPath(); x.ellipse(w / 2 + s * w * 0.2, y, w * 0.14, h * 0.018, s * 0.5, 0, 6.283); x.fill(); }); } x.fillStyle = 'rgba(200,225,160,.6)'; x.fillRect(w * 0.46, 0, w * 0.08, h); },
+  orbifolia: (x, w, h) => { x.strokeStyle = 'rgba(205,220,180,.85)'; x.lineWidth = 5; for (let i = 0; i < 8; i++) { const y = h * (0.15 + i * 0.1); [-1, 1].forEach(s => { x.beginPath(); x.moveTo(w / 2, y + 10); x.quadraticCurveTo(w / 2 + s * w * 0.2, y, w / 2 + s * w * 0.5, y - 14); x.stroke(); }); } },
+  maranta: (x, w, h) => { x.fillStyle = 'rgba(60,50,25,.85)'; for (let i = 0; i < 5; i++) { const y = h * (0.2 + i * 0.14); [-1, 1].forEach(s => { x.beginPath(); x.ellipse(w / 2 + s * w * 0.2, y, w * 0.09, h * 0.035, 0, 0, 6.283); x.fill(); }); } },
+  pothos: (x, w, h, R) => { x.strokeStyle = 'rgba(232,214,110,.8)'; x.lineCap = 'round'; for (let i = 0; i < 16; i++) { const y = h * (0.15 + R() * 0.7), s = R() < 0.5 ? -1 : 1, x0 = w / 2 + s * w * (0.05 + R() * 0.2); x.lineWidth = 2 + R() * 4; x.beginPath(); x.moveTo(x0, y); x.lineTo(x0 + s * w * (0.1 + R() * 0.15), y - h * 0.06); x.stroke(); } },
+  dieff: (x, w, h, R) => { x.fillStyle = 'rgba(236,232,180,.85)'; for (let i = 0; i < 22; i++) { x.beginPath(); x.ellipse(w * (0.25 + R() * 0.5), h * (0.1 + R() * 0.8), w * (0.04 + R() * 0.08), h * (0.02 + R() * 0.03), R() * 3, 0, 6.283); x.fill(); } },
+  aglao: (x, w, h, R) => { x.fillStyle = 'rgba(190,205,180,.85)'; for (let i = 0; i < 14; i++) { const s = R() < 0.5 ? -1 : 1; x.beginPath(); x.ellipse(w / 2 + s * w * (0.12 + R() * 0.2), h * (0.1 + R() * 0.8), w * 0.1, h * 0.03, s * 0.6, 0, 6.283); x.fill(); } },
+  dots: (x, w, h, R) => { x.fillStyle = 'rgba(245,245,245,.95)'; for (let i = 0; i < 30; i++) { x.beginPath(); x.arc(w * (0.1 + R() * 0.8), h * (0.05 + R() * 0.9), 2 + R() * 3, 0, 6.283); x.fill(); } },
+  marble: (x, w, h) => { x.save(); x.translate(w * 0.15, h * 0.15); x.scale(0.7, 0.7); x.beginPath(); LSHAPE.heart(x, w, h); x.strokeStyle = 'rgba(200,215,195,.8)'; x.lineWidth = 16; x.stroke(); x.restore(); },
+  croton: (x, w, h) => { const g = x.createLinearGradient(0, h, 0, 0); g.addColorStop(0, 'rgba(220,70,40,.7)'); g.addColorStop(0.6, 'rgba(240,170,40,.45)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, w, h); },
+  trades: (x, w, h) => { x.fillStyle = 'rgba(205,205,220,.9)'; x.fillRect(w * 0.18, 0, w * 0.2, h); x.fillRect(w * 0.62, 0, w * 0.2, h); },
+  bands: (x, w, h) => { x.strokeStyle = 'rgba(25,55,32,.6)'; x.lineWidth = 4; for (let y = 8; y < h; y += 12) { x.beginPath(); x.moveTo(0, y); for (let xx = 0; xx <= w; xx += 16) x.lineTo(xx, y + Math.sin(xx / 10 + y) * 3); x.stroke(); } },
+  laurentii: (x, w, h) => { LPAT.bands(x, w, h); x.strokeStyle = '#D8C94A'; x.lineWidth = 12; x.beginPath(); LSHAPE.sword(x, w, h); x.stroke(); },
+  stripe: (x, w, h) => { x.fillStyle = 'rgba(238,236,205,.95)'; x.fillRect(w * 0.36, 0, w * 0.28, h); },
+  redEdge: (x, w, h) => { x.strokeStyle = 'rgba(160,40,50,.9)'; x.lineWidth = 14; x.beginPath(); LSHAPE.sword(x, w, h); x.stroke(); },
+  yellowMid: (x, w, h) => { x.fillStyle = 'rgba(205,200,80,.85)'; x.fillRect(w * 0.4, 0, w * 0.2, h); },
+  caladium: (x, w, h) => { const g = x.createRadialGradient(w / 2, h * 0.55, 4, w / 2, h * 0.55, w * 0.55); g.addColorStop(0, 'rgba(235,150,175,.95)'); g.addColorStop(0.75, 'rgba(235,150,175,.6)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, w, h); },
+  silverSpots: (x, w, h, R) => { x.fillStyle = 'rgba(200,215,210,.85)'; for (let i = 0; i < 16; i++) { x.beginPath(); x.ellipse(w * (0.15 + R() * 0.7), h * (0.15 + R() * 0.7), 4 + R() * 6, 3 + R() * 4, R() * 3, 0, 6.283); x.fill(); } },
+};
+// Bladtyper: form, färger (mitt, kant), mönster, nerver (färg, antal), glans, monsterahål
+const LEAF3D = {
+  monstera: { s: 'heart', c: ['#3D7A35', '#24512A'], v: ['rgba(190,220,150,.6)', 7], gloss: 1, cut: 1 },
+  alocasia: { s: 'arrow', c: ['#22452C', '#142B1B'], v: ['rgba(235,240,230,.95)', 5, 4], gloss: 1 },
+  heart: { s: 'heart', c: ['#3F7D38', '#28552B'], v: ['rgba(200,225,160,.5)', 6], gloss: 1 },
+  heartGloss: { s: 'heart', c: ['#2F6A32', '#1D4723'], v: ['rgba(190,215,160,.45)', 6], gloss: 1 },
+  pothos: { s: 'heart', c: ['#4E8F3A', '#356A2B'], v: ['rgba(220,230,170,.4)', 5], p: 'pothos', gloss: 1 },
+  scindapsus: { s: 'heart', c: ['#3B6A45', '#2A4E34'], v: ['rgba(200,215,200,.3)', 4], p: 'silverSpots' },
+  ivy: { s: 'ivy', c: ['#2F5F2E', '#1F4422'], v: ['rgba(225,230,210,.8)', 4] },
+  lanceGloss: { s: 'oval', c: ['#2C6431', '#1B4521'], v: ['rgba(190,215,165,.45)', 9], gloss: 1 },
+  oval: { s: 'oval', c: ['#4C8A3E', '#33652D'], v: ['rgba(210,230,170,.5)', 7] },
+  small: { s: 'oval', c: ['#3F7A36', '#2B5A28'], v: ['rgba(210,230,170,.35)', 4], gloss: 1 },
+  elastica: { s: 'oval', c: ['#2A3F2A', '#1A2A1C'], v: ['rgba(200,140,120,.55)', 10], gloss: 1 },
+  fiddle: { s: 'fiddle', c: ['#3E7535', '#28532A'], v: ['rgba(215,230,180,.65)', 6], gloss: 1 },
+  schefflera: { s: 'palmate', c: ['#3F7D35', '#2A5A28'], v: ['rgba(210,230,170,.3)', 0], gloss: 1 },
+  round: { s: 'round', c: ['#5A9A3E', '#3E7630'], v: ['rgba(220,235,180,.35)', 0], gloss: 1 },
+  roundThick: { s: 'round', c: ['#3E7A3A', '#2A5A2C'], v: ['rgba(220,235,180,.2)', 0], gloss: 1 },
+  roundFuzzy: { s: 'round', c: ['#3F6B34', '#2C4E27'], v: ['rgba(200,215,170,.3)', 4] },
+  orbifolia: { s: 'round', c: ['#6E9B58', '#557E45'], v: ['rgba(0,0,0,0)', 0], p: 'orbifolia' },
+  calathea: { s: 'oval', c: ['#7CA35A', '#5E8A45'], v: ['rgba(0,0,0,0)', 0], p: 'calathea' },
+  maranta: { s: 'oval', c: ['#6E9A50', '#557F3E'], v: ['rgba(190,50,45,.85)', 7], p: 'maranta' },
+  aglaonema: { s: 'oval', c: ['#3A6E3C', '#2A522C'], v: ['rgba(200,215,190,.4)', 7], p: 'aglao', gloss: 1 },
+  dieffenbachia: { s: 'oval', c: ['#4E8A3C', '#346A2C'], v: ['rgba(230,230,190,.4)', 8], p: 'dieff' },
+  begonia: { s: 'oval', c: ['#3A5E3A', '#26422A'], v: ['rgba(0,0,0,0)', 0], p: 'dots' },
+  cyclamen: { s: 'heart', c: ['#2E5530', '#1E3B22'], v: ['rgba(0,0,0,0)', 0], p: 'marble' },
+  pelargon: { s: 'round', c: ['#5C8F3E', '#46732F'], v: ['rgba(220,230,180,.4)', 6] },
+  croton: { s: 'oval', c: ['#3E6A32', '#2A4A24'], v: ['rgba(245,210,60,.95)', 7, 3], p: 'croton', gloss: 1 },
+  trades: { s: 'oval', c: ['#5A3570', '#3E2350'], v: ['rgba(0,0,0,0)', 0], p: 'trades' },
+  paddle: { s: 'paddle', c: ['#3C7A40', '#2A5A30'], v: ['rgba(210,230,190,.45)', 14] },
+  sansev: { s: 'sword', c: ['#3E6E45', '#2E5636'], v: ['rgba(0,0,0,0)', 0], p: 'bands' },
+  laurentii: { s: 'sword', c: ['#3E6E45', '#2E5636'], v: ['rgba(0,0,0,0)', 0], p: 'laurentii' },
+  grass: { s: 'sword', c: ['#5D9A45', '#477F36'], v: ['rgba(0,0,0,0)', 0], p: 'stripe' },
+  marginata: { s: 'sword', c: ['#3E6A35', '#2E5228'], v: ['rgba(0,0,0,0)', 0], p: 'redEdge' },
+  dracaena: { s: 'sword', c: ['#3F7A38', '#2E5C2A'], v: ['rgba(0,0,0,0)', 0], p: 'yellowMid' },
+  zz: { s: 'oval', c: ['#2E5E2C', '#1E4220'], v: ['rgba(190,210,170,.3)', 4], gloss: 1 },
+  orchid: { s: 'oval', c: ['#3E7A3A', '#2C5E2C'], v: ['rgba(210,230,180,.25)', 0], gloss: 1 },
+  caladium: { s: 'arrow', c: ['#5A9A4A', '#3F7A36'], v: ['rgba(240,170,190,.9)', 5, 3], p: 'caladium' },
+  hoya: { s: 'oval', c: ['#3A6A36', '#2A4E28'], v: ['rgba(0,0,0,0)', 0], p: 'silverSpots', gloss: 1 },
+};
+function paintLeaf3(x, w, h, D, R) {
+  x.clearRect(0, 0, w, h); x.beginPath(); (LSHAPE[D.s] || LSHAPE.oval)(x, w, h); x.closePath();
+  x.save(); x.clip();
+  const g = x.createLinearGradient(0, 0, w, 0); g.addColorStop(0, D.c[1]); g.addColorStop(0.5, D.c[0]); g.addColorStop(1, D.c[1]); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  if (D.p && LPAT[D.p]) LPAT[D.p](x, w, h, R);
+  const [vc, vn, vw] = D.v || ['rgba(0,0,0,0)', 0]; if (vn) { x.strokeStyle = vc; x.lineWidth = (vw || 2) + 1; x.beginPath(); x.moveTo(w / 2, h); x.lineTo(w / 2, h * 0.02); x.stroke(); x.lineWidth = vw || 1.6;
+    for (let i = 1; i <= vn; i++) { const y = h * (0.92 - i * 0.82 / (vn + 1)); [-1, 1].forEach(s => { x.beginPath(); x.moveTo(w / 2, y); x.quadraticCurveTo(w / 2 + s * w * 0.22, y - h * 0.02, w / 2 + s * w * 0.48, y - h * 0.09); x.stroke(); }); } }
+  if (D.gloss) { const s = x.createLinearGradient(0, 0, w, h); s.addColorStop(0, 'rgba(255,255,255,0)'); s.addColorStop(0.45, 'rgba(255,255,255,.14)'); s.addColorStop(0.55, 'rgba(255,255,255,0)'); x.fillStyle = s; x.fillRect(0, 0, w, h); }
+  x.restore();
+  if (D.cut) { x.save(); x.globalCompositeOperation = 'destination-out'; x.lineCap = 'round';
+    for (let i = 0; i < 5; i++) { const y = h * (0.3 + i * 0.11); [-1, 1].forEach(s => { x.lineWidth = 10; x.beginPath(); x.moveTo(w / 2 + s * w * 0.65, y - h * 0.07); x.lineTo(w / 2 + s * w * 0.2, y); x.stroke(); if (i % 2 === 0 && i < 4) { x.beginPath(); x.ellipse(w / 2 + s * w * 0.12, y + h * 0.055, 5, 10, s * 0.3, 0, 6.283); x.fill(); } }); }
+    x.restore(); }
+}
+function cardMat3(THREE, key, sick) {
+  const G = g3(THREE); G.cards = G.cards || {}; const k = key + (sick ? ':s' : '');
+  if (G.cards[k]) return G.cards[k];
+  const D = LEAF3D[key] || LEAF3D.oval, R = rng3(key.length * 131 + key.charCodeAt(0));
+  let tex = G.cards['t:' + key]; if (!tex) { tex = canvasTex3d(THREE, 128, 256, (x, w, h) => paintLeaf3(x, w, h, D, R)); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; G.cards['t:' + key] = tex; }
+  const m = new THREE.MeshStandardMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide, roughness: D.gloss ? 0.38 : 0.72, color: sick ? '#D9C468' : '#FFFFFF' });
+  if (THREE.MeshDepthMaterial) m.userData.depth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: tex, alphaTest: 0.5 });
+  return G.cards[k] = m;
+}
+function cards3(THREE, g, key, list, sick) { if (!list.length) return; const G = g3(THREE); if (!G.cardGeo) { const geo = new THREE.PlaneGeometry(1, 1, 3, 6), q = geo.attributes.position; for (let i = 0; i < q.count; i++) { const x = q.getX(i), v = q.getY(i) + 0.5; q.setXYZ(i, x, v, 0.16 * v * v + 0.3 * x * x); } q.needsUpdate = true; geo.computeVertexNormals(); G.cardGeo = geo; }
+  const m = cardMat3(THREE, key, sick), im = inst3d(THREE, G.cardGeo, m, list); if (m.userData && m.userData.depth) im.customDepthMaterial = m.userData.depth; g.add(im); }
+// Recept per släkte: växtsätt (pet = blad på skaft, stem = blad längs stam, crown = bladkrona, tuft = tofs i toppen, pilea), bladtyp och mått i meter
+const IN3 = [
+  [/Monstera/, { h: 'pet', leaf: 'monstera', n: 8, L: [0.3, 0.46], asp: 0.95, pl: [0.3, 0.6], pp: [0.35, 0.85], lp: [1.05, 1.4], pw: 0.009 }],
+  [/Alocasia|Colocasia/, { h: 'pet', leaf: 'alocasia', n: 5, L: [0.26, 0.36], asp: 0.62, pl: [0.35, 0.6], pp: [0.06, 0.32], lp: [0.45, 0.85], pw: 0.008 }],
+  [/Caladium/, { h: 'pet', leaf: 'caladium', n: 7, L: [0.16, 0.24], asp: 0.7, pl: [0.2, 0.35], pp: [0.15, 0.5], lp: [0.6, 1.0] }],
+  [/Anthurium/, { h: 'pet', leaf: 'heartGloss', n: 7, L: [0.15, 0.22], asp: 0.62, pl: [0.2, 0.4], pp: [0.1, 0.45], lp: [0.6, 1.1], spathe: '#D9342B' }],
+  [/Spathiphyllum|Fredskalla/i, { h: 'pet', leaf: 'lanceGloss', n: 12, L: [0.18, 0.26], asp: 0.36, pl: [0.12, 0.25], pp: [0.05, 0.45], lp: [0.4, 1.0], spathe: '#F4F1E8' }],
+  [/orbifolia/i, { h: 'pet', leaf: 'orbifolia', n: 8, L: [0.17, 0.24], asp: 0.95, pl: [0.2, 0.35], pp: [0.15, 0.5], lp: [0.7, 1.1] }],
+  [/Calathea|Goeppertia|Stromanthe|Ctenanthe/, { h: 'pet', leaf: 'calathea', n: 10, L: [0.14, 0.22], asp: 0.5, pl: [0.18, 0.32], pp: [0.05, 0.4], lp: [0.3, 0.8] }],
+  [/Maranta/, { h: 'pet', leaf: 'maranta', n: 12, L: [0.08, 0.12], asp: 0.6, pl: [0.06, 0.14], pp: [0.6, 1.1], lp: [1.1, 1.45] }],
+  [/lyrata|Fiollöv/i, { h: 'stem', leaf: 'fiddle', n: 12, L: [0.2, 0.3], asp: 0.72, H: 0.8, k: 1 }],
+  [/Ficus elastica|Gummi/i, { h: 'stem', leaf: 'elastica', n: 12, L: [0.15, 0.22], asp: 0.48, H: 0.7, k: 1 }],
+  [/Ficus/, { h: 'crown', leaf: 'small', n: 90, L: [0.05, 0.07], asp: 0.48, H: 0.5 }],
+  [/Schefflera|Heptapleurum|Paraplyaralia/i, { h: 'stem', leaf: 'schefflera', n: 9, L: [0.16, 0.22], asp: 1.0, H: 0.6, k: 2, pet: 0.1 }],
+  [/Pilea peperomioides|Elefantöra|Pengaplanta/i, { h: 'pilea', leaf: 'round', n: 18, L: [0.06, 0.1], asp: 1.0 }],
+  [/Peperomia/, { h: 'pet', leaf: 'roundThick', n: 14, L: [0.05, 0.08], asp: 0.85, pl: [0.04, 0.1], pp: [0.3, 0.9], lp: [0.8, 1.3] }],
+  [/Aglaonema/, { h: 'pet', leaf: 'aglaonema', n: 11, L: [0.16, 0.24], asp: 0.42, pl: [0.06, 0.14], pp: [0.1, 0.6], lp: [0.6, 1.2] }],
+  [/Dieffenbachia/, { h: 'stem', leaf: 'dieffenbachia', n: 9, L: [0.2, 0.28], asp: 0.45, H: 0.4, k: 1, pet: 0.1 }],
+  [/Philodendron(?! scandens)/, { h: 'pet', leaf: 'heart', n: 8, L: [0.2, 0.3], asp: 0.72, pl: [0.2, 0.45], pp: [0.25, 0.7], lp: [0.9, 1.3] }],
+  [/Strelitzia|Musa|Paradisfågel|Banan/i, { h: 'pet', leaf: 'paddle', n: 6, L: [0.35, 0.5], asp: 0.36, pl: [0.35, 0.6], pp: [0.05, 0.3], lp: [0.25, 0.6], pw: 0.01 }],
+  [/Codiaeum|Croton/i, { h: 'stem', leaf: 'croton', n: 14, L: [0.12, 0.18], asp: 0.4, H: 0.45, k: 1 }],
+  [/Begonia/, { h: 'pet', leaf: 'begonia', n: 9, L: [0.12, 0.2], asp: 0.55, pl: [0.1, 0.25], pp: [0.3, 0.8], lp: [0.9, 1.3], fl: ['#E8508C', 'simple'], fh: 0.3 }],
+  [/Saintpaulia|Usambara/i, { h: 'pet', leaf: 'roundFuzzy', n: 14, L: [0.06, 0.09], asp: 0.85, pl: [0.04, 0.08], pp: [1.0, 1.35], lp: [1.3, 1.55], fl: ['#7B52C9', 'simple'], fh: 0.1 }],
+  [/Cyclamen|Alpviol/i, { h: 'pet', leaf: 'cyclamen', n: 12, L: [0.06, 0.09], asp: 0.9, pl: [0.06, 0.12], pp: [0.4, 1.0], lp: [1.1, 1.45], fl: ['#E8508C', 'star'], fh: 0.22 }],
+  [/Pelargonium|Pelargon/i, { h: 'pet', leaf: 'pelargon', n: 12, L: [0.07, 0.1], asp: 0.95, pl: [0.08, 0.16], pp: [0.3, 0.9], lp: [1.0, 1.4], fl: ['#E8452B', 'umbel'], fh: 0.3 }],
+  [/marginata|reflexa/i, { h: 'tuft', leaf: 'marginata', n: 24, L: [0.25, 0.35], asp: 0.08, H: 0.6, k: 3 }],
+  [/Dracaena(?! trifasciata)|Cordyline/, { h: 'tuft', leaf: 'dracaena', n: 16, L: [0.3, 0.42], asp: 0.14, H: 0.45, k: 1 }],
+  [/Yucca/, { h: 'tuft', leaf: 'sansev', n: 20, L: [0.28, 0.38], asp: 0.1, H: 0.5, k: 2 }],
+  [/Citrus|Coffea|Olea|Laurus|Murraya|Pachira|Radermachera|Brachychiton/, { h: 'crown', leaf: 'oval', n: 60, L: [0.07, 0.1], asp: 0.45, H: 0.5 }],
+  [/Hibiscus|Gerbera|Impatiens|Primula/, { h: 'pet', leaf: 'oval', n: 14, L: [0.08, 0.12], asp: 0.55, pl: [0.05, 0.12], pp: [0.4, 1.0], lp: [0.9, 1.4], fl: ['#E8452B', 'simple'], fh: 0.22 }],
+];
+function recipe3d(THREE, nm, seed, sick) {
+  let rc = null; for (const [re, r] of IN3) if (re.test(nm)) { rc = r; break; } if (!rc) return null;
+  const g = new THREE.Group(), R = rng3(seed), G = g3(THREE), Y0 = 0.3, st = [], lv = [], rr = a => a[0] + R() * (a[1] - a[0]);
+  const dir = (p, a) => [Math.sin(p) * Math.sin(a), Math.cos(p), Math.sin(p) * Math.cos(a)];
+  const seg = (a, b, r) => { const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L = Math.hypot(dx, dy, dz) || 0.001; st.push([a[0], a[1], a[2], Math.acos(Math.max(-1, Math.min(1, dy / L))), Math.atan2(dx, dz), 0, r, L, r]); };
+  const leaf = (p, pitch, yaw, L) => lv.push([p[0], p[1], p[2], pitch, yaw, (R() - 0.5) * 0.3, L * rc.asp, L, L]);
+  if (rc.h === 'pet') for (let i = 0; i < rc.n; i++) { const a = i * 2.39996 + R() * 0.3, pl = rr(rc.pl), d = dir(rr(rc.pp), a), b = [Math.sin(a) * 0.02, Y0, Math.cos(a) * 0.02], e = [b[0] + d[0] * pl, b[1] + d[1] * pl, b[2] + d[2] * pl]; seg(b, e, rc.pw || 0.006); leaf(e, rr(rc.lp), a, rr(rc.L) * (0.75 + 0.25 * (i % 3) / 2)); }
+  else if (rc.h === 'stem') for (let s = 0; s < rc.k; s++) { const a0 = s * 2.4 + R(), base = [Math.sin(a0) * 0.04 * s, Y0, Math.cos(a0) * 0.04 * s], H = rc.H * (0.8 + R() * 0.3), lean = 0.04 + R() * 0.1 * s, d = dir(lean, a0), top = [base[0] + d[0] * H, base[1] + d[1] * H, base[2] + d[2] * H]; seg(base, top, 0.012);
+      const m = Math.round(rc.n / rc.k); for (let j = 0; j < m; j++) { const t = 0.3 + 0.7 * j / Math.max(1, m - 1), p = [base[0] + d[0] * H * t, base[1] + d[1] * H * t, base[2] + d[2] * H * t], ya = a0 + j * 2.4, pe = rc.pet || 0.03, q = [p[0] + Math.sin(ya) * pe, p[1] + pe * 0.4, p[2] + Math.cos(ya) * pe]; if (pe > 0.05) seg(p, q, 0.004); leaf(q, 0.75 + R() * 0.5, ya, rr(rc.L) * (1 - t * 0.35)); } }
+  else if (rc.h === 'crown') { const top = [0, Y0 + rc.H, 0]; seg([0, Y0, 0], top, 0.018); for (let i = 0; i < rc.n; i++) { const u = R() * 2 - 1, an = R() * 6.283, sq = Math.sqrt(1 - u * u), dx = sq * Math.sin(an), dz = sq * Math.cos(an), r0 = 0.17 + R() * 0.06; leaf([dx * r0, top[1] + 0.1 + u * r0 * 0.85, dz * r0], Math.max(0.3, Math.min(1.8, Math.acos(u) + 0.3)), Math.atan2(dx, dz), rr(rc.L)); } }
+  else if (rc.h === 'tuft') for (let s = 0; s < rc.k; s++) { const a0 = s * 2.1 + R(), H = rc.H * (0.6 + R() * 0.5), d = dir(0.05 + R() * 0.15 * s, a0), b = [Math.sin(a0) * 0.03 * s, Y0, Math.cos(a0) * 0.03 * s], top = [b[0] + d[0] * H, b[1] + d[1] * H, b[2] + d[2] * H]; seg(b, top, 0.014);
+      for (let i = 0; i < Math.round(rc.n / rc.k); i++) leaf(top, 0.15 + R() * 1.35, R() * 6.283, rr(rc.L)); }
+  else if (rc.h === 'pilea') { const top = [0, Y0 + 0.2, 0]; seg([0, Y0, 0], top, 0.008); for (let i = 0; i < rc.n; i++) { const t = R(), p = [0, Y0 + 0.04 + t * 0.16, 0], a = i * 2.4, d = dir(0.9 + R() * 0.4, a), pl = 0.07 + R() * 0.08, e = [d[0] * pl, p[1] + d[1] * pl, d[2] * pl]; seg(p, e, 0.003); leaf(e, 1.45, a, rr(rc.L)); } }
+  if (st.length) g.add(inst3d(THREE, G.stemGeo, G.mat('plain', rc.h === 'stem' || rc.h === 'tuft' || rc.h === 'crown' ? '#7A5B3A' : '#5C8F46'), st));
+  cards3(THREE, g, rc.leaf, lv, sick);
+  if (rc.spathe && !sick) { const sp = [], sx = []; for (let i = 0; i < 3; i++) { const a = i * 2.1 + R(), hh = 0.5 + R() * 0.1, d = dir(0.15, a), e = [d[0] * hh, Y0 + d[1] * hh, d[2] * hh]; sp.push([e[0], e[1], e[2], rc.spathe === '#D9342B' ? 0.9 : 0.35, a + Math.PI, 0, 0.07, 0.11, 0.11]); sx.push([e[0], e[1], e[2], 0.25, a, 0, 0.008, 0.06, 0.008]); }
+    g.add(inst3d(THREE, G.petalGeo, G.mat('petal', rc.spathe), sp)); g.add(inst3d(THREE, G.stemGeo, G.mat('plain', rc.spathe === '#D9342B' ? '#F2D46B' : '#EDE6C8'), sx)); }
+  if (rc.fl && !sick) { const heads = []; for (let i = 0; i < 6; i++) { const a = R() * 6.283, d = Math.sqrt(R()) * 0.12; heads.push([Math.sin(a) * d, Y0 + (rc.fh || 0.2) + R() * 0.05, Math.cos(a) * d]); } bloom3d(THREE, g, heads, rc.fl[1] === 'umbel' ? 0.03 : 0.035, /Gerbera/.test(nm) ? '#E8452B' : rc.fl[0] || '#E8452B', /Gerbera/.test(nm) ? 'daisy' : rc.fl[1], null, R, false); }
+  return g;
+}
 // Inomhusväxter med riktiga blad, bladskaft, rankor och blommor. Kaktusar och suckulenter behåller sina former (returnerar null).
 function indoorReal(THREE, p, ok, seed, nm, cat, leafH) {
   if (/Opuntia|Cereus|Echinocactus|Mammillaria|Echinopsis|Ferocactus|Gymnocalycium|Astrophytum|Rebutia|kaktus|Aloe|Echeveria|Haworth|Gasteria|Sempervivum|Aeonium|Crassula|Pengaträd|Kalanchoe|Sedum|Graptopetalum|Lithops|Jade|Schlumbergera|Hatiora|Rhipsalis|Julkaktus|Epiphyllum/i.test(nm) || cat === 'Kaktus') return null;
   const g = new THREE.Group(), R = rng3(seed), G = g3(THREE), Y0 = 0.3, sick = ok === false ? '#B9A23F' : null;
   const sat = leafH > 300 ? 28 : 40, lcol = (l, hh, ss) => sick || `hsl(${(hh == null ? leafH : hh) + Math.round(R() * 12)},${ss == null ? sat : ss}%,${l + Math.round(R() * 6)}%)`;
   const st = [], lf = [], bl = [], add = (geo, m, list) => { if (list.length) g.add(inst3d(THREE, geo, m, list)); };
+  { const rg = recipe3d(THREE, nm, seed, !!sick); if (rg) return rg; }
   // Stjälk mellan två punkter
   const seg = (a, b, r) => { const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L = Math.hypot(dx, dy, dz) || 0.001; st.push([a[0], a[1], a[2], Math.acos(Math.max(-1, Math.min(1, dy / L))), Math.atan2(dx, dz), 0, r, L, r]); };
   const dir = (pitch, a) => [Math.sin(pitch) * Math.sin(a), Math.cos(pitch), Math.sin(pitch) * Math.cos(a)];
@@ -2443,7 +2590,7 @@ function indoorReal(THREE, p, ok, seed, nm, cat, leafH) {
   // Orkidéer: breda blad nära krukan, en böjd blomstjälk med platta blommor
   if (cat === 'Orkidé' || /Phalaenopsis|Orchid|orkidé|Dendrobium|Cymbidium|Oncidium|Paphiopedilum|Vanda/i.test(nm)) {
     for (let i = 0; i < 4; i++) { const a = i * 2.6 + R() * 0.4; lf.push([0, Y0 + 0.01 + i * 0.012, 0, 1.25 + R() * 0.2, a, 0, 0.13, 0.22, 0.22]); }
-    add(G.broadGeo, leafM(30), lf);
+    cards3(THREE, g, 'orchid', lf, !!sick);
     const a = R() * 6.283, pts = [[0.02, Y0, 0]]; for (let k = 1; k <= 6; k++) { const t = k / 6, pt = 0.1 + t * 1.1, d = dir(pt, a), q = pts[k - 1]; pts.push([q[0] + d[0] * 0.09, q[1] + d[1] * 0.09, q[2] + d[2] * 0.09]); }
     for (let k = 1; k < pts.length; k++) seg(pts[k - 1], pts[k], 0.005); add(G.stemGeo, G.mat('plain', '#6E8F4A'), st);
     bloom3d(THREE, g, pts.slice(3).map(q => [q[0], q[1] - 0.02, q[2]]), 0.05, sick || (/Cymbidium|Oncidium/.test(nm) ? '#F2D46B' : R() < 0.5 ? '#F3E6EE' : '#E28DC0'), 'simple', null, R, false);
@@ -2455,7 +2602,7 @@ function indoorReal(THREE, p, ok, seed, nm, cat, leafH) {
       if (zz) { const tip = dir(0.15 + R() * 0.3, a), b = [Math.sin(a) * d, Y0, Math.cos(a) * d], e = [b[0] + tip[0] * len, b[1] + tip[1] * len, b[2] + tip[2] * len]; seg(b, e, 0.008);
         for (let j = 1; j <= 6; j++) { const t = j / 7, q = [b[0] + tip[0] * len * t, b[1] + tip[1] * len * t, b[2] + tip[2] * len * t]; [-1, 1].forEach(sd => lf.push([q[0], q[1], q[2], 1.0, a + sd * 1.1, 0, 0.045, 0.085, 0.085])); } }
       else lf.push([Math.sin(a) * d, Y0, Math.cos(a) * d, 0.05 + R() * 0.25, a, (R() - 0.5) * 0.3, 0.075, len, len * 0.15]); }
-    add(G.stemGeo, G.mat('plain', '#3F6B35'), st); add(G.leafGeo, leafM(28, 135, 38), lf); return g; }
+    add(G.stemGeo, G.mat('plain', '#3F6B35'), st); cards3(THREE, g, zz ? 'zz' : /Laurentii/i.test(nm) ? 'laurentii' : 'sansev', lf, !!sick); return g; }
   // Palmer: kort stam och böjda fjäderblad
   if (/Palm|Howea|Chamaedorea|Areca|Dypsis|Phoenix|Rhapis|Kentia|Cycas|Livistona|Chrysalidocarpus/i.test(nm)) {
     const top = [0, Y0 + 0.22, 0]; seg([0, Y0, 0], top, 0.03);
@@ -2468,13 +2615,13 @@ function indoorReal(THREE, p, ok, seed, nm, cat, leafH) {
     add(G.stemGeo, G.mat('plain', '#5E7F3E'), st); add(G.leafGeo, leafM(36), lf); return g; }
   // Klätter- och hängväxter: bladtuva i krukan och rankor som hänger ner
   if (/Epipremnum|Gullranka|Chlorophytum|Grönlilja|Tradescantia|Hedera|Murgröna|Ceropegia|Senecio|Scindapsus|Philodendron scandens|Hoya|Pilea glauc/i.test(nm)) {
-    if (/Chlorophytum|Grönlilja/.test(nm)) { leaves3d(THREE, g, 26, 0, Y0, 0, 0.03, 0.38, 0.045, [lcol(42, 95, 35), lcol(34, 95, 35)], R, { tilt: 0.5, tilt1: 1.5 }); return g; }
+    if (/Chlorophytum|Grönlilja/.test(nm)) { for (let i = 0; i < 26; i++) { const L = 0.38 * (0.7 + R() * 0.45); lf.push([Math.sin(i) * 0.02, Y0, Math.cos(i) * 0.02, 0.5 + R() * 1.0, i * 2.4 + R() * 0.4, (R() - 0.5) * 0.3, 0.045, L, L]); } cards3(THREE, g, 'grass', lf, !!sick); return g; }
     const small = /Tradescantia|Senecio|Ceropegia|Pilea/.test(nm), lw = small ? 0.035 : 0.065, ll = small ? 0.045 : 0.08;
     for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283 + R(); lf.push([Math.sin(a) * 0.04, Y0 + 0.02, Math.cos(a) * 0.04, 0.6 + R() * 0.6, a, 0, lw * 1.2, ll * 1.2, ll * 1.2]); }
     for (let v = 0; v < 6; v++) { const a = v / 6 * 6.283 + R() * 0.4; let q = [Math.sin(a) * 0.1, Y0 + 0.03, Math.cos(a) * 0.1]; const n = 5 + Math.round(R() * 4);
       for (let k = 0; k < n; k++) { const out = k === 0 ? 0.07 : 0.015, nq = [q[0] + Math.sin(a) * out + (R() - 0.5) * 0.02, q[1] - (k === 0 ? 0.0 : 0.065), q[2] + Math.cos(a) * out + (R() - 0.5) * 0.02]; seg(q, nq, 0.003);
         lf.push([nq[0], nq[1], nq[2], 1.3 + R() * 0.3, a + (k % 2 ? 0.9 : -0.9), 0, lw, ll, ll]); q = nq; } }
-    add(G.stemGeo, G.mat('plain', '#5C7F3E'), st); add(G.broadGeo, leafM(/Epipremnum|Gullranka|Scindapsus/.test(nm) ? 40 : 32), lf); return g; }
+    add(G.stemGeo, G.mat('plain', '#5C7F3E'), st); cards3(THREE, g, /Hedera|Murgröna/i.test(nm) ? 'ivy' : /Tradescantia/.test(nm) ? 'trades' : /Scindapsus/.test(nm) ? 'scindapsus' : /Hoya/.test(nm) ? 'hoya' : /Epipremnum|Gullranka/i.test(nm) ? 'pothos' : /Pilea|Senecio/.test(nm) ? 'roundThick' : 'heart', lf, !!sick); return g; }
   // Stora bladväxter: bladskaft och stora blad. Fredskalla och anthurium får sitt hölsterblad.
   if (/Monstera|Philodendron|Alocasia|Colocasia|Calathea|Maranta|Spathiphyllum|Fredskalla|Anthurium|Ficus lyrata|Fiddle|Caladium|Strelitzia|Musa|Aglaonema|Dieffenbachia|Stromanthe/i.test(nm)) {
     const big = /Monstera|Alocasia|Colocasia|Strelitzia|Musa|lyrata/.test(nm), L = big ? 0.4 : 0.27, n = big ? 10 : 13;
@@ -2496,7 +2643,7 @@ function indoorReal(THREE, p, ok, seed, nm, cat, leafH) {
     if (/Citrus/.test(nm) && !sick) bloom3d(THREE, g, [[0.1, c[1], 0.12], [-0.12, c[1] + 0.05, 0.05], [0.02, c[1] - 0.1, -0.15]], 0.025, '#E8A21E', 'ball', null, R, false);
     return g; }
   // Övriga: en tät bladtuva, med blommor för kända blommare
-  leaves3d(THREE, g, 26, 0, Y0, 0, 0.05, 0.15, 0.085, [lcol(34), lcol(28)], R, { broad: true, tilt: 0.45, tilt1: 1.35, rise: 0.12 });
+  for (let i = 0; i < 24; i++) { const L = 0.15 * (0.7 + R() * 0.5); lf.push([Math.sin(i) * 0.03, Y0 + R() * 0.1, Math.cos(i) * 0.03, 0.45 + R() * 0.9, i * 2.4 + R() * 0.4, (R() - 0.5) * 0.3, L * 0.55, L, L]); } cards3(THREE, g, 'oval', lf, !!sick);
   const fl = /Saintpaulia/.test(nm) ? ['#7B52C9', 'simple'] : /Cyclamen/.test(nm) ? ['#E8508C', 'star'] : /Gerbera/.test(nm) ? ['#E8452B', 'daisy'] : /Hibiscus/.test(nm) ? ['#E8452B', 'simple', 0.07]
     : /Begonia/.test(nm) ? ['#E8508C', 'simple'] : /Pelargonium|Impatiens|Primula/.test(nm) ? ['#E8452B', 'simple'] : null;
   if (fl && !sick) { const heads = []; for (let i = 0; i < 6; i++) { const a = R() * 6.283, d = Math.sqrt(R()) * 0.12; heads.push([Math.sin(a) * d, Y0 + 0.2 + R() * 0.06, Math.cos(a) * d]); }
@@ -6245,6 +6392,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.152', 'Nu', ['3D: varje vanlig krukväxt ser ut som sig själv. Monstera har hål i bladen, alocasia pilformade blad med vita nerver, calathea ränder, maranta prickar, gullranka gula strimmor, murgröna flikiga blad, fiollöv sin fiolform och schefflera handflikiga blad. Gummiträd och fiollöv växer längs en stam, dracena har en tofs i toppen och pilea runda blad på skaft']],
   ['1.151', 'Nu', ['3D: rumsnamnen är små och lika stora oavsett hur nära du zoomar. Fönsterbrädorna är i ljust trä så att de syns mot väggen']],
   ['1.150', 'Nu', ['3D: bord och skrivbord har bordsskiva och ben, runda bord har en fot. Altanen, gångar och rabatter sticker inte längre upp genom golvet i huset. Fönster har fönsterbrädor på insidan, och växter som står i fönstret ställs på brädan']],
   ['1.149', 'Nu', ['3D: en växt som står på ett bord, skrivbord, en byrå, hylla, bänkskiva eller TV-bänk hamnar ovanpå möbeln. Välj platsen Ampel så hänger växten från taket']],
@@ -6929,7 +7077,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.151';
+const APP_VERSION = '1.152';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
