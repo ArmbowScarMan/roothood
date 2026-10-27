@@ -1594,13 +1594,15 @@ const sbApi = {
   async remove(id) { const { error } = await sb.from('user_plants').delete().eq('id', id); if (error) throw error; },
   async getPro() {
     const { data: s } = await sb.auth.getSession(); const uid = s.session && s.session.user.id; if (!uid) return false;
-    const { data, error } = await sb.from('profiles').select('is_pro').eq('id', uid);
-    return !error && !!(data && data[0] && data[0].is_pro);
+    let { data, error } = await sb.from('profiles').select('is_pro,pro_until').eq('id', uid);
+    if (error && /pro_until/.test(error.message || '')) ({ data, error } = await sb.from('profiles').select('is_pro').eq('id', uid));
+    const row = data && data[0];
+    return !error && !!(row && row.is_pro) && (!row.pro_until || new Date(row.pro_until) > new Date());
   },
   async setPro(on) {
-    const { data, error } = await sb.from('profiles').update({ is_pro: on, pro_since: on ? new Date().toISOString() : null }).eq('id', S.user.id).select('id');
-    if (error) throw /is_pro|pro_since/.test(error.message || '') ? new Error('PRO_NOT_READY') : error;
-    if (Array.isArray(data) && !data.length) throw new Error('Kunde inte spara. Logga ut och in igen.');
+    // Pro ändras bara via serverfunktioner: provperioden är 7 dagar och bara en gång per konto
+    const { error } = await sb.rpc(on ? 'start_pro_trial' : 'end_pro');
+    if (error) throw /TRIAL_USED/.test(error.message || '') ? new Error('TRIAL_USED') : /start_pro_trial|end_pro|pro_trial_used|pro_until/.test(error.message || '') ? new Error('PRO_NOT_READY') : error;
   },
   async feed(kind) {
     kind = kind || 'question';
@@ -6725,7 +6727,7 @@ function overLimit() { return !S.pro && S.mine.length >= FREE_LIMIT; }
 async function setPro(on) {
   S.modal = null;
   try { await api.setPro(on); S.pro = on; toast(on ? 'Välkommen som Pro! 🌱' : 'Pro är avslutat'); }
-  catch (e) { toast(e.message === 'PRO_NOT_READY' ? 'Pro går inte att använda just nu.' : errMsg(e)); }
+  catch (e) { toast(e.message === 'PRO_NOT_READY' ? 'Pro går inte att använda just nu.' : e.message === 'TRIAL_USED' ? 'Du har redan använt din gratis provperiod.' : errMsg(e)); }
   render();
 }
 function proV() {
@@ -6995,6 +6997,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.179', '27 okt 22:30', ['Pro: provperioden på 7 dagar startas på servern och kan bara användas en gång per konto. Pro går inte längre att sätta direkt från appen']],
   ['1.178', '27 okt 21:55', ['Gemenskap: titeln på frågekorten tar hela kortets bredd, i stället för att brytas i en smal spalt bredvid texten']],
   ['1.177', '27 okt 21:50', ['Hem: plus-knappen för att lägga till växt ligger uppe i rubriken, bredvid meddelanden och notiser. Den täcker inte längre korten när du scrollar']],
   ['1.176', '27 okt 21:40', ['Familj: medlemmar i samma hushåll delar Mitt hem och växter. Ni ser och ändrar samma rum och växter. Kör SQL-steget i Inställningar om du inte gjort det']],
@@ -7706,7 +7709,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.178';
+const APP_VERSION = '1.179';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
