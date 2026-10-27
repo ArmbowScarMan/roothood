@@ -592,7 +592,7 @@ details.tech p b{color:var(--ink)}
 .homehead .grow{flex:1;min-width:0}
 .homehead .brand{font-size:34px;font-weight:800;color:var(--pri);line-height:1.05}
 .homehead .grow>span{display:block;color:var(--mut);font-size:14px;margin-top:4px}
-.wxc{position:relative}.wxloc{position:absolute;top:10px;right:10px;border:0;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--pri);cursor:pointer;font:inherit}
+.wxrow{all:unset;box-sizing:border-box;width:100%;display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:10px 12px;border-radius:14px;background:var(--surf);font-weight:700;font-size:14px;color:var(--ink);cursor:pointer}.wxrow span:last-child{color:var(--pri);font-size:13px}.wxfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}.wxfoot .wxsrc{margin:0}.wxc{position:relative}.wxloc{position:absolute;top:10px;right:10px;border:0;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--pri);cursor:pointer;font:inherit}
 .citychip{display:flex;align-items:center;gap:8px;border:0;background:var(--surf);color:var(--ink);font:inherit;font-weight:700;font-size:14px;border-radius:14px;padding:6px 12px 6px 6px;box-shadow:var(--sh);cursor:pointer;flex:none;margin-top:4px}
 .citychip img{width:26px;height:26px;border-radius:8px;display:block}
 .citychip.icononly{padding:8px;gap:0;border-radius:14px}
@@ -3938,7 +3938,7 @@ function myCard(m) {
 function home() {
   const due = S.mine.filter(m => left(m) === 0);
   const name = S.user && !DEMO ? String(S.user.name).split(' ')[0] : '';
-  const sub = !S.user ? 'Växtfolk i Sverige' : due.length ? `${due.length} ${due.length > 1 ? 'växter behöver' : 'växt behöver'} vatten idag` : 'Alla dina växter har vatten';
+  const sub = !S.user ? 'Växtfolk i Sverige' : due.length ? `${due.length} ${due.length > 1 ? 'växter behöver' : 'växt behöver'} vatten idag` : '';
   const bell = bellBtn();
   const fp = S.plants.find(p => /Monstera/.test(p.latin_name)) || S.plants[0] || {};
   const intro = `<div class="hero">${ph(fp.latin_name, fp.category, fp.swedish_name || 'x')}<div class="shade"></div><div class="hero-t">${S.user
@@ -3991,8 +3991,6 @@ function wxWarnings(w) {
   const si = d.snowfall_sum.findIndex((v, i) => i < 3 && v >= 1);
   if (si >= 0) out.push(['snow', '🌨️', `Snö ${day(si).replace('i natt', 'i dag')}, ca ${Math.round(d.snowfall_sum[si])} cm`, 'Borsta av tung snö från buskar och häckar så att grenarna inte knäcks.']);
   if (Math.max(...d.temperature_2m_max.slice(0, 3)) >= 27) out.push(['heat', '🔥', `Värmebölja, upp till ${Math.round(Math.max(...d.temperature_2m_max.slice(0, 3)))} °C`, 'Dra för gardinen i söderfönster mitt på dagen och vattna oftare.']);
-  const irh = indoorRH(c.temperature_2m, c.relative_humidity_2m);
-  if (irh < 30 && c.temperature_2m < 10) out.push(['dryair', '🏜️', `Torr luft inomhus, ca ${irh} %`, 'Kall luft ute blir mycket torr när den värms upp inne. Gruppera växterna, ställ dem på fuktig leca eller använd en luftfuktare.']);
   return out;
 }
 function weatherV(sz) {
@@ -4001,15 +3999,15 @@ function weatherV(sz) {
   if (!w && !S.wxBusy) setTimeout(() => loadWeather(), 0);
   if (!w || (w.none && !w.cur)) return `<div class="wxc">${wxLocBtn()}<div class="wxtop">${ic('ph-cloud-sun', 'var(--pri)', 30)}<div class="grow"><b>Väder för dina växter</b><span>${w && w.none ? 'Välj din ort så visas vädret och varningar för frost, blåst och torr luft.' : 'Hämtar vädret…'}</span></div></div>${w && w.none ? `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn sm" onclick="${S.user ? 'openSettings()' : "openModal('login')"}">Välj ort</button><button class="btn sm line" onclick="wxHere()">📍 Min position</button></div>` : ''}</div>`;
   if (!w.cur) return `<div class="wxc">${wxLocBtn()}<div class="wxtop">${ic('ph-cloud-sun', 'var(--pri)', 30)}<div class="grow"><b>Vädret kunde inte hämtas</b><span>Kontrollera internet och försök igen.</span></div><button class="btn sm line" onclick="loadWeather(true)">Försök igen</button></div></div>`;
-  const c = w.cur, d = w.d, wx = WX[c.weather_code] || ['', '🌡️'], warn = wxWarnings(w), irh = indoorRH(c.temperature_2m, c.relative_humidity_2m);
-  if (sz === 's') return `<div class="wxc wxs"><div class="wxtop"><span class="wxi">${wx[1]}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]} i ${esc(w.name || S.city || '')}</span></div>${warn.length ? `<span class="wxbadge">${warn[0][1]} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span>` : '<span class="wxbadge ok">Inga varningar</span>'}</div></div>`;
-  const allW = sz === 'l' || S.wxAll;
+  const c = w.cur, d = w.d, wx = WX[c.weather_code] || ['', '🌡️'], warn = wxWarnings(w);
+  if (sz === 's') return `<div class="wxc wxs"><div class="wxtop"><span class="wxi">${wx[1]}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]}</span></div>${warn.length ? `<span class="wxbadge">${warn[0][1]} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span>` : '<span class="wxbadge ok">Inga varningar</span>'}</div></div>`;
+  const showDays = sz === 'l' || S.wxAll;
   return `<div class="wxc">${wxLocBtn()}
-    <div class="wxtop"><span class="wxi">${wx[1]}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]} i ${esc(w.name || S.city || '')}</span></div>
-      <div class="wxmeta"><span>💨 ${Math.round(c.wind_speed_10m)} m/s</span><span>💧 ${c.relative_humidity_2m} % ute</span><span>🏠 ca ${irh} % inne</span></div></div>
-    <div class="wxdays">${d.time.slice(0, 5).map((t, i) => `<div><small>${i === 0 ? 'Idag' : DAYS[new Date(t).getDay()]}</small><span>${(WX[d.weather_code[i]] || ['', '·'])[1]}</span><b>${Math.round(d.temperature_2m_max[i])}°</b><small>${Math.round(d.temperature_2m_min[i])}°</small></div>`).join('')}</div>
-    ${warn.length ? `<div class="wxwarn">${warn.slice(0, allW ? 99 : 2).map(x => `<div class="wxw w-${x[0]}"><span class="wwi">${x[1]}</span><div><b>${x[2]}</b><span>${x[3]}</span></div></div>`).join('')}${warn.length > 2 && sz !== 'l' ? `<button class="link3" style="align-self:flex-start" onclick="S.wxAll=!S.wxAll;render()">${S.wxAll ? 'Visa färre' : 'Visa ' + (warn.length - 2) + ' varningar till'}</button>` : ''}</div>` : `<p class="wxok">Inga vädervarningar för dina växter just nu.</p>`}
-    <p class="wxsrc">Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}</p></div>`;
+    <div class="wxtop"><span class="wxi">${wx[1]}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]}</span></div>
+      <div class="wxmeta"><span>💨 ${Math.round(c.wind_speed_10m)} m/s</span><span>💧 ${c.relative_humidity_2m} % ute</span></div></div>
+    ${showDays ? `<div class="wxdays">${d.time.slice(0, 5).map((t, i) => `<div><small>${i === 0 ? 'Idag' : DAYS[new Date(t).getDay()]}</small><span>${(WX[d.weather_code[i]] || ['', '·'])[1]}</span><b>${Math.round(d.temperature_2m_max[i])}°</b><small>${Math.round(d.temperature_2m_min[i])}°</small></div>`).join('')}</div>` : ''}
+    ${warn.length ? `<button class="wxrow" onclick="S.wxOpen=!S.wxOpen;render()" aria-expanded="${!!S.wxOpen}"><span>${warn[0][1]} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span><span>${S.wxOpen ? 'Dölj' : 'Visa'}</span></button>${S.wxOpen ? `<div class="wxwarn">${warn.map(x => `<div class="wxw w-${x[0]}"><span class="wwi">${x[1]}</span><div><b>${x[2]}</b><span>${x[3]}</span></div></div>`).join('')}</div>` : ''}` : `<p class="wxok">Inga vädervarningar just nu.</p>`}
+    <div class="wxfoot"><span class="wxsrc">Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}</span><button class="link3" onclick="S.wxAll=!S.wxAll;render()">${S.wxAll ? 'Dölj dagar' : '5 dagar'}</button></div></div>`;
 }
 function openDb(focus) { stopLight(); S.sel = null; S.modal = null; S.tool = 'db'; render(); $('#main').scrollTop = 0; if (focus) setTimeout(() => { const i = $('.search input'); if (i) i.focus(); }, 50); }
 function dbV() {
@@ -6094,6 +6092,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.116', 'Nu', ['Väderkortet är kompaktare. Varningarna fälls ut som en rad, och dagarna visas med knappen 5 dagar. Hälsningen säger inte längre samma sak som Inget att göra just nu. Inomhusfuktigheten är borttagen tills vi har riktiga sensordata']],
   ['1.115', 'Nu', ['Chatten har ingen bottenmeny, så skrivfältet ligger längst ner. Välj ort finns i väderkortet som en ikon. Dagbok och Växtdoktorn har samma namn överallt. Pastellfärger är bytta mot gröna toner, varm färg bara för varningar. Emojier är bytta mot ikoner, och lövmönstret är en svag papperstextur']],
   ['1.114', 'Nu', ['Välj ort ligger under hälsningen, inte i rubriken. Skrivfältet i chatten sitter längst ner. Egna meddelanden har krämvit text. Ikonerna på växtkorten överlappar inte längre texten']],
   ['1.113', 'Nu', ['Startskärmen (splash) i logotypens färger: krämvit bakgrund med appikonen']],
@@ -6742,7 +6741,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.115';
+const APP_VERSION = '1.116';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
