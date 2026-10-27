@@ -1227,6 +1227,19 @@ button.pw{cursor:pointer}
 :root[data-theme="dark"] .pt-move,:root[data-theme="dark"] .pt-room,:root[data-theme="dark"] .pt-win,:root[data-theme="dark"] .pt-plant,:root[data-theme="dark"] .pt-dev,:root[data-theme="dark"] .pt-furn,:root[data-theme="dark"] .pt-ute{--tint:#1A3427;--tc:#9BC77A}
 :root[data-theme="dark"] .wkind button.on,:root[data-theme="dark"] .pmapb.on,:root[data-theme="dark"] .qbtn.q-db,:root[data-theme="dark"] .qbtn.q-doc,:root[data-theme="dark"] .qbtn.q-xp,:root[data-theme="dark"] .qbtn.q-house,:root[data-theme="dark"] .qbtn.q-sun,:root[data-theme="dark"] .tic.doc,:root[data-theme="dark"] .tic.inspo,:root[data-theme="dark"] .tic.pets,:root[data-theme="dark"] .tic.xp,:root[data-theme="dark"] .tic.wat,:root[data-theme="dark"] .tic.sun,:root[data-theme="dark"] .dtag.t-fung,:root[data-theme="dark"] .dtag.t-care,:root[data-theme="dark"] .newroomb,:root[data-theme="dark"] .tool.docb{background:#1A3427;color:#9BC77A}
 .emo{font-size:1em;vertical-align:-.12em;color:inherit}
+
+.ctastack{display:flex;flex-direction:column;gap:10px}
+.wnext{font-size:11px;color:var(--mut);text-align:center;white-space:nowrap}
+.addnudge{display:flex;align-items:center;gap:10px;margin:8px 18px 4px;padding:12px 14px;border-radius:16px;background:var(--surf);box-shadow:var(--sh);font-weight:700;font-size:14px}
+.addnudge span{flex:1}
+.xtop{display:flex;justify-content:flex-end;padding:4px 18px 0}
+.xlist{display:flex;flex-direction:column;gap:8px;padding:0 18px 4px}
+.xrow{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--surf);box-shadow:var(--sh);cursor:pointer;color:var(--ink)}
+.xic{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--pri)}
+.xrow b{display:block;font-size:15px}
+.xrow small{display:block;font-size:12.5px;color:var(--mut);margin-top:2px}
+.xrow .fav{font-style:normal;font-size:20px;color:var(--gold)}
+.xrow .pro{font-style:normal;font-size:10px;font-weight:800;color:var(--acc)}
 </style></head><body>
 <div id="app"><div id="main"></div>
 <nav aria-label="Huvudmeny">
@@ -3807,7 +3820,9 @@ function topbar(title, backFn, extra) {
     ? `<button class="circ" onclick="${backFn}" aria-label="Tillbaka">${ic(I.back, null, 22)}</button>`
     : `<img class="logoimg" src="${LOGO}" alt="Roothood" width="40" height="40">`;
   const right = bellBtn();
-  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1>${esc(title)}</h1>${extra || ''}${right}</div>`;
+  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1>${esc(title)}</h1>${extra || (title === 'Community' ? peopleSearchBtn() : '')}${right}</div>`;
+}
+function peopleSearchBtn() { return `<button class="circ" onclick="openPeople()" aria-label="Hitta användare">${ic('ph-magnifying-glass', null, 22)}</button>`;
 }
 
 // ===== Vyer =====
@@ -4983,7 +4998,7 @@ const QUICK = () => [
 const QGROUPS = [['Växter', ['db', 'id', 'care', 'season', 'sow']], ['Verktyg', ['light', 'compass', 'nearby']], ['Lär dig', ['perma']], ['Hjälp med växterna', ['doc', 'expert']], ['Hem och trädgård', ['house', 'bed', 'smart']], ['Djur', ['pets']], ['Community', ['comm', 'forum', 'swap', 'detect', 'people', 'inspo']], ['Mitt', ['mine', 'care', 'notif', 'cfg']]];
 const favs = () => { const f = store.get('favQuick', null); if (Array.isArray(f)) { if (!store.get('careFavAdded', false)) { store.set('careFavAdded', true); if (!f.includes('care') && f.length < 7) { f.push('care'); store.set('favQuick', f); } } return f; } return ['db', 'id', 'care', 'doc']; };
 function qBtn(q, edit) { const [k, n, icon, cls, act, pro] = q, on = favs().includes(k); return `<button class="qbtn q-${cls || 'cam'} ${edit ? 'editing' : ''}" onclick="${edit ? `togFav('${k}')` : act}"><span class="tic ${cls}">${ic(icon, 'currentColor', 22)}${pro && !S.pro ? '<em>PRO</em>' : ''}${edit ? `<i class="fav ${on ? 'on' : ''}">${on ? '★' : '☆'}</i>` : ''}</span><span>${n}</span></button>`; }
-const QPH = { db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-calendar-check', 'Dagbok'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-chats-circle', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: ['ph-plant', 'Såkalender'], perma: ['ph-tree', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Detektiver'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
+const QPH = { db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-calendar-check', 'Dagbok'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-seal-check', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: ['ph-seedling', 'Såkalender'], perma: ['ph-recycle', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Detektiver'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
 function qcard(q) {
   const [k, n, , cls, act, pro] = q, [icn, lbl] = QPH[k] || ['ph-star', n];
   const big = k === 'id';
@@ -4996,12 +5011,16 @@ function quickV() {
 }
 function openExplore() { stopLight(); S.sel = null; S.modal = null; S.tool = 'explore'; S.favEdit = false; render(); $('#main').scrollTop = 0; }
 function togFav(k) { let f = favs(); if (f.includes(k)) f = f.filter(x => x !== k); else { if (f.length >= 7) return toast('Du kan ha högst 7 favoriter på Hem'); f = f.concat(k); } store.set('favQuick', f); keepMain(); }
-function exploreV() { const Q = QUICK(), by = k => Q.find(q => q[0] === k), f = favs().map(by).filter(Boolean), e = S.favEdit;
+const XDESC = { db: 'Hitta växter i databasen', id: 'Ta ett foto och få reda på vad det är', care: 'Vattning, gödsling och anteckningar', doc: 'Felsök gula blad, skadedjur och mer', expert: 'Fråga en expert med foto', house: 'Rum, fönster och växter i ditt hem', light: 'Mät ljuset där växten står', nearby: 'Trädgårdar och handelsträdgårdar nära dig', compass: 'Hitta norr', pets: 'Husdjur, fåglar, fiskar och terrarier', smart: 'Sensorer, lampor och bevattning', season: 'Vad du kan göra just nu', sow: 'När du sår och förkultiverar', perma: 'Permakultur och zonplanering', inspo: 'Odlare att följa på YouTube och Instagram', comm: 'Frågor och svar', forum: 'Diskussioner i kategorier', swap: 'Ge bort, byt eller önska', detect: 'Gissa vilken växt det är', people: 'Vänner och meddelanden', mine: 'Dina växter och påminnelser', notif: 'Påminnelser och svar', cfg: 'Ändra ordning på startskärmen' };
+function xRow(q, e) {
+  const [k, n, , , act, pro] = q, [icn, lbl] = QPH[k] || ['ph-star', n], on = favs().includes(k);
+  return `<button class="xrow" onclick="${e ? `togFav('${k}')` : act}"><span class="xic">${ic(icn, 'currentColor', 20)}</span><span class="grow"><b>${lbl}</b><small>${XDESC[k] || ''}</small></span>${e ? `<i class="fav ${on ? 'on' : ''}">${on ? '★' : '☆'}</i>` : ''}${pro && !S.pro ? '<em class="pro">PRO</em>' : ''}</button>`;
+}
+function exploreV() { const Q = QUICK(), by = k => Q.find(q => q[0] === k), e = S.favEdit;
   return `${topbar('Utforska', 'S.tool=null;render()')}
-  <div class="sec cap2"><h2>Dina favoriter på Hem</h2><button class="viewall" onclick="S.favEdit=!S.favEdit;keepMain()">${e ? 'Klar' : 'Ändra'}</button></div>
-  ${e ? '<p class="mut" style="margin:0 18px 8px;font-size:13px">Tryck på stjärnan för att lägga till eller ta bort en favorit. Högst 7 visas på Hem.</p>' : ''}
-  <div class="qgrid">${f.length ? f.map(q => qBtn(q, e)).join('') : '<p class="mut" style="grid-column:1/-1;margin:0">Inga favoriter. Tryck på Ändra.</p>'}</div>
-  ${QGROUPS.map(([g, ks]) => `<div class="sec cap2"><h2>${g}</h2></div><div class="qgrid">${ks.map(by).filter(Boolean).map(q => qBtn(q, e)).join('')}</div>`).join('')}
+  <div class="xtop"><button class="btn sm line" onclick="S.favEdit=!S.favEdit;keepMain()">${e ? 'Klar' : 'Ändra vad som syns på Hem'}</button></div>
+  ${e ? '<p class="mut" style="margin:0 18px 8px;font-size:13px">Tryck på en rad för att lägga till eller ta bort en genväg. Högst 7 visas på Hem.</p>' : ''}
+  ${QGROUPS.map(([g, ks]) => `<div class="sec cap2"><h2>${g}</h2></div><div class="xlist">${ks.map(by).filter(Boolean).map(q => xRow(q, e)).join('')}</div>`).join('')}
   <div style="height:24px"></div>`; }
 function welcomeV() { return `<div class="welc"><div class="wh"><b>Välkommen till Roothood 🌱</b><button class="x" onclick="store.set('welcomeDone',true);render()" aria-label="Stäng">×</button></div>
   <p>Så kommer du igång på tre steg:</p>
@@ -5146,7 +5165,7 @@ function detail() {
   const fv = `<button class="btn line" onclick="heart(${p.id})" aria-pressed="${isFav(p.id)}">${isFav(p.id) ? '♥ Favorit' : '♡ Favorit'}</button>`;
   const wv = `<button class="btn line" onclick="toggleWish(${p.id})" aria-pressed="${isWish(p.id)}">${isWish(p.id) ? '★ På önskelistan' : '☆ Önskelista'}</button>`;
   const cta = !my ? `<button class="btn" onclick="addPlant(${p.id})">Lägg till i min samling</button>${fv}${wv}`
-    : (my.interval ? `<button class="btn" onclick="water(${my.id})">Markera som vattnad</button>` : '') + `<button class="btn line" onclick="addAnother(${p.id})">+ En till</button>${fv}`;
+    : (my.interval ? `<button class="btn" onclick="water(${my.id})">Markera som vattnad</button>` : '') + `<button class="btn line" onclick="addAnother(${p.id})">+ En till</button>${fv}${S.delAsk === my.id ? `<p class="mut" style="margin:4px 0 0;font-size:14px;text-align:center">Är du säker att du vill ta bort ${esc(my.name)}?</p><button class="btn danger" onclick="S.delAsk=null;S.del=${my.id};removeMine(${my.id})">Ja, ta bort</button><button class="btn line" onclick="S.delAsk=null;render()">Avbryt</button>` : `<button class="btn danger" onclick="S.delAsk=${my.id};render()">Ta bort från samlingen</button>`}`;
   return `${topbar(p.category, 'S.sel=null;render()')}
   <div class="dtop">${my && my.photo ? myPh(my) : plantPh(p)}<div class="dstats">
     <div><small>Ljus</small><b>${LIGHT[p.light_level - 1]}</b></div>
@@ -5180,7 +5199,7 @@ function detail() {
   ${similar.length ? `<div class="sec"><h2>Liknande växter</h2></div><div class="similar">${similar.map(s => `<button onclick="openPlant(${s.id})">${plantPh(s)}<span>${esc(s.swedish_name)}</span></button>`).join('')}</div>` : ''}
   ${my ? `<div class="pad" style="padding-top:14px"><button class="setrow" onclick="openDoc(${my.id})"><span class="tic doc">${ic(DOCI, 'currentColor', 20)}</span><span class="grow"><b>Något som inte ser friskt ut?</b><span>Fråga Växtdoktorn om skador och ohyra</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>` : ''}
   ${othersV(p)}
-  ${cta ? `<div class="cta">${cta}</div>` : '<div style="height:16px"></div>'}
+  ${cta ? `<div class="cta ctastack">${cta}</div>` : '<div style="height:16px"></div>'}
   </div>`;
 }
 function snooze(id) {
@@ -5200,10 +5219,11 @@ function mineV() {
     const d = left(m), pct = m.interval ? Math.round((m.interval - d) / m.interval * 100) : 0;
     const status = d === null ? `<span class="mut">${m.remind === false ? 'Ingen påminnelse, du sköter vattningen' : 'Växer ute, vattna vid torka'}</span>` : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
     return `<div class="mrow"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${nameHtml(m)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${m.details && +m.details.count > 1 ? `<span class="mini">× ${+m.details.count} samplanterade i samma kruka</span>` : ''}${roomOf(m) && !S.mroom ? `<span class="mini rtag">${ic(DOORI, 'currentColor', 11)} ${esc(roomOf(m).name)}</span>` : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
-      <div class="side"><label onclick="photoPick(event,this)" class="pbtn" title="Ta eller välj ett foto" aria-label="Lägg till foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}<button class="x ${S.del === m.id ? 'sure' : ''}" onclick="removeMine(${m.id})">${S.del === m.id ? 'Bekräfta' : 'Ta bort'}</button></div></div>`;
+      <div class="side"><label onclick="photoPick(event,this)" class="pbtn" title="Ta eller välj ett foto" aria-label="Lägg till foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}${d !== null ? `<small class="wnext">${d === 0 ? 'idag' : 'om ' + d + ' d'}</small>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
   }).join('');
   return `${topbar('Min samling')}${mtabBar()}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
+  ${S.mine.length && S.mine.length < 3 ? `<div class="addnudge"><span>Lägg till din nästa växt</span><button class="btn sm" onclick="openDb(true)">Sök växter</button></div>` : ''}
   ${S.mine.length && S.push === 'off' && !store.get('pushNudgeHidden', false) ? `<div class="instc pushnudge"><span class="tic">${ic(BELL, 'currentColor', 22)}</span><div><b>Få påminnelser i mobilen</b><span>En notis när något behöver vattnas, på tiden du väljer.</span></div><button class="btn sm" onclick="enablePush()">Slå på</button><button class="x" aria-label="Dölj" onclick="store.set('pushNudgeHidden', true); render()">✕</button></div>` : ''}
   <div class="sec"><h2>Dina växter</h2><span style="display:flex;gap:8px"><button class="btn sm line" onclick="addCustomStart()">+ Egen växt</button></span></div>
   ${S.pro && rooms.length && S.mine.length ? `<div class="roomchips">${[[null, 'Alla']].concat(rooms.map(r => [r.id, r.name]), [['-', 'Utan rum']]).filter(([id]) => id === null || S.mroom === id || S.mine.some(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id)).map(([id, n]) => `<button class="${S.mroom === id ? 'on' : ''}" onclick="S.mroom=${id ? `'${id}'` : 'null'};render()">${esc(n)}<small>${id === null ? S.mine.length : S.mine.filter(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id).length}</small></button>`).join('')}</div>` : ''}
@@ -5506,7 +5526,7 @@ const MORE_TABS = [['detect', 'Detektiver'], ['forum', 'Forum'], ['friends', 'V�
 function segBar() {
   const moreOn = !!S.cmore || MORE_TABS.some(([k]) => k === S.ctab);
   return `<div class="seg2" role="tablist">${CTABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}<button class="${moreOn ? 'on' : ''}" role="tab" aria-selected="${moreOn}" onclick="S.cmore=!S.cmore;render()">Mer</button></div>${moreOn ? `<div class="seg2 more2" role="tablist">${MORE_TABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>` : ''}
-  <div class="pad cbtns" style="padding-top:10px"><button class="peopleb" onclick="openPeople()"><span>${ic('ph-users', 'currentColor', 20)}</span><span class="grow">Hitta användare</span></button><button class="peopleb xb" onclick="openExperts()"><span>${ic('ph-graduation-cap', 'currentColor', 20)}</span><span class="grow">Fråga en expert</span>${S.pro ? '' : proBadge()}</button><button class="peopleb ib" style="grid-column:1/-1" onclick="openInspo()"><span>${ic('ph-video', 'currentColor', 20)}</span><span class="grow">Odlare att följa på YouTube och Instagram</span></button></div>`;
+  <div class="pad cbtns" style="padding-top:10px"><button class="peopleb xb" style="grid-column:1/-1" onclick="openExperts()"><span>${ic('ph-graduation-cap', 'currentColor', 20)}</span><span class="grow">Fråga en expert</span>${S.pro ? '' : proBadge()}</button></div>`;
 }
 function listState(list, emptyText) {
   if (S.feedErr) return `<div class="empty"><p>${esc(S.feedErr)}</p><button class="btn sm" onclick="loadFeed()">Försök igen</button></div>`;
@@ -6092,6 +6112,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.119', 'Nu', ['Samling: Ta bort finns bara på växtsidan, vattenkannan visar dagar till nästa vattning, uppmaning att lägga till växt när man har få. Växtsidan: luft mellan knapparna och röd Ta bort med bekräftelse. Utforska: listrader, en knapp för Hem och unika ikoner. Community: Hitta användare är en sökikon i rubriken']],
   ['1.118', 'Nu', ['Fler emojier i appen är bytta mot ikoner, bland annat djur, växtsymtom och färgprickar']],
   ['1.117', 'Nu', ['Samling: knappen Mitt hem är borta bredvid Dina växter (finns kvar på Hem). Rum utan växter visas inte i filtret']],
   ['1.116', 'Nu', ['Väderkortet är kompaktare. Varningarna fälls ut som en rad, och dagarna visas med knappen 5 dagar. Hälsningen säger inte längre samma sak som Inget att göra just nu. Inomhusfuktigheten är borttagen tills vi har riktiga sensordata']],
@@ -6743,7 +6764,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.118';
+const APP_VERSION = '1.119';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
