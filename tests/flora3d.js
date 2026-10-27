@@ -41,6 +41,13 @@ const srv = http.createServer((q, r) => { const p = path.join(dir, q.url.split('
     // jämför antal objekt per perenn sommartid
     S.sea3 = 'Sommar'; nObj = 0; nInst = 0; nInstances = 0; veg3d(THREE, M, 'perenn', 0.9, 0.5, 7, 120, { fshape: 'daisy', flower: '#E56A93' }); out.perennNy = { objekt: nObj, instancedMeshes: nInst, delar: nInstances };
     S.low3d = true; nObj = 0; veg3d(THREE, M, 'perenn', 0.9, 0.5, 7, 120, { fshape: 'daisy', flower: '#E56A93' }); out.perennLag = { objekt: nObj }; S.low3d = false; S.sea3 = realSeas;
+    // Krukor och jord: alla platser, material, självvattnande och alla jordsorter
+    out.krukor = { ok: 0, upp: false, semi: false, self: false };
+    for (const place of PD.place.concat([undefined])) for (const mat of PD.mat.concat([undefined])) for (const self of [false, true]) for (const soil of [[], ...PD.soil.map(x => [x]), ['Krukjord', 'Perlit']]) for (const cm of [undefined, 8, 30, 90]) {
+      try { const P = pot3d(THREE, M, { place, mat, self, soil, cm }, 5); if (!P.g || !isFinite(P.top) || !(P.r > 0)) throw new Error('fel mått'); out.krukor.ok++;
+        if (place === 'Upp och ner' && P.inv && P.H > 0) out.krukor.upp = true; if (place === 'Semi-hydro' && P.g.children.some(c => c.n)) out.krukor.semi = true; if (self && place === 'Kruka' && P.g.children.length >= 6) out.krukor.self = true;
+      } catch (e) { out.fail.push(`kruka/${place}/${mat}/${self}/${soil}: ${e.message}`); } }
+    if (!out.krukor.upp || !out.krukor.semi || !out.krukor.self) out.fail.push('krukor: ' + JSON.stringify(out.krukor));
     out.plants = S.plants.length; out.fail = out.fail.slice(0, 10); return out;
   });
   console.log(JSON.stringify(res, null, 1)); console.log('pageerrors', errs.slice(0, 3));

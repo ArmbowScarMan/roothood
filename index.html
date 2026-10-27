@@ -1762,7 +1762,7 @@ async function toggleShare(on) {
 
 // ===== Om min växt (kruka, jord, plats, höjd) =====
 const PD = {
-  place: ['Kruka', 'Ampel', 'I marken', 'Rabatt', 'Odlingslåda', 'Semi-hydro', 'Terrarium', 'I vatten'],
+  place: ['Kruka', 'Ampel', 'Upp och ner', 'I marken', 'Rabatt', 'Odlingslåda', 'Semi-hydro', 'Terrarium', 'I vatten'],
   mat: ['Plast', 'Terrakotta', 'Keramik', 'Ytterkruka', 'Annat'],
   drain: ['Ja', 'Nej', 'Vet inte'],
   soil: ['Krukjord', 'Kaktusjord', 'Orkidébark', 'Perlit', 'Leca', 'Pimpsten', 'Kokosfiber', 'Vitmossa', 'Pon', 'Kompost', 'Trädgårdsjord'],
@@ -1770,7 +1770,8 @@ const PD = {
 };
 function pdHints(m, d) {
   const h = [], p = S.plants.find(x => x.id === m.plant_id), soil = d.soil || [], cat = p ? p.category : m.category;
-  const pot = !d.place || ['Kruka', 'Ampel'].includes(d.place);
+  const pot = !d.place || ['Kruka', 'Ampel', 'Upp och ner'].includes(d.place);
+  if (d.place === 'Upp och ner') h.push(['', 'Upp och ner-kruka: vattna i hålet ovanpå, lite i taget. Hängande arter som hoya, sockerärt och ampelväxter trivs bäst så.']);
   if (pot && d.drain === 'Nej' && !d.self) h.push(['warn', 'Krukan saknar dräneringshål. Vattna lite i taget och häll ut vatten som blir stående, annars kan rötterna ruttna.']);
   if (d.self) h.push(['', 'Självvattnande kruka: fyll på behållaren när den är tom och låt den gärna stå tom ett par dagar emellan, så att rötterna får luft.']);
   if (d.mat === 'Terrakotta') h.push(['', 'Terrakotta andas och torkar snabbare än plast. Känn på jorden lite oftare.']);
@@ -1828,10 +1829,10 @@ function keepScroll() { const md = $('.modal'), y = md ? md.scrollTop : 0; rende
 function pdCount(x) { S.pd.count = Math.max(1, Math.min(99, (+S.pd.count || 1) + x)); keepScroll(); }
 function pdSet(k, v) { S.pd[k] = S.pd[k] === v ? null : v; keepScroll(); }
 function pdSoil(v) { const a = S.pd.soil || []; S.pd.soil = a.includes(v) ? a.filter(x => x !== v) : a.concat(v); keepScroll(); }
-function pdChips(k, multi) { return `<div class="chips2">${PD[k].map(v => { const on = multi ? (S.pd.soil || []).includes(v) : S.pd[k] === v; return `<button class="${on ? 'on' : ''}" aria-pressed="${on}" onclick="${multi ? `pdSoil('${v}')` : `pdSet('${k}','${v}')`}">${v === 'Ampel' ? 'Ampel i taket' : v}</button>`; }).join('')}</div>`; }
+function pdChips(k, multi) { return `<div class="chips2">${PD[k].map(v => { const on = multi ? (S.pd.soil || []).includes(v) : S.pd[k] === v; return `<button class="${on ? 'on' : ''}" aria-pressed="${on}" onclick="${multi ? `pdSoil('${v}')` : `pdSet('${k}','${v}')`}">${v === 'Ampel' ? 'Ampel i taket' : v === 'Upp och ner' ? 'Upp och ner i taket' : v}</button>`; }).join('')}</div>`; }
 function pdetV() {
   const m = S.mine.find(x => x.id === S.pdId); if (!m) return '';
-  const d = S.pd, outd = OUTDOOR.includes(m.category || (plantById(m.plant_id) || {}).category), pot = outd ? ['Kruka', 'Ampel'].includes(d.place) : (!d.place || !['Rabatt', 'Odlingslåda', 'I vatten', 'I marken'].includes(d.place)), pp = plantById(m.plant_id), ps = pp ? pSize(pp) : null;
+  const d = S.pd, outd = OUTDOOR.includes(m.category || (plantById(m.plant_id) || {}).category), pot = outd ? ['Kruka', 'Ampel', 'Upp och ner'].includes(d.place) : (!d.place || !['Rabatt', 'Odlingslåda', 'I vatten', 'I marken'].includes(d.place)), pp = plantById(m.plant_id), ps = pp ? pSize(pp) : null;
   return `<div class="mh"><h2>${nameHtml(m)}</h2><button class="close" onclick="closeDetails()" aria-label="Stäng">×</button></div>
   <div class="pdform">
   ${S.pdNew ? `<p class="mut" style="margin:0 0 10px;font-size:14px">${esc(m.name)} finns nu i din samling. Berätta lite om den, så blir råden bättre. Du kan hoppa över och fylla i senare.</p>` : ''}
@@ -2042,7 +2043,7 @@ const lightIc = l => (WZ_LIGHT.find(x => x[0] === l) || WZ_LIGHT[1])[2];
 const dirName = d => (DIRS.find(x => x[0] === d) || [0, ''])[1];
 function wzStart(tpl, editId) {
   const ex = S.home || [], data = {};
-  ex.forEach(r => { data[r.name] = { id: r.id, dir: (r.dirs || [])[0] || null, light: r.lightPick || null, plants: plantsIn(r.id).map(m => m.id), hang: plantsIn(r.id).filter(m => (m.details || {}).place === 'Ampel').map(m => m.id) }; });
+  ex.forEach(r => { data[r.name] = { id: r.id, dir: (r.dirs || [])[0] || null, light: r.lightPick || null, plants: plantsIn(r.id).map(m => m.id), hang: plantsIn(r.id).filter(m => ['Ampel', 'Upp och ner'].includes((m.details || {}).place)).map(m => m.id) }; });
   let sel = ex.map(r => r.name); if (tpl) sel = [...new Set(sel.concat(tpl))];
   S.wz = { step: editId ? 2 : 1, sel, cur: 0, data, other: null, only: null };
   if (editId) { const r = ex.find(x => x.id === editId); S.wz.only = r ? r.name : null; S.wz.sel = r ? [r.name] : sel; }
@@ -2096,7 +2097,7 @@ async function wzSave() {
     S.hDirty = true; await api.saveHome(rooms); S.hDirty = false;
     for (const n of W.sel) { const D = wzD(n), r = rooms.find(x => x.id === D.id); if (!r) continue; let k = 0;
       for (const id of D.plants) { const m = S.mine.find(x => x.id === id); if (!m) continue; const d = JSON.parse(JSON.stringify(m.details || {})); d.room = r.id;
-        if (D.hang.includes(id)) d.place = 'Ampel'; else if (d.place === 'Ampel') d.place = 'Kruka';
+        if (D.hang.includes(id)) { if (d.place !== 'Upp och ner') d.place = 'Ampel'; } else if (d.place === 'Ampel' || d.place === 'Upp och ner') d.place = 'Kruka';
         if (r.rect && !(d.pos && d.pos.x >= r.rect.x && d.pos.x <= r.rect.x + r.rect.w && d.pos.y >= r.rect.y && d.pos.y <= r.rect.y + r.rect.h)) { const w0 = (r.wins || [])[0], c = [r.rect.x + r.rect.w / 2, r.rect.y + r.rect.h / 2];
           if (w0) { const q = wallSeg(r, w0), t = (k % 3 + 1) / 4, px = q[0] + (q[2] - q[0]) * t, py = q[1] + (q[3] - q[1]) * t; d.pos = { x: r1(px + (c[0] - px) * 0.25), y: r1(py + (c[1] - py) * 0.25) }; }
           else d.pos = { x: r1(c[0] + ((k % 3) - 1) * 0.6), y: r1(c[1] + (Math.floor(k / 3) % 3 - 1) * 0.6) }; k++; }
@@ -2164,8 +2165,11 @@ function houseV() {
   ${rooms.length && noRoom.length ? `<div class="sec"><h2>Växter utan rum</h2></div><div class="pad"><div class="norm">${noRoom.map(m => `<button class="nrow" onclick="pickRoomFor(${m.id})">${myPh(m)}<span class="grow">${esc(m.name)}</span><span class="link3">Välj rum</span></button>`).join('')}</div></div>` : ''}
 `;
 }
+// Häng en växt upp och ner i taket
+async function togUpside(id) { const m = S.mine.find(x => x.id === id); if (!m) return; const d = JSON.parse(JSON.stringify(m.details || {})); d.place = 'Upp och ner';
+  try { await api.saveDetails(id, d); m.details = d; S.mine = await api.mine(); render(); toast(m.name + ' hänger nu upp och ner i taket'); } catch (e) { toast(errMsg(e)); } }
 // Häng en växt i taket (platsen Ampel) eller ställ ner den igen
-async function togHang(id) { const m = S.mine.find(x => x.id === id); if (!m) return; const d = JSON.parse(JSON.stringify(m.details || {})), on = d.place !== 'Ampel'; d.place = on ? 'Ampel' : 'Kruka';
+async function togHang(id) { const m = S.mine.find(x => x.id === id); if (!m) return; const d = JSON.parse(JSON.stringify(m.details || {})), on = !['Ampel', 'Upp och ner'].includes(d.place); d.place = on ? 'Ampel' : 'Kruka';
   try { await api.saveDetails(id, d); m.details = d; S.mine = await api.mine(); render(); toast(on ? m.name + ' hänger nu i taket' : m.name + ' står nu på golvet'); } catch (e) { toast(errMsg(e)); } }
 function pickRoomFor(id) { S.pickFor = id; openModal('pickroom'); }
 function pickRoomSheet() {
@@ -2271,6 +2275,53 @@ function home3dV(sz) {
   <div class="h3card"><div class="planbox home3d sz-${sz}" id="box3d"><p class="l3">Laddar 3D…</p></div>
     <div class="h3bar"><span class="mut">${planRoomsAll().length} rum${n ? ' · ' + n + (n === 1 ? ' växt utplacerad' : ' växter utplacerade') : ''}</span><button class="btn sm" onclick="openHouse();S.hview='plan';render()">${ic(PEN, 'currentColor', 15)} Redigera Mitt hem</button></div></div>`;
 }
+// ===== Krukor och substrat i 3D, efter växtens uppgifter (material, storlek, självvattnande, plats och jord) =====
+const SOIL3 = { Krukjord: ['#3E2A1C', '#5A3E2A', 'dots'], Kompost: ['#33241A', '#4E3626', 'dots'], Trädgårdsjord: ['#4A3524', '#634733', 'dots'], Kaktusjord: ['#7A5E44', '#A8927A', 'grit'], Orkidébark: ['#6A4428', '#9A6238', 'bark'],
+  Perlit: ['#3E2A1C', '#F2F2EE', 'specks'], Leca: ['#8A5A3A', '#B57A4E', 'balls'], Pimpsten: ['#B8AE9E', '#D8D0C2', 'grit'], Kokosfiber: ['#6A4A30', '#8E6844', 'fiber'], Vitmossa: ['#B8C48A', '#DCE0B0', 'moss'], Pon: ['#A89E8C', '#C9BFA9', 'pon'] };
+function soilTex3(THREE, list) {
+  const G = g3(THREE); G.soil = G.soil || {}; const key = (list.length ? list : ['Krukjord']).join('+'); if (G.soil[key]) return G.soil[key];
+  const R = rng3(key.length * 131 + key.charCodeAt(0)), main = SOIL3[list[0]] || SOIL3.Krukjord;
+  const tex = canvasTex3d(THREE, 128, 128, (x, w, h) => {
+    x.fillStyle = main[0]; x.fillRect(0, 0, w, h);
+    list.slice(0, 3).forEach((n, li) => { const S0 = SOIL3[n] || SOIL3.Krukjord, cnt = li ? 120 : 400;
+      for (let i = 0; i < cnt; i++) { const px = R() * w, py = R() * h; x.fillStyle = li && S0[2] === 'specks' ? S0[1] : R() < 0.5 ? S0[1] : S0[0];
+        if (S0[2] === 'fiber') { x.strokeStyle = S0[1]; x.lineWidth = 1; x.beginPath(); x.moveTo(px, py); x.lineTo(px + (R() - 0.5) * 20, py + (R() - 0.5) * 20); x.stroke(); }
+        else if (S0[2] === 'moss') { x.beginPath(); x.arc(px, py, 2 + R() * 3, 0, 6.283); x.fill(); }
+        else if (S0[2] === 'specks') { x.fillStyle = '#F4F4F0'; x.fillRect(px, py, 2, 2); }
+        else if (S0[2] === 'grit' || S0[2] === 'pon') { x.fillRect(px, py, 2 + R() * 3, 2 + R() * 3); }
+        else if (S0[2] === 'bark') { x.save(); x.translate(px, py); x.rotate(R() * 3); x.fillRect(-5, -3, 10, 6); x.restore(); }
+        else if (S0[2] === 'balls') { x.beginPath(); x.arc(px, py, 4 + R() * 2, 0, 6.283); x.fill(); x.fillStyle = 'rgba(255,220,180,.35)'; x.beginPath(); x.arc(px - 1, py - 1, 1.5, 0, 6.283); x.fill(); }
+        else x.fillRect(px, py, 1.5, 1.5); } });
+  }); tex.colorSpace = THREE.SRGBColorSpace; return G.soil[key] = tex;
+}
+// Bygger krukan. Returnerar gruppen, höjden på jordytan och kantens radie.
+function pot3d(THREE, M, d, seed) {
+  const g = new THREE.Group(), K = kit3(THREE, M, g, seed), place = d.place || 'Kruka', soil = d.soil || [], dia = Math.max(0.08, Math.min(0.7, (d.cm || 24) / 100)), r = dia / 2;
+  const ceram = ['#E8E2D6', '#2F5A6E', '#7A8F6A', '#C9A0B0', '#2A2A2A', '#D9C08A'][Math.abs(seed) % 6], mat = d.mat || 'Terrakotta';
+  let H = Math.max(0.08, dia * 0.9), top = H - 0.02, inner = r * 0.92;
+  const soilTop = (y, rr) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, 0.01, 28), new THREE.MeshStandardMaterial({ map: soilTex3(THREE, soil.length ? soil : ['Krukjord']), roughness: 1 })); m.position.y = y; m.receiveShadow = true; g.add(m);
+    const kind = (SOIL3[soil[0]] || [])[2], n = Math.round(Math.min(120, rr * rr * 2400));
+    if (kind === 'balls' || kind === 'pon' || kind === 'bark') { const L = []; for (let i = 0; i < n; i++) { const a = K.R() * 6.283, dd = Math.sqrt(K.R()) * rr * 0.95, s = kind === 'balls' ? 0.009 + K.R() * 0.004 : kind === 'pon' ? 0.004 + K.R() * 0.003 : 0.012; L.push([Math.cos(a) * dd, y + 0.006, Math.sin(a) * dd, K.R() * 3, K.R() * 3, 0, kind === 'bark' ? s * 1.6 : s, s, kind === 'bark' ? s * 0.6 : s]); }
+      g.add(inst3d(THREE, kind === 'balls' ? new THREE.SphereGeometry(1, 8, 6) : new THREE.BoxGeometry(1, 1, 1), M((SOIL3[soil[0]] || [])[1] || '#8A5A3A'), L)); } };
+  if (place === 'Semi-hydro' || place === 'I vatten') {
+    const glass = { transparent: true, opacity: 0.32, roughness: 0.05 }; K.cyl(r, r * 0.9, H, '#DDEEF2', 0, H / 2, 0, 28, glass); K.cyl(r * 0.88, r * 0.82, H * 0.3, '#5FAED6', 0, H * 0.15, 0, 24, { transparent: true, opacity: 0.55 });
+    if (place === 'Semi-hydro') { const sub = soil.find(n => n === 'Pon') ? 'Pon' : 'Leca', L = [], n = Math.round(Math.min(160, r * r * 5000)); for (let i = 0; i < n; i++) { const a = K.R() * 6.283, dd = Math.sqrt(K.R()) * r * 0.82, y = K.R() * (H - 0.03); L.push([Math.cos(a) * dd, y, Math.sin(a) * dd, 0, 0, 0, sub === 'Leca' ? 0.01 : 0.006, sub === 'Leca' ? 0.01 : 0.006, sub === 'Leca' ? 0.01 : 0.006]); }
+      g.add(inst3d(THREE, sub === 'Leca' ? new THREE.SphereGeometry(1, 8, 6) : new THREE.BoxGeometry(1, 1, 1), M(SOIL3[sub][1]), L)); K.cyl(0.006, 0.006, H + 0.05, '#F4F4F4', r * 0.6, (H + 0.05) / 2, 0, 6); K.sph(0.01, '#D9342B', r * 0.6, H * 0.35, 0); }
+    top = place === 'I vatten' ? H * 0.2 : H - 0.015; return { g, top, r };
+  }
+  if (place === 'Upp och ner') { H = Math.max(H, dia * 1.2); const col = mat === 'Keramik' ? ceram : mat === 'Terrakotta' ? '#C2643F' : '#F2F2EE';
+    K.cyl(r * 0.78, r, H, col, 0, H / 2 + 0.012, 0, 30, { roughness: 0.4 }); K.cyl(r * 1.02, r * 1.02, 0.024, col, 0, 0.012, 0, 30, { roughness: 0.4 });
+    const m0 = new THREE.Mesh(new THREE.CircleGeometry(r * 0.42, 24), new THREE.MeshStandardMaterial({ map: soilTex3(THREE, soil.length ? soil : ['Krukjord']), roughness: 1, side: THREE.DoubleSide })); m0.rotation.x = Math.PI / 2; m0.position.y = -0.001; g.add(m0);
+    K.tor(r * 0.42, 0.008, '#D8D8D4', 0, -0.002, 0); K.cyl(r * 0.3, r * 0.3, 0.01, '#E4E4E0', 0, H + 0.017, 0, 20); return { g, top: 0, r, H: H + 0.024, inv: true }; }
+  if (place === 'Ampel') { const b = K.sph(r, mat === 'Plast' ? '#F2F2EE' : mat === 'Keramik' ? ceram : '#C2643F', 0, H * 0.55, 0); b.scale.y = H / dia * 1.1; K.cyl(r * 0.98, r * 0.98, 0.02, '#2A2A2A', 0, H * 0.98, 0, 24); soilTop(H * 0.96, r * 0.9); return { g, top: H * 0.96, r }; }
+  if (d.self) { H = Math.max(H, dia * 1.05); top = H - 0.03; K.cyl(r, r * 0.86, H, mat === 'Keramik' ? ceram : '#E8E6E0', 0, H / 2, 0, 28, { roughness: 0.35 }); K.cyl(r * 0.87, r * 0.87, 0.025, '#3A3A3A', 0, H * 0.32, 0, 28);
+    K.cyl(0.008, 0.008, 0.07, '#F4F4F4', r * 0.62, H + 0.02, r * 0.3, 8); K.cyl(0.012, 0.012, 0.012, '#D9342B', r * 0.62, H + 0.055, r * 0.3, 10); K.cyl(0.02, 0.02, 0.01, '#2A2A2A', -r * 0.6, H - 0.005, r * 0.4, 12); soilTop(top, inner); return { g, top, r }; }
+  if (mat === 'Ytterkruka') { K.cyl(r * 1.08, r * 1.0, H, ['#9A9A96', '#E8E2D6', '#6E5A44'][Math.abs(seed) % 3], 0, H / 2, 0, 30, { roughness: 0.8 }); K.tor(r * 0.92, 0.012, '#1E1E1E', 0, H - 0.01, 0); soilTop(top - 0.02, inner * 0.95); return { g, top: top - 0.02, r }; }
+  if (mat === 'Plast') { K.cyl(r, r * 0.78, H, ['#3A3F3A', '#F2F2EE', '#2F4A3A'][Math.abs(seed) % 3], 0, H / 2, 0, 28, { roughness: 0.35 }); K.cyl(r * 1.03, r * 1.03, 0.015, '#2A2A2A', 0, H - 0.007, 0, 28); }
+  else if (mat === 'Keramik') { const b = K.cyl(r, r * 0.72, H, ceram, 0, H / 2, 0, 32, { roughness: 0.25 }); K.cyl(r * 0.75, r * 0.7, 0.02, ceram, 0, 0.01, 0, 28, { roughness: 0.25 }); void b; }
+  else { K.cyl(r, r * 0.75, H * 0.85, '#C2643F', 0, H * 0.425, 0, 28, { roughness: 0.9 }); K.cyl(r * 1.08, r * 1.05, H * 0.17, '#B85A38', 0, H * 0.915, 0, 28, { roughness: 0.9 }); K.cyl(r * 0.95, r * 0.95, 0.018, '#B85A38', 0, 0.009, 0, 28, { roughness: 0.9 }); }
+  soilTop(top, inner); return { g, top, r };
+}
 // ===== Smarta saker i 3D: riktiga små apparater som står där de hör hemma =====
 // PLT = växter i krukor med position och höjd på krukans botten. Sensorn sticks ner i närmaste kruka, lampan hänger ovanför växten.
 function devices3d(THREE, M, sc, PLT, fyOf) {
@@ -2282,10 +2333,10 @@ function devices3d(THREE, M, sc, PLT, fyOf) {
   planItems().forEach(it => {
     const fl = flOf(it), fy = fyOf(fl), g = new THREE.Group(), K = kit3(THREE, M, g, 3), near = PLT.filter(p => p.fl === fl).map(p => ({ ...p, d: Math.hypot(p.x - it.x, p.z - it.y) })).sort((a, b) => a.d - b.d)[0], pot = near && near.d < 0.6 ? near : null;
     let x = it.x, z = it.y, y = fy + surfY(it.x, it.y, fl), yaw = 0;
-    if (it.t === 'sensor') { if (pot) { x = pot.x + 0.05; z = pot.z + 0.03; y = pot.y + 0.24; } K.cyl(0.006, 0.006, 0.14, '#EDEDED', 0, 0.07, 0, 8); K.box(0.035, 0.07, 0.014, '#F6F6F6', 0, 0.17, 0); K.box(0.02, 0.012, 0.016, '#5FAE4A', 0, 0.185, 0); }
+    if (it.t === 'sensor') { if (pot) { x = pot.x + 0.05; z = pot.z + 0.03; y = (pot.top != null ? pot.top : pot.y + 0.28) - 0.04; } K.cyl(0.006, 0.006, 0.14, '#EDEDED', 0, 0.07, 0, 8); K.box(0.035, 0.07, 0.014, '#F6F6F6', 0, 0.17, 0); K.box(0.02, 0.012, 0.016, '#5FAE4A', 0, 0.185, 0); }
     else if (it.t === 'thermo' || it.t === 'plug') { const w0 = wallAt(it.x, it.y); if (w0) { x = w0.x; z = w0.z; yaw = w0.yaw; y = fy + (it.t === 'thermo' ? 1.35 : 0.3); }
       if (it.t === 'thermo') { K.box(0.08, 0.08, 0.022, '#F6F6F6', 0, 0, 0); K.box(0.06, 0.035, 0.004, '#22313A', 0, 0.012, 0.012); } else { K.box(0.07, 0.07, 0.03, '#F2F2F2', 0, 0, 0); K.cyl(0.006, 0.006, 0.01, '#3A3A3A', -0.015, 0, 0.018, 6).rotation.x = Math.PI / 2; K.cyl(0.006, 0.006, 0.01, '#3A3A3A', 0.015, 0, 0.018, 6).rotation.x = Math.PI / 2; K.sph(0.006, '#5FAE4A', 0, 0.025, 0.016); } }
-    else if (it.t === 'grow') { if (pot) { x = pot.x; z = pot.z; y = pot.y + 0.28 + 0.75; } else y = fy + 1.9; const top = fy + 2.4 - y;
+    else if (it.t === 'grow') { if (pot) { x = pot.x; z = pot.z; y = (pot.top != null ? pot.top : pot.y + 0.28) + 0.75; } else y = fy + 1.9; const top = fy + 2.4 - y;
       K.box(0.6, 0.03, 0.09, '#2A2A2A', 0, 0, 0); K.box(0.56, 0.008, 0.07, '#E58BE8', 0, -0.018, 0, { emissive: '#B040C0' }); [-0.25, 0.25].forEach(dx => K.cyl(0.003, 0.003, top, '#3A3A3A', dx, top / 2, 0, 4)); }
     else if (it.t === 'lamp') { K.cyl(0.14, 0.15, 0.03, '#3A3A3A', 0, 0.015, 0, 20); K.cyl(0.012, 0.012, 1.45, '#3A3A3A', 0, 0.74, 0, 8); K.cyl(0.12, 0.2, 0.25, '#F4E8D0', 0, 1.5, 0, 20, { emissive: '#7A6030' }); y = fy; }
     else if (it.t === 'humid') { K.cyl(0.09, 0.1, 0.24, '#F4F4F2', 0, 0.12, 0, 20); K.cyl(0.03, 0.03, 0.02, '#BFDCE8', 0, 0.25, 0, 14); K.sph(0.08, '#FFFFFF', 0, 0.36, 0, { transparent: true, opacity: 0.3 }); }
@@ -2442,27 +2493,28 @@ function build3dInner(first) {
   const clr = (x, y, r, fl) => { const wallSegs = WS[fl || 0] || []; for (let it = 0; it < 4; it++) wallSegs.forEach(([x1, y1, x2, y2]) => { const dx = x2 - x1, dy = y2 - y1, L = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / L)), nx = x1 + t * dx, ny = y1 + t * dy, d = Math.hypot(x - nx, y - ny);
       if (d < r) { if (d < 1e-4) { const ln = Math.sqrt(L); x += -dy / ln * r; y += dx / ln * r; } else { x = nx + (x - nx) / d * r; y = ny + (y - ny) / d * r; } } }); return [x, y]; };
   const PLT = [];
-  (HV ? [] : S.mine).filter(m => m.details && m.details.pos).forEach(m => { const pp = plantById(m.plant_id), isOut = OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel'].includes(m.details.place);
+  (HV ? [] : S.mine).filter(m => m.details && m.details.pos).forEach(m => { const pp = plantById(m.plant_id), isOut = OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place);
     const pRoom = m.details.room && (S.home || []).find(rr => rr.id === m.details.room), pfl = pRoom && !isOut ? flOf(pRoom) : 0; if (!floorVis(pfl)) return;
     const rad = isOut ? Math.min(2.5, ((m.details.w || pSize(pp || {})[1]) / 100) / 2) + TH / 2 + 0.02 : 0.32 + TH / 2 + 0.03, [x, y] = clr(m.details.pos.x, m.details.pos.y, rad, pfl);
-    if (OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel'].includes(m.details.place)) { const g3 = plant3d(pp || { id: m.id, swedish_name: m.name, latin_name: m.latin || '', category: m.category }, THREE, M, m.details.h, m.details.w, m.id * 31); g3.position.set(x, 0, y); sc.add(g3); if (S.hview === '3d' && !S.low3d && (m.details.h || m.details.w)) { const lab = label3d(m.name); if (lab) { lab.position.set(x, Math.min(40, (m.details.h || pSize(pp || {})[0]) / 100) + 0.5, y); lab.scale.multiplyScalar ? lab.scale.multiplyScalar(0.7) : 0; sc.add(lab); } } return; }
+    if (OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place)) { const g3 = plant3d(pp || { id: m.id, swedish_name: m.name, latin_name: m.latin || '', category: m.category }, THREE, M, m.details.h, m.details.w, m.id * 31); g3.position.set(x, 0, y); sc.add(g3); if (S.hview === '3d' && !S.low3d && (m.details.h || m.details.w)) { const lab = label3d(m.name); if (lab) { lab.position.set(x, Math.min(40, (m.details.h || pSize(pp || {})[0]) / 100) + 0.5, y); lab.scale.multiplyScalar ? lab.scale.multiplyScalar(0.7) : 0; sc.add(lab); } } return; }
     const ok = plantMarkerOk(m), gr = new THREE.Group();
-    const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.28, 18), M('#C2643F')); pot.position.y = 0.14; pot.castShadow = true; gr.add(pot);
-    gr.add(indoor3d(THREE, M, pp || { swedish_name: m.name, latin_name: m.latin || '', category: m.category }, ok, seed3(m.id)));
+    const PT = pot3d(THREE, M, m.details || {}, seed3(m.id)); gr.add(PT.g);
+    { const sc0 = Math.max(0.55, Math.min(1.5, PT.r / 0.16)), pl = indoor3d(THREE, M, pp || { swedish_name: m.name, latin_name: m.latin || '', category: m.category }, ok, seed3(m.id)); pl.scale.set(sc0, sc0, sc0); if (PT.inv) { pl.rotation.x = Math.PI; pl.position.y = 0.3 * sc0; } else pl.position.y = PT.top - 0.3 * sc0; gr.add(pl); }
     // Ampel: hänger från taket i tre linor. Annars: står växten på en möbel hamnar den ovanpå i stället för inuti.
     let lift = 0, sx = x, sy = y;
-    if (m.details.place !== 'Ampel' && m.details.win === 'I fönstret' && pRoom) { let best = null;
+    if (!['Ampel', 'Upp och ner'].includes(m.details.place) && m.details.win === 'I fönstret' && pRoom) { let best = null;
       winSegs(pRoom).forEach(([wq]) => { const sl = sill3d(wq, pRoom); if (!sl) return; const t = Math.max(0.2, Math.min(sl.L - 0.2, (x - sl.q[0]) * sl.ux + (y - sl.q[1]) * sl.uz)), px = sl.q[0] + sl.ux * t, pz = sl.q[1] + sl.uz * t, d = Math.hypot(x - px, y - pz); if (!best || d < best.d) best = { d, px: px + sl.nx * 0.19, pz: pz + sl.nz * 0.19 }; });
       if (best && best.d < 1.2) { sx = best.px; sy = best.pz; lift = SILL_Y; } }
     if (lift) { /* står redan på fönsterbrädan */ }
     else if (m.details.place === 'Ampel') { lift = 1.7; const top = 2.4 - lift, wm = M('#3A3A3A'), up = new THREE.Vector3(0, 1, 0);
-      [0, 2.094, 4.189].forEach(an => { const a = new THREE.Vector3(Math.sin(an) * 0.15, 0.28, Math.cos(an) * 0.15), b = new THREE.Vector3(0, top, 0), d = b.clone().sub(a), L = d.length(), wire = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, L, 4), wm);
+      [0, 2.094, 4.189].forEach(an => { const a = new THREE.Vector3(Math.sin(an) * PT.r, PT.top, Math.cos(an) * PT.r), b = new THREE.Vector3(0, top, 0), d = b.clone().sub(a), L = d.length(), wire = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, L, 4), wm);
         wire.position.copy(a).add(b).multiplyScalar(0.5); wire.quaternion.setFromUnitVectors(up, d.normalize()); gr.add(wire); });
       const hook = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.02, 10), wm); hook.position.y = top; gr.add(hook); }
+    else if (m.details.place === 'Upp och ner') { lift = 2.4 - PT.H - 0.06; const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.06, 6), M('#3A3A3A')); rod.position.y = PT.H + 0.03; gr.add(rod); const pl0 = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.012, 14), M('#2A2A2A')); pl0.position.y = PT.H + 0.06; gr.add(pl0); }
     else { const SURF = ['table', 'dtable', 'desk', 'dresser', 'tv', 'counter', 'round', 'shelf', 'pshelf', 'otable'];
       planFurnAll().forEach(f => { if (!SURF.includes(f.t) || flOf(f) !== pfl) return; const dx = sx - f.x, dz = sy - f.y, r = (f.rot || 0) * Math.PI / 180, lx = dx * Math.cos(r) + dz * Math.sin(r), lz = -dx * Math.sin(r) + dz * Math.cos(r);
         const inside = ROUNDS.has(f.t) ? Math.hypot(dx, dz) <= f.w / 2 + 0.05 : Math.abs(lx) <= f.w / 2 + 0.05 && Math.abs(lz) <= f.h / 2 + 0.05; if (inside) lift = Math.max(lift, (FH[f.t] || 0.8) + 0.01); }); }
-    gr.position.set(sx, fyOf(pfl) + lift, sy); sc.add(gr); PLT.push({ x: sx, z: sy, y: fyOf(pfl) + lift, fl: pfl }); });
+    gr.position.set(sx, fyOf(pfl) + lift, sy); sc.add(gr); PLT.push({ x: sx, z: sy, y: fyOf(pfl) + lift, top: fyOf(pfl) + lift + (PT.inv ? PT.H + 0.04 : PT.top), fl: pfl }); });
   // smarta saker
   devices3d(THREE, M, sc, PLT, fyOf);
   // träd och buskar
@@ -3483,7 +3535,7 @@ function planInner() {
     out += `<g data-k="furn" data-id="${f.id}" transform="translate(${T(f.x, f.y)}) rotate(${f.rot || 0})">${round ? `<ellipse rx="${(W / 2).toFixed(1)}" ry="${(H / 2).toFixed(1)}"` : `<rect x="${(-W / 2).toFixed(1)}" y="${(-H / 2).toFixed(1)}" width="${W.toFixed(1)}" height="${H.toFixed(1)}" rx="${Math.min(6, W / 5, H / 5).toFixed(1)}"`} fill="${rug ? 'rgba(160,140,200,.18)' : 'var(--phb)'}" fill-opacity="${S.hplan.map && S.hplan.map.on ? .8 : 1}" stroke="${on ? 'var(--acc)' : 'var(--mut)'}" stroke-width="${on ? 2.5 : 1.3}" ${rug ? 'stroke-dasharray="4 3"' : ''}/>${f.t === 'sofa' && H > 14 ? `<rect x="${(-W / 2 + 3).toFixed(1)}" y="${(-H / 2 + 3).toFixed(1)}" width="${(W - 6).toFixed(1)}" height="${(H * 0.28).toFixed(1)}" rx="3" fill="none" stroke="var(--mut)" stroke-width="1" pointer-events="none"/>` : ''}${f.t.startsWith('bed') && H > 20 ? `<rect x="${(-W / 2 + 4).toFixed(1)}" y="${(-H / 2 + 4).toFixed(1)}" width="${(W - 8).toFixed(1)}" height="${(H * 0.18).toFixed(1)}" rx="3" fill="var(--surf)" stroke="var(--mut)" stroke-width="1" pointer-events="none"/>` : ''}${(f.rot || 0) % 180 === 90 ? (H > 34 && W > 13) : (f.rot || 0) % 180 === 0 ? (W > 34 && H > 13) : (Math.min(W, H) > 30) ? `<text y="4" text-anchor="middle" font-size="${Math.min(11, Math.min(W, H) * 0.45).toFixed(1)}" font-weight="700" fill="var(--mut)" pointer-events="none" transform="rotate(${-(f.rot || 0)})">${esc(nm)}</text>` : ''}</g>`; });
   if (z >= 18) planItems().forEach(it => { const on = sel.k === 'dev' && sel.id === it.id, d = DEVS[it.t] || ['?', '•'];
     out += `<g data-k="dev" data-id="${it.id}" transform="translate(${T(it.x, it.y)})">${on ? '<circle r="20" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>' : ''}<circle r="14" fill="var(--surf)" stroke="var(--pri)" stroke-width="2"/><text y="5" text-anchor="middle" font-size="14" pointer-events="none">${d[1]}</text></g>`; });
-  if (z >= 2) S.mine.filter(m => m.details && m.details.pos && OUTDOOR.includes(m.category || (plantById(m.plant_id) || {}).category) && !['Kruka', 'Ampel'].includes(m.details.place)).forEach(m => { const { x, y } = m.details.pos, pp = plantById(m.plant_id), wm = (m.details.w || pSize(pp || {})[1]) / 100, k = pp ? kind3d(pp) : 'perenn', col = ['gran', 'tall', 'pelare', 'krypbarr'].includes(k) ? '47,94,58' : '78,139,58';
+  if (z >= 2) S.mine.filter(m => m.details && m.details.pos && OUTDOOR.includes(m.category || (plantById(m.plant_id) || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place)).forEach(m => { const { x, y } = m.details.pos, pp = plantById(m.plant_id), wm = (m.details.w || pSize(pp || {})[1]) / 100, k = pp ? kind3d(pp) : 'perenn', col = ['gran', 'tall', 'pelare', 'krypbarr'].includes(k) ? '47,94,58' : '78,139,58';
     out += `<circle cx="${X(x)}" cy="${Y(y)}" r="${Math.max(4, wm / 2 * z).toFixed(1)}" fill="rgba(${col},.32)" stroke="rgb(${col})" stroke-width="1.5" ${m.details.w ? '' : 'stroke-dasharray="4 3"'} pointer-events="none"/>`; });
   if (z >= 6) S.mine.filter(m => m.details && m.details.pos && plantOnFl(m)).forEach(m => { const { x, y } = m.details.pos, on = sel.k === 'plant' && sel.id === m.id, ok = plantMarkerOk(m);
     const ring = ok === null ? 'var(--pri)' : ok ? 'var(--pri2)' : 'var(--cop)';
@@ -3564,7 +3616,7 @@ function planSelInner() {
   if (sel.k === 'win') { const r = S.home.find(x => x.id === sel.id), w = r && r.wins[sel.i]; if (!w) return '';
     return `<div class="psel"><div class="grow"><b>${w.k ? WNAME[w.k] : 'Fönster mot ' + DIRS.find(d => d[0] === winDir(w.s))[1].toLowerCase()}</b><span>${esc(r.name)} · ${w.l} m ${w.k === 'door' || w.k === 'open' ? 'bred' : 'brett'}</span></div><div class="stepr"><small>Bredd</small><button onclick="winLen(-0.25)" aria-label="Smalare">−</button><button onclick="winLen(0.25)" aria-label="Bredare">+</button></div><div class="stepr"><small>Flytta</small><button onclick="winShift(-0.25)" aria-label="Flytta åt ena hållet">‹</button><button onclick="winShift(0.25)" aria-label="Flytta åt andra hållet">›</button></div><button class="x" onclick="delWin()">${w.k === 'open' ? 'Sätt tillbaka väggen' : 'Ta bort'}</button></div>`; }
   if (sel.k === 'plant') { const m = S.mine.find(x => x.id === sel.id); if (!m) return ''; const r = roomOf(m), p = S.plants.find(x => x.id === m.plant_id), hs = (r && p ? roomHints(p, r, (m.details || {}).win) : []).concat(posHints(m));
-    return `<div class="psel col"><div style="display:flex;gap:10px;align-items:center;width:100%"><div class="grow"><b>${esc(m.name)}</b><span>${r ? esc(r.name) + ((m.details || {}).win ? ' · ' + m.details.win.toLowerCase() : '') : 'Inte i något rum'}</span></div><button class="btn sm" onclick="openMine(${m.id})">Öppna</button><button class="x" onclick="unplacePlant(${m.id})">Ta bort</button></div><button class="btn sm line" style="margin-top:8px" onclick="togHang(${m.id})">${(m.details || {}).place === 'Ampel' ? 'Ställ ner från taket' : 'Häng i taket (ampel)'}</button>${hs.map(x => `<div class="pdhint ${x[0]}"><span class="ck">${x[0] === 'warn' ? '⚠️' : '💡'}</span><span>${esc(x[1])}</span></div>`).join('')}</div>`; }
+    return `<div class="psel col"><div style="display:flex;gap:10px;align-items:center;width:100%"><div class="grow"><b>${esc(m.name)}</b><span>${r ? esc(r.name) + ((m.details || {}).win ? ' · ' + m.details.win.toLowerCase() : '') : 'Inte i något rum'}</span></div><button class="btn sm" onclick="openMine(${m.id})">Öppna</button><button class="x" onclick="unplacePlant(${m.id})">Ta bort</button></div><button class="btn sm line" style="margin-top:8px" onclick="togHang(${m.id})">${['Ampel', 'Upp och ner'].includes((m.details || {}).place) ? 'Ställ ner från taket' : 'Häng i taket (ampel)'}</button>${(m.details || {}).place === 'Upp och ner' ? '' : `<button class="btn sm line" style="margin-top:8px" onclick="togUpside(${m.id})">Häng upp och ner i taket</button>`}${hs.map(x => `<div class="pdhint ${x[0]}"><span class="ck">${x[0] === 'warn' ? '⚠️' : '💡'}</span><span>${esc(x[1])}</span></div>`).join('')}</div>`; }
   if (sel.k === 'dev') { const it = planItems().find(x => x.id === sel.id); if (!it) return ''; const r = roomAt(it.x, it.y);
     return `<div class="psel"><span style="font-size:24px">${DEVS[it.t][1]}</span><div class="grow"><b>${DEVS[it.t][0]}</b><span>${r ? esc(r.name) : 'Utanför rummen'}</span></div>${['sensor', 'thermo', 'plug', 'grow', 'humid', 'pump'].includes(it.t) ? `<button class="btn sm line" onclick="openSmart()">Smarta hemmet</button>` : ''}<button class="x" onclick="delDev('${it.id}')">Ta bort</button></div>`; }
   return '';
@@ -6793,6 +6845,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.162', '27 okt 18:20', ['Ny plats: Upp och ner i taket. Krukan hänger med öppningen nedåt och växten växer ner mot golvet, både i 3D och i ritningen', '3D: krukan och jorden följer växtens uppgifter. Terrakotta, plast, keramik eller ytterkruka, storleken du skrivit in, självvattnande kruka med vattenmätare, semi-hydro med leca eller pon och vatten i botten, vas med vatten och ampel. Jordytan visar krukjord, leca, pon, orkidébark, perlit, pimpsten, kokosfiber eller vitmossa']],
   ['1.161', '27 okt 18:00', ['3D: smarta saker är riktiga apparater. Växtsensorn sitter i krukan, termometern och uttaget på väggen, växtlampan hänger över växten, golvlampan står på golvet, och luftfuktare och högtalare står på bordet']],
   ['1.160', '27 okt 17:45', ['3D: knapparna under bilden får plats på smala skärmar, och rumsnamnen är lite mindre så att de inte täcker varandra']],
   ['1.159', '27 okt 17:30', ['3D: träd och utomhusväxter är detaljerade. Lövträd har kronor av lövklasar och bark med mönster, björken vit stam, granen hängande barrgrenar, tallen barrtofsar, tujan fjällblad. Buskar, gräs, ormbunkar, iris, lökväxter, solros och klätterväxter har riktiga blad']],
@@ -7487,7 +7540,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.161';
+const APP_VERSION = '1.162';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
