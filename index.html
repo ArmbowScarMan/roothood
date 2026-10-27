@@ -2375,13 +2375,17 @@ function veg3d(THREE, M, kind, h, w, seed, hue, opt) {
     const base = Math.min(h, Math.max(0.15, h * (h > 0.7 ? 0.45 : 0.8))), rb = w * 0.3;
     const veg = ['gron', 'rot', 'krydda'].includes(kind);
     if (lo) for (let i = 0; i < 2; i++) { const a = i * 1.6 + R(), d = w * 0.15; blob(rb, Math.cos(a) * d, base * 0.5, Math.sin(a) * d, Math.max(0.4, base / (rb * 2)), green(34 + Math.round(R() * 8))); }
-    else { blob(rb * 0.55, 0, base * 0.3, 0, Math.max(0.4, base / (rb * 1.4)), green(27));
+    else {
       const len = Math.max(0.06, Math.min(base * 1.05, w * 0.55)), wid = len * (kind === 'rot' ? 0.18 : kind === 'krydda' ? 0.45 : 0.38);
       leaves3d(THREE, gr, kind === 'rot' ? 14 : veg ? 18 : 22, 0, 0.01, 0, w * 0.12, len, wid, [gcol(36), gcol(30)], R, { tilt: 0.25, tilt1: 1.05, rise: base * 0.25 }); }
     if (h > 0.7 && !veg && !showFl) { /* utan blommor */ }
-    else if (h > 0.7 && !veg && !lo) { const G = g3(THREE), r = Math.max(0.025, w * 0.06), sp = o.fshape === 'spike', n = 5 + Math.round(R() * 3), stems = [], heads = [];
-      for (let i = 0; i < n; i++) { const a = R() * 6.283, d = w * 0.2 * Math.sqrt(R()), x = Math.cos(a) * d, z = Math.sin(a) * d, top = h * (0.85 + R() * 0.15) - (sp ? r * 5 : 0); stems.push([x, base * 0.4, z, 0, 0, 0, 0.006, Math.max(0.05, top - base * 0.4), 0.006]); heads.push([x, top, z]); }
-      gr.add(inst3d(THREE, G.stemGeo, G.mat('plain', gcol(38)), stems)); bloom3d(THREE, gr, heads, r, fcol, o.fshape || 'simple', o.fcenter, R, lo); }
+    else if (h > 0.7 && !veg && !lo) { const G = g3(THREE), r = Math.max(0.04, Math.min(0.09, w * 0.13)), sp = o.fshape === 'spike', n = 4 + Math.round(R() * 2), stems = [], heads = [], sl = [];
+      for (let i = 0; i < n; i++) { const a = R() * 6.283, d = w * 0.16 * Math.sqrt(R()), x = Math.sin(a) * d, z = Math.cos(a) * d, y0 = base * 0.3, L = Math.max(0.1, h * (0.8 + R() * 0.2) - (sp ? r * 5 : 0) - y0), lean = 0.06 + R() * 0.2;
+        const ux = Math.sin(lean) * Math.sin(a), uy = Math.cos(lean), uz = Math.sin(lean) * Math.cos(a);
+        stems.push([x, y0, z, lean, a, 0, 0.007, L, 0.007]); heads.push([x + ux * L, y0 + uy * L, z + uz * L]);
+        [0.3, 0.55].forEach((t, j) => { const la = a + (j ? 2.4 : -0.8) + R() * 0.5, ll = Math.min(0.16, base * 0.45) * (1 - t * 0.5); sl.push([x + ux * L * t, y0 + uy * L * t, z + uz * L * t, 0.95 + R() * 0.3, la, 0, ll * 0.38, ll, ll]); }); }
+      gr.add(inst3d(THREE, G.stemGeo, G.mat('plain', gcol(36)), stems)); gr.add(inst3d(THREE, G.leafGeo, G.mat('leaf', gcol(34)), sl));
+      bloom3d(THREE, gr, heads, r, fcol, o.fshape || 'simple', o.fcenter, R, lo); }
     else if (h > 0.7 && !veg) { const sm = M(fcol), st = green(38); for (let i = 0; i < 2; i++) { const a = R() * 6.283, d = w * 0.18 * R(), x = Math.cos(a) * d, z = Math.sin(a) * d; cyl(0.008, 0.012, h - base * 0.4, x, base * 0.4 + (h - base * 0.4) / 2, z, st); cone(Math.max(0.025, w * 0.06), h * 0.3, x, h - h * 0.12, z, sm); } }
     else if (!veg) flowers(lo ? 4 : 9, Math.max(0.02, w * 0.06), base * 0.9, w * 0.32);
     if (o.fruit && showFruit) { const fm = M(o.fruitCol || '#D2553F'); for (let i = 0; i < (lo ? 3 : 8); i++) { const a = R() * 6.283, d = w * 0.3; blob(Math.max(0.025, w * 0.05), Math.cos(a) * d, base * (0.3 + R() * 0.6), Math.sin(a) * d, 1, fm); } }
@@ -6115,6 +6119,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.145', 'Nu', ['3D: höga perenner lutar lite, har blad längs stjälken och större blommor. De mörka formerna mitt i plantorna är borta']],
   ['1.144', 'Nu', ['3D: växterna i rabatter och trädgård har riktiga blad med nerver och blommor med kronblad. Formen följer växten: tusenskönor, rosor och pioner, lavendel och riddarsporre, röllika och hortensia']],
   ['1.143', 'Nu', ['Utforska: fördjupningarna (hem och trädgård, djur, permakultur) ligger sist och är märkta som fördjupning. Dagbok finns bara på ett ställe']],
   ['1.142', 'Nu', ['Nya användare ser ett enda första steg på startsidan. Växtdatabasen har en egen knapp på Hem. Community heter nu Gemenskap, och byten och detektiver har ett namn var']],
@@ -6792,7 +6797,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.144';
+const APP_VERSION = '1.145';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
