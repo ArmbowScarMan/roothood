@@ -92,6 +92,20 @@ const server = http.createServer((req, res) => {
   ok('Online igen: banner döljs', back === true);
   await octx.close();
 
+  // 4a. XSS: ett elakt namn i en onclick ska inte kunna köra kod
+  const xssOk = await page.evaluate(() => {
+    window.__PWN = undefined;
+    const payload = "x');window.__PWN=1;//";
+    const d = document.createElement('div');
+    d.innerHTML = `<button onclick="window.__hit=[${jsArg(payload)},${jsArg(payload)}]">t</button>`;
+    document.body.appendChild(d);
+    d.querySelector('button').click();
+    const ok = window.__PWN === undefined && Array.isArray(window.__hit) && window.__hit[0] === payload;
+    d.remove();
+    return ok;
+  });
+  ok('XSS: elakt namn i onclick körs inte som kod', xssOk);
+
   // 4. Ingen nyckel i demo-buildet ska exponeras
   ok('Demo-build innehåller ingen projektnyckel', !html.includes('lboomcqxksqahkugpxew'));
 

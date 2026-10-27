@@ -1297,6 +1297,8 @@ const S = {smonth:new Date().getMonth() + 1, listings:null, newL:false, lf:'Alla
 // ===== Hjälpfunktioner =====
 const $ = s => document.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Säker JS-sträng i en onclick (dubbla citattecken, JSON-kodad, HTML-escapad)
+const jsArg = v => esc(JSON.stringify(String(v ?? '')));
 const today = () => new Date().toLocaleDateString('sv-SE');
 const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toLocaleDateString('sv-SE'); };
 const since = d => Math.round((Date.parse(today()) - Date.parse(d)) / 864e5);
@@ -1590,7 +1592,7 @@ function qaHits() {
   const q = (S.qaq || '').trim().toLowerCase(); if (q.length < 2) return '<p class="mut" style="margin:14px 0 0;font-size:14px">Sök i växtdatabasen först. Tryck på + så kommer du till kruka, jord och plats.</p>';
   const nm = p => (p.swedish_name || '').toLowerCase(), lt = p => (p.latin_name || '').toLowerCase();
   const L = S.plants.filter(p => nm(p).includes(q) || lt(p).includes(q)).sort((a, b) => (nm(b).startsWith(q) - nm(a).startsWith(q)) || nm(a).localeCompare(nm(b), 'sv')).slice(0, 12);
-  if (!L.length) return `<div class="empty" style="margin-top:12px"><p>Hittar ingen växt som heter så.</p><button class="btn sm" onclick="openModal('add','${esc(S.qaq).replace(/'/g, '')}')">Lägg till den som egen växt</button></div>`;
+  if (!L.length) return `<div class="empty" style="margin-top:12px"><p>Hittar ingen växt som heter så.</p><button class="btn sm" onclick="openModal('add',${jsArg(S.qaq)})">Lägg till den som egen växt</button></div>`;
   return L.map(p => { const n = S.mine.filter(m => m.plant_id === p.id).length; return `<div class="qrow"><span class="grow"><b>${esc(p.swedish_name)}</b>${p.latin_name ? `<span>${esc(p.latin_name)}</span>` : ''}</span><button class="${n ? 'have' : ''}" onclick="qaAdd(${p.id})">${n ? '✓ ' + n + ' · En till' : '+ Lägg till'}</button></div>`; }).join('');
 }
 function qaRefresh() { const h = $('#qahits'); if (h) h.innerHTML = qaHits(); }
@@ -3223,7 +3225,7 @@ function smartV() {
 function friendReqCard() {
   const l = (S.notifs || []).filter(n => n.t === 'friend');
   if (!S.user || !l.length) return '';
-  return `<div class="frcard">${l.slice(0, 3).map(n => `<div class="frc"><span class="frem">👋</span><div class="grow"><b>${esc(n.who || 'Någon')} vill bli din vän</b><span>${n.msg ? '”' + esc(n.msg) + '”' : 'Vill du acceptera vänförfrågan?'}</span><div class="fbtns"><button class="btn sm" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',true)">Acceptera</button><button class="btn sm line" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',false)">Neka</button><button class="link3" onclick="openUser('${esc(n.from)}')">Visa profil</button></div></div></div>`).join('')}</div>`;
+  return `<div class="frcard">${l.slice(0, 3).map(n => `<div class="frc"><span class="frem">👋</span><div class="grow"><b>${esc(n.who || 'Någon')} vill bli din vän</b><span>${n.msg ? '”' + esc(n.msg) + '”' : 'Vill du acceptera vänförfrågan?'}</span><div class="fbtns"><button class="btn sm" onclick="friendAnswer(${jsArg(String(n.req))},${jsArg(n.from)},true)">Acceptera</button><button class="btn sm line" onclick="friendAnswer(${jsArg(String(n.req))},${jsArg(n.from)},false)">Neka</button><button class="link3" onclick="openUser(${jsArg(n.from)})">Visa profil</button></div></div></div>`).join('')}</div>`;
 }
 function todoItems() {
   const t = [];
@@ -3917,13 +3919,13 @@ function expertName(id) { const x = (S.experts || []).find(e => e.id === id); re
 function expertCard(x) {
   return `<div class="xcard"><div class="xtop">${avBig(x.display_name)}<div class="grow"><b>${esc(x.display_name)}</b><span class="xtitle">🎓 ${esc(x.expert_title || 'Växtexpert')}</span></div><span class="xans">${x.answered || 0}<small>svar</small></span></div>
     ${x.expert_bio ? `<p>${esc(x.expert_bio)}</p>` : ''}${(x.expert_tags || []).length ? `<div class="chips2">${x.expert_tags.map(t => `<span class="tag lime">${esc(t)}</span>`).join('')}</div>` : ''}
-    <button class="btn sm ${S.pro ? '' : 'line'}" style="margin-top:10px" onclick="${S.pro ? `S.xpick='${esc(x.id)}';openExperts('${esc(x.id)}')` : "openModal('pro')"}">Fråga ${esc(x.display_name.split(' ')[0])}${S.pro ? '' : ' ' + proBadge()}</button></div>`;
+    <button class="btn sm ${S.pro ? '' : 'line'}" style="margin-top:10px" onclick="${S.pro ? `S.xpick=${jsArg(x.id)};openExperts(${jsArg(x.id)})` : "openModal('pro')"}">Fråga ${esc(x.display_name.split(' ')[0])}${S.pro ? '' : ' ' + proBadge()}</button></div>`;
 }
 function expertsV() {
   const ex = S.experts, qs = S.xq || [], waiting = qs.filter(q => !q.answer).length;
   if (S.xErr === 'EXPERTS_NOT_READY') return `${topbar('Växtexperter', 'closeTool()')}<div class="instc" style="margin:12px 18px 0"><div><b>Växtexperterna är inte påslagna i databasen än</b><span>Kör SQL-koden för steg 023 i Supabase.</span></div></div>`;
   const form = S.pro ? `<div class="sec"><h2>Ställ en fråga</h2></div><div class="pad"><div class="setcard xform">
-      <label class="fl" style="margin-top:0">Till</label><div class="chips2">${[['any', 'Första lediga expert']].concat((ex || []).map(x => [x.id, x.display_name.split(' ')[0]])).map(([id, n]) => `<button class="${(S.xpick || 'any') === id ? 'on' : ''}" onclick="S.xpick='${esc(id)}';keepMain()">${esc(n)}</button>`).join('')}</div>
+      <label class="fl" style="margin-top:0">Till</label><div class="chips2">${[['any', 'Första lediga expert']].concat((ex || []).map(x => [x.id, x.display_name.split(' ')[0]])).map(([id, n]) => `<button class="${(S.xpick || 'any') === id ? 'on' : ''}" onclick="S.xpick=${jsArg(id)};keepMain()">${esc(n)}</button>`).join('')}</div>
       <label class="fl" for="xcat">Ämne</label><select id="xcat" onchange="S.xcat=this.value">${XCATS.map(c => `<option ${c === (S.xcat || XCATS[0]) ? 'selected' : ''}>${c}</option>`).join('')}</select>
       <label class="fl" for="xbody">Din fråga</label><textarea id="xbody" rows="4" maxlength="2000" placeholder="Berätta vilken växt det gäller, vad du ser och hur du sköter den" oninput="S.xbody=this.value">${esc(S.xbody || '')}</textarea>
       ${S.xph ? `<img class="lbig" src="${esc(S.xphUrl)}" alt="Ditt foto"><button class="btn sm line" onclick="S.xph=null;keepMain()">Ta bort foto</button>` : `<label onclick="photoPick(event,this)" class="shot small"><span class="tic">${ic(CAM, 'currentColor', 22)}</span><span class="grow"><b>Lägg till foto</b><span>En bild hjälper experten mycket</span></span><input type="file" accept="image/*" class="sr" onchange="xPhoto(this)"></label>`}
@@ -4202,7 +4204,7 @@ async function togPlantFollow(key) {
 function followBtn(p) {
   const key = String(p.swedish_name || '').toLowerCase().trim(); if (key.length < 2) return '';
   const on = (S.pfol || []).includes(key);
-  return `<div class="pad" style="padding-top:10px"><button class="btn sm line" style="width:100%" onclick="togPlantFollow('${esc(key)}')">${ic(on ? 'ph-bell-slash' : 'ph-bell', 'currentColor', 16)} ${on ? 'Sluta följa' : 'Följ'} ${esc(p.swedish_name)} i Community</button></div>`;
+  return `<div class="pad" style="padding-top:10px"><button class="btn sm line" style="width:100%" onclick="togPlantFollow(${jsArg(key)})">${ic(on ? 'ph-bell-slash' : 'ph-bell', 'currentColor', 16)} ${on ? 'Sluta följa' : 'Följ'} ${esc(p.swedish_name)} i Community</button></div>`;
 }
 async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); } catch (e) { S.notifs = S.notifs || []; } try { S.notifs = (S.notifs || []).filter(n => n.t !== 'follow').concat(await followHits()); } catch (e) {} if (isMod()) { try { S.modOpen = await api.modOpen(); } catch (e) {} } await loadInbox(); if (!S.tool && !S.modal) render(); }
 function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due + (isMod() ? (S.modOpen || 0) : 0); return `<button class="circ bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
@@ -4230,8 +4232,8 @@ function msgsV() {
   const I = S.inbox, F = S.friends || [];
   return `${topbar('Meddelanden', 'S.tool=null;render()')}
   ${S.msgErr ? `<p class="formmsg" style="margin:16px 18px">${esc(S.msgErr)}</p>` : ''}
-  <div class="pad nlist" style="padding-top:8px">${I == null ? '<p class="mut">Hämtar…</p>' : I.length ? I.map(c => `<button class="nrow ${c.unread ? 'new' : ''}" onclick="openChat('${esc(c.other)}','${esc(c.name || '')}')"><span class="nic">${avBig(c.name || '?')}</span><span class="grow"><b>${esc(c.name || 'Okänd')}</b><span>${c.last_mine ? 'Du: ' : ''}${esc((c.last_body || '').slice(0, 70))}</span></span><small>${c.unread ? c.unread + ' nya · ' : ''}${ago(c.last_at)}</small></button>`).join('') : '<p class="mut" style="margin:8px 0">Inga meddelanden än. Välj en vän nedan för att skriva.</p>'}</div>
-  <div class="sec"><h2>Skriv till en vän</h2></div><div class="pad">${F.length ? `<div class="chips2">${F.map(f => `<button onclick="openChat('${esc(f.id)}','${esc(f.display_name)}')">${esc(f.display_name)}</button>`).join('')}</div>` : '<p class="mut">Du kan skriva till dem som har accepterat din vänförfrågan.</p>'}</div>`;
+  <div class="pad nlist" style="padding-top:8px">${I == null ? '<p class="mut">Hämtar…</p>' : I.length ? I.map(c => `<button class="nrow ${c.unread ? 'new' : ''}" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">${avBig(c.name || '?')}</span><span class="grow"><b>${esc(c.name || 'Okänd')}</b><span>${c.last_mine ? 'Du: ' : ''}${esc((c.last_body || '').slice(0, 70))}</span></span><small>${c.unread ? c.unread + ' nya · ' : ''}${ago(c.last_at)}</small></button>`).join('') : '<p class="mut" style="margin:8px 0">Inga meddelanden än. Välj en vän nedan för att skriva.</p>'}</div>
+  <div class="sec"><h2>Skriv till en vän</h2></div><div class="pad">${F.length ? `<div class="chips2">${F.map(f => `<button onclick="openChat(${jsArg(f.id)},${jsArg(f.display_name)})">${esc(f.display_name)}</button>`).join('')}</div>` : '<p class="mut">Du kan skriva till dem som har accepterat din vänförfrågan.</p>'}</div>`;
 }
 async function openChat(id, name) {
   if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'chat'; S.chatId = id; S.chatName = name || ''; S.chatMsgs = null; S.dmDraft = ''; render();
@@ -4309,7 +4311,7 @@ function modFeedV(D) {
     <div class="mtags"><span class="tag lime">${KIND_SV[r.kind]}</span>${r.hidden ? '<span class="tag">Dolt</span>' : ''}${r.has_photo ? `<span class="tag">${ic('ph-image', 'currentColor', 12)} Bild</span>` : ''}${off ? '<span class="tag warn">Kanske inte om växter</span>' : ''}${r.reports ? `<span class="tag warn">${r.reports} rapport${r.reports > 1 ? 'er' : ''}</span>` : ''}</div>
     <small class="mut">${esc(r.author || 'okänd')}${r.city ? ' · ' + esc(r.city) : ''} · ${ago(r.created_at)}</small>
     <p style="margin:6px 0 8px">${esc((r.excerpt || '').slice(0, 220))}</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm ${r.hidden ? '' : 'line'}" onclick="modHide('${r.kind}',${r.id},${!r.hidden})">${r.hidden ? 'Visa igen' : 'Dölj'}</button>${r.author_id ? `<button class="btn sm line ${S.del === 'hu' + r.author_id ? 'danger' : ''}" onclick="modHideUser('${esc(r.author_id)}','${esc(String(r.author || '').replace(/'/g, ''))}')">${S.del === 'hu' + r.author_id ? 'Tryck igen: dölj allt från ' + esc(r.author || '') : 'Dölj allt från personen'}</button>` : ''}</div></div></div>`; }).join('') : '<p class="mut">Inget matchar filtret.</p>'}</div>`;
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm ${r.hidden ? '' : 'line'}" onclick="modHide('${r.kind}',${r.id},${!r.hidden})">${r.hidden ? 'Visa igen' : 'Dölj'}</button>${r.author_id ? `<button class="btn sm line ${S.del === 'hu' + r.author_id ? 'danger' : ''}" onclick="modHideUser(${jsArg(r.author_id)},${jsArg(String(r.author || ''))})">${S.del === 'hu' + r.author_id ? 'Tryck igen: dölj allt från ' + esc(r.author || '') : 'Dölj allt från personen'}</button>` : ''}</div></div></div>`; }).join('') : '<p class="mut">Inget matchar filtret.</p>'}</div>`;
 }
 async function modHide(kind, id, on) { try { await api.modHide(kind, id, on); toast(on ? 'Dolt för alla' : 'Visas igen'); } catch (e) { toast(errMsg(e)); } loadMod(); }
 async function modRole(id, role) { try { await api.setRole(id, role); toast(role === 'mod' ? 'Är nu moderator' : 'Är inte längre moderator'); } catch (e) { toast(errMsg(e)); } S.modRes = null; S.modTab = 'team'; loadMod(); }
@@ -4332,9 +4334,9 @@ function modV() {
   } else if (t === 'feed') {
     body = D.length ? modFeedV(D) : '<p class="mut" style="margin:16px 18px">Inget i communityt än.</p>';
   } else {
-    body = `<div class="sec"><h2>Moderatorer</h2></div><div class="pad">${D.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b><span class="mut" style="display:block;font-size:13px">${u.role === 'admin' ? 'Admin' : 'Moderator'}</span></span>${u.role === 'mod' ? `<button class="btn sm line" onclick="modRole('${esc(u.id)}','user')">Ta bort</button>` : ''}</div>`).join('')}</div>
+    body = `<div class="sec"><h2>Moderatorer</h2></div><div class="pad">${D.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b><span class="mut" style="display:block;font-size:13px">${u.role === 'admin' ? 'Admin' : 'Moderator'}</span></span>${u.role === 'mod' ? `<button class="btn sm line" onclick="modRole(${jsArg(u.id)},'user')">Ta bort</button>` : ''}</div>`).join('')}</div>
     <div class="sec"><h2>Lägg till moderator</h2></div><div class="pad"><form onsubmit="event.preventDefault();modFind(this)" style="display:flex;gap:8px"><input name="mq" placeholder="Sök på namn" value="${esc(S.modQ || '')}" style="flex:1"><button class="btn sm">Sök</button></form>
-    ${(S.modRes || []).map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name)}</b></span>${D.some(x => x.id === u.id) ? '<small class="mut">Redan i teamet</small>' : `<button class="btn sm" onclick="modRole('${esc(u.id)}','mod')">Gör till moderator</button>`}</div>`).join('')}
+    ${(S.modRes || []).map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name)}</b></span>${D.some(x => x.id === u.id) ? '<small class="mut">Redan i teamet</small>' : `<button class="btn sm" onclick="modRole(${jsArg(u.id)},'mod')">Gör till moderator</button>`}</div>`).join('')}
     ${S.modRes && !S.modRes.length ? '<p class="mut">Ingen hittades.</p>' : ''}<p class="mut" style="font-size:13px">Moderatorer kan granska rapporter och dölja inlägg och svar. Bara du som admin kan lägga till eller ta bort moderatorer.</p></div>`;
   }
   return `${topbar('Moderering', 'S.tool=null;render()')}
@@ -4354,12 +4356,12 @@ function notifV() {
   const what = { question: 'din fråga', thread: 'din tråd', listing: 'din annons', mystery: 'ditt detektivfall' };
   const row = (icon, title, sub, at, act, isNew) => `<button class="nrow ${isNew ? 'new' : ''}" onclick="${act}"><span class="nic">${icon}</span><span class="grow"><b>${title}</b>${sub ? `<span>${sub}</span>` : ''}</span>${at ? `<small>${ago(at)}</small>` : ''}</button>`;
   const todo = due.map(m => row('💧', `${esc(m.name)} behöver vatten idag`, '', null, `S.tool=null;go('mine')`, false)).concat(out.map(([m, t]) => row('🌦️', esc(m.name), esc(t.split('.')[0]), null, `S.tool=null;openMine(${m.id})`, false)));
-  const frq = (N || []).filter(n => n.t === 'friend').map(n => `<div class="nrow new frow"><span class="nic">👋</span><span class="grow"><b>${esc(n.who || 'Någon')} vill bli din vän</b>${n.msg ? `<span>”${esc(n.msg)}”</span>` : ''}<span class="fbtns"><button class="btn sm" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',true)">Acceptera</button><button class="btn sm line" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',false)">Neka</button><button class="link3" onclick="openUser('${esc(n.from)}')">Visa profil</button></span></span><small>${ago(n.at)}</small></div>`);
-  const act = (N || []).filter(n => n.t !== 'friend').map(n => n.t === 'follow' ? row('🌿', `Ny fråga om ${esc(n.species)}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `goPost('question',${n.post_id},'${esc(n.cat || '')}')`, Date.parse(n.at) > seen) : n.t === 'friend_ok' ? row('🤝', `${esc(n.who || 'Någon')} accepterade din vänförfrågan`, 'Ni är nu vänner', n.at, `openUser('${esc(n.from)}')`, Date.parse(n.at) > seen) : n.t === 'expert' ? row('🎓', `${esc(n.who || 'En expert')} har svarat på din expertfråga`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `openExperts()`, Date.parse(n.at) > seen)
-    : row(n.kind === 'mystery' ? '🔎' : n.kind === 'listing' ? '🔁' : '💬', `${esc(n.who || 'Någon')} svarade på ${what[n.kind] || 'ditt inlägg'}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”${n.ptitle ? ` · ${esc(n.ptitle.slice(0, 40))}` : ''}`, n.at, `goPost('${n.kind}',${n.post_id},'${esc(n.cat || '')}')`, Date.parse(n.at) > seen));
+  const frq = (N || []).filter(n => n.t === 'friend').map(n => `<div class="nrow new frow"><span class="nic">👋</span><span class="grow"><b>${esc(n.who || 'Någon')} vill bli din vän</b>${n.msg ? `<span>”${esc(n.msg)}”</span>` : ''}<span class="fbtns"><button class="btn sm" onclick="friendAnswer(${jsArg(String(n.req))},${jsArg(n.from)},true)">Acceptera</button><button class="btn sm line" onclick="friendAnswer(${jsArg(String(n.req))},${jsArg(n.from)},false)">Neka</button><button class="link3" onclick="openUser(${jsArg(n.from)})">Visa profil</button></span></span><small>${ago(n.at)}</small></div>`);
+  const act = (N || []).filter(n => n.t !== 'friend').map(n => n.t === 'follow' ? row('🌿', `Ny fråga om ${esc(n.species)}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `goPost('question',${n.post_id},${jsArg(n.cat || '')})`, Date.parse(n.at) > seen) : n.t === 'friend_ok' ? row('🤝', `${esc(n.who || 'Någon')} accepterade din vänförfrågan`, 'Ni är nu vänner', n.at, `openUser(${jsArg(n.from)})`, Date.parse(n.at) > seen) : n.t === 'expert' ? row('🎓', `${esc(n.who || 'En expert')} har svarat på din expertfråga`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `openExperts()`, Date.parse(n.at) > seen)
+    : row(n.kind === 'mystery' ? '🔎' : n.kind === 'listing' ? '🔁' : '💬', `${esc(n.who || 'Någon')} svarade på ${what[n.kind] || 'ditt inlägg'}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”${n.ptitle ? ` · ${esc(n.ptitle.slice(0, 40))}` : ''}`, n.at, `goPost('${n.kind}',${n.post_id},${jsArg(n.cat || '')})`, Date.parse(n.at) > seen));
   return `${topbar('Notiser', 'S.tool=null;render()')}
   ${frq.length ? `<div class="sec"><h2>Vänförfrågningar</h2></div><div class="pad nlist">${frq.join('')}</div>` : ''}
-  ${(S.inbox || []).some(c => c.unread) ? `<div class="sec"><h2>Meddelanden</h2></div><div class="pad nlist">${S.inbox.filter(c => c.unread).slice(0, 5).map(c => `<button class="nrow new" onclick="openChat('${esc(c.other)}','${esc(c.name || '')}')"><span class="nic">💬</span><span class="grow"><b>${esc(c.name || 'Någon')}</b><span>${esc((c.last_body || '').slice(0, 70))}</span></span><small>${c.unread} nya</small></button>`).join('')}</div>` : ''}
+  ${(S.inbox || []).some(c => c.unread) ? `<div class="sec"><h2>Meddelanden</h2></div><div class="pad nlist">${S.inbox.filter(c => c.unread).slice(0, 5).map(c => `<button class="nrow new" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">💬</span><span class="grow"><b>${esc(c.name || 'Någon')}</b><span>${esc((c.last_body || '').slice(0, 70))}</span></span><small>${c.unread} nya</small></button>`).join('')}</div>` : ''}
   ${isMod() && S.modOpen ? `<div class="sec"><h2>Moderering</h2></div><div class="pad nlist"><button class="nrow new" onclick="openMod('open')"><span class="nic">🛡️</span><span class="grow"><b>${S.modOpen} ${S.modOpen === 1 ? 'rapport väntar' : 'rapporter väntar'}</b><span>Tryck för att granska</span></span></button></div>` : ''}
   ${todo.length ? `<div class="sec"><h2>Att göra idag</h2></div><div class="pad nlist">${todo.join('')}</div>` : ''}
   <div class="sec"><h2>Svar och aktivitet</h2>${(N || []).some(n => n.t !== 'friend' && Date.parse(n.at) > seen) ? '<button class="viewall" onclick="notifAllRead()">✓ Markera alla som lästa</button>' : ''}</div><div class="pad nlist">${N == null ? '<p class="mut">Hämtar…</p>' : act.length ? act.join('') : '<p class="mut" style="margin:0">Inga svar än. När någon svarar på dina frågor, trådar, annonser eller detektivfall syns det här.</p>'}</div>
@@ -4685,8 +4687,8 @@ function avBig(name, cls, url) { if (url) return `<div class="${cls || 'av'} avi
 function avSmall(name, url) { if (url) return `<div class="av avimg"><img src="${esc(url)}" alt=""></div>`; return `<div class="av" style="background:hsl(${hueOf(name)} 40% 38%)">${esc((name || '?')[0])}</div>`; }
 function personRow(u) {
   const f = (S.follows || []).includes(u.id), same = S.city && u.city && u.city.toLowerCase() === S.city.toLowerCase();
-  return `<div class="prow2"><button class="popen" onclick="openUser('${esc(u.id)}')">${avBig(u.display_name)}<span class="grow"><b>${esc(u.display_name)}</b><span>${[u.city ? (same ? '📍 ' : '') + esc(u.city) : '', u.plants != null ? u.plants + ' växter' : '', u.followers ? u.followers + ' följare' : ''].filter(Boolean).join(' · ')}</span></span></button>
-    <button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow('${esc(u.id)}')">${f ? 'Följer' : 'Följ'}</button></div>`;
+  return `<div class="prow2"><button class="popen" onclick="openUser(${jsArg(u.id)})">${avBig(u.display_name)}<span class="grow"><b>${esc(u.display_name)}</b><span>${[u.city ? (same ? '📍 ' : '') + esc(u.city) : '', u.plants != null ? u.plants + ' växter' : '', u.followers ? u.followers + ' följare' : ''].filter(Boolean).join(' · ')}</span></span></button>
+    <button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow(${jsArg(u.id)})">${f ? 'Följer' : 'Följ'}</button></div>`;
 }
 function peopleV() {
   const list = S.ppl || [], fol = S.follows || [], q = (S.pq || '').trim();
@@ -4727,7 +4729,7 @@ function frBtns(c) {
   const st = c.friend_status || 'none', id = esc(c.id);
   return st === 'friends' ? `<button class="btn sm line" onclick="friendRemove('${id}')">${S.del === 'fr' + c.id ? 'Bekräfta: ta bort vän' : 'Vänner ✓'}</button>`
     : st === 'pending_out' ? `<button class="btn sm line" onclick="friendRemove('${id}')">${S.del === 'fr' + c.id ? 'Bekräfta: ta tillbaka' : 'Förfrågan skickad'}</button>`
-    : st === 'pending_in' ? `<button class="btn sm" onclick="friendAnswer('${esc(String(c.friend_req))}','${id}',true)">Acceptera vän</button><button class="btn sm line" onclick="friendAnswer('${esc(String(c.friend_req))}','${id}',false)">Neka</button>`
+    : st === 'pending_in' ? `<button class="btn sm" onclick="friendAnswer(${jsArg(String(c.friend_req))},'${id}',true)">Acceptera vän</button><button class="btn sm line" onclick="friendAnswer(${jsArg(String(c.friend_req))},'${id}',false)">Neka</button>`
     : `<button class="btn sm cop" onclick="friendAsk('${id}')">+ Lägg till vän</button>`;
 }
 async function toggleFollow(id) {
@@ -4763,7 +4765,7 @@ function userV() {
 function friendsSec() {
   if (S.friends == null) { if (!S.frLoad) { S.frLoad = true; api.myFriends().then(l => { S.friends = l; S.frLoad = false; if (S.tab === 'me' && !S.tool && !S.sel) render(); }).catch(() => { S.friends = []; S.frLoad = false; }); } return ''; }
   if (!S.friends.length) return '';
-  return `<div class="sec"><h2>Vänner</h2><button class="btn sm line" onclick="openMsgs()">${ic('ph-chat-circle', 'currentColor', 16)} Meddelanden${msgUnread() ? ' (' + msgUnread() + ')' : ''}</button></div><div class="pad"><div class="chips2">${S.friends.map(f => `<button onclick="openUser('${esc(f.id)}')">${esc(f.display_name)}</button>`).join('')}</div></div>`;
+  return `<div class="sec"><h2>Vänner</h2><button class="btn sm line" onclick="openMsgs()">${ic('ph-chat-circle', 'currentColor', 16)} Meddelanden${msgUnread() ? ' (' + msgUnread() + ')' : ''}</button></div><div class="pad"><div class="chips2">${S.friends.map(f => `<button onclick="openUser(${jsArg(f.id)})">${esc(f.display_name)}</button>`).join('')}</div></div>`;
 }
 function profHome(c, self) {
   if (self) { if (!S.user) return ''; return `${home3dV('s')}<p class="mut" style="margin:8px 18px 0;font-size:13px">Du väljer vem som ser ditt hem under Inställningar, Vad andra ser på din profil.</p>`; }
@@ -4784,12 +4786,12 @@ function profPets(c, self) {
 }
 function umoreV(c) {
   const key = 'u' + c.id, open = S.more === key, blocked = (S.blocks || []).includes(c.id);
-  return `<span class="morew"><button class="x more" aria-label="Fler val" aria-expanded="${open}" onclick="S.more=S.more==='${esc(key)}'?null:'${esc(key)}';keepMain()">${ic('ph-dots-three', 'currentColor', 20)}</button>${open ? `<span class="moremenu" role="menu"><button role="menuitem" onclick="S.more=null;blockUser('${esc(c.id)}',${!blocked})">${blocked ? 'Avblockera' : 'Blockera'}</button></span>` : ''}</span>`;
+  return `<span class="morew"><button class="x more" aria-label="Fler val" aria-expanded="${open}" onclick="S.more=S.more===${jsArg(key)}?null:${jsArg(key)};keepMain()">${ic('ph-dots-three', 'currentColor', 20)}</button>${open ? `<span class="moremenu" role="menu"><button role="menuitem" onclick="S.more=null;blockUser(${jsArg(c.id)},${!blocked})">${blocked ? 'Avblockera' : 'Blockera'}</button></span>` : ''}</span>`;
 }
 function userBody(c, uposts, self) {
   const f = (S.follows || []).includes(c.id), posts = uposts || [];
   return `  <div class="uhero"><div class="avwrap">${avBig(c.display_name, 'bigav', c.avatar_url)}${self ? `<label class="avedit" aria-label="Byt profilbild">${ic('ph-camera', 'currentColor', 18)}<input type="file" accept="image/*" class="sr" onchange="changeAvatar(this.files[0]);this.value=''"></label>` : ''}</div><div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? esc(c.city) : 'Ingen ort angiven'}</span>
-    ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">${ic('ph-pencil-simple', 'currentColor', 15)} Redigera profil</button>` : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow('${esc(c.id)}')">${f ? 'Följer ✓' : '+ Följ'}</button>${frBtns(c)}${c.friend_status === 'friends' ? `<button class="btn sm" onclick="openChat('${esc(c.id)}','${esc(c.display_name)}')">💬 Skriv</button>` : ''}${umoreV(c)}</div>`}</div></div>
+    ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">${ic('ph-pencil-simple', 'currentColor', 15)} Redigera profil</button>` : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow(${jsArg(c.id)})">${f ? 'Följer ✓' : '+ Följ'}</button>${frBtns(c)}${c.friend_status === 'friends' ? `<button class="btn sm" onclick="openChat(${jsArg(c.id)},${jsArg(c.display_name)})">💬 Skriv</button>` : ''}${umoreV(c)}</div>`}</div></div>
   ${(() => { const n = (v, a, b) => (v || 0) + ' ' + ((v || 0) === 1 ? a : b), fr = c.friends != null ? c.friends : (self && S.friends ? S.friends.length : 0);
     return `<p class="ustatl">${n(c.plants, 'växt', 'växter')} · ${n(c.posts, 'inlägg', 'inlägg')} · ${n(c.followers, 'följare', 'följare')}${self ? ` · <button class="link3" aria-expanded="${!!S.showFr}" onclick="S.showFr=!S.showFr;keepMain()">${n(fr, 'vän', 'vänner')} ${ic(S.showFr ? 'ph-caret-up' : 'ph-caret-down', 'currentColor', 13)}</button>` : ` · ${n(fr, 'vän', 'vänner')}`}</p>`; })()}
   ${self && S.showFr ? (friendsSec() || (Array.isArray(S.friends) && !S.friends.length ? `<p class="mut" style="margin:10px 18px 0;font-size:14px">Inga vänner än. <button class="link3" onclick="openPeople()">Hitta vänner</button></p>` : '')) : ''}
@@ -4801,7 +4803,7 @@ function userBody(c, uposts, self) {
   ${profPets(c, self)}
   ${profHome(c, self)}
   <div class="sec"><h2>Inlägg</h2></div>
-  <div class="pad">${(c.hidden || []).includes('posts') ? `<p class="mut" style="margin:0;font-size:14px">${esc(c.display_name)} visar inte sina inlägg för dig.</p>` : uposts == null ? '<p class="mut">Hämtar…</p>' : posts.length ? `<div class="norm">${posts.map(p => `<button class="nrow" onclick="openUserPost(${p.id},'${p.kind || 'question'}','${esc(p.category || '')}')"><span class="grow"><small class="mut">${KIND_NAME[p.kind || 'question']} · ${ago(p.created_at)}</small>${esc((p.title || p.body || '').slice(0, 90))}</span>${ic(I.back, 'var(--mut)', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button>`).join('')}</div>` : `<p class="mut" style="margin:0;font-size:14px">Inga inlägg än.</p>`}</div>
+  <div class="pad">${(c.hidden || []).includes('posts') ? `<p class="mut" style="margin:0;font-size:14px">${esc(c.display_name)} visar inte sina inlägg för dig.</p>` : uposts == null ? '<p class="mut">Hämtar…</p>' : posts.length ? `<div class="norm">${posts.map(p => `<button class="nrow" onclick="openUserPost(${p.id},'${p.kind || 'question'}',${jsArg(p.category || '')})"><span class="grow"><small class="mut">${KIND_NAME[p.kind || 'question']} · ${ago(p.created_at)}</small>${esc((p.title || p.body || '').slice(0, 90))}</span>${ic(I.back, 'var(--mut)', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button>`).join('')}</div>` : `<p class="mut" style="margin:0;font-size:14px">Inga inlägg än.</p>`}</div>
   <div style="height:24px"></div>`;
 }
 // ===== Anpassa startskärmen =====
@@ -5390,7 +5392,7 @@ function badgeOf(b) {
 function whoP(o, sub, pill) { const b = o.author_badge || (DEMO && o.author_pro ? ['ph-hand-heart', 'Hjälpt 10'] : null); return who(o.author, sub, pill, b, o.user_id); }
 function shortName(n) { const s = String(n || '').trim().replace(/\s+/g, ' '); if (s.length <= 18) return s; const p = s.split(' '); return p.length > 1 ? p[0] + ' ' + p[p.length - 1][0].toUpperCase() + '.' : s.slice(0, 16) + '…'; }
 function who(name, sub, pill, pro, uid) {
-  const link = uid && uid !== myId() && !String(uid).startsWith('seed') ? ` role="button" tabindex="0" class="whol" onclick="event.stopPropagation();openUser('${esc(uid)}')" onkeydown="if(event.key==='Enter')openUser('${esc(uid)}')" aria-label="Visa ${esc(name)}s profil"` : '';
+  const link = uid && uid !== myId() && !String(uid).startsWith('seed') ? ` role="button" tabindex="0" class="whol" onclick="event.stopPropagation();openUser(${jsArg(uid)})" onkeydown="if(event.key==='Enter')openUser(${jsArg(uid)})" aria-label="Visa ${esc(name)}s profil"` : '';
   return `<div class="who"><span${link || ' class="whol0"'}>${avSmall(name)}<div><b title="${esc(name)}">${esc(shortName(name))}</b>${Array.isArray(pro) ? `<span class="ubadge">${ic(pro[0], 'currentColor', 12)} ${pro[1]}</span>` : ''}<br><span class="mut">${esc(sub)}</span></div></span>${pill || ''}</div>`;
 }
 function likeBtn(p, same) {
@@ -5436,7 +5438,7 @@ function answersV(p, allowBest) {
   const one = (a, sub) => {
     const isBest = allowBest && a.id === p.best_answer_id, own = !!(S.user && a.user_id === S.user.id), to = sub && a.parent_id && byId[a.parent_id] && byId[a.parent_id] !== rootOf(a) ? byId[a.parent_id].author : '';
     return `<div class="post ${isBest ? 'bestc' : ''} ${sub ? 'reply' : ''}">${whoP(a, ago(a.created_at), isBest ? '<span class="pill ok">Bästa svar</span>' : '')}${to ? `<p class="mut" style="margin:0 0 4px;font-size:12.5px">Svar till ${esc(to)}</p>` : ''}<p style="margin:0;white-space:pre-line">${esc(a.body)}</p>${postImg(a)}
-    <div class="prow">${allowBest && !isBest && !sub && a.id === p.pending_best_answer_id ? '<span class="pill">Väntar på moderator</span>' : allowBest && mine && !isBest && !sub ? `<button class="link2" onclick="markBest(${p.id},${a.id})">Markera som bästa svar</button>` : ''}<button class="link2" onclick="replyTo(${a.id}, '${esc(String(a.author || '').replace(/'/g, ''))}')">${ic('ph-arrow-bend-up-left', 'currentColor', 14)} Svara</button><span class="grow"></span>${moreBtn('a', a.id, own)}</div></div>`;
+    <div class="prow">${allowBest && !isBest && !sub && a.id === p.pending_best_answer_id ? '<span class="pill">Väntar på moderator</span>' : allowBest && mine && !isBest && !sub ? `<button class="link2" onclick="markBest(${p.id},${a.id})">Markera som bästa svar</button>` : ''}<button class="link2" onclick="replyTo(${a.id}, ${jsArg(String(a.author || ''))})">${ic('ph-arrow-bend-up-left', 'currentColor', 14)} Svara</button><span class="grow"></span>${moreBtn('a', a.id, own)}</div></div>`;
   };
   return ans.map(a => { const kids = p.answers.filter(x => x !== a && rootOf(x) === a); return one(a) + (kids.length ? `<div class="replies">${kids.map(k => one(k, true)).join('')}</div>` : ''); }).join('');
 }
@@ -5474,7 +5476,7 @@ function friendsV() {
   return `${topbar('Community')}${segBar()}
   ${!S.user ? `<div class="empty"><p>Logga in för att se och skriva till dina vänner.</p><button class="btn sm" onclick="openModal('login')">Logga in eller skapa konto</button></div>` : `${friendReqCard()}
   <div class="sec"><h2>Mina vänner</h2><button class="btn sm line" onclick="openMsgs()">${ic('ph-chat-circle', 'currentColor', 16)} Meddelanden${msgUnread() ? ' (' + msgUnread() + ')' : ''}</button></div>
-  <div class="pad">${F == null ? '<p class="mut">Hämtar…</p>' : F.length ? F.map(f => `<div class="prow2"><button class="popen" onclick="openUser('${esc(f.id)}')">${avBig(f.display_name)}<span class="grow"><b>${esc(f.display_name)}</b><span>${f.city ? ic('ph-map-pin', 'currentColor', 13) + ' ' + esc(f.city) : 'Vän'}</span></span></button><button class="btn sm" onclick="openChat('${esc(f.id)}','${esc(f.display_name)}')">💬 Skriv${un(f.id) ? ' (' + un(f.id) + ')' : ''}</button></div>`).join('') : `<div class="empty"><p>Du har inga vänner än. Hitta andra odlare och skicka en vänförfrågan.</p><button class="btn sm" onclick="openPeople()">Hitta användare</button></div>`}</div>`}`;
+  <div class="pad">${F == null ? '<p class="mut">Hämtar…</p>' : F.length ? F.map(f => `<div class="prow2"><button class="popen" onclick="openUser(${jsArg(f.id)})">${avBig(f.display_name)}<span class="grow"><b>${esc(f.display_name)}</b><span>${f.city ? ic('ph-map-pin', 'currentColor', 13) + ' ' + esc(f.city) : 'Vän'}</span></span></button><button class="btn sm" onclick="openChat(${jsArg(f.id)},${jsArg(f.display_name)})">💬 Skriv${un(f.id) ? ' (' + un(f.id) + ')' : ''}</button></div>`).join('') : `<div class="empty"><p>Du har inga vänner än. Hitta andra odlare och skicka en vänförfrågan.</p><button class="btn sm" onclick="openPeople()">Hitta användare</button></div>`}</div>`}`;
 }
 function showV() {
   if (S.post) return postV();
@@ -6007,6 +6009,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.135', 'Nu', ['Säkerhet: namn och texter från andra användare kan inte längre köra kod när man trycker på en knapp']],
   ['1.134', 'Nu', ['Källor och licenser: en sida med vilka bibliotek, foton, kartor och typsnitt appen använder, länkad under Om Roothood']],
   ['1.133', 'Nu', ['Den publicerade appen innehåller inte längre demoläget. Demoläget finns kvar för lokala tester']],
   ['1.132', 'Nu', ['Offline: appen startar från sparad kopia när nätet saknas, och en banner visar att nya ändringar inte sparas']],
@@ -6674,7 +6677,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.134';
+const APP_VERSION = '1.135';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -6782,7 +6785,7 @@ function settingsV() {
   </div></div>
   <div class="sec"><h2>Påminnelser</h2></div><div class="pad">${pushCard()}</div>
   ${isMod() ? `<div class="sec"><h2>Moderering</h2></div><div class="pad"><button class="setrow" onclick="openMod('open')"><span class="tic">🛡️</span><span class="grow"><b>Moderering${S.modOpen ? ' (' + S.modOpen + ')' : ''}</b><span>${isAdmin() ? 'Du är admin. Granska rapporter och hantera moderatorer.' : 'Du är moderator. Granska rapporter och community.'}</span></span></button></div>` : ''}
-  ${S.user ? `<div class="sec"><h2>Blockerade</h2></div><div class="pad"><div class="setcard">${S.blockedL == null ? (loadBlocked(), '<p class="mut" style="margin:0">Hämtar…</p>') : S.blockedL.length ? S.blockedL.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b></span><button class="btn sm line" onclick="blockUser('${esc(u.id)}',false)">Avblockera</button></div>`).join('') : '<p class="mut" style="margin:0">Du har inte blockerat någon.</p>'}</div></div>` : ''}
+  ${S.user ? `<div class="sec"><h2>Blockerade</h2></div><div class="pad"><div class="setcard">${S.blockedL == null ? (loadBlocked(), '<p class="mut" style="margin:0">Hämtar…</p>') : S.blockedL.length ? S.blockedL.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b></span><button class="btn sm line" onclick="blockUser(${jsArg(u.id)},false)">Avblockera</button></div>`).join('') : '<p class="mut" style="margin:0">Du har inte blockerat någon.</p>'}</div></div>` : ''}
   ${account}
   <div class="sec"><h2>Nytt i appen</h2></div><div class="pad"><button class="setrow" onclick="openNews()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Uppdateringslogg</b><span>Se vad som är nytt i version ${APP_VERSION}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   ${PRO_FREE ? '' : `<div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`}
