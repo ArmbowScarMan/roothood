@@ -5274,7 +5274,7 @@ function mineV() {
     const d = left(m), pct = m.interval ? Math.round((m.interval - d) / m.interval * 100) : 0;
     const status = d === null ? `<span class="mut">${m.remind === false ? 'Ingen påminnelse, du sköter vattningen' : 'Växer ute, vattna vid torka'}</span>` : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
     return `<div class="mrow"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${nameHtml(m)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${m.details && +m.details.count > 1 ? `<span class="mini">× ${+m.details.count} samplanterade i samma kruka</span>` : ''}${roomOf(m) && !S.mroom ? `<span class="mini rtag">${ic(DOORI, 'currentColor', 11)} ${esc(roomOf(m).name)}</span>` : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
-      <div class="side"><label onclick="photoPick(event,this)" class="pbtn" title="Ta eller välj ett foto" aria-label="Lägg till foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(WATER_CAN, 'currentColor', 22)}</button>` : ''}${d !== null ? `<small class="wnext">${d === 0 ? 'idag' : 'om ' + d + ' d'}</small>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
+      <div class="side"><label onclick="photoPick(event,this)" class="pbtn" title="Ta eller välj ett foto" aria-label="Lägg till foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label><small class="wnext">Foto</small>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(WATER_CAN, 'currentColor', 22)}</button>` : ''}${d !== null ? `<small class="wnext">${d === 0 ? 'Vattna idag' : 'Vattna om ' + d + ' d'}</small>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
   }).join('');
   return `${topbar('Min samling')}${mtabBar()}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
@@ -5581,9 +5581,11 @@ function delBtn(key, fn, id) {
 }
 const CTABS = [['q', 'Frågor'], ['show', 'Visa upp'], ['swap', 'Byt växter'], ['near', 'Nära dig']];
 const MORE_TABS = [['detect', 'Detektiver'], ['forum', 'Forum'], ['friends', 'Vänner']];
+const CTAB_HELP = { q: 'Ställ frågor om växter och få svar från andra odlare.', show: 'Bilder på växter som andra har visat upp.', swap: 'Ge bort, byt eller önska växter i din ort.', near: 'Annonser från andra i din ort.', detect: 'Hjälp varandra att räkna ut vilka okända växter det är.', forum: 'Diskussioner om odling och växtvård.', friends: 'Dina vänner och meddelanden till dem.' };
 function segBar() {
   const moreOn = !!S.cmore || MORE_TABS.some(([k]) => k === S.ctab);
   return `<div class="seg2 ctabs" role="tablist">${CTABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}<button class="${moreOn ? 'on' : ''}" role="tab" aria-selected="${moreOn}" onclick="S.cmore=!S.cmore;render()">Mer</button></div>${moreOn ? `<div class="seg2 ctabs more2" role="tablist">${MORE_TABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>` : ''}
+  <p class="mut" style="margin:10px 18px 0;font-size:13px">${CTAB_HELP[S.ctab] || ''}</p>
   <div class="pad cbtns" style="padding-top:10px"><button class="peopleb xb" style="grid-column:1/-1" onclick="openExperts()"><span>${ic('ph-graduation-cap', 'currentColor', 20)}</span><span class="grow">Fråga en expert</span>${S.pro ? '' : proBadge()}</button></div>`;
 }
 function listState(list, emptyText) {
@@ -5669,7 +5671,7 @@ function comm() {
   if (isShow()) return showV();
   if (isForum()) return forumV();
   if (S.post) return postV();
-  const st = listState(S.feed, 'Inga frågor än. Bli först med att fråga något!');
+  const st = listState(S.feed, 'Inga frågor än. <button class="btn sm" onclick="openAskQ()">Ställ den första frågan</button>');
   return `${topbar('Community')}${segBar()}
   <div class="pad" style="padding-top:12px"><button class="btn line" style="width:100%" onclick="openAskQ()">${ic('ph-question', 'currentColor', 18)} Ställ en fråga</button></div>
   ${!st ? (() => { const f = S.qf || 'all', cnt = k => S.feed.filter(p => qStat(p) === k).length;
@@ -6175,6 +6177,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.129', 'Nu', ['Varje Community-flik förklarar kort vad den är till för. Samling visar vad varje vattenknapp betyder. Tomma frågelistor har en knapp för att ställa första frågan']],
   ['1.128', 'Nu', ['Smarta hemmet öppnas nu även via länk utan krasch. Växtdoktorns symptom med honung, blad och droppar är ikoner i stället för emojier']],
   ['1.127', 'Nu', ['Färgprickarna i växtdoktorns symptomlistor är färgade cirklar i stället för ikoner']],
   ['1.126', 'Nu', ['Möblerna i planeraren och på rumslistan är ikoner i stället för emojier']],
@@ -6836,7 +6839,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.128';
+const APP_VERSION = '1.129';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
