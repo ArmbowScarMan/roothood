@@ -1474,8 +1474,26 @@ const sbApi = {
   async follow(id, on) { const r = on ? await sb.from('follows').insert({ follower: S.user.id, followee: id }) : await sb.from('follows').delete().eq('follower', S.user.id).eq('followee', id); if (r.error && !/duplicate/.test(r.error.message || '')) throw /follows/.test(r.error.message || '') ? new Error('USERS_NOT_READY') : r.error; },
   async getPets() { const { data, error } = await sb.from('pets').select('data').eq('owner', S.user.id); if (error) throw /pets/.test(error.message || '') ? new Error('PETS_NOT_READY') : error; return (data && data[0] && data[0].data) || store.get('pets', null) || { list: [], tank: {} }; },
   async savePets(d) { const { error } = await sb.from('pets').upsert({ owner: S.user.id, data: d, updated_at: new Date().toISOString() }); if (error) throw /pets/.test(error.message || '') ? new Error('PETS_NOT_READY') : error; },
-  async getHome() { const { data, error } = await sb.from('homes').select('rooms').eq('user_id', S.user.id); if (error) throw /homes/.test(error.message || '') ? new Error('HOME_NOT_READY') : error; return (data && data[0] && data[0].rooms) || []; },
-  async saveHome(r) { const { error } = await sb.from('homes').upsert({ user_id: S.user.id, rooms: { rooms: r, plan: S.hplan || {}, layout: S.layout || null }, updated_at: new Date().toISOString() }); if (error) throw /homes/.test(error.message || '') ? new Error('HOME_NOT_READY') : error; },
+  async getHome() {
+    const { data: hh } = await sb.from('household_members').select('households(owner)').eq('user_id', S.user.id);
+    const owner = hh && hh[0] && hh[0].households ? hh[0].households.owner : null;
+    S.homeOwner = owner && owner !== S.user.id ? owner : null;
+    const { data, error } = await sb.from('homes').select('user_id,rooms').in('user_id', S.homeOwner ? [S.user.id, S.homeOwner] : [S.user.id]);
+    if (error) throw /homes/.test(error.message || '') ? new Error('HOME_NOT_READY') : error;
+    const row = (data || []).find(r => r.user_id === (S.homeOwner || S.user.id));
+    return (row && row.rooms) || [];
+  },
+  async saveHome(r) {
+    const body = { rooms: { rooms: r, plan: S.hplan || {}, layout: S.layout || null }, updated_at: new Date().toISOString() };
+    if (S.homeOwner) {
+      const { data, error } = await sb.from('homes').update(body).eq('user_id', S.homeOwner).select('user_id');
+      if (error) throw error;
+      if (!data || !data.length) throw new Error('HOME_OWNER_MISSING');
+      return;
+    }
+    const { error } = await sb.from('homes').upsert(Object.assign({ user_id: S.user.id }, body));
+    if (error) throw /homes/.test(error.message || '') ? new Error('HOME_NOT_READY') : error;
+  },
   async othersPhotos(pid) { const { data, error } = await sb.rpc('plant_photos', { p_plant_id: pid }); if (error) throw error; return data || []; },
   async setShare(on) { const { error } = await sb.from('profiles').update({ share_photos: on }).eq('id', S.user.id); if (error) throw error; },
   async log(upId) { const { data, error } = await sb.from('care_log').select('id,user_plant_id,kind,done_on,note,created_at').eq('user_plant_id', upId).order('done_on', { ascending: false }); if (error) throw error; return data; },
@@ -6976,6 +6994,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.176', '27 okt 21:40', ['Familj: medlemmar i samma hushåll delar Mitt hem och växter. Ni ser och ändrar samma rum och växter. Kör SQL-steget i Inställningar om du inte gjort det']],
   ['1.175', '27 okt 21:30', ['Mina djur: registrera vilda djur runt ditt hem, som rådjur, mus, fåglar och älg. Du får tips för att skydda grödor och rabatter, och ser vilka av dina växter som brukar skadas']],
   ['1.174', '27 okt 21:15', ['Hem: Mina djur finns som knapp under Vad vill du göra?, bredvid Växtdoktorn']],
   ['1.173', '27 okt 21:30', ['Familj: skapa en familjekod i Inställningar och skicka den till din familj, eller gå med med en kod. Delning av Mitt hem och växter kommer i nästa steg']],
@@ -7684,7 +7703,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.175';
+const APP_VERSION = '1.176';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -7719,18 +7738,19 @@ async function famCreate() {
   S.famMsg = error ? 'Kunde inte skapa familjekoden just nu.' : 'Familjekoden är skapad.';
   S.fam = null; await loadFam();
 }
+async function refreshFamData() { try { S.mine = await api.mine(); } catch (e) {} await loadHome(); }
 async function famJoin() {
   const c = (($('#famc') || {}).value || '').trim();
   if (!c) { S.famMsg = 'Skriv in koden först.'; render(); return; }
   const { error } = await sb.rpc('join_household', { p_code: c });
   S.famMsg = !error ? 'Du är nu med i hushållet.' : /BAD_CODE/.test(error.message || '') ? 'Koden finns inte. Kontrollera att du skrev rätt.' : /ALREADY_MEMBER/.test(error.message || '') ? 'Du är redan med i ett hushåll.' : 'Kunde inte gå med just nu.';
-  S.fam = null; await loadFam();
+  S.fam = null; await loadFam(); if (!error) await refreshFamData();
 }
 async function famLeave() {
   if (!confirm('Lämna hushållet? Dina växter och ditt konto ligger kvar.')) return;
   const { error } = await sb.from('household_members').delete().eq('user_id', S.user.id);
   S.famMsg = error ? 'Kunde inte lämna just nu.' : 'Du har lämnat hushållet.';
-  S.fam = null; await loadFam();
+  S.fam = null; await loadFam(); if (!error) await refreshFamData();
 }
 function famV() {
   if (!S.user || DEMO) return '';
