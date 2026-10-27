@@ -4697,7 +4697,7 @@ function render() {
     iconize(m);
     if (!S.sel && (S.tool === 'db' || (!S.tool && S.tab === 'home'))) renderList();
   }
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov'));
   $('#ov').insertAdjacentHTML('beforeend', instBanner());
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); idCtlInit(); }
@@ -5792,9 +5792,11 @@ function plantsSec(c, self) {
   if (sort === 'az') list.sort((a, b) => name(a).localeCompare(name(b), 'sv'));
   if (sort === 'h') list.sort((a, b) => ((b.d || {}).h || 0) - ((a.d || {}).h || 0));
   const own = list.some(pl => pl.mid);
-  const items = view === 'list'
+  S.aplC = c; const all = list.length; list.length = Math.min(3, all);
+  const items = (view === 'list'
     ? `<div class="${own ? 'plist' : 'norm'}">${list.map(pl => { const db = dbOf(pl); if (pl.mid) return plRow(pl, db, thumb(pl, db)); return `<button class="nrow" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${thumb(pl, db)}<span class="grow"><b>${esc(name(pl))}</b>${db && db.latin ? `<small>${esc(db.latin)}</small>` : ''}</span></button>`; }).join('')}</div>`
-    : `<div class="uplants">${list.map(pl => { const db = dbOf(pl); return `<button class="upl" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${thumb(pl, db)}<span>${esc(name(pl))}</span></button>`; }).join('')}</div>`;
+    : `<div class="uplants">${list.map(pl => { const db = dbOf(pl); return `<button class="upl" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${thumb(pl, db)}<span>${esc(name(pl))}</span></button>`; }).join('')}</div>`)
+    + (all > 3 ? `<button class="btn wide line" style="margin-top:12px" onclick="openAllPl()">Se alla växter (${all})</button>` : '');
   const tog = (k, t, cur, setter) => `<button role="tab" aria-selected="${cur === k}" class="${cur === k ? 'on' : ''}" onclick="${setter}('${k}')">${t}</button>`;
   return `${head}<div class="pad">
     <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap">
@@ -5802,6 +5804,54 @@ function plantsSec(c, self) {
       <div class="seg2 inset pl-view" role="group" aria-label="Visning">${tog('list', 'Lista', view, 'setPlView')}${tog('grid', 'Rutnät', view, 'setPlView')}</div>
     </div>
     ${items}</div>`;
+}
+// ===== Alla växter med filter =====
+function openAllPl() { S.apq = ''; S.apf = {}; S.aps = S.plSort || 'new'; openModal('allpl'); }
+function aplDb(pl) { return pl.plant_id ? S.plants.find(x => x.id === pl.plant_id) : S.plants.find(x => x.swedish_name === pl.name); }
+const APL_F = [['cat', 'Kategori', (pl, db) => [(db && db.category) || null]], ['place', 'Planterad', pl => [(pl.d || {}).place]], ['soil', 'Jord', pl => (pl.d || {}).soil || []], ['light', 'Plats', pl => [(pl.d || {}).light]]];
+function aplItems() {
+  const c = S.aplC || {}, q = (S.apq || '').trim().toLowerCase(), f = S.apf || {}, o = S.aplOpts || {};
+  let L = (c.plant_list || []).filter(pl => {
+    const db = aplDb(pl), d = pl.d || {};
+    if (q && !((pl.name || '') + ' ' + (pl.latin || (db && db.latin) || '') + ' ' + (d.sort || '')).toLowerCase().includes(q)) return false;
+    for (const [k, , get] of APL_F) if (f[k] != null && !get(pl, db).includes(o[k][f[k]])) return false;
+    if (f.safe && !(db && db.pet_safe)) return false;
+    if (f.water && !(pl.interval && pl.interval <= 7)) return false;
+    if (f.miss && (d.cm || d.mat) && d.soil && d.soil.length && d.h) return false;
+    return true; });
+  const nm = pl => pl.name || 'Växt';
+  if (S.aps === 'az') L.sort((a, b) => nm(a).localeCompare(nm(b), 'sv'));
+  if (S.aps === 'za') L.sort((a, b) => nm(b).localeCompare(nm(a), 'sv'));
+  if (S.aps === 'h') L.sort((a, b) => ((b.d || {}).h || 0) - ((a.d || {}).h || 0));
+  if (S.aps === 'w') L.sort((a, b) => (a.interval || 999) - (b.interval || 999));
+  if (S.aps === 'old') L.reverse();
+  return L;
+}
+function aplListHtml() {
+  const L = aplItems();
+  if (!L.length) return '<p class="mut" style="margin:14px 0;font-size:14px">Inga växter matchar filtren.</p>';
+  return `<div class="plist">${L.map(pl => { const db = aplDb(pl), th = pl.photo ? `<div class="ph has-img"><img src="${esc(pl.photo)}" alt="" loading="lazy"></div>` : db ? plantPh(db) : ph('', 'Krukväxt', pl.name);
+    return pl.mid ? plRow(pl, db, th).replace('onclick="openMine(', 'onclick="closeModal();openMine(') : `<button class="prow" ${db ? `onclick="closeModal();openPlant(${db.id})"` : 'disabled'}>${th}<span class="grow"><b>${esc(pl.name || 'Växt')}</b><span>${esc((db && db.latin) || '')}</span></span></button>`; }).join('')}</div>`;
+}
+function aplRefresh() { const el = $('#apl-list'); if (el) el.innerHTML = aplListHtml(); const n = $('#apl-n'); if (n) n.textContent = aplItems().length + ' av ' + ((S.aplC || {}).plant_list || []).length; }
+function aplSet(k, v) { S.apf[k] = S.apf[k] === v ? null : v; keepScroll(); }
+function aplSort(v) { S.aps = v; keepScroll(); }
+function aplClear() { S.apf = {}; S.apq = ''; keepScroll(); }
+function allPlV() {
+  const c = S.aplC || {}, all = c.plant_list || [], own = all.some(pl => pl.mid), f = S.apf || {}, o = {};
+  APL_F.forEach(([k, , get]) => { const set = new Set(); all.forEach(pl => get(pl, aplDb(pl)).forEach(v => v && set.add(v))); o[k] = [...set].sort((a, b) => a.localeCompare(b, 'sv')); });
+  S.aplOpts = o;
+  const chip = (on, t, js) => `<button class="${on ? 'on' : ''}" aria-pressed="${on}" onclick="${js}">${esc(t)}</button>`;
+  const grp = (t, html) => `<label class="fl" style="margin:12px 0 6px">${t}</label><div class="chips2 qfilt">${html}</div>`;
+  const sorts = [['new', 'Senast tillagd'], ['old', 'Äldst först'], ['az', 'A–Ö'], ['za', 'Ö–A']].concat(own ? [['h', 'Högst först'], ['w', 'Törstigast först']] : []);
+  const active = Object.values(f).some(v => v != null && v !== false) || S.apq;
+  return `<div class="mh"><h2>Alla växter</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <div class="search" style="margin:0"><input type="search" placeholder="Sök namn eller sort" value="${esc(S.apq || '')}" oninput="S.apq=this.value;aplRefresh()" aria-label="Sök bland växterna" autocomplete="off"></div>
+  ${grp('Sortera', sorts.map(([k, t]) => chip(S.aps === k, t, `aplSort('${k}')`)).join(''))}
+  ${APL_F.map(([k, t]) => o[k].length > 1 ? grp(t, o[k].map((v, i) => chip(f[k] === i, v, `aplSet('${k}',${i})`)).join('')) : '').join('')}
+  ${grp('Mer', chip(!!f.safe, 'Giftfri för djur', `S.apf.safe=!S.apf.safe;keepScroll()`) + (own ? chip(!!f.water, 'Vattnas minst varje vecka', `S.apf.water=!S.apf.water;keepScroll()`) + chip(!!f.miss, 'Saknar uppgifter', `S.apf.miss=!S.apf.miss;keepScroll()`) : ''))}
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0 8px"><small class="mut" id="apl-n">${aplItems().length} av ${all.length}</small>${active ? '<button class="link3" onclick="aplClear()">Rensa filter</button>' : ''}</div>
+  <div id="apl-list">${aplListHtml()}</div>`;
 }
 function plRow(pl, db, th) {
   const d = pl.d || {}, f = [];
@@ -7038,6 +7088,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.184', '27 okt 23:30', ['Profil: tre växter visas, sedan knappen Se alla växter. Där kan du söka, sortera och filtrera på kategori, planterad, jord, plats, giftfri för djur och mer']],
   ['1.183', '27 okt 23:15', ['Profil: listan över din samling är mycket smalare, en rad per växt']],
   ['1.182', '27 okt 23:20', ['Profil: listan över din samling visar kruka, jord, höjd, plats och vattning för varje växt. Ny sortering på höjd']],
   ['1.181', '27 okt 23:10', ['Profil: din samling visas som lista, sorterad på senast tillagd eller A–Ö. Du kan växla till rutnät']],
@@ -7754,7 +7805,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.183';
+const APP_VERSION = '1.184';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
