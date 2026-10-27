@@ -215,7 +215,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .qplant b{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--pri)}
 .qplant span{white-space:pre-line;font-size:13.5px;line-height:1.45;color:var(--ink)}
 .qplant.small span{font-size:12.5px;color:var(--mut)}
-.qfilt{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.qfilt button{flex:none}
+.qfilt{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.qfilt button{flex:none;white-space:nowrap}
 .qchip.mine{background:transparent;border:1px solid var(--line);color:var(--ink)}
 .qchip{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--pri);font-size:12.5px;font-weight:700}
 .mfilt{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.mfilt button{flex:none}.mfilt small{opacity:.7;margin-left:2px}
@@ -542,6 +542,10 @@ details.tech p b{color:var(--ink)}
 .ccard .cfoot{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
 .ccard .nm{font-size:13.5px;color:var(--mut);margin:6px 0 0;line-height:1.45}
 .seg2.four button{font-size:13px}
+.seg2.ctabs{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;background:none;box-shadow:none;border-radius:0;padding:0;gap:4px;border-bottom:1px solid var(--line)}
+.seg2.ctabs button{flex:none;white-space:nowrap;border-radius:0;background:none;color:var(--mut);padding:10px 12px;border-bottom:3px solid transparent;margin-bottom:-1px}
+.seg2.ctabs button.on{background:none;color:var(--pri);border-bottom-color:var(--pri)}
+.who b{white-space:nowrap}
 .delacc{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
 .delacc p{font-size:14px;color:var(--mut);margin:6px 0 0;line-height:1.45}
 .dangerlink{color:#D9534F!important}
@@ -1266,7 +1270,7 @@ const DEMO_PLANTS = [{"id": 1, "swedish_name": "Monstera", "latin_name": "Monste
 const CATS = ['Krukväxt','Köksträdgård','Trädgård','Orkidé','Kaktus','Akvarieväxt'];
 const LIGHT = ['Skugga','Halvskugga','Full sol'], WATER = ['Lite','Måttligt','Mycket'];
 const S = {smonth:new Date().getMonth() + 1, listings:null, newL:false, lf:'Alla', lcity:null, lt:'Ge bort', lti:'', lbo:'', lphoto:null, others:{}, lb:null, log:{}, logForm:null, loading:true, err:null, tab:'home', sel:null, cat:'Alla', q:'', modal:null, prefill:'',
-  authMode:'in', env:'all', ctab:'q', pro:false, tool:null, idImg:null, idFile:null, idOrgan:'auto', idRes:null, idErr:null, idBusy:false, idDemo:false, light:null, lsrc:'sun', lhours:12, lhold:false, limitHit:false, prefillLatin:'', threads:null, forum:null, newThread:false, tt:'', tb:'', msg:'', feed:null, feedErr:null, post:null, draft:'', adraft:'', qcat:'Allmänt', rep:null, msgOk:false, busy:false, del:null, liked:{}, plants:[], user:null, mine:[]};
+  authMode:'in', env:'all', ctab:'q', pro:false, tool:null, idImg:null, idFile:null, idOrgan:'auto', idRes:null, idErr:null, idBusy:false, idDemo:false, light:null, lsrc:'sun', lhours:12, lhold:false, limitHit:false, prefillLatin:'', threads:null, forum:null, newThread:false, tt:'', tb:'', msg:'', feed:null, feedErr:null, post:null, draft:'', adraft:'', qcat:'', rep:null, msgOk:false, busy:false, del:null, liked:{}, plants:[], user:null, mine:[]};
 
 // ===== Hjälpfunktioner =====
 const $ = s => document.querySelector(s);
@@ -3871,7 +3875,7 @@ function render() {
     iconize(m);
     if (!S.sel && (S.tool === 'db' || (!S.tool && S.tab === 'home'))) renderList();
   }
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov'));
   $('#ov').insertAdjacentHTML('beforeend', instBanner());
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); idCtlInit(); }
@@ -5446,10 +5450,11 @@ function askQ() {
   if (needLogin()) return;
   const v = S.draft.trim();
   if (v.length < 5) return toast('Skriv minst 5 tecken.');
+  if (!S.qcat) return toast('Välj en kategori först.');
   const m = S.mine.find(x => x.id === S.qplant), info = m ? QMARK + plantBrief(m) : '';
   const body = info ? v.slice(0, 1000 - info.length) + info : v;
-  S.draft = ''; S.qplant = null; const ph = S.cph; S.cph = null; S.cphUrl = null;
-  commRun(() => api.ask(S.qcat, body, ph), 'Din fråga är publicerad');
+  const cat = S.qcat; S.draft = ''; S.qplant = null; const ph = S.cph; S.cph = null; S.cphUrl = null; S.qcat = ''; S.modal = null;
+  commRun(() => api.ask(cat, body, ph), 'Din fråga är publicerad');
 }
 function startThread() { if (needLogin()) return; S.newThread = true; render(); const f = $('#tt'); if (f) f.focus(); }
 function sendThread() {
@@ -5501,9 +5506,10 @@ function badgeOf(b) {
   return tier ? ['ph-hand-heart', 'Hjälpt ' + tier] : h >= 1 ? ['ph-hand-heart', 'Hjälpsam'] : null;
 }
 function whoP(o, sub, pill) { const b = o.author_badge || (DEMO && o.author_pro ? ['ph-hand-heart', 'Hjälpt 10'] : null); return who(o.author, sub, pill, b, o.user_id); }
+function shortName(n) { const s = String(n || '').trim().replace(/\s+/g, ' '); if (s.length <= 18) return s; const p = s.split(' '); return p.length > 1 ? p[0] + ' ' + p[p.length - 1][0].toUpperCase() + '.' : s.slice(0, 16) + '…'; }
 function who(name, sub, pill, pro, uid) {
   const link = uid && uid !== myId() && !String(uid).startsWith('seed') ? ` role="button" tabindex="0" class="whol" onclick="event.stopPropagation();openUser('${esc(uid)}')" onkeydown="if(event.key==='Enter')openUser('${esc(uid)}')" aria-label="Visa ${esc(name)}s profil"` : '';
-  return `<div class="who"><span${link || ' class="whol0"'}>${avSmall(name)}<div><b>${esc(name)}</b>${Array.isArray(pro) ? `<span class="ubadge">${ic(pro[0], 'currentColor', 12)} ${pro[1]}</span>` : ''}<br><span class="mut">${esc(sub)}</span></div></span>${pill || ''}</div>`;
+  return `<div class="who"><span${link || ' class="whol0"'}>${avSmall(name)}<div><b title="${esc(name)}">${esc(shortName(name))}</b>${Array.isArray(pro) ? `<span class="ubadge">${ic(pro[0], 'currentColor', 12)} ${pro[1]}</span>` : ''}<br><span class="mut">${esc(sub)}</span></div></span>${pill || ''}</div>`;
 }
 function likeBtn(p, same) {
   const on = !!(S.user && p.likers.includes(S.user.id));
@@ -5525,7 +5531,7 @@ const CTABS = [['q', 'Frågor'], ['show', 'Visa upp'], ['swap', 'Byt växter'], 
 const MORE_TABS = [['detect', 'Detektiver'], ['forum', 'Forum'], ['friends', 'Vänner']];
 function segBar() {
   const moreOn = !!S.cmore || MORE_TABS.some(([k]) => k === S.ctab);
-  return `<div class="seg2" role="tablist">${CTABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}<button class="${moreOn ? 'on' : ''}" role="tab" aria-selected="${moreOn}" onclick="S.cmore=!S.cmore;render()">Mer</button></div>${moreOn ? `<div class="seg2 more2" role="tablist">${MORE_TABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>` : ''}
+  return `<div class="seg2 ctabs" role="tablist">${CTABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}<button class="${moreOn ? 'on' : ''}" role="tab" aria-selected="${moreOn}" onclick="S.cmore=!S.cmore;render()">Mer</button></div>${moreOn ? `<div class="seg2 ctabs more2" role="tablist">${MORE_TABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>` : ''}
   <div class="pad cbtns" style="padding-top:10px"><button class="peopleb xb" style="grid-column:1/-1" onclick="openExperts()"><span>${ic('ph-graduation-cap', 'currentColor', 20)}</span><span class="grow">Fråga en expert</span>${S.pro ? '' : proBadge()}</button></div>`;
 }
 function listState(list, emptyText) {
@@ -5597,6 +5603,12 @@ function nearV() {
   if (S.post || S.newL || (S.prof && S.prof.city)) return h;
   return h.replace('<div class="pad" style="padding-top:8px">', '<div class="pad" style="padding-top:8px"><p class="mut">Lägg till din ort i Profil så visas annonser nära dig.</p>');
 }
+function openAskQ() { if (needLogin()) return; openModal('askq'); setTimeout(() => { const i = $('#nq'); if (i) i.focus(); }, 60); }
+function askQV() {
+  return `<div class="mh"><h2>Ställ en fråga</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <div class="ask" style="margin:0"><textarea id="nq" rows="3" maxlength="1000" placeholder="Skriv din fråga här" aria-label="Din fråga" oninput="S.draft=this.value">${esc(S.draft)}</textarea>
+  ${qPlantV()}<div class="askrow"><select aria-label="Kategori" onchange="S.qcat=this.value">${['', ...QCATS].map(c => `<option value="${c}" ${c === S.qcat ? 'selected' : ''} ${c === '' ? 'disabled' : ''}>${c || 'Välj kategori'}</option>`).join('')}</select>${cPhotoBtn()}<button class="btn sm" onclick="askQ()">Publicera</button></div></div>`;
+}
 function comm() {
   if (S.ctab === 'friends') return friendsV();
   if (isDetect()) return detectV();
@@ -5607,8 +5619,7 @@ function comm() {
   if (S.post) return postV();
   const st = listState(S.feed, 'Inga frågor än. Bli först med att fråga något!');
   return `${topbar('Community')}${segBar()}
-  <div class="ask"><textarea id="nq" rows="2" maxlength="1000" placeholder="Snabb fråga? Skriv den här" aria-label="Din fråga" oninput="S.draft=this.value">${esc(S.draft)}</textarea>
-  ${qPlantV()}<div class="askrow"><select aria-label="Kategori" onchange="S.qcat=this.value">${QCATS.map(c => `<option ${c === S.qcat ? 'selected' : ''}>${c}</option>`).join('')}</select>${cPhotoBtn()}<button class="btn sm" onclick="askQ()">Publicera</button></div></div>
+  <div class="pad" style="padding-top:12px"><button class="btn line" style="width:100%" onclick="openAskQ()">${ic('ph-question', 'currentColor', 18)} Ställ en fråga</button></div>
   ${!st ? (() => { const f = S.qf || 'all', cnt = k => S.feed.filter(p => qStat(p) === k).length;
     return `<div class="chips2 qfilt" role="tablist">${[['all', 'Alla', S.feed.length]].concat(S.user && S.mine.length ? [['mine', 'Mina växter', S.feed.filter(aboutMine).length]] : [], [['open', 'Obesvarade', cnt('open')], ['solved', 'Lösta', cnt('solved')]]).map(([k, n, c]) => `<button role="tab" aria-selected="${f === k}" class="${f === k ? 'on' : ''}" onclick="S.qf='${k}';keepMain()">${n} <small>${c}</small></button>`).join('')}</div>`; })() : ''}
   <div class="pad">${st || (() => { const f = S.qf || 'all', L = f === 'all' ? S.feed : f === 'mine' ? S.feed.filter(aboutMine) : S.feed.filter(p => qStat(p) === f); return L.length ? L.map(postCard).join('') : `<p class="mut" style="text-align:center">${f === 'open' ? 'Alla frågor har fått svar. Snyggt jobbat!' : f === 'mine' ? 'Inga frågor om dina växter än.' : 'Inga lösta frågor än.'}</p>`; })()}</div>`;
@@ -6112,6 +6123,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.120', 'Nu', ['Ställ en fråga: frågeformuläret öppnas i eget fönster från en knapp. Kategori väljs själv (Välj kategori) eller från din växt. Flikarna och filtren i Community går att skrolla sida vid sida, och långa namn förkortas automatiskt']],
   ['1.119', 'Nu', ['Samling: Ta bort finns bara på växtsidan, vattenkannan visar dagar till nästa vattning, uppmaning att lägga till växt när man har få. Växtsidan: luft mellan knapparna och röd Ta bort med bekräftelse. Utforska: listrader, en knapp för Hem och unika ikoner. Community: Hitta användare är en sökikon i rubriken']],
   ['1.118', 'Nu', ['Fler emojier i appen är bytta mot ikoner, bland annat djur, växtsymtom och färgprickar']],
   ['1.117', 'Nu', ['Samling: knappen Mitt hem är borta bredvid Dina växter (finns kvar på Hem). Rum utan växter visas inte i filtret']],
@@ -6764,7 +6776,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.119';
+const APP_VERSION = '1.120';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -6779,7 +6791,6 @@ function applyInterests(list) {
   if (!ints.length) return;
   if (ints.every(c => INDOOR.includes(c))) S.env = 'in';
   else if (ints.every(c => OUTDOOR.includes(c))) S.env = 'out';
-  if (ints.length === 1) S.qcat = ints[0];
 }
 async function openSettings() {
   stopLight();
