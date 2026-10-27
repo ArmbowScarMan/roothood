@@ -201,6 +201,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .post.reply{padding:12px 14px;margin-bottom:8px;border-radius:18px}
 .replyto{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--pri);margin-bottom:8px}
 .replyto .x{margin-left:auto;padding:4px}
+.tlimg{border-radius:18px;overflow:hidden;background:var(--soft);aspect-ratio:3/4;max-height:56vh;margin:0 auto}
+.tlimg img{width:100%;height:100%;object-fit:cover;display:block}
+.tlmeta{display:flex;flex-direction:column;align-items:center;margin-top:10px}
+.tlmeta b{font-size:16px}.tlmeta span{font-size:13px;color:var(--mut)}
+.tlrange{width:100%;margin:12px 0 4px;accent-color:var(--pri)}
+.tlbtns{display:flex;gap:8px;justify-content:center}
+.tlbtns .btn{display:inline-flex;align-items:center;gap:6px}
 .plink{all:unset;cursor:pointer}
 .plink:focus-visible{outline:2px solid var(--pri)}
 .link2{border:0;background:none;color:var(--pri);font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:4px 0}
@@ -3352,8 +3359,28 @@ function localV(sz) {
   <button class="btn sm cop" onclick="openListing(${p.id})">${p.category === 'Önskas' ? 'Jag har en!' : p.category === 'Byta' ? 'Föreslå byte' : 'Jag vill ha!'}</button></div></div>`).join('')}</div>`;
 }
 
+// --- Tillväxttidslinje: samma växt fotad över tid ---
+const photoDate = u => { const m = /\/(1[6-9]\d{11})\.jpg/.exec(String(u)); return m ? new Date(+m[1]) : null; };
+function tlPhotos(my) { return my.photos.map((u, i) => ({ u, d: photoDate(u), i })).sort((a, b) => (a.d && b.d) ? a.d - b.d : a.i - b.i); }
+let tlTimer = null;
+function openTimeline(id) { S.tl = { id, i: 0 }; tlStop(); openModal('tline'); }
+function tlGo(i) { const my = S.mine.find(x => x.id === S.tl.id); if (!my) return; const n = my.photos.length; S.tl.i = (i + n) % n; render(); }
+function tlStop() { clearInterval(tlTimer); tlTimer = null; }
+function tlPlay() { if (tlTimer) { tlStop(); return render(); } const my = S.mine.find(x => x.id === S.tl.id); if (!my) return; if (S.tl.i >= my.photos.length - 1) S.tl.i = 0; tlTimer = setInterval(() => { if (S.modal !== 'tline') return tlStop(); if (S.tl.i >= my.photos.length - 1) { tlStop(); return render(); } S.tl.i++; render(); }, 1400); render(); }
+function tlineV() {
+  const my = S.mine.find(x => x.id === (S.tl || {}).id); if (!my) { tlStop(); return ''; }
+  const L = tlPhotos(my), n = L.length, i = Math.min(S.tl.i, n - 1), cur = L[i], first = L[0].d;
+  const dt = d => d ? d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear() : '';
+  const days = cur.d && first ? Math.round((cur.d - first) / 864e5) : null;
+  return `<div class="mh"><h2>${esc(my.name)} över tid</h2><button class="close" onclick="tlStop();closeModal()" aria-label="Stäng">×</button></div>
+  <div class="tlimg"><img src="${esc(cur.u)}" alt="Foto ${i + 1} av ${n}"></div>
+  <div class="tlmeta"><b>${cur.d ? dt(cur.d) : 'Foto ' + (i + 1)}</b><span>${i + 1} av ${n}${days ? ' · ' + (days < 60 ? days + ' dagar' : Math.round(days / 30) + ' månader') + ' efter första fotot' : ''}</span></div>
+  <input class="tlrange" type="range" min="0" max="${n - 1}" value="${i}" aria-label="Välj foto" oninput="tlStop();S.tl.i=+this.value;render()">
+  <div class="tlbtns"><button class="btn sm line" onclick="tlStop();tlGo(${i - 1})" aria-label="Föregående">${ic('ph-caret-left', 'currentColor', 18)}</button><button class="btn sm" onclick="tlPlay()">${ic(tlTimer ? 'ph-pause' : 'ph-play', 'currentColor', 18)} ${tlTimer ? 'Pausa' : 'Spela upp'}</button><button class="btn sm line" onclick="tlStop();tlGo(${i + 1})" aria-label="Nästa">${ic('ph-caret-right', 'currentColor', 18)}</button></div>
+  <p class="mut" style="font-size:13px;margin:12px 0 0">Ta ett nytt foto från samma håll då och då, så ser du hur växten växer.</p>`;
+}
 function galleryV(my) {
-  return `<div class="sec"><h2>Mina foton</h2>${my.photos.length ? (my.photo ? `<button class="link3" onclick="showDbPhoto(${my.id})">Visa databasens foto</button>` : '<span class="mut" style="font-size:13px">Databasens foto visas</span>') : ''}</div>
+  return `<div class="sec"><h2>Mina foton</h2>${my.photos.length > 1 ? `<button class="link3" onclick="openTimeline(${my.id})">${ic('ph-film-strip', 'currentColor', 15)} Tidslinje</button>` : ''}${my.photos.length ? (my.photo ? `<button class="link3" onclick="showDbPhoto(${my.id})">Visa databasens foto</button>` : '<span class="mut" style="font-size:13px">Databasens foto visas</span>') : ''}</div>
   <div class="gallery">${my.photos.map((u, i) => `<div class="gimg ${my.photo === u ? 'on' : ''}"><button class="gpick" onclick="pickMyPhoto(${my.id},${i})" aria-label="Visa foto ${i + 1} för växten"><img src="${esc(u)}" alt="" loading="lazy"></button>${my.photo === u ? `<span class="gsel">${ic(I.check, 'currentColor', 13)}</span>` : ''}<button class="gdel ${S.del === 'ph' + i ? 'sure' : ''}" onclick="delMyPhoto(${my.id},${i})" aria-label="Ta bort foto ${i + 1}">${S.del === 'ph' + i ? 'Ta bort?' : '×'}</button></div>`).join('')}
   <label onclick="photoPick(event,this)" class="gadd">${ic(CAM, 'currentColor', 22)}<span>Lägg till foto</span><input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${my.id}, this)"></label></div>
   ${my.photos.length ? '<p class="mut" style="font-size:13px;margin:8px 18px 0">Tryck på ett foto för att visa det för växten. Alla dina foton sparas. Andra kan se dem under "Andras bilder" (ändra i Inställningar).</p>' : ''}`;
@@ -3761,7 +3788,7 @@ function render() {
     m.innerHTML = html;
     if (!S.sel && (S.tool === 'db' || (!S.tool && S.tab === 'home'))) renderList();
   }
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'qadd' ? qaddV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   $('#ov').insertAdjacentHTML('beforeend', instBanner());
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); idCtlInit(); }
   const lv = $('#lv'); if (lv && lightStream) { lv.srcObject = lightStream; lv.hidden = false; lv.play().catch(() => {}); }
@@ -5873,6 +5900,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.103', 'Nu', ['Tidslinje: när en växt har två eller fler foton finns knappen Tidslinje under Mina foton. Bläddra eller spela upp fotona i ordning med datum']],
   ['1.102', 'Nu', ['Knappen Jag har samma problem på frågor visar hur många som har samma problem', 'Svara direkt på ett svar, även i din egen fråga. Svaren läggs under det du svarar på. SQL-steg 041 behövs']],
   ['1.101', 'Nu', ['Frågor visar Löst eller Obesvarad, och du kan filtrera på Obesvarade för att hitta någon att hjälpa', 'Profilen visar växter, inlägg, följare och vänner på en rad. Tryck på vänner för att se dem']],
   ['1.100', 'Nu', ['Community: Rapportera och Ta bort ligger i en …-meny', 'Frågor visas med kort fet rubrik och text under', 'Samma ikoner överallt, inga emojis bland knapparna', 'Foton på dina växter är privata tills du själv väljer att visa dem. SQL-steg 040 behövs']],
@@ -6508,7 +6536,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.102';
+const APP_VERSION = '1.103';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
