@@ -541,6 +541,8 @@ details.tech p b{color:var(--ink)}
 .homehead .grow>span{display:block;color:var(--mut);font-size:14px;margin-top:4px}
 .citychip{display:flex;align-items:center;gap:8px;border:0;background:var(--surf);color:var(--ink);font:inherit;font-weight:700;font-size:14px;border-radius:14px;padding:6px 12px 6px 6px;box-shadow:var(--sh);cursor:pointer;flex:none;margin-top:4px}
 .citychip img{width:26px;height:26px;border-radius:8px;display:block}
+.citychip.icononly{padding:8px;gap:0;border-radius:14px}
+.citychip.icononly i.ph{display:block}
 .alertb{display:flex;align-items:center;gap:12px;width:calc(100% - 36px);margin:12px 18px 0;border:0;text-align:left;font:inherit;cursor:pointer;background:#F6D3BF;color:#6B2E14;border-radius:20px;padding:14px 16px}
 .alertb .grow{flex:1;min-width:0}
 .alertb b{display:block;font-size:16px;line-height:1.25}
@@ -3812,7 +3814,7 @@ function home() {
     : `<h2>Ditt grannskap för växter</h2><p>Spara dina växter, få vattningspåminnelser och fråga andra.</p><button class="pillbtn" onclick="openModal('login')">Kom igång</button>`}</div></div>`;
   const city = S.city || '';
   return `<div class="homehead"><div class="grow"><h1 class="brand">Roothood</h1><span>${S.user ? 'Hej' + (name ? ' ' + esc(name) : '') + '! ' + sub : sub}</span></div>
-  <div style="display:flex;gap:8px;align-items:center"><button class="citychip" onclick="${S.user ? 'openSettings()' : "openModal('login')"}" aria-label="Din ort"><img src="${LOGO}" alt="" width="26" height="26">${esc(city || (S.user ? 'Välj ort' : 'Logga in'))}</button>${S.user ? bell : ''}</div></div>
+  <div style="display:flex;gap:8px;align-items:center"><button class="citychip${city ? ' icononly' : ''}" onclick="${S.user ? 'openSettings()' : "openModal('login')"}" aria-label="${city ? 'Din ort: ' + esc(city) : (S.user ? 'Välj ort' : 'Logga in')}" title="${city ? esc(city) : ''}">${city ? ic('ph-globe-hemisphere-west', 'var(--pri)', 22) : `<img src="${LOGO}" alt="" width="26" height="26">${esc(S.user ? 'Välj ort' : 'Logga in')}`}</button>${S.user ? bell : ''}</div></div>
   ${DEMO ? '<p style="text-align:center;margin:4px 0 0"><span class="badge" title="Ingen databas kopplad. Det du gör sparas bara i den här webbläsaren.">Demoläge</span></p>' : ''}
   ${homeBlocks(intro)}
   <div class="hcfgrow"><button class="hcfgb" onclick="openHomeCfg()">${ic(PEN, 'currentColor', 15)} Anpassa startskärmen</button></div>`;
@@ -5820,6 +5822,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.99.2', 'Nu', ['Ortsknappen är en glob när du valt en ort, så det tar mindre plats i rubriken']],
   ['1.99.1', 'Nu', ['Fler ikoner i Phosphor: planeringsknappar, Mitt hem och tomma sidor']],
   ['1.99', 'Nu', ['Samma ikoner i hela appen: Phosphor. Ikonerna laddas från nätet, så de syns inte när telefonen är offline']],
   ['1.98', 'Nu', ['Snabbknapparna på Hem har ny design: Phosphor-ikoner, korta namn och Utforska som en bred banner. Identifiera är större eftersom den används mest']],
@@ -6450,7 +6453,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.99.1';
+const APP_VERSION = '1.99.2';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
