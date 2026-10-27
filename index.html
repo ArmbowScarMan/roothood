@@ -4966,7 +4966,27 @@ function toxFor(p, kind, label) {
 const petEmoji = (k, sp) => k === 'reptil' && terrOf(sp) ? terrOf(sp)[2] : k === 'fagel' && birdOf(sp) ? birdOf(sp)[2] : (PK[k] || ['', '🐾'])[1];
 function toxPet(p, a) { if (a.kind !== 'reptil') return toxFor(p, a.kind); const tr = terrOf(a.sp); return tr && tr[9] ? toxFor(p, 'reptil', tr[0].toLowerCase()) : null; }
 const petsList = () => ((S.pets && S.pets.list) || []);
-const animals = () => petsList().filter(x => x.kind !== 'fisk');
+const animals = () => petsList().filter(x => x.kind !== 'fisk' && x.kind !== 'vilt');
+// Vilda djur runt hemmet: tips för att skydda grödor och rabatter, och vilka växter som brukar skadas
+const WILD = {
+  radjur: { n: 'Rådjur', e: '🦌', risk: /hosta|ros|tulpan|lilja|hortensia|dahlia|sallad|ung/i, tips: ['Hoppar över ett låggt staket. Sätt upp ett stängsel på minst 1,8 m runt rabatten.', 'Äter gärna unga skott, tulpaner och hostor. Skydda dem först.', 'Doftmedel och plastband fungerar bara en tid. Byt metod ibland.'] },
+  hare: { n: 'Hare och kanin', e: '🐇', risk: /ros|äpple|päron|plommon|kål|morot|sallad|buxbom/i, tips: ['Gnager på unga bark och grönsaker. Sätt nät 50–60 cm högt och gräv ner kanten 10–15 cm.', 'Skydda fruktträd med en stamskydd av nät under vintern.'] },
+  mus: { n: 'Mus och sork', e: '🐭', risk: /lök|tulpan|krokus|narciss|lilja|knöl|dahlia|potatis|morot|jordgubb/i, tips: ['Gnager på lökar, knölar och rötter. Plantera lökar i en korg av nät.', 'Ta bort tät växtlighet och högt gräs nära rabatten, då hittar de inget skydd.'] },
+  mullvad: { n: 'Mullvad', e: '🕳️', risk: /tulpan|krokus|jordgubb|sallad|ung/i, tips: ['Gör gångar under gräsmattan och rycker upp småplantor. Tryck fast jorden runt nyplanterade växter.', 'Fällor fungerar bäst i de gångar du ser. Ljud och doft hjälper knappt.'] },
+  fagel: { n: 'Fåglar (småfåglar och duvor)', e: '🐦', risk: /jordgubb|hallon|vinbär|krusbär|björnbär|blåbär|aronia|sallad|sådd/i, tips: ['Äter bären först. Täck jordgubbar och bärbuskar med fågelnät när de mognar.', 'Duvor plockar frön och unga skott. Skydda sådden med nät eller fiberduk tills plantorna växt upp.'] },
+  kraka: { n: 'Kråka och skata', e: '🐦‍⬛', risk: /lök|sådd|majs|ärt|böna|potatis/i, tips: ['Gräver upp nysådda frön och lökar. Lägg nät över sådden tills plantorna är några centimeter höga.', 'Skrämselföremål vänjer de sig vid snabbt. Byt skyddet ibland.'] },
+  vildsvin: { n: 'Vildsvin', e: '🐗', risk: /potatis|lök|gräsmatta|jordgubb|morot/i, tips: ['Gräver upp hela gräsmattor och rabatter. Ett elstängsel är det som fungerar bäst.', 'Odla inte potatis eller lök nära skogskanten utan skydd.'] },
+  alg: { n: 'Älg', e: '🫎', risk: /lind|ask|lönn|rönn|sälg|hassel|björk|äpple/i, tips: ['Äter unga träd och buskar. Skydda plantor med nät eller ett hölje 1,5–2 m högt de första åren.', 'Stängsel runt en liten odling räcker oftast.'] },
+  snigel: { n: 'Snäckor och sniglar', e: '🐌', risk: /sallad|hosta|tomat|dahlia|ruccola|jordgubb|gurka/i, tips: ['Äter sallat, unga hostor och dahlior. Vattna på morgonen, inte på kvällen.', 'Lägg ut öl i en burk eller använd nematoder mot snäckor.'] }
+};
+function addWild(sp) { if (!WILD[sp] || !S.pets) return; if (petsList().some(x => x.kind === 'vilt' && x.sp === sp)) return; S.pets.list.push({ id: Date.now(), kind: 'vilt', name: WILD[sp].n, sp }); savePets(); keepMain(); }
+function wildV() {
+  const w = petsList().filter(x => x.kind === 'vilt'), have = new Set(w.map(x => x.sp));
+  const names = myPlantsP().map(([m]) => m.name);
+  const cards = w.map(x => { const v = WILD[x.sp] || { n: x.name, e: '🐾', tips: [] }, at = v.risk ? names.filter(n => v.risk.test(n)) : []; return `<div class="setcard" style="margin-bottom:10px"><div style="display:flex;gap:10px;align-items:center"><span style="font-size:22px" aria-hidden="true">${v.e}</span><b class="grow">${esc(v.n)}</b><button class="x ${S.del === 'pet' + x.id ? 'sure' : ''}" onclick="delPet(${x.id})">${S.del === 'pet' + x.id ? 'Bekräfta' : 'Ta bort'}</button></div>${at.length ? `<p class="mut" style="margin:8px 0 0">Kan skada: ${esc(at.slice(0, 6).join(', '))}</p>` : ''}<ul style="margin:8px 0 0;padding-left:18px">${v.tips.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>`; }).join('');
+  const chips = Object.entries(WILD).filter(([k]) => !have.has(k)).map(([k, v]) => `<button class="btn sm line" onclick="addWild('${k}')">+ ${v.e} ${esc(v.n)}</button>`).join('');
+  return `<div class="sec"><h2>Vilda djur i området</h2></div><div class="pad"><p class="mut" style="margin:0 0 10px">Lägg in de vilda djur du ser runt ditt hem. Du får tips om hur du skyddar grödor och rabatter.</p>${cards}${chips ? `<div style="display:flex;gap:8px;flex-wrap:wrap">${chips}</div>` : ''}</div>`;
+}
 function myPlantsP() { return S.mine.map(m => [m, S.plants.find(p => p.id === m.plant_id)]).filter(x => x[1]); }
 function petWarnings() {
   const out = [];
@@ -5041,6 +5061,7 @@ function petsV() {
   ${an.length ? `<div class="sec"><h2>Varningar</h2></div><div class="pad">${warns.length ? `<div class="petwarn">${warns.slice(0, S.pwAll ? 99 : 5).map(x => `<button class="pw ${x.lv}" onclick="openMine(${x.m.id})"><span>${petEmoji(x.a.kind, x.a.sp)}</span><div><b>${esc(x.m.name)} är ${x.lv === 'd' ? 'farlig' : 'giftig'} för ${esc(x.a.name)}</b><span>${esc(x.t)}</span></div></button>`).join('')}</div>${warns.length > 5 ? `<button class="link3" onclick="S.pwAll=!S.pwAll;keepMain()">${S.pwAll ? 'Visa färre' : 'Visa alla ' + warns.length}</button>` : ''}` : `<div class="petok">✅ Inga av dina växter är kända som giftiga för dina djur.</div>`}</div>` : ''}
   <div class="sec"><h2>Dina djur</h2>${petsList().length && !S.petAdd ? '<button class="viewall" onclick="S.petAdd=true;keepMain()">+ Lägg till</button>' : ''}</div>
   <div class="pad">${an.map(petCard).join('')}${!petsList().length || S.petAdd ? petFormV() : ''}</div>
+  ${wildV()}
   ${hasAq ? `<div class="sec"><h2>🐠 Mitt akvarium</h2></div><div class="pad"><div class="setcard aq">
     <div class="aqset"><label>Liter<input type="number" min="5" max="2000" inputmode="numeric" value="${t.l ?? ''}" onchange="setTank('l',this.value)" placeholder="t.ex. 60"></label><label>Temperatur °C<input type="number" min="5" max="35" inputmode="numeric" value="${t.temp ?? ''}" onchange="setTank('temp',this.value)" placeholder="t.ex. 24"></label></div>
     <h4>Fiskar och djur</h4>${fish.length ? fish.map(x => { const f = fishOf(x.sp) || []; return `<div class="aqrow"><span class="grow"><b>${esc(x.sp)}</b><span>${f[2]}–${f[3]} °C · ${esc(f[6] || '')}</span></span><span class="stp"><button onclick="fishN(${x.id},-1)" aria-label="Färre">−</button><b>${x.n}</b><button onclick="fishN(${x.id},1)" aria-label="Fler">+</button></span><button class="x ${S.del === 'pet' + x.id ? 'sure' : ''}" onclick="delPet(${x.id})">${S.del === 'pet' + x.id ? 'Bekräfta' : 'Ta bort'}</button></div>`; }).join('') : '<p class="mut" style="margin:4px 0">Inga fiskar än. Välj Akvariefisk ovan.</p>'}
@@ -6955,6 +6976,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.175', '27 okt 21:30', ['Mina djur: registrera vilda djur runt ditt hem, som rådjur, mus, fåglar och älg. Du får tips för att skydda grödor och rabatter, och ser vilka av dina växter som brukar skadas']],
   ['1.174', '27 okt 21:15', ['Hem: Mina djur finns som knapp under Vad vill du göra?, bredvid Växtdoktorn']],
   ['1.173', '27 okt 21:30', ['Familj: skapa en familjekod i Inställningar och skicka den till din familj, eller gå med med en kod. Delning av Mitt hem och växter kommer i nästa steg']],
   ['1.172', '27 okt 19:30', ['Engelska: alla växttexter i Växtdatabasen är nu översatta, inklusive vanliga problem, tips och sortbeskrivningar']],
@@ -7662,7 +7684,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.174';
+const APP_VERSION = '1.175';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
