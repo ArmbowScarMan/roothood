@@ -1159,12 +1159,12 @@ button.pw{cursor:pointer}
 </style></head><body>
 <div id="app"><div id="main"></div>
 <nav aria-label="Huvudmeny">
-<button data-t="home" onclick="go('home')" aria-label="Hem"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-6h-5v6H4z"/></svg><span>Hem</span></button>
-<button data-t="mine" onclick="go('mine')" aria-label="Min samling"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12V7M12 7c0-2.5 2-4 4.5-4 0 2.5-2 4-4.5 4zM12 9c0-2-1.6-3.2-3.6-3.2 0 2 1.6 3.2 3.6 3.2zM6 12h12l-1.4 8H7.4z"/></svg><span>Samling</span></button>
-<button data-t="comm" onclick="go('comm')" aria-label="Community"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14v10h-7l-4 4v-4H5z"/></svg><span>Community</span></button>
-<button data-t="me" onclick="go('me')" aria-label="Profil"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></svg><span>Profil</span></button>
+<button data-t="home" onclick="go('home')" aria-label="Hem"><i class="ph ph-house" style="font-size:22px"></i><span>Hem</span></button>
+<button data-t="mine" onclick="go('mine')" aria-label="Min samling"><i class="ph ph-plant" style="font-size:22px"></i><span>Samling</span></button>
+<button data-t="comm" onclick="go('comm')" aria-label="Community"><i class="ph ph-chats-circle" style="font-size:22px"></i><span>Community</span></button>
+<button data-t="me" onclick="go('me')" aria-label="Profil"><i class="ph ph-user-circle" style="font-size:22px"></i><span>Profil</span></button>
 </nav>
-<button id="fab" class="fab" onclick="openQAdd()" aria-label="Lägg till växt" hidden><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<button id="fab" class="fab" onclick="openQAdd()" aria-label="Lägg till växt" hidden><i class="ph ph-plus" style="font-size:26px"></i></button>
 <div id="ov"></div><div id="toast" class="toast" hidden role="status"></div>
 </div>
 <script>
@@ -1672,7 +1672,7 @@ function qaddV() {
   return `<div class="mh"><h2>Lägg till växt</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div class="search" style="margin:0"><input id="qaq" type="search" placeholder="Sök t.ex. monstera eller tomat" value="${esc(S.qaq || '')}" oninput="S.qaq=this.value;qaRefresh()" aria-label="Sök växt" autocomplete="off"></div>
   <div id="qahits">${qaHits()}</div>
-  <div class="qacts"><button class="btn sm line" onclick="closeModal();openTool('id')">📷 Identifiera med foto</button><button class="btn sm line" onclick="openModal('add',S.qaq||'')">✍️ Hittar inte? Skapa egen växt</button></div>`;
+  <div class="qacts"><button class="btn sm line" onclick="closeModal();openTool('id')">${ic('ph-camera', 'currentColor', 18)} Identifiera med foto</button><button class="btn sm line" onclick="openModal('add',S.qaq||'')">✍️ Hittar inte? Skapa egen växt</button></div>`;
 }
 function openMine(id) {
   const m = S.mine.find(x => x.id === id); if (!m) return;
@@ -1900,8 +1900,8 @@ async function saveDetails() {
 }
 
 // ===== Smarta hemmet: Bluetooth-sensorer, växtlampa, bevattning, luftfukt =====
-const HOMEI = '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M12 20v-5"/><path d="M12 15c-2.5 0-4-1.5-4-4 2.5 0 4 1.5 4 4zM12 15c2.5 0 4-1.5 4-4-2.5 0-4 1.5-4 4z"/>';
-const BTI = '<path d="M7 7l10 10-5 5V2l5 5L7 17"/>';
+const HOMEI = 'ph-house';
+const BTI = 'ph-bluetooth';
 const DRY_AT = { 1: 10, 2: 20, 3: 30 };
 const plantOf = m => S.plants.find(p => p.id === m.plant_id) || null;
 function sensorDry(m) {
@@ -1985,7 +1985,7 @@ function sensorCard(m, inModal) {
 }
 
 // ===== Mitt hem: rum, väderstreck och var växterna står =====
-const DOORI = '<path d="M4 21h16"/><path d="M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17"/><circle cx="14.5" cy="12.5" r="1"/>';
+const DOORI = 'ph-door';
 const DIRS = [['N', 'Norr'], ['NO', 'Nordost'], ['O', 'Öster'], ['SO', 'Sydost'], ['S', 'Söder'], ['SV', 'Sydväst'], ['V', 'Väster'], ['NV', 'Nordväst']];
 const DIR_SUN = { N: 1, NO: 1.4, O: 2, SO: 2.6, S: 3, SV: 2.7, V: 2.1, NV: 1.4 };
 const ROOM_TYPES = ['Vardagsrum', 'Sovrum', 'Kök', 'Badrum', 'Arbetsrum', 'Hall', 'Barnrum', 'Balkong', 'Uterum', 'Trädgård'];
@@ -2151,10 +2151,10 @@ const AREA3 = { lot: '#A9C98C', lawn: '#7FB35B', bed: '#8A5A34', veg: '#6B4A2A',
 function home3dV(sz) {
   sz = sz || 'm';
   if (!S.user) return '';
-  if (!S.pro) return `<div class="sec cap2"><h2>Mitt hem ${proBadge()}</h2></div><div class="h3card"><div class="h3empty"><span style="font-size:40px">🏡</span><b>Ditt hem i 3D</b><span>Rita rum, fönster och trädgård, se hemmet i 3D och få veta var varje växt trivs bäst. Ingår i Roothood Pro.</span><button class="btn sm" onclick="openModal('pro')">Prova Pro gratis</button></div></div>`;
+  if (!S.pro) return `<div class="sec cap2"><h2>Mitt hem ${proBadge()}</h2></div><div class="h3card"><div class="h3empty">${ic('ph-house-line', 'var(--pri)', 40)}<b>Ditt hem i 3D</b><span>Rita rum, fönster och trädgård, se hemmet i 3D och få veta var varje växt trivs bäst. Ingår i Roothood Pro.</span><button class="btn sm" onclick="openModal('pro')">Prova Pro gratis</button></div></div>`;
   const has = (S.home || []).some(r => r.rect) || ((S.hplan && S.hplan.areas) || []).length || ((S.hplan && S.hplan.garden) || []).length || ((S.hplan && S.hplan.furn) || []).length;
   if (!S.homeLoaded) return `<div class="sec cap2"><h2>Mitt hem</h2></div><div class="h3card"><div class="h3empty"><p class="mut">Hämtar ditt hem…</p></div></div>`;
-  if (!has) return `<div class="sec cap2"><h2>Mitt hem</h2></div><div class="h3card"><div class="h3empty"><span style="font-size:40px">🏡</span><b>Rita ditt hem</b><span>Rita rum, fönster och trädgård, så ser du hemmet i 3D här och får tips om var växterna trivs.</span><button class="btn sm" onclick="openHouse();S.hview='plan';render()">Börja rita</button></div></div>`;
+  if (!has) return `<div class="sec cap2"><h2>Mitt hem</h2></div><div class="h3card"><div class="h3empty">${ic('ph-house-line', 'var(--pri)', 40)}<b>Rita ditt hem</b><span>Rita rum, fönster och trädgård, så ser du hemmet i 3D här och får tips om var växterna trivs.</span><button class="btn sm" onclick="openHouse();S.hview='plan';render()">Börja rita</button></div></div>`;
   const n = S.mine.filter(m => m.details && m.details.pos).length;
   return `<div class="sec cap2"><h2>Mitt hem</h2><button class="viewall" onclick="openHouse();S.hview='3d';render()">Visa stort</button></div>
   <div class="h3card"><div class="planbox home3d sz-${sz}" id="box3d"><p class="l3">Laddar 3D…</p></div>
@@ -2510,19 +2510,19 @@ function label3d(txt) {
 }
 // ===== Planlösning: rita rum, fönster, växter och smarta saker =====
 const WKI = {"win": "<rect x=\"5\" y=\"4\" width=\"14\" height=\"16\" rx=\"1.5\"/><path d=\"M12 4v16M5 12h14\"/>", "bay": "<path d=\"M2 17h4l3-6h6l3 6h4\"/>", "door": "<path d=\"M4 20h16\"/><path d=\"M6 20V5h6v15\"/><path d=\"M12 5a9 9 0 0 1 7 9\"/>", "open": "<path d=\"M3 12h5M16 12h5\"/><path d=\"M8 9v6M16 9v6\" opacity=\".5\"/>", "rad": "<rect x=\"3\" y=\"8\" width=\"18\" height=\"10\" rx=\"2\"/><path d=\"M7.5 8v10M12 8v10M16.5 8v10\"/>", "vent": "<rect x=\"5\" y=\"5\" width=\"14\" height=\"14\" rx=\"3\"/><path d=\"M8 9.5h8M8 12h8M8 14.5h8\"/>", "wall": "<path d=\"M4 20L20 4\"/>", "half": "<path d=\"M4 20L20 4\" stroke-dasharray=\"2 3.5\"/>"};
-const INSPI = '<rect x="3" y="5" width="18" height="14" rx="4"/><path d="M10 9.5l5 2.5-5 2.5z"/>';
-const XPI = '<path d="M3 9l9-5 9 5-9 5z"/><path d="M7 11v4c0 1.5 2.2 3 5 3s5-1.5 5-3v-4"/><path d="M21 9v5"/>';
-const DOCI = '<path d="M12 21c-4.5-2.6-8-6.2-8-10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 3.5c0 4.3-3.5 7.9-8 10.5z"/><path d="M12 10.5v5M9.5 13h5"/>';
+const INSPI = 'ph-video';
+const XPI = 'ph-graduation-cap';
+const DOCI = 'ph-first-aid-kit';
 const PTI = {
-  bed: '<path d="M3 20h18"/><path d="M5 20c0-3 1-5 3-6M19 20c0-3-1-5-3-6"/><circle cx="12" cy="8" r="2.2"/><path d="M12 5.8V4M12 12v8M9.8 8H8M16 8h-1.8"/>',
-  ute: '<path d="M12 21v-6"/><path d="M12 15c-3.6 0-6-2.3-6-5.3C6 6.5 8.7 3 12 3s6 3.5 6 6.7c0 3-2.4 5.3-6 5.3z"/><path d="M4 21h16"/>',
-  bld: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>',
-  furn: '<path d="M5 11V8.5A2.5 2.5 0 0 1 7.5 6h9A2.5 2.5 0 0 1 19 8.5V11"/><path d="M3.5 11.5a1.5 1.5 0 0 1 3 0V13h11v-1.5a1.5 1.5 0 0 1 3 0V17h-17z"/><path d="M5.5 17v2M18.5 17v2"/>',
-  move: '<path d="M12 3v18M3 12h18"/><path d="M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/>',
-  room: '<rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M4 13h7v7"/>',
-  win: '<rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M12 3.5v17M5 12h14"/>',
-  plant: '<path d="M7 14h10l-1.3 6.2a1 1 0 0 1-1 .8H9.3a1 1 0 0 1-1-.8z"/><path d="M12 14V9"/><path d="M12 10c0-3 2-5 5.5-5 0 3.2-2 5-5.5 5zM12 11c0-2.6-1.7-4.3-4.8-4.3 0 2.8 1.7 4.3 4.8 4.3z"/>',
-  dev: '<rect x="7" y="9" width="10" height="11" rx="2.5"/><path d="M10 9V5.5M14 9V5.5M12 20v1.5"/><path d="M4.5 6.5a8 8 0 0 1 2.3-2.2M19.5 6.5a8 8 0 0 0-2.3-2.2"/>'
+  bed: 'ph-flower',
+  ute: 'ph-tree',
+  bld: 'ph-buildings',
+  furn: 'ph-armchair',
+  move: 'ph-arrows-out-cardinal',
+  room: 'ph-square',
+  win: 'ph-frame-corners',
+  plant: 'ph-plant',
+  dev: 'ph-wrench'
 };
 const DEVS = { sensor: ['Växtsensor', '🌱'], thermo: ['Termometer', '🌡️'], plug: ['Smart uttag', '🔌'], grow: ['Växtlampa', '🔆'], lamp: ['Smart lampa', '💡'], humid: ['Luftfuktare', '💨'], speaker: ['Google Home', '🔊'], pump: ['Vattenpump', '💧'] };
 const PL = () => S.pl || (S.pl = { mode: 'move', sel: null, z: 34, ox: 20, oy: 20, fit: true });
@@ -2841,11 +2841,11 @@ function planHint() {
 }
 function planV() {
   const P = PL(), m = P.mode, unplaced = (S.home || []).filter(r => !r.rect);
-  const tool = (k, n, icon, act, on) => `<button class="pt pt-${k} ${on ? 'on' : ''}" aria-pressed="${!!on}" onclick="${act}"><span class="pti"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${icon}</svg></span><span class="ptl">${n}</span></button>`;
+  const tool = (k, n, icon, act, on) => `<button class="pt pt-${k} ${on ? 'on' : ''}" aria-pressed="${!!on}" onclick="${act}"><span class="pti">${String(icon).startsWith('ph-') ? `<i class="ph ${icon}" style="font-size:20px"></i>` : `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>`}</span><span class="ptl">${n}</span></button>`;
   return `${floorBarV()}<div class="ptools">${tool('move', 'Flytta', PTI.move, "planMode('move')", m === 'move')}${tool('room', 'Rum', PTI.room, "planMode('room')", m === 'room')}${tool('win', 'Väggar', PTI.win, "planMode('win')", m === 'win')}${tool('ute', 'Ute', PTI.ute, "planMode('ute')", m === 'ute')}${tool('bed', 'Rabatt', PTI.bed, "planMode('bed')", m === 'bed')}${tool('plant', 'Växt', PTI.plant, "planPick('plant')", m === 'place' && P.pick && P.pick.k === 'plant')}${tool('bld', 'Byggnader', PTI.bld, "planPick('bld')", m === 'place' && P.pick && P.pick.k === 'furn' && BLD.has(P.pick.t))}${tool('furn', 'Möbler', PTI.furn, "planPick('furn')", m === 'place' && P.pick && P.pick.k === 'furn' && !BLD.has(P.pick.t))}${tool('dev', 'Smart', PTI.dev, "planPick('dev')", m === 'place' && P.pick && P.pick.k === 'dev')}</div>
   <div class="pbar"><p class="phint" id="phint">${planHint()}${m === 'ute' && (P.upoly || []).length >= 3 ? ` <button class="link3" onclick="finishPoly()">Klar med ytan</button>` : m !== 'move' ? ` <button class="link3" onclick="planMode('move')">${m === 'win' || m === 'ute' || m === 'room' || m === 'bed' || (m === 'place' && P.pick && P.pick.k !== 'plant') ? 'Klar' : 'Avbryt'}</button>` : ''}</p><span id="savebar">${saveBarInner()}</span></div>
   <div class="planbox" id="planbox">${m === 'room' ? `<button class="newroomb ${P.roomDraw ? 'on' : ''}" onclick="PL().roomDraw=!PL().roomDraw;PL().sel=null;PL().msg=null;render()">${P.roomDraw ? 'Avbryt nytt rum' : '+ Nytt rum'}</button>` : ''}${m === 'ute' ? `<div class="wkind">${UK.map(([k, n, ty, e]) => `<button class="${P.ukind === k ? 'on ute' : ''}" onclick="uteKind('${k}')"><span style="font-size:15px">${e}</span>${n}</button>`).join('')}</div>` : ''}${m === 'place' && P.pick && (P.pick.k === 'furn' || P.pick.k === 'dev') ? `<div class="wkind">${P.pick.k === 'furn' ? (BLD.has(P.pick.t) ? '' : `<button class="${OUTF.has(P.pick.t) ? '' : 'on'}" onclick="PL().pick={k:'furn',t:'sofa'};render()">🏠 Inne</button><button class="${OUTF.has(P.pick.t) ? 'on ute' : ''}" onclick="PL().pick={k:'furn',t:'rbed'};render()">🌳 Ute</button>`) + (BLD.has(P.pick.t) ? FURN_BLD : OUTF.has(P.pick.t) ? FURN_UTE : FURN).map(([k, n, w, h, e]) => `<button class="${P.pick.t === k ? 'on' : ''}" onclick="PL().pick={k:'furn',t:'${k}'};PL().msg=null;render()"><span style="font-size:15px">${e}</span>${n}</button>`).join('') : Object.entries(DEVS).map(([k, [n, e]]) => `<button class="${P.pick.t === k ? 'on' : ''}" onclick="PL().pick={k:'dev',t:'${k}'};PL().msg=null;render()"><span style="font-size:15px">${e}</span>${n}</button>`).join('')}</div>` : ''}${m === 'win' ? `<div class="wkind">${WK.map(([k, n]) => `<button class="${P.wkind === k ? 'on' : ''}" onclick="PL().wkind='${k}';PL().msg=null;render()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${WKI[k]}</svg>${n}</button>`).join('')}</div>` : ''}${(S.undo || []).length ? `<button class="pundo" onclick="undoPlan()" aria-label="Ångra"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Ångra</button>` : ''}<svg id="plan" width="100%" height="100%" onpointerdown="planDown(event)" onpointermove="planMove(event)" onpointerup="planUp(event)" onpointercancel="planUp(event)" onwheel="planWheel(event)">${planInner()}</svg>
-    <button class="pmapb ${m === 'map' ? 'on' : ''}" onclick="planMode(PL().mode === 'map' ? 'move' : 'map')" aria-label="Karta i bakgrunden"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6.5v13.5L9 17.5l6 2.5 6-2.5V4l-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg></button>${m === 'map' ? mapPanelV() : ''}${mapOn() && m !== 'map' ? `<span class="mattr">${TILES[S.hplan.map.layer || 'sat'][2]}</span>` : ''}
+    <button class="pmapb ${m === 'map' ? 'on' : ''}" onclick="planMode(PL().mode === 'map' ? 'move' : 'map')" aria-label="Karta i bakgrunden"><i class="ph ph-map-trifold" style="font-size:20px"></i></button>${m === 'map' ? mapPanelV() : ''}${mapOn() && m !== 'map' ? `<span class="mattr">${TILES[S.hplan.map.layer || 'sat'][2]}</span>` : ''}
     <button class="pnorth" onclick="rotNorth()" aria-label="Vrid norrpilen" title="Vrid norrpilen så den pekar mot norr"><span style="transform:rotate(${northDeg() + viewRot()}deg)">${compassSvg([], 40)}</span></button>
     <div class="pzoom"><button onclick="planZoom(1.6)" aria-label="Zooma in">+</button><button onclick="planZoom(0.625)" aria-label="Zooma ut">−</button><button onclick="PL().fit=true;renderPlan()" aria-label="Visa allt" style="font-size:13px">⤢</button></div>${planSelV()}</div>
   ${unplaced.length ? `<div class="sec"><h2>Rum som inte är ritade</h2></div><div class="pad"><div class="chips2">${unplaced.map(r => `<button onclick="drawIn('${r.id}')">+ ${esc(r.name)}</button>`).join('')}</div></div>` : ''}
@@ -3495,26 +3495,26 @@ async function loadPhotos() {
 }
 
 // ===== Ikoner =====
-const ic = (d, c, s) => `<svg class="ic" width="${s || 26}" height="${s || 26}" viewBox="0 0 24 24" fill="none" stroke="${c || 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const ic = (d, c, s) => String(d || '').startsWith('ph-') ? `<i class="ph ${d} ic" style="font-size:${s || 26}px;color:${c || 'currentColor'}" aria-hidden="true"></i>` : `<svg class="ic" width="${s || 26}" height="${s || 26}" viewBox="0 0 24 24" fill="none" stroke="${c || 'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const I = {
-  back: '<path d="M15 5l-7 7 7 7"/>',
-  bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/>',
-  search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
-  heart: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
-  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
-  drop: '<path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/>',
-  temp: '<path d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0z"/><path d="M12 10v6"/>',
-  mist: '<path d="M7 15a4 4 0 0 1 .5-8 5 5 0 0 1 9.5 1.5A3.5 3.5 0 0 1 17 15z"/><path d="M8 19v1M12 18v2M16 19v1"/>',
-  soil: '<path d="M5 10h14l-1.6 9H6.6zM9 10c0-3 1.5-5 3-6 1.5 1 3 3 3 6"/>',
-  paw: '<circle cx="7" cy="10" r="1.6"/><circle cx="10.5" cy="6.5" r="1.6"/><circle cx="14.5" cy="6.5" r="1.6"/><circle cx="17.5" cy="10" r="1.6"/><path d="M12 12c-3 0-5 3.5-5 5.5 0 1.5 1.5 2 2.5 1.6 1-.4 1.6-.6 2.5-.6s1.5.2 2.5.6c1 .4 2.5-.1 2.5-1.6 0-2-2-5.5-5-5.5z"/>',
-  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
-  plus: '<path d="M12 5v14M5 12h14"/>',
-  leaf: '<path d="M12 21V11M12 11c0-4 3-6 7-6 0 4-2 7-7 6zM12 15c0-3-2-5-6-5 0 3 2 5.5 6 5z"/>'
+  back: 'ph-caret-left',
+  bell: 'ph-bell',
+  search: 'ph-magnifying-glass',
+  heart: 'ph-heart',
+  sun: 'ph-sun',
+  drop: 'ph-drop',
+  temp: 'ph-thermometer-simple',
+  mist: 'ph-cloud-rain',
+  soil: 'ph-grains',
+  paw: 'ph-paw-print',
+  check: 'ph-check',
+  plus: 'ph-plus',
+  leaf: 'ph-leaf'
 };
 // ===== Skötseldagbok =====
-const SCISS = '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 7.6 20 18M8.6 16.4 20 6"/>';
-const PEN = '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>';
-const POT = '<path d="M5 10h14l-2 10H7z"/><path d="M12 10V5M12 7c-2-3-5-2-5-2s0 3 5 2M12 6c2-3 5-2 5-2s0 3-5 2"/>';
+const SCISS = 'ph-scissors';
+const PEN = 'ph-pencil-simple';
+const POT = 'ph-plant';
 const LOGK = { water: ['Vattnat', I.drop, 'var(--wat)'], feed: ['Gödslat', I.leaf, 'var(--pri2)'], repot: ['Omplanterat', POT, '#A0703F'], prune: ['Beskuret', SCISS, 'var(--acc)'], note: ['Anteckning', PEN, 'var(--mut)'] };
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 function whenTxt(d) {
@@ -3580,7 +3580,7 @@ function diaryV(m, inModal) {
 }
 
 // ===== Att göra månad för månad =====
-const CALI = '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>';
+const CALI = 'ph-calendar-check';
 function careGroup(m) {
   const p = plantOf(m), c = (m.category || (p && p.category) || '').toLowerCase(), n = ((m.name || '') + ' ' + (m.latin || '') + ' ' + (p ? p.latin_name || '' : '')).toLowerCase();
   if (/julkaktus|påskkaktus|schlumbergera|hatiora/.test(n)) return 'inne';
@@ -3865,8 +3865,8 @@ function weatherV(sz) {
   sz = sz || 'm';
   const w = S.wx;
   if (!w && !S.wxBusy) setTimeout(() => loadWeather(), 0);
-  if (!w || (w.none && !w.cur)) return `<div class="wxc"><div class="wxtop"><span style="font-size:30px">🌦️</span><div class="grow"><b>Väder för dina växter</b><span>${w && w.none ? 'Välj din ort så visas vädret och varningar för frost, blåst och torr luft.' : 'Hämtar vädret…'}</span></div></div>${w && w.none ? `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn sm" onclick="${S.user ? 'openSettings()' : "openModal('login')"}">Välj ort</button><button class="btn sm line" onclick="wxHere()">📍 Min position</button></div>` : ''}</div>`;
-  if (!w.cur) return `<div class="wxc"><div class="wxtop"><span style="font-size:30px">🌦️</span><div class="grow"><b>Vädret kunde inte hämtas</b><span>Kontrollera internet och försök igen.</span></div><button class="btn sm line" onclick="loadWeather(true)">Försök igen</button></div></div>`;
+  if (!w || (w.none && !w.cur)) return `<div class="wxc"><div class="wxtop">${ic('ph-cloud-sun', 'var(--pri)', 30)}<div class="grow"><b>Väder för dina växter</b><span>${w && w.none ? 'Välj din ort så visas vädret och varningar för frost, blåst och torr luft.' : 'Hämtar vädret…'}</span></div></div>${w && w.none ? `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn sm" onclick="${S.user ? 'openSettings()' : "openModal('login')"}">Välj ort</button><button class="btn sm line" onclick="wxHere()">📍 Min position</button></div>` : ''}</div>`;
+  if (!w.cur) return `<div class="wxc"><div class="wxtop">${ic('ph-cloud-sun', 'var(--pri)', 30)}<div class="grow"><b>Vädret kunde inte hämtas</b><span>Kontrollera internet och försök igen.</span></div><button class="btn sm line" onclick="loadWeather(true)">Försök igen</button></div></div>`;
   const c = w.cur, d = w.d, wx = WX[c.weather_code] || ['', '🌡️'], warn = wxWarnings(w), irh = indoorRH(c.temperature_2m, c.relative_humidity_2m);
   if (sz === 's') return `<div class="wxc wxs"><div class="wxtop"><span class="wxi">${wx[1]}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]} i ${esc(w.name || S.city || '')}</span></div>${warn.length ? `<span class="wxbadge">${warn[0][1]} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span>` : '<span class="wxbadge ok">Inga varningar</span>'}</div></div>`;
   const allW = sz === 'l' || S.wxAll;
@@ -3923,7 +3923,7 @@ function expertsV() {
       ${S.xph ? `<img class="lbig" src="${esc(S.xphUrl)}" alt="Ditt foto"><button class="btn sm line" onclick="S.xph=null;keepMain()">Ta bort foto</button>` : `<label onclick="photoPick(event,this)" class="shot small"><span class="tic">${ic(CAM, 'currentColor', 22)}</span><span class="grow"><b>Lägg till foto</b><span>En bild hjälper experten mycket</span></span><input type="file" accept="image/*" class="sr" onchange="xPhoto(this)"></label>`}
       <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="sendExpertQ()">${S.busy ? 'Skickar…' : 'Skicka till experten'}</button>
       <p class="mut" style="font-size:12.5px;margin:8px 0 0">Bara du och experterna ser frågan. Svaret visas här under Mina frågor.</p></div></div>`
-    : `<div class="xpro"><span style="font-size:34px">🎓</span><b>Fråga en riktig växtexpert</b><span>Med Roothood Pro kan du ställa egna frågor till våra experter, med foto, och få ett personligt svar.</span><button class="btn" onclick="openModal('pro')">Prova Pro gratis i 7 dagar</button></div>`;
+    : `<div class="xpro"><span>${ic('ph-graduation-cap', 'var(--pri)', 40)}</span><b>Fråga en riktig växtexpert</b><span>Med Roothood Pro kan du ställa egna frågor till våra experter, med foto, och få ett personligt svar.</span><button class="btn" onclick="openModal('pro')">Prova Pro gratis i 7 dagar</button></div>`;
   return `${topbar('Växtexperter', 'closeTool()')}
   <p class="mut" style="margin:0 18px">Trädgårdsmästare och specialister som svarar på dina frågor.</p>
   ${S.isExpertMe ? `<div class="sec"><h2>Frågor till dig (${(S.xin || []).length})</h2></div><div class="pad">${(S.xin || []).length ? S.xin.map(q => `<div class="xq"><small class="mut">${esc(q.asker_name || '')} · ${esc(q.category || '')} · ${ago(q.created_at)}${q.expert ? '' : ' · till alla experter'}</small><p>${esc(q.body)}</p>${q.photo_url ? `<img class="lbig" src="${esc(q.photo_url)}" alt="">` : ''}<textarea id="xa${q.id}" rows="3" placeholder="Skriv ditt svar"></textarea><button class="btn sm" style="margin-top:8px" onclick="sendExpertAnswer(${q.id})">Skicka svar</button></div>`).join('') : '<p class="mut" style="margin:0">Inga obesvarade frågor just nu.</p>'}</div>` : ''}
@@ -4783,12 +4783,12 @@ function homeBlocks(intro) {
   flush();
   return out.join('\n');
 }
-const CHATI = '<path d="M5 5h14v10h-7l-4 4v-4H5z"/>', PEOPLEI = '<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.2c2.4.2 4.2 1.8 4.8 4.8"/>';
-const EXPI = '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>', SWAPI = '<path d="M7 7h11l-3-3M17 17H6l3 3"/>', BELLI = I.bell, BEDI = '<path d="M3 20h18"/><path d="M5 20c0-3 1-5 3-6M19 20c0-3-1-5-3-6"/><circle cx="12" cy="8" r="2.2"/><path d="M12 12v8"/>';
+const CHATI = 'ph-chats-circle', PEOPLEI = 'ph-users';
+const EXPI = 'ph-compass', SWAPI = 'ph-arrows-left-right', BELLI = I.bell, BEDI = 'ph-flower';
 // [nyckel, namn, ikon, färgklass, handling, pro]
 const QUICK = () => [
   ['db', 'Sök växter', I.search, 'db', 'openDb()'], ['id', 'Identifiera', CAM, '', "openTool('id')", 1], ['doc', 'Växtdoktorn', DOCI, 'doc', 'openDoc()'], ['expert', 'Fråga expert', XPI, 'xp', 'openExperts()', 1],
-  ['house', 'Mitt hem', DOORI, 'house', 'openHouse()', 1], ['bed', 'Planera rabatt', BEDI, 'db', "openHouse();setTimeout(()=>{if(S.tool==='house')planMode('bed')},60)", 1], ['light', 'Ljusmätare', I.sun, 'sun', "openTool('light')", 1], ['nearby', 'Trädgårdar nära dig', '<path d="M12 21s-6-5.2-6-10a6 6 0 0 1 12 0c0 4.8-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>', 'inspo', 'openNearby()'], ['compass', 'Kompass', '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>', 'sun', 'openCompass()'], ['pets', 'Mina djur', I.paw, 'pets', 'openPets()'], ['smart', 'Smarta hemmet', HOMEI, 'smart', 'openSmart()'],
+  ['house', 'Mitt hem', DOORI, 'house', 'openHouse()', 1], ['bed', 'Planera rabatt', BEDI, 'db', "openHouse();setTimeout(()=>{if(S.tool==='house')planMode('bed')},60)", 1], ['light', 'Ljusmätare', I.sun, 'sun', "openTool('light')", 1], ['nearby', 'Trädgårdar nära dig', 'ph-map-pin', 'inspo', 'openNearby()'], ['compass', 'Kompass', 'ph-compass', 'sun', 'openCompass()'], ['pets', 'Mina djur', I.paw, 'pets', 'openPets()'], ['smart', 'Smarta hemmet', HOMEI, 'smart', 'openSmart()'],
   ['comm', 'Frågor', CHATI, 'db', "go('comm');setCtab('q')"], ['forum', 'Forum', CHATI, 'xp', "go('comm');setCtab('forum')"], ['swap', 'Byt och ge bort', SWAPI, 'inspo', "go('comm');setCtab('swap')"], ['detect', 'Växtdetektiver', I.search, 'sun', "go('comm');setCtab('detect')"],
   ['people', 'Hitta vänner', PEOPLEI, 'xp', 'openPeople()'], ['inspo', 'Odlare att följa', INSPI, 'inspo', 'openInspo()'], ['season', 'Säsongstips', I.leaf, 'sun', 'openSeason()'], ['sow', 'Såkalender', I.soil, 'db', 'openSow()'], ['perma', 'Permakultur', I.leaf, 'inspo', 'openPerma()'],
   ['mine', 'Min samling', I.plant || I.leaf, 'db', "S.mtab='mine';go('mine')"], ['care', 'Skötseldagbok', CALI, 'sun', 'openCare()'], ['notif', 'Notiser', BELLI, 'house', 'openNotif()'], ['cfg', 'Anpassa Hem', PEN, 'smart', "go('home');openHomeCfg()"],
@@ -5030,7 +5030,7 @@ function meV() {
   ${proCard()}
   ${installCard()}
   ${settingsRow()}
-  <div class="pad" style="padding-top:12px"><button class="setrow" onclick="openPeople()"><span class="tic">👥</span><span class="grow"><b>Hitta användare</b><span>Sök på namn eller ort och följ andra växtvänner</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
+  <div class="pad" style="padding-top:12px"><button class="setrow" onclick="openPeople()"><span class="tic">${ic('ph-users', 'currentColor', 20)}</span><span class="grow"><b>Hitta användare</b><span>Sök på namn eller ort och följ andra växtvänner</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="pad" style="padding-top:10px"><button class="setrow" onclick="go('home');openHomeCfg()"><span class="tic">${ic(PEN, 'currentColor', 20)}</span><span class="grow"><b>Anpassa startskärmen</b><span>Välj vad som visas och i vilken ordning</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="pad" style="padding-top:10px"><button class="setrow" onclick="openHouse()"><span class="tic">${ic(DOORI, 'currentColor', 20)}</span><span class="grow"><b>Mitt hem${S.pro ? '' : ' ' + proBadge()}</b><span>${(S.home || []).length ? S.home.length + (S.home.length === 1 ? ' rum' : ' rum') + ', väderstreck och var växterna står' : 'Lägg in rum och väderstreck'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="pad" style="padding-top:10px"><button class="setrow" onclick="openSmart()"><span class="tic">${ic(HOMEI, 'currentColor', 20)}</span><span class="grow"><b>Smarta hemmet</b><span>Sensorer, växtlampa, bevattning och luftfukt</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
@@ -5271,7 +5271,7 @@ function delBtn(key, fn, id) {
 }
 function segBar() {
   return `<div class="seg2" role="tablist">${[['detect', 'Detektiver'], ['q', 'Frågor'], ['forum', 'Forum'], ['swap', 'Byt'], ['friends', 'Vänner']].map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>
-  <div class="pad cbtns" style="padding-top:10px"><button class="peopleb" onclick="openPeople()"><span>👥</span><span class="grow">Hitta användare</span></button><button class="peopleb xb" onclick="openExperts()"><span>🎓</span><span class="grow">Fråga en expert</span>${S.pro ? '' : proBadge()}</button><button class="peopleb ib" style="grid-column:1/-1" onclick="openInspo()"><span>▶️</span><span class="grow">Odlare att följa på YouTube och Instagram</span></button></div>`;
+  <div class="pad cbtns" style="padding-top:10px"><button class="peopleb" onclick="openPeople()"><span>${ic('ph-users', 'currentColor', 20)}</span><span class="grow">Hitta användare</span></button><button class="peopleb xb" onclick="openExperts()"><span>🎓</span><span class="grow">Fråga en expert</span>${S.pro ? '' : proBadge()}</button><button class="peopleb ib" style="grid-column:1/-1" onclick="openInspo()"><span>▶️</span><span class="grow">Odlare att följa på YouTube och Instagram</span></button></div>`;
 }
 function listState(list, emptyText) {
   if (S.feedErr) return `<div class="empty"><p>${esc(S.feedErr)}</p><button class="btn sm" onclick="loadFeed()">Försök igen</button></div>`;
@@ -5434,7 +5434,7 @@ function detectV() {
   const show = c0.length ? c0.concat(open.filter(c => !c0.includes(c))) : open;
   return `${topbar('Community')}${segBar()}
   <div class="dhead"><div class="grow"><h2 class="brand2">Växtdetektiverna</h2><span class="mut">Hjälp grannar${city ? ' i ' + esc(city) : ''} att artbestämma</span></div><span class="ptschip">${mine} p 🏆</span></div>
-  <div class="addbar" style="padding:12px 18px 0"><button class="btn wide" onclick="startCase()">📷 Fråga detektiverna om en växt</button></div>
+  <div class="addbar" style="padding:12px 18px 0"><button class="btn wide" onclick="startCase()">${ic('ph-camera', 'currentColor', 18)} Fråga detektiverna om en växt</button></div>
   ${st && (S.feedErr || !S.cases) ? `<div class="pad" style="padding-top:12px">${st}</div>` : `
   <div class="cases">${show.length ? show.map(c => `<div class="casec">${caseImg(c, 'cimg')}
     <div class="cbody">${whoP(c, 'Upplagd i ' + (c.title || c.city || 'Sverige'))}<b>Okänd växt (${esc(c.title || c.city || '?')})</b><p>${esc(c.body || 'Vad är detta?')}</p>
@@ -5542,8 +5542,8 @@ function reportV() {
 // ===== Pro =====
 const PRO_PLANS = [{ id: 'year', name: 'År', price: '349 kr/år', note: 'Bara 29 kr/månad. Spara 40 %' }, { id: 'month', name: 'Månad', price: '49 kr/månad', note: 'Avsluta när du vill' }];
 const PRO_PRICE = 'från 29 kr/mån';
-const CAM = '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>';
-const SCAN = '<path d="M4 9V5h4M16 5h4v4M20 15v4h-4M8 19H4v-4"/><path d="M12 15V10M12 10c0-2 1.5-3 3.5-3 0 2-1.5 3-3.5 3z"/>';
+const CAM = 'ph-camera';
+const SCAN = 'ph-scan';
 function needPro() { if (needLogin()) return true; if (!S.pro) { openModal('pro'); return true; } return false; }
 function overLimit() { return !S.pro && S.mine.length >= FREE_LIMIT; }
 async function setPro(on) {
@@ -5820,6 +5820,8 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.99.1', 'Nu', ['Fler ikoner i Phosphor: planeringsknappar, Mitt hem och tomma sidor']],
+  ['1.99', 'Nu', ['Samma ikoner i hela appen: Phosphor. Ikonerna laddas från nätet, så de syns inte när telefonen är offline']],
   ['1.98', 'Nu', ['Snabbknapparna på Hem har ny design: Phosphor-ikoner, korta namn och Utforska som en bred banner. Identifiera är större eftersom den används mest']],
   ['1.97.1', 'Nu', ['Hem: det går att scrolla förbi Mitt hem i 3D. Huset roterar fortfarande när du trycker på Visa stort']],
   ['1.97', 'Nu', ['Radera konto: under Inställningar → Konto kan du radera ditt konto och allt som hör till det. SQL-steg 035 behövs']],
@@ -6388,7 +6390,7 @@ async function startLight() {
   }, 500);
 }
 let idStream = null;
-const GALLERY = '<rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/>';
+const GALLERY = 'ph-images';
 async function startIdCam() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return toast('Kameran fungerar inte här. Välj ett foto från galleriet.');
   stopIdCam();
@@ -6447,8 +6449,8 @@ function proCard() {
 
 
 // ===== Inställningar =====
-const GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
-const APP_VERSION = '1.98';
+const GEAR = 'ph-gear';
+const APP_VERSION = '1.99.1';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -6572,7 +6574,7 @@ function settingsRow() {
 }
 
 // ===== Påminnelser i mobilen (push-notiser) =====
-const BELL = '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>';
+const BELL = 'ph-bell';
 const pushOk = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && window.isSecureContext && location.protocol !== 'file:';
 const swReady = () => Promise.race([navigator.serviceWorker.ready, new Promise((_, no) => setTimeout(() => no(new Error('Appens bakgrundsdel startade inte. Ladda om sidan.')), 4000))]);
 const b64u = s => { const b = atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
