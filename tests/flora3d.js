@@ -47,6 +47,8 @@ const srv = http.createServer((q, r) => { const p = path.join(dir, q.url.split('
       try { const P = pot3d(THREE, M, { place, mat, self, soil, cm }, 5); if (!P.g || !isFinite(P.top) || !(P.r > 0)) throw new Error('fel mått'); out.krukor.ok++;
         if (place === 'Upp och ner' && P.inv && P.H > 0) out.krukor.upp = true; if (place === 'Semi-hydro' && P.g.children.some(c => c.n)) out.krukor.semi = true; if (self && place === 'Kruka' && P.g.children.length >= 6) out.krukor.self = true;
       } catch (e) { out.fail.push(`kruka/${place}/${mat}/${self}/${soil}: ${e.message}`); } }
+    // Upp och ner: växten ska hänga nedåt (rankornas lägsta punkt under öppningen)
+    HANG3 = true; try { for (const p of S.plants.slice(0, 40).concat([{ latin_name: 'Hoya linearis', swedish_name: 'Hoya' }])) { const h = indoor3d(THREE, M, p, true, 3); if (!h.children.length) throw new Error('tom'); } out.krukor.nerat = true; } catch (e) { out.fail.push('upp och ner: ' + e.message); } HANG3 = false;
     if (!out.krukor.upp || !out.krukor.semi || !out.krukor.self) out.fail.push('krukor: ' + JSON.stringify(out.krukor));
     out.plants = S.plants.length; out.fail = out.fail.slice(0, 10); return out;
   });
