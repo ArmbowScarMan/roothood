@@ -1,0 +1,43 @@
+-- 046: Säkerhetsfixar från genomgången.
+-- Vanliga användare kan inte ändra dolda inlägg och svar. Bara moderatorer kan det.
+create or replace function public.guard_hidden() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.hidden is distinct from old.hidden and not public.is_mod() then
+    new.hidden := old.hidden;
+  end if;
+  return new;
+end $$;
+drop trigger if exists guard_hidden_posts on public.posts;
+create trigger guard_hidden_posts before update on public.posts
+  for each row execute function public.guard_hidden();
+drop trigger if exists guard_hidden_answers on public.answers;
+create trigger guard_hidden_answers before update on public.answers
+  for each row execute function public.guard_hidden();
+
+-- Mottagaren av en vänförfrågan kan inte byta avsändare eller mottagare.
+create or replace function public.guard_friend_req() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.from_user is distinct from old.from_user or new.to_user is distinct from old.to_user then
+    raise exception 'Ogiltig ändring av vänförfrågan';
+  end if;
+  return new;
+end $$;
+drop trigger if exists guard_friend_req_t on public.friend_requests;
+create trigger guard_friend_req_t before update on public.friend_requests
+  for each row execute function public.guard_friend_req();
+
+-- En expert kan bara sätta svaret. Frågan, ställaren och kategorin kan inte ändras.
+create or replace function public.guard_expert_q() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.asker is distinct from old.asker or new.body is distinct from old.body
+     or new.category is distinct from old.category or new.photo_url is distinct from old.photo_url then
+    raise exception 'Bara svaret kan ändras';
+  end if;
+  return new;
+end $$;
+drop trigger if exists guard_expert_q_t on public.expert_questions;
+create trigger guard_expert_q_t before update on public.expert_questions
+  for each row execute function public.guard_expert_q();
