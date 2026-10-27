@@ -1255,6 +1255,48 @@ button.pw{cursor:pointer}
 .ttxt{display:flex;align-items:center}
 nav button{min-width:44px}
 :focus-visible{outline:3px solid var(--pri);outline-offset:2px}
+/* Mitt hem: enkelt läge (guide och rumskort). Stora knappar, minst 48 px, tydlig text. */
+.wz{padding:4px 18px 28px;display:flex;flex-direction:column;gap:12px}
+.wz h1{font-size:26px;line-height:1.2;margin:6px 0 0}
+.wz>p.mut{margin:0;font-size:15.5px;line-height:1.45}
+.wzh{display:flex;gap:12px;align-items:center;padding:10px 18px 0}
+.wzs{display:block;font-size:14px;font-weight:700;color:var(--mut);margin-bottom:6px}
+.wzbar{height:6px;border-radius:9px;background:var(--line);overflow:hidden}.wzbar i{display:block;height:100%;background:var(--pri);border-radius:9px}
+.wzgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wzc{min-height:60px;border:2px solid var(--line);background:var(--surf);color:var(--ink);font:inherit;font-size:16.5px;font-weight:700;border-radius:18px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;text-align:left}
+.wzc.on{border-color:var(--pri);background:rgb(var(--gl) / .22)}
+.wzc.add{border-style:dashed;justify-content:center;color:var(--pri)}
+.wzck{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-style:normal;font-size:15px;flex:none}
+.on>.wzck,.on .wzck{background:var(--pri);border-color:var(--pri);color:var(--onpri)}
+.wzother{grid-column:1/-1;display:flex;gap:8px}.wzother .inp{flex:1;min-height:52px;font-size:16px}
+.wzlbl{margin:6px 0 0;font-size:15px;font-weight:800;color:var(--mut)}
+.wzrow{display:flex;flex-wrap:wrap;gap:8px}.wzrow .btn{min-height:48px}
+.wznext{min-height:56px;font-size:17px;margin-top:6px}
+.wz .btn.wide{min-height:52px;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px}
+.wzcomp{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:330px;width:100%;margin:6px auto}
+.wzd{min-height:72px;border:2px solid var(--line);background:var(--surf);color:var(--ink);font:inherit;font-size:17px;font-weight:800;border-radius:18px;cursor:pointer}
+.wzd.on{background:var(--pri);border-color:var(--pri);color:var(--onpri)}
+.wzmid{display:grid;place-items:center;border-radius:50%;background:var(--line);color:var(--mut);margin:8px}
+.wzlist{display:flex;flex-direction:column;gap:10px}
+.wzl,.wzroom,.wzpb{min-height:64px;border:2px solid var(--line);background:var(--surf);color:var(--ink);font:inherit;border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;width:100%}
+.wzl b,.wzroom b,.wzpb b{display:block;font-size:17px}.wzl span span,.wzroom span span,.wzpb span span{display:block;font-size:14.5px;color:var(--mut);margin-top:2px}
+.wzl.on,.wzp.on .wzpb{border-color:var(--pri);background:rgb(var(--gl) / .22)}
+.wzl .ph,.wzpb .ph{width:48px;height:48px;border-radius:12px;flex:none}
+.wzp{display:flex;flex-direction:column;gap:6px}
+.wzhang{align-self:flex-start;min-height:48px;border:2px solid var(--line);background:var(--surf);color:var(--ink);font:inherit;font-size:15px;font-weight:700;border-radius:999px;padding:8px 16px;cursor:pointer;margin-left:6px}
+.wzhang.on{border-color:var(--pri);color:var(--pri)}
+.wzl .grow,.wzroom .grow,.wzpb .grow{flex:1;min-width:0}
+.wzbadge{flex:none;font-size:14px;font-weight:800;border-radius:999px;padding:6px 12px;background:var(--line);color:var(--mut)}.wzbadge.on{background:rgb(var(--gl) / .35);color:var(--ink)}
+/* Avancerat läge: planritningen är en egen skärm utan bottenmeny */
+body.hadv nav{display:none}
+.ptools.four{grid-template-columns:repeat(5,1fr) !important}
+.ptools.more{grid-template-columns:repeat(4,1fr) !important;padding-top:4px !important}
+.ptools .pt{min-height:64px}.ptools .ptl{font-size:12.5px}
+.ptools.more .ptl{font-size:11.5px;text-align:center;line-height:1.15}
+.pmapb{width:auto !important;height:48px !important;padding:0 12px;display:flex !important;align-items:center;gap:6px;font:inherit;font-size:13px;font-weight:800}
+.pnorth{width:56px !important;height:64px !important;border-radius:16px !important;display:flex !important;flex-direction:column;align-items:center;justify-content:center}
+.pnorth .pnl{font-size:11px;font-weight:800;color:var(--ink);width:auto;height:auto}
+.pzoom button{width:48px !important;height:48px !important}
 /* Offline: banner när nätet saknas */
 #offline{position:fixed;top:0;left:0;right:0;z-index:999;background:#5A4A2E;color:#fff;text-align:center;padding:10px 14px;font-size:14px;font-weight:600}
 #offline[hidden]{display:none}
@@ -1776,7 +1818,7 @@ function keepScroll() { const md = $('.modal'), y = md ? md.scrollTop : 0; rende
 function pdCount(x) { S.pd.count = Math.max(1, Math.min(99, (+S.pd.count || 1) + x)); keepScroll(); }
 function pdSet(k, v) { S.pd[k] = S.pd[k] === v ? null : v; keepScroll(); }
 function pdSoil(v) { const a = S.pd.soil || []; S.pd.soil = a.includes(v) ? a.filter(x => x !== v) : a.concat(v); keepScroll(); }
-function pdChips(k, multi) { return `<div class="chips2">${PD[k].map(v => { const on = multi ? (S.pd.soil || []).includes(v) : S.pd[k] === v; return `<button class="${on ? 'on' : ''}" aria-pressed="${on}" onclick="${multi ? `pdSoil('${v}')` : `pdSet('${k}','${v}')`}">${v}</button>`; }).join('')}</div>`; }
+function pdChips(k, multi) { return `<div class="chips2">${PD[k].map(v => { const on = multi ? (S.pd.soil || []).includes(v) : S.pd[k] === v; return `<button class="${on ? 'on' : ''}" aria-pressed="${on}" onclick="${multi ? `pdSoil('${v}')` : `pdSet('${k}','${v}')`}">${v === 'Ampel' ? 'Ampel i taket' : v}</button>`; }).join('')}</div>`; }
 function pdetV() {
   const m = S.mine.find(x => x.id === S.pdId); if (!m) return '';
   const d = S.pd, outd = OUTDOOR.includes(m.category || (plantById(m.plant_id) || {}).category), pot = outd ? ['Kruka', 'Ampel'].includes(d.place) : (!d.place || !['Rabatt', 'Odlingslåda', 'I vatten', 'I marken'].includes(d.place)), pp = plantById(m.plant_id), ps = pp ? pSize(pp) : null;
@@ -1929,6 +1971,7 @@ const TEMPS = ['Svalt', 'Normalt', 'Varmt'], HUMS = ['Torr luft', 'Normal', 'Fuk
 function roomOf(m, d) { if (m && isOutM(m)) return null; const id = (d || (m && m.details) || {}).room; return id ? (S.home || []).find(r => r.id === id) || null : null; }
 function dirTxt(r) { const d = r.dirs || []; return d.length ? 'Fönster mot ' + d.map(x => DIRS.find(y => y[0] === x)[1].toLowerCase()).join(' och ') : 'Inget fönster'; }
 function roomSun(r, win) {
+  if (r.lightPick && !r.lamp) { let v = { 'Mörkt': 0.6, 'Halvljust': 1.5, 'Mycket ljust': 2.8 }[r.lightPick]; if (v != null) { if (win === 'Ca 1 m bort') v -= 0.7; else if (win === '2 m eller mer') v -= 1.4; return Math.max(0, v); } }
   const d = r.dirs || [];
   let v = d.length ? Math.max(...d.map(x => DIR_SUN[x])) + (d.length > 1 ? 0.3 : 0) : 0.3;
   if (['Balkong', 'Uterum', 'Trädgård'].includes(r.type)) v += 0.4;
@@ -1975,14 +2018,133 @@ function compassSvg(dirs, size) {
   return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" aria-hidden="true"><circle cx="${c}" cy="${c}" r="${R}" fill="none" stroke="var(--line, #d8d2c4)" stroke-width="1.5"/>${arcs}<text x="${c}" y="${sz * 0.3}" text-anchor="middle" font-size="${sz * 0.2}" font-weight="800" fill="var(--pri)">N</text><path d="M${c} ${c - sz * 0.1}l${sz * 0.07} ${sz * 0.22}h-${sz * 0.14}z" fill="var(--pri)"/></svg>`;
 }
 function plantsIn(id) { return S.mine.filter(m => (m.details || {}).room === id); }
+// ===== Mitt hem: enkelt läge. En guide med en fråga per skärm, och en översikt med rumskort. =====
+const hMode = () => S.hmode || store.get('hmode', 'simple');
+function setHMode(m, view) { S.hmode = m; store.set('hmode', m); if (view) S.hview = view; S.wz = null; S.room = null; render(); $('#main').scrollTop = 0; }
+const WZ_ROOMS = ['Vardagsrum', 'Kök', 'Sovrum', 'Badrum', 'Balkong', 'Trädgård', 'Hall'];
+const WZ_SIZE = { Vardagsrum: [5, 4], Kök: [3.5, 3], Sovrum: [3.5, 3.5], Badrum: [2.5, 2], Hall: [2, 3], Arbetsrum: [3, 3] };
+const WZ_LIGHT = [['Mörkt', 'Långt från fönstret', 'ph-circle'], ['Halvljust', 'Nära fönstret, ingen direkt sol', 'ph-circle-half'], ['Mycket ljust', 'Sol rakt in flera timmar', 'ph-sun']];
+const WZ_TPL = [['Lägenhet 1 rok', ['Vardagsrum', 'Kök', 'Badrum', 'Hall']], ['Lägenhet 2 rok', ['Vardagsrum', 'Sovrum', 'Kök', 'Badrum', 'Hall']], ['Villa', ['Vardagsrum', 'Kök', 'Sovrum', 'Sovrum 2', 'Badrum', 'Hall', 'Trädgård']]];
+const WZ_OUT = ['Balkong', 'Trädgård', 'Uterum'];
+const roomKind = n => (WZ_ROOMS.concat(['Arbetsrum', 'Uterum']).find(k => n === k || n.startsWith(k + ' ')) || '');
+const lightOf = r => r.lightPick || ({ 'Mycket ljust': 'Mycket ljust', 'Ljust': 'Halvljust', 'Halvskugga': 'Halvljust', 'Mörkt': 'Mörkt' })[roomLightWord(r)];
+const lightIc = l => (WZ_LIGHT.find(x => x[0] === l) || WZ_LIGHT[1])[2];
+const dirName = d => (DIRS.find(x => x[0] === d) || [0, ''])[1];
+function wzStart(tpl, editId) {
+  const ex = S.home || [], data = {};
+  ex.forEach(r => { data[r.name] = { id: r.id, dir: (r.dirs || [])[0] || null, light: r.lightPick || null, plants: plantsIn(r.id).map(m => m.id), hang: plantsIn(r.id).filter(m => (m.details || {}).place === 'Ampel').map(m => m.id) }; });
+  let sel = ex.map(r => r.name); if (tpl) sel = [...new Set(sel.concat(tpl))];
+  S.wz = { step: editId ? 2 : 1, sel, cur: 0, data, other: null, only: null };
+  if (editId) { const r = ex.find(x => x.id === editId); S.wz.only = r ? r.name : null; S.wz.sel = r ? [r.name] : sel; }
+  render(); $('#main').scrollTop = 0;
+}
+const wzD = n => (S.wz.data[n] = S.wz.data[n] || { id: null, dir: null, light: null, plants: [], hang: [] });
+const wzName = () => S.wz.sel[S.wz.cur];
+function wzTog(n) { const a = S.wz.sel; S.wz.sel = a.includes(n) ? a.filter(x => x !== n) : a.concat(n); keepScroll(); }
+function wzTpl(i) { S.wz.sel = [...new Set(WZ_TPL[i][1])]; keepScroll(); }
+function wzOther() { const v = (($('#wzo') || {}).value || '').trim(); if (!v) return toast('Skriv ett namn på rummet'); if (!S.wz.sel.includes(v)) S.wz.sel.push(v); S.wz.other = null; keepScroll(); }
+function wzNext() { const W = S.wz; if (W.step === 1) { if (!W.sel.length) return toast('Välj minst ett rum'); W.cur = 0; W.step = 2; }
+  else if (W.step < 4) W.step++;
+  else if (W.cur < W.sel.length - 1) { W.cur++; W.step = 2; }
+  else return wzSave();
+  render(); $('#main').scrollTop = 0; }
+function wzBack() { const W = S.wz; if (W.step === 1 || (W.only && W.step === 2)) { S.wz = null; return render(); } if (W.step === 2 && W.cur > 0) { W.cur--; W.step = 4; } else W.step--; render(); $('#main').scrollTop = 0; }
+function wzSet(k, v) { wzD(wzName())[k] = wzD(wzName())[k] === v ? null : v; keepScroll(); }
+function wzPlant(id) { const d = wzD(wzName()); d.plants = d.plants.includes(id) ? d.plants.filter(x => x !== id) : d.plants.concat(id); if (!d.plants.includes(id)) d.hang = d.hang.filter(x => x !== id); keepScroll(); }
+function wzHang(id) { const d = wzD(wzName()); d.hang = d.hang.includes(id) ? d.hang.filter(x => x !== id) : d.hang.concat(id); keepScroll(); }
+async function wzCompass() {
+  try { if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function' && await DeviceOrientationEvent.requestPermission() !== 'granted') return toast('Kompassen behöver tillåtelse'); } catch (e) { return toast('Kompassen gick inte att starta'); }
+  if (!('ondeviceorientationabsolute' in window) && !('ondeviceorientation' in window)) return toast('Telefonen har ingen kompass som appen kan läsa');
+  toast('Håll telefonen mot fönstret…');
+  const ev = 'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';
+  const h = e => { let hd = e.webkitCompassHeading != null ? e.webkitCompassHeading : e.alpha != null ? 360 - e.alpha : null; if (hd == null) return; window.removeEventListener(ev, h); clearTimeout(t);
+    const d = ['N', 'O', 'S', 'V'][Math.round(((hd % 360) + 360) % 360 / 90) % 4]; wzD(wzName()).dir = d; toast('Fönstret vetter mot ' + dirName(d).toLowerCase()); render(); };
+  const t = setTimeout(() => { window.removeEventListener(ev, h); toast('Kompassen svarade inte. Välj håll själv.'); }, 6000);
+  window.addEventListener(ev, h);
+}
+// Lägger ut rum som saknar ritning bredvid huset: rum mot norr överst, mot söder nederst, öster till höger och väster till vänster
+function wzLayout(rooms) {
+  const need = rooms.filter(r => !r.rect && !WZ_OUT.includes(r.type)); if (!need.length) return;
+  const placed = rooms.filter(r => r.rect), x0 = placed.length ? Math.max(...placed.map(r => r.rect.x + r.rect.w)) + 1 : 0, y0 = placed.length ? Math.min(...placed.map(r => r.rect.y)) : 0;
+  const sz = r => WZ_SIZE[r.type] || [3, 3], d = r => (r.dirs || [])[0] || '', side = dd => ['t', 'r', 'b', 'l'].find(s => winDir(s) === dd);
+  const W = need.filter(r => d(r) === 'V'), E = need.filter(r => d(r) === 'O'), Sx = need.filter(r => d(r) === 'S' || d(r) === 'SO' || d(r) === 'SV'), Nx = need.filter(r => !W.includes(r) && !E.includes(r) && !Sx.includes(r));
+  const topH = Math.max(3, ...Nx.map(r => sz(r)[1])), botH = Math.max(3.5, ...Sx.map(r => sz(r)[1])), H = topH + botH, colW = 3.5;
+  const xm = x0 + (W.length ? colW : 0); let wT = 0, wB = 0; Nx.forEach(r => wT += sz(r)[0]); Sx.forEach(r => wB += sz(r)[0]); const MW = Math.max(wT, wB, 4);
+  const row = (L, y, h) => { let x = xm; const tot = L.reduce((a, r) => a + sz(r)[0], 0) || 1; L.forEach(r => { const w = sz(r)[0] * MW / tot; r.rect = { x: r1(x), y: r1(y), w: r1(w), h: r1(h) }; x += w; }); };
+  row(Nx, y0, topH); row(Sx, y0 + topH, botH);
+  const col = (L, x) => { let y = y0; L.forEach(r => { const h = H / L.length; r.rect = { x: r1(x), y: r1(y), w: colW, h: r1(h) }; y += h; }); };
+  col(W, x0); col(E, xm + MW);
+  need.forEach(r => { const s = d(r) && side(d(r)); if (!s) return; const L = ['t', 'b'].includes(s) ? r.rect.w : r.rect.h, l = Math.min(1.6, Math.max(0.8, L - 0.8)); r.wins = [{ s, p: r1((L - l) / 2), l }]; });
+}
+async function wzSave() {
+  const W = S.wz, rooms = S.home = S.home || []; S.busy = true; render();
+  W.sel.forEach((n, i) => { const D = wzD(n); let r = rooms.find(x => x.id === D.id) || rooms.find(x => x.name === n);
+    if (!r) { const t = roomKind(n) || ''; r = { id: 'r' + Date.now().toString(36) + i, name: n, type: t, dirs: [], lamp: false, temp: 'Normalt', hum: t === 'Badrum' ? 'Fuktig' : 'Normal' }; rooms.push(r); }
+    if (D.dir) r.dirs = [D.dir]; if (D.light) r.lightPick = D.light; else delete r.lightPick; D.id = r.id; });
+  wzLayout(rooms);
+  try {
+    S.hDirty = true; await api.saveHome(rooms); S.hDirty = false;
+    for (const n of W.sel) { const D = wzD(n), r = rooms.find(x => x.id === D.id); if (!r) continue; let k = 0;
+      for (const id of D.plants) { const m = S.mine.find(x => x.id === id); if (!m) continue; const d = JSON.parse(JSON.stringify(m.details || {})); d.room = r.id;
+        if (D.hang.includes(id)) d.place = 'Ampel'; else if (d.place === 'Ampel') d.place = 'Kruka';
+        if (r.rect && !(d.pos && d.pos.x >= r.rect.x && d.pos.x <= r.rect.x + r.rect.w && d.pos.y >= r.rect.y && d.pos.y <= r.rect.y + r.rect.h)) { const w0 = (r.wins || [])[0], c = [r.rect.x + r.rect.w / 2, r.rect.y + r.rect.h / 2];
+          if (w0) { const q = wallSeg(r, w0), t = (k % 3 + 1) / 4, px = q[0] + (q[2] - q[0]) * t, py = q[1] + (q[3] - q[1]) * t; d.pos = { x: r1(px + (c[0] - px) * 0.25), y: r1(py + (c[1] - py) * 0.25) }; }
+          else d.pos = { x: r1(c[0] + ((k % 3) - 1) * 0.6), y: r1(c[1] + (Math.floor(k / 3) % 3 - 1) * 0.6) }; k++; }
+        if (d.pos && r.rect) { const ww = winWord(r, d.pos.x, d.pos.y); if (ww) d.win = ww; }
+        d.light = roomLightWord(r, d.win); await api.saveDetails(id, d); }
+      for (const m of plantsIn(r.id)) if (!D.plants.includes(m.id)) { const d = JSON.parse(JSON.stringify(m.details || {})); delete d.room; delete d.win; delete d.light; await api.saveDetails(m.id, d); } }
+    S.mine = await api.mine(); S.wz = null; S.busy = false; render(); $('#main').scrollTop = 0; toast('Ditt hem är sparat');
+  } catch (e) { S.busy = false; render(); toast(e.message === 'HOME_NOT_READY' ? 'Mitt hem går inte att använda just nu.' : 'Kunde inte spara. ' + errMsg(e)); }
+}
+function wzHead(n, sub) { const W = S.wz, tot = 4, pct = Math.round(W.step / tot * 100);
+  return `<div class="wzh"><button class="circ" onclick="wzBack()" aria-label="Tillbaka">${ic(I.back, 'currentColor', 22)}</button><div class="grow"><span class="wzs">Steg ${W.step} av ${tot}${sub ? ' · ' + esc(sub) : ''}</span><div class="wzbar"><i style="width:${pct}%"></i></div></div></div>`; }
+function wizardV() {
+  const W = S.wz, n = wzName(), D = n ? wzD(n) : null, kind = n ? roomKind(n) : '';
+  if (W.step === 1) { const all = [...new Set(WZ_ROOMS.concat(W.sel))];
+    return `${wzHead()}<div class="wz"><h1>Vilka rum har du?</h1><p class="mut">Tryck på alla rum där du har eller vill ha växter.</p>
+    <div class="wzgrid">${all.map(r => { const on = W.sel.includes(r); return `<button class="wzc ${on ? 'on' : ''}" aria-pressed="${on}" onclick="wzTog(${jsArg(r)})"><span>${esc(r)}</span><i class="wzck">${on ? '✓' : ''}</i></button>`; }).join('')}
+    ${W.other === null ? `<button class="wzc add" onclick="S.wz.other='';keepScroll();setTimeout(()=>{const i=$('#wzo');if(i)i.focus()},50)">+ Annat rum</button>` : `<div class="wzother"><input id="wzo" class="inp" placeholder="Till exempel Arbetsrum" onkeydown="if(event.key==='Enter')wzOther()"><button class="btn" onclick="wzOther()">Lägg till</button></div>`}</div>
+    <p class="wzlbl">Eller börja från en mall</p><div class="wzrow">${WZ_TPL.map((t, i) => `<button class="btn line" onclick="wzTpl(${i})">${t[0]}</button>`).join('')}</div>
+    <button class="btn wide wznext" onclick="wzNext()">Nästa</button></div>`; }
+  if (W.step === 2) { const q = kind === 'Trädgård' ? 'Åt vilket håll ligger trädgården?' : kind === 'Balkong' ? 'Åt vilket håll vetter balkongen?' : 'Åt vilket håll vetter fönstret?', b = d => `<button class="wzd ${D.dir === d ? 'on' : ''}" aria-pressed="${D.dir === d}" onclick="wzSet('dir','${d}')">${dirName(d)}</button>`;
+    return `${wzHead(0, n)}<div class="wz"><h1>${q}</h1><p class="mut">Gäller ${esc(n.toLowerCase())}. Välj det håll du tittar ut mot.</p>
+    <div class="wzcomp"><span></span>${b('N')}<span></span>${b('V')}<span class="wzmid">${ic('ph-frame-corners', 'currentColor', 26)}</span>${b('O')}<span></span>${b('S')}<span></span></div>
+    <button class="btn wide line" onclick="wzCompass()">${ic('ph-compass', 'currentColor', 18)} Använd telefonens kompass</button><p class="mut" style="text-align:center;font-size:14px">Ställ dig vid fönstret och håll telefonen mot det.</p>
+    <button class="btn wide wznext" onclick="wzNext()">Nästa</button><button class="btn wide line" onclick="wzD(wzName()).dir=null;wzNext()">Vet inte, hoppa över</button></div>`; }
+  if (W.step === 3) return `${wzHead(0, n)}<div class="wz"><h1>Hur ljust är det?</h1><p class="mut">Tänk på platsen där växterna står.</p>
+    <div class="wzlist">${WZ_LIGHT.map(([l, t, icn]) => `<button class="wzl ${D.light === l ? 'on' : ''}" aria-pressed="${D.light === l}" onclick="wzSet('light','${l}')">${ic(icn, 'currentColor', 26)}<span class="grow"><b>${l}</b><span>${t}</span></span></button>`).join('')}</div>
+    ${S.pro ? `<button class="btn wide line" onclick="openTool('light')">${ic(I.sun, 'currentColor', 18)} Mät med ljusmätaren</button>` : ''}
+    <button class="btn wide wznext" onclick="wzNext()">Nästa</button></div>`;
+  const last = W.cur >= W.sel.length - 1;
+  return `${wzHead(0, n)}<div class="wz"><h1>Vilka växter står här?</h1><p class="mut">Välj ur din samling. Du kan flytta dem senare.</p>
+    <div class="wzlist">${S.mine.length ? S.mine.map(m => { const on = D.plants.includes(m.id), other = !on && (m.details || {}).room && (S.home || []).find(r => r.id === m.details.room), hang = D.hang.includes(m.id);
+      return `<div class="wzp ${on ? 'on' : ''}"><button class="wzpb" aria-pressed="${on}" onclick="wzPlant(${m.id})">${myPh(m)}<span class="grow"><b>${esc(m.name)}</b><span>${esc(m.latin || '')}${other ? ' · nu i ' + esc(other.name.toLowerCase()) : ''}</span></span><i class="wzck">${on ? '✓' : ''}</i></button>${on && !WZ_OUT.includes(kind) ? `<button class="wzhang ${hang ? 'on' : ''}" aria-pressed="${hang}" onclick="wzHang(${m.id})">${hang ? '✓ Hänger i taket' : 'Häng i taket (ampel)'}</button>` : ''}</div>`; }).join('') : '<p class="mut">Du har inga växter i samlingen än.</p>'}
+    <button class="wzc add" onclick="openModal('add')">+ Lägg till en ny växt</button></div>
+    <button class="btn wide wznext" ${S.busy ? 'disabled' : ''} onclick="wzNext()">${S.busy ? 'Sparar…' : last ? 'Klar' : 'Klar med ' + esc(n.toLowerCase())}</button><button class="btn wide line" onclick="wzNext()">Hoppa över</button></div>`;
+}
+function simpleHomeV() {
+  const rooms = S.home || [], noRoom = S.mine.filter(m => !(m.details || {}).room), placed = S.mine.filter(m => (m.details || {}).room).length;
+  if (!rooms.length) return `${topbar('Mitt hem', 'closeTool()')}<div class="wz"><h1>Ditt hem</h1><p class="mut">Berätta vilka rum du har och hur ljust det är. Då vet Roothood var dina växter trivs. Det tar ett par minuter.</p>
+    <button class="btn wide wznext" onclick="wzStart()">Kom igång</button>
+    <p class="wzlbl">Eller börja från en mall</p><div class="wzlist">${WZ_TPL.map((t, i) => `<button class="wzl" onclick="wzStart(WZ_TPL[${i}][1])"><span class="grow"><b>${t[0]}</b><span>${t[1].join(', ')}</span></span></button>`).join('')}</div>
+    <button class="btn wide line" onclick="setHMode('adv','plan')">${ic(PEN, 'currentColor', 18)} Rita planritning (avancerat)</button></div>`;
+  return `${topbar('Mitt hem', 'closeTool()')}<div class="wz"><h1>Ditt hem</h1><p class="mut">${rooms.length} rum · ${placed} ${placed === 1 ? 'växt' : 'växter'} placerade. Tryck på ett rum för att ändra.</p>
+    <div class="wzlist">${rooms.map(r => { const n = plantsIn(r.id).length, l = lightOf(r); return `<button class="wzroom" onclick="wzStart(null,'${r.id}')">${ic(lightIc(l), l === 'Mycket ljust' ? '#E0A11B' : l === 'Halvljust' ? '#D99A2B' : 'var(--mut)', 28)}<span class="grow"><b>${esc(r.name)}</b><span>${[(r.dirs || []).map(dirName).join(' och '), l].filter(Boolean).join(' · ')}</span></span><span class="wzbadge ${n ? 'on' : ''}">${n ? n + (n === 1 ? ' växt' : ' växter') : 'Tomt'}</span></button>`; }).join('')}
+    <button class="wzc add" onclick="wzStart()">+ Lägg till rum</button></div>
+    ${noRoom.length ? `<p class="wzlbl">${noRoom.length} ${noRoom.length === 1 ? 'växt' : 'växter'} utan rum</p><div class="wzlist">${noRoom.slice(0, 6).map(m => `<button class="wzl" onclick="pickRoomFor(${m.id})">${myPh(m)}<span class="grow"><b>${esc(m.name)}</b><span>Tryck för att välja rum</span></span></button>`).join('')}</div>` : ''}
+    <button class="btn wide line" onclick="setHMode('adv','3d')">${ic('ph-cube', 'currentColor', 18)} Visa huset i 3D</button>
+    <button class="btn wide line" onclick="setHMode('adv','plan')">${ic(PEN, 'currentColor', 18)} Rita planritning (avancerat)</button></div>`;
+}
 function houseV() {
   const rooms = S.home || [];
   if (S.room) { const r = rooms.find(x => x.id === S.room); if (r) return roomV(r); if (S.homeLoaded) S.room = null; else return `${topbar('Mitt hem', 'closeTool()')}<p class="mut" style="margin:0 18px">Hämtar dina rum…</p>`; }
+  if (hMode() === 'simple') return S.wz ? wizardV() : simpleHomeV();
   const noRoom = S.mine.filter(m => !roomOf(m));
-  const hv = S.hview || 'plan';
-  const seg = `<div class="seg2 hseg">${[['plan', 'Ritning'], ['3d', '3D'], ['list', 'Rum']].map(([k, n]) => `<button class="${hv === k ? 'on' : ''}" onclick="S.hview='${k}';render()">${n}</button>`).join('')}</div>`;
-  if (hv === 'plan') return `${topbar('Mitt hem', 'closeTool()')}${seg}${planV()}`;
-  if (hv === '3d') return `${topbar('Mitt hem', 'closeTool()')}${seg}${view3dV()}`;
+  const hv = S.hview === '3d' ? '3d' : 'plan';
+  const seg = `<div class="seg2 hseg">${[['plan', 'Ritning'], ['3d', '3D']].map(([k, n]) => `<button class="${hv === k ? 'on' : ''}" onclick="S.hview='${k}';render()">${n}</button>`).join('')}</div>`;
+  const advTop = topbar(hv === '3d' ? 'Huset i 3D' : 'Planritning', "setHMode('simple')", `<button class="btn sm" onclick="setHMode('simple')">Klar</button>`);
+  if (hv === 'plan') return `${advTop}${seg}${planV()}`;
+  if (hv === '3d') return `${advTop}${seg}${view3dV()}`;
   return `${topbar('Mitt hem', 'closeTool()')}${seg}
   <p class="mut" style="margin:0 18px 4px">Lägg in dina rum och åt vilket väderstreck fönstren vetter. Då vet Roothood hur mycket ljus varje växt får och tipsar om bättre platser.</p>
   ${S.homeErr === 'HOME_NOT_READY' ? '<div class="instc" style="margin:12px 18px 0"><div><b>Mitt hem går inte att använda just nu</b><span>Försök igen senare.</span></div></div>' : ''}
@@ -1992,6 +2154,9 @@ function houseV() {
   ${rooms.length && noRoom.length ? `<div class="sec"><h2>Växter utan rum</h2></div><div class="pad"><div class="norm">${noRoom.map(m => `<button class="nrow" onclick="pickRoomFor(${m.id})">${myPh(m)}<span class="grow">${esc(m.name)}</span><span class="link3">Välj rum</span></button>`).join('')}</div></div>` : ''}
 `;
 }
+// Häng en växt i taket (platsen Ampel) eller ställ ner den igen
+async function togHang(id) { const m = S.mine.find(x => x.id === id); if (!m) return; const d = JSON.parse(JSON.stringify(m.details || {})), on = d.place !== 'Ampel'; d.place = on ? 'Ampel' : 'Kruka';
+  try { await api.saveDetails(id, d); m.details = d; S.mine = await api.mine(); render(); toast(on ? m.name + ' hänger nu i taket' : m.name + ' står nu på golvet'); } catch (e) { toast(errMsg(e)); } }
 function pickRoomFor(id) { S.pickFor = id; openModal('pickroom'); }
 function pickRoomSheet() {
   const m = S.mine.find(x => x.id === S.pickFor); if (!m) return '';
@@ -2953,6 +3118,8 @@ function gEditH(dv) { pushUndo(); const g = planGarden().find(x => x.id === PL()
 function delG(id) { pushUndo(); S.hplan.garden = planGarden().filter(x => x.id !== id); PL().sel = null; saveHomeSoon(); render(); }
 function uteKind(k) { const P = PL(); if (P.upoly && P.upoly.length >= 3 && P.ukind !== k) finishPoly(); P.ukind = k; P.upoly = []; P.msg = null; render(); }
 function planItems() { return (S.hplan && S.hplan.items) || []; }
+// Fönsterfärg efter hur mycket ljus väderstrecket ger
+const winCol = d => { const v = DIR_SUN[d] || 1.5; return v >= 2.6 ? '#E39A1E' : v >= 1.8 ? '#D8C14A' : '#5E8FC9'; };
 function northDeg() { return (S.hplan && S.hplan.north) || 0; }
 function wallSeg(r, w) { const { x, y, w: W, h: H } = r.rect;
   return w.s === 't' ? [x + w.p, y, x + w.p + w.l, y] : w.s === 'b' ? [x + w.p, y + H, x + w.p + w.l, y + H] : w.s === 'l' ? [x, y + w.p, x, y + w.p + w.l] : [x + W, y + w.p, x + W, y + w.p + w.l]; }
@@ -3062,22 +3229,22 @@ function planInner() {
   const grid = `<defs><pattern id="g5" width="${z / 2}" height="${z / 2}" patternUnits="userSpaceOnUse" x="${P.ox}" y="${P.oy}"><path d="M${z / 2} 0V${z / 2}H0" fill="none" stroke="var(--line)" stroke-width=".6"/></pattern><pattern id="g1" width="${z}" height="${z}" patternUnits="userSpaceOnUse" x="${P.ox}" y="${P.oy}"><rect width="${z}" height="${z}" fill="url(#g5)"/><path d="M${z} 0V${z}H0" fill="none" stroke="var(--line)" stroke-width="1.2"/></pattern></defs><rect x="-4000" y="-4000" width="9000" height="9000" fill="url(#g1)"/>`;
   const T = (x, y) => `${(P.ox + x * z).toFixed(1)},${(P.oy + y * z).toFixed(1)}`;
   const X = x => (P.ox + x * z).toFixed(1), Y = y => (P.oy + y * z).toFixed(1);
-  let out = mapTiles() + `<g transform="rotate(${viewRot()} ${P.ox.toFixed(1)} ${P.oy.toFixed(1)})">` + (z >= 6 ? grid : '') + gardenBelow() + ghostRooms(X, Y);
+  let labs = '', out = mapTiles() + `<g transform="rotate(${viewRot()} ${P.ox.toFixed(1)} ${P.oy.toFixed(1)})">` + (z >= 6 ? grid : '') + gardenBelow() + ghostRooms(X, Y);
   rs.forEach(r => { const v = roomSun(r), on = sel.k === 'room' && sel.id === r.id;
     out += `<polygon data-k="room" data-id="${r.id}" points="${roomPoly(r).map(q => X(q[0]) + ',' + Y(q[1])).join(' ')}" stroke-linejoin="round" fill="${v >= 2.5 ? 'rgba(212,154,46,.20)' : v >= 1.7 ? 'rgba(212,154,46,.10)' : 'var(--surf)'}" fill-opacity="${mapOn() ? .45 : 1}" stroke="none"/>`;
   });
   rs.forEach(r => { const { x, y, w, h } = r.rect, v = roomSun(r), on = sel.k === 'room' && sel.id === r.id;
     const fs = Math.max(10, Math.min(15, z * 0.38));
     const lx = (P.ox + x * z + Math.max(9, 0.5 * z)).toFixed(1), ly = P.oy + y * z + 8 + fs;
-    if (w * z > 44) out += `<text x="${lx}" y="${ly.toFixed(1)}" font-size="${fs}" font-weight="800" fill="var(--ink)" pointer-events="none">${esc(r.name)}</text>${h * z > 60 ? `<text x="${lx}" y="${(ly + fs * 1.15).toFixed(1)}" font-size="${fs * 0.72}" font-weight="600" fill="var(--mut)" pointer-events="none">${w}×${h} m · ${roomLightWord(r)}${r.lamp ? ' · lampa' : ''}</text>` : ''}`;
+    if (w * z > 44) labs += `<text x="${lx}" y="${ly.toFixed(1)}" font-size="${fs}" font-weight="800" fill="var(--ink)" stroke="var(--bg)" stroke-width="4" paint-order="stroke" pointer-events="none">${esc(r.name)}</text>${h * z > 60 && z >= 22 ? `<text x="${lx}" y="${(ly + fs * 1.15).toFixed(1)}" font-size="${fs * 0.72}" font-weight="600" fill="var(--mut)" stroke="var(--bg)" stroke-width="3" paint-order="stroke" pointer-events="none">${w}×${h} m · ${lightOf(r)}${r.lamp ? ' · lampa' : ''}</text>` : ''}`;
     out += wallPieces(r).map(g => `<line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="var(--ink)" stroke-width="3.2" stroke-linecap="square" pointer-events="none"/>`).join('');
     if (on) out += `<polygon points="${roomPoly(r).map(q => X(q[0]) + ',' + Y(q[1])).join(' ')}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-dasharray="7 5" stroke-linejoin="round" pointer-events="none"/>`;
     (r.wins || []).forEach((wi, i) => { const [a, b, c, d] = wallSeg(r, wi), ws = sel.k === 'win' && sel.id === r.id && sel.i === i, k = wkOf(wi), hit = `<line data-k="win" data-id="${r.id}" data-i="${i}" x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="transparent" stroke-width="28"/>`;
       const nx = { t: 0, b: 0, l: 1, r: -1 }[wi.s], ny = { t: 1, b: -1, l: 0, r: 0 }[wi.s];
       if (k === 'win') {
-        out += `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="${ws ? 'var(--acc)' : 'var(--wat)'}" stroke-width="9" pointer-events="none"/><line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="#fff" stroke-width="2" pointer-events="none"/>`;
+        out += `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="${ws ? 'var(--acc)' : winCol(winDir(wi.s))}" stroke-width="9" pointer-events="none"/><line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="#fff" stroke-width="2" pointer-events="none"/>`;
         const mx = (a + c) / 2, my = (b + d) / 2, off = { t: [0, -0.42], b: [0, 0.55], l: [-0.42, 0.12], r: [0.42, 0.12] }[wi.s];
-        out += `<text x="${X(mx + off[0])}" y="${Y(my + off[1])}" text-anchor="middle" font-size="10" font-weight="800" fill="var(--wat)" pointer-events="none">${winDir(wi.s)}</text>`;
+
       } else if (k === 'door' || k === 'open') {
         if (k === 'door') { const L = wi.l, ex = a + nx * L, ey = b + ny * L, sw = (wi.s === 't' || wi.s === 'r') ? 1 : 0;
           out += `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(ex)}" y2="${Y(ey)}" stroke="${ws ? 'var(--acc)' : 'var(--ink)'}" stroke-width="2" pointer-events="none"/><path d="M${X(ex)} ${Y(ey)} A${(L * z).toFixed(1)} ${(L * z).toFixed(1)} 0 0 ${['b', 'l'].includes(wi.s) ? 1 : 0} ${X(c)} ${Y(d)}" fill="none" stroke="${ws ? 'var(--acc)' : 'var(--mut)'}" stroke-width="1.2" stroke-dasharray="3 3" pointer-events="none"/>`; }
@@ -3091,10 +3258,10 @@ function planInner() {
       }
       out += hit; });
     (r.bays || []).forEach((by, i) => { const segs = baySegs(r, by), bs = sel.k === 'bay' && sel.id === r.id && sel.i === i, q = bayPts(r, by), pl = q.map(v => X(v[0]) + ',' + Y(v[1])).join(' ');
-      segs.forEach(([g]) => { out += `<line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="var(--ink)" stroke-width="3.2" stroke-linecap="square" pointer-events="none"/><line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="${bs ? 'var(--acc)' : 'var(--wat)'}" stroke-width="8" stroke-linecap="round" pointer-events="none"/><line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="#fff" stroke-width="2" pointer-events="none"/>`; });
+      segs.forEach(([g, ga]) => { out += `<line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="var(--ink)" stroke-width="3.2" stroke-linecap="square" pointer-events="none"/><line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="${bs ? 'var(--acc)' : winCol(angDir(ga))}" stroke-width="8" stroke-linecap="round" pointer-events="none"/><line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="#fff" stroke-width="2" pointer-events="none"/>`; });
       out += `<polyline data-k="bay" data-id="${r.id}" data-i="${i}" points="${pl}" fill="none" stroke="transparent" stroke-width="28"/>`;
       const f = segs[1][0], ang = SIDE_A[by.s] * Math.PI / 180, lx = (f[0] + f[2]) / 2 + Math.sin(ang) * 0.42, ly = (f[1] + f[3]) / 2 - Math.cos(ang) * 0.42 + 0.12;
-      out += `<text x="${X(lx)}" y="${Y(ly)}" text-anchor="middle" font-size="10" font-weight="800" fill="var(--wat)" pointer-events="none">${segs.map(g => angDir(g[1])).join(' ')}</text>`; });
+      void lx; void ly; });
     if (on) out += `<circle data-k="handle" data-id="${r.id}" cx="${X(x + w)}" cy="${Y(y + h)}" r="11" fill="var(--acc)" stroke="#fff" stroke-width="3"/><path d="M${(P.ox + (x + w) * z - 4).toFixed(1)} ${(P.oy + (y + h) * z + 4).toFixed(1)}l8 -8m-5 0h5v5" stroke="#fff" stroke-width="2" fill="none" pointer-events="none"/>`;
   });
   planWalls().forEach(wl => { const on = sel.k === 'fwall' && sel.id === wl.id, half = wl.h === 'half';
@@ -3111,9 +3278,9 @@ function planInner() {
     out += `${half ? `<line x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="${on ? 'var(--acc)' : 'var(--mut)'}" stroke-width="2" stroke-linecap="round" pointer-events="none"/>` : ''}<line data-k="fwall" data-id="${wl.id}" x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="transparent" stroke-width="26"/>`; });
   if (P.ldraft) { const d = P.ldraft; out += `<line x1="${X(d.x0)}" y1="${Y(d.y0)}" x2="${X(d.x1)}" y2="${Y(d.y1)}" stroke="var(--pri)" stroke-width="4" stroke-linecap="round" stroke-dasharray="6 5"/><text x="${X((d.x0 + d.x1) / 2)}" y="${(P.oy + ((d.y0 + d.y1) / 2) * z - 10).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--pri)">${r1(Math.hypot(d.x1 - d.x0, d.y1 - d.y0))} m</text>`; }
   if (z < 6 && rs.length) { const [hx, hy] = mapCenter(); out += `<g transform="translate(${X(hx)},${Y(hy)})" pointer-events="none"><path d="M0 0c-7-9-11-14-11-19a11 11 0 0 1 22 0c0 5-4 10-11 19z" fill="var(--acc)" stroke="#fff" stroke-width="2"/><circle cy="-19" r="4" fill="#fff"/></g>`; }
-  if (z >= 6) planFurn().slice().sort((a, b) => FLAT.has(b.t) - FLAT.has(a.t)).forEach(f => { const on = sel.k === 'furn' && sel.id === f.id, W = f.w * z, H = f.h * z, nm = (FURN_M[f.t] || [0, 'Möbel'])[1], rug = FLAT.has(f.t), round = ROUNDS.has(f.t);
+  if (z >= 18) planFurn().slice().sort((a, b) => FLAT.has(b.t) - FLAT.has(a.t)).forEach(f => { const on = sel.k === 'furn' && sel.id === f.id, W = f.w * z, H = f.h * z, nm = (FURN_M[f.t] || [0, 'Möbel'])[1], rug = FLAT.has(f.t), round = ROUNDS.has(f.t);
     out += `<g data-k="furn" data-id="${f.id}" transform="translate(${T(f.x, f.y)}) rotate(${f.rot || 0})">${round ? `<ellipse rx="${(W / 2).toFixed(1)}" ry="${(H / 2).toFixed(1)}"` : `<rect x="${(-W / 2).toFixed(1)}" y="${(-H / 2).toFixed(1)}" width="${W.toFixed(1)}" height="${H.toFixed(1)}" rx="${Math.min(6, W / 5, H / 5).toFixed(1)}"`} fill="${rug ? 'rgba(160,140,200,.18)' : 'var(--phb)'}" fill-opacity="${S.hplan.map && S.hplan.map.on ? .8 : 1}" stroke="${on ? 'var(--acc)' : 'var(--mut)'}" stroke-width="${on ? 2.5 : 1.3}" ${rug ? 'stroke-dasharray="4 3"' : ''}/>${f.t === 'sofa' && H > 14 ? `<rect x="${(-W / 2 + 3).toFixed(1)}" y="${(-H / 2 + 3).toFixed(1)}" width="${(W - 6).toFixed(1)}" height="${(H * 0.28).toFixed(1)}" rx="3" fill="none" stroke="var(--mut)" stroke-width="1" pointer-events="none"/>` : ''}${f.t.startsWith('bed') && H > 20 ? `<rect x="${(-W / 2 + 4).toFixed(1)}" y="${(-H / 2 + 4).toFixed(1)}" width="${(W - 8).toFixed(1)}" height="${(H * 0.18).toFixed(1)}" rx="3" fill="var(--surf)" stroke="var(--mut)" stroke-width="1" pointer-events="none"/>` : ''}${(f.rot || 0) % 180 === 90 ? (H > 34 && W > 13) : (f.rot || 0) % 180 === 0 ? (W > 34 && H > 13) : (Math.min(W, H) > 30) ? `<text y="4" text-anchor="middle" font-size="${Math.min(11, Math.min(W, H) * 0.45).toFixed(1)}" font-weight="700" fill="var(--mut)" pointer-events="none" transform="rotate(${-(f.rot || 0)})">${esc(nm)}</text>` : ''}</g>`; });
-  if (z >= 6) planItems().forEach(it => { const on = sel.k === 'dev' && sel.id === it.id, d = DEVS[it.t] || ['?', '•'];
+  if (z >= 18) planItems().forEach(it => { const on = sel.k === 'dev' && sel.id === it.id, d = DEVS[it.t] || ['?', '•'];
     out += `<g data-k="dev" data-id="${it.id}" transform="translate(${T(it.x, it.y)})">${on ? '<circle r="20" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>' : ''}<circle r="14" fill="var(--surf)" stroke="var(--pri)" stroke-width="2"/><text y="5" text-anchor="middle" font-size="14" pointer-events="none">${d[1]}</text></g>`; });
   if (z >= 2) S.mine.filter(m => m.details && m.details.pos && OUTDOOR.includes(m.category || (plantById(m.plant_id) || {}).category) && !['Kruka', 'Ampel'].includes(m.details.place)).forEach(m => { const { x, y } = m.details.pos, pp = plantById(m.plant_id), wm = (m.details.w || pSize(pp || {})[1]) / 100, k = pp ? kind3d(pp) : 'perenn', col = ['gran', 'tall', 'pelare', 'krypbarr'].includes(k) ? '47,94,58' : '78,139,58';
     out += `<circle cx="${X(x)}" cy="${Y(y)}" r="${Math.max(4, wm / 2 * z).toFixed(1)}" fill="rgba(${col},.32)" stroke="rgb(${col})" stroke-width="1.5" ${m.details.w ? '' : 'stroke-dasharray="4 3"'} pointer-events="none"/>`; });
@@ -3127,7 +3294,7 @@ function planInner() {
       if (Math.hypot(q2[0] - q[0], q2[1] - q[1]) * z > 46) out += `<g data-k="mid" data-id="${a.id}" data-i="${i}" transform="translate(${X(mx)},${Y(my)})"><circle r="16" fill="transparent"/><circle r="9" fill="var(--surf)" stroke="var(--pri)" stroke-width="2"/><path d="M-4 0h8M0 -4v8" stroke="var(--pri)" stroke-width="2" stroke-linecap="round"/></g>`; });
     a.pts.forEach((q, i) => { out += `<g data-k="vtx" data-id="${a.id}" data-i="${i}" transform="translate(${X(q[0])},${Y(q[1])})"><circle r="18" fill="transparent"/><circle r="10" fill="${P.vsel === i ? 'var(--acc)' : 'var(--pri)'}" stroke="#fff" stroke-width="3"/></g>`; }); } }
   out += bedLayer(X, Y, z);
-  out += '</g>';
+  out += labs + '</g>';
   return out;
 }
 function fitPlanBox() {
@@ -3143,7 +3310,7 @@ function planHint() {
   if (P.mode === 'room' && !P.roomDraw && !planRooms().length) return 'Tryck på <b>+ Nytt rum</b> när du vill rita ditt första rum. Tills dess kan du bara flytta kartan.';
   if (P.mode === 'room') return P.roomDraw ? 'Dra med fingret där det nya rummet ska vara. Ett tryck ger ett rum på 3 × 3 m.' : P.sel && P.sel.k === 'room' ? 'Dra rummet för att flytta det. Dra i den orange pricken för att ändra storlek.' : 'Tryck på ett rum för att välja det. Tryck på + Nytt rum för att rita ett nytt.';
   if (P.msg) return P.msg;
-  if (P.mode === 'bed') return P.bnew || !curBed() ? 'Ställ in måtten nedan och tryck på gården där rabatten ska ligga. Dra för att flytta kartan.' : P.bpick ? 'Tryck i rabatten för att sätta ut växten. Ringen visar cc-måttet. Dra en växt för att flytta den.' : 'Välj en växt ur Växtdatabasen nedan, eller tryck på en annan rabatt.';
+  if (P.mode === 'bed') return P.bnew || !curBed() ? 'Ställ in måtten nedan och tryck på gården där rabatten ska ligga. Dra för att flytta kartan.' : P.bpick ? 'Tryck i rabatten för att sätta ut växten. Ringen visar hur mycket plats växten behöver. Dra en växt för att flytta den.' : 'Välj en växt ur Växtdatabasen nedan, eller tryck på en annan rabatt.';
   if ((P.mode === 'ute' && !P.ukind) || (P.mode === 'win' && !P.wkind)) return 'Välj vad du vill rita i raden längst ner. Tills dess kan du bara flytta kartan.';
   if (P.mode === 'ute') { const u = UK_M[P.ukind || 'lot']; return u[2] === 'poly' ? (u[0] === 'lot' && planRooms().length && !planAreas().some(a => a.t === 'lot') ? 'Tryck var som helst så läggs tomten runt huset, eller dra ut den med fingret.' : 'Dra ut en rektangel med fingret, eller tryck så läggs en färdig yta ut. Sedan formar du den med hörnen.') + ' Flytta dig med två fingrar.' : u[2] === 'line' ? 'Dra med fingret där häcken går.' : 'Tryck där ' + u[1].toLowerCase() + ' står.'; }
   if (P.mode === 'win') return { win: 'Tryck på väggen där fönstret sitter.', bay: 'Tryck på väggen där burspråket sitter.', door: 'Tryck på väggen där dörren sitter.', open: 'Tryck på en vägg så tas hela väggbiten bort. Tryck på samma ställe igen för att sätta tillbaka den.', rad: 'Tryck på väggen där elementet sitter.', vent: 'Tryck på väggen där ventilen sitter.', wall: 'Dra med fingret där väggen ska vara. Längs en borttagen vägg sätts den biten tillbaka, annars blir det en ny vägg. Den rätar ut sig och fastnar i hörnen.', half: 'Dra med fingret för att rita en halvvägg, till exempel en bänk eller låg mur.' }[P.wkind || 'win'] + ' Tryck på något igen för att ta bort det.';
@@ -3157,14 +3324,16 @@ function planHint() {
 function planV() {
   const P = PL(), m = P.mode, unplaced = (S.home || []).filter(r => !r.rect);
   const tool = (k, n, icon, act, on) => `<button class="pt pt-${k} ${on ? 'on' : ''}" aria-pressed="${!!on}" onclick="${act}"><span class="pti">${String(icon).startsWith('ph-') ? `<i class="ph ${icon}" style="font-size:20px"></i>` : `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>`}</span><span class="ptl">${n}</span></button>`;
-  return `${floorBarV()}<div class="ptools">${tool('move', 'Flytta', PTI.move, "planMode('move')", m === 'move')}${tool('room', 'Rum', PTI.room, "planMode('room')", m === 'room')}${tool('win', 'Väggar', PTI.win, "planMode('win')", m === 'win')}${tool('ute', 'Ute', PTI.ute, "planMode('ute')", m === 'ute')}${tool('bed', 'Rabatt', PTI.bed, "planMode('bed')", m === 'bed')}${tool('plant', 'Växt', PTI.plant, "planPick('plant')", m === 'place' && P.pick && P.pick.k === 'plant')}${tool('bld', 'Byggnader', PTI.bld, "planPick('bld')", m === 'place' && P.pick && P.pick.k === 'furn' && BLD.has(P.pick.t))}${tool('furn', 'Möbler', PTI.furn, "planPick('furn')", m === 'place' && P.pick && P.pick.k === 'furn' && !BLD.has(P.pick.t))}${tool('dev', 'Smart', PTI.dev, "planPick('dev')", m === 'place' && P.pick && P.pick.k === 'dev')}</div>
+  const more = P.more, isBld = m === 'place' && P.pick && P.pick.k === 'furn' && BLD.has(P.pick.t), isFurn = m === 'place' && P.pick && P.pick.k === 'furn' && !BLD.has(P.pick.t), isDev = m === 'place' && P.pick && P.pick.k === 'dev', inMore = ['ute', 'bed', 'map'].includes(m) || isBld || isFurn || isDev;
+  return `${floors().length > 1 || curFl() !== 0 ? floorBarV() : ''}<div class="ptools four">${tool('room', 'Rum', PTI.room, "planMode('room')", m === 'room')}${tool('win', 'Fönster', PTI.win, "planMode('win')", m === 'win')}${tool('plant', 'Växt', PTI.plant, "planPick('plant')", m === 'place' && P.pick && P.pick.k === 'plant')}${tool('move', 'Flytta', PTI.move, "planMode('move')", m === 'move')}<button class="pt pt-more ${more || inMore ? 'on' : ''}" aria-expanded="${!!more}" onclick="PL().more=!PL().more;render()"><span class="pti"><i class="ph ph-dots-three" style="font-size:22px"></i></span><span class="ptl">Mer</span></button></div>
+  ${more ? `<div class="ptools more">${tool('ute', 'Trädgård och tomt', PTI.ute, "PL().more=false;planMode('ute')", m === 'ute')}${tool('bed', 'Rabatt', PTI.bed, "PL().more=false;planMode('bed')", m === 'bed')}${tool('bld', 'Byggnader', PTI.bld, "PL().more=false;planPick('bld')", isBld)}${tool('furn', 'Möbler', PTI.furn, "PL().more=false;planPick('furn')", isFurn)}${tool('dev', 'Smarta saker', PTI.dev, "PL().more=false;planPick('dev')", isDev)}<button class="pt" onclick="PL().more=false;planMode(PL().mode === 'map' ? 'move' : 'map')"><span class="pti"><i class="ph ph-map-trifold" style="font-size:20px"></i></span><span class="ptl">Karta</span></button><button class="pt" onclick="PL().more=false;openFl('add')"><span class="pti"><i class="ph ph-stack" style="font-size:20px"></i></span><span class="ptl">Ny våning</span></button></div>` : ''}
   <div class="pbar"><p class="phint" id="phint">${planHint()}${m === 'ute' && (P.upoly || []).length >= 3 ? ` <button class="link3" onclick="finishPoly()">Klar med ytan</button>` : m !== 'move' ? ` <button class="link3" onclick="planMode('move')">${m === 'win' || m === 'ute' || m === 'room' || m === 'bed' || (m === 'place' && P.pick && P.pick.k !== 'plant') ? 'Klar' : 'Avbryt'}</button>` : ''}</p><span id="savebar">${saveBarInner()}</span></div>
   <div class="planbox" id="planbox">${m === 'room' ? `<button class="newroomb ${P.roomDraw ? 'on' : ''}" onclick="PL().roomDraw=!PL().roomDraw;PL().sel=null;PL().msg=null;render()">${P.roomDraw ? 'Avbryt nytt rum' : '+ Nytt rum'}</button>` : ''}${m === 'ute' ? `<div class="wkind">${UK.map(([k, n, ty, e]) => `<button class="${P.ukind === k ? 'on ute' : ''}" onclick="uteKind('${k}')"><span style="font-size:15px">${e}</span>${n}</button>`).join('')}</div>` : ''}${m === 'place' && P.pick && (P.pick.k === 'furn' || P.pick.k === 'dev') ? `<div class="wkind">${P.pick.k === 'furn' ? (BLD.has(P.pick.t) ? '' : `<button class="${OUTF.has(P.pick.t) ? '' : 'on'}" onclick="PL().pick={k:'furn',t:'sofa'};render()">🏠 Inne</button><button class="${OUTF.has(P.pick.t) ? 'on ute' : ''}" onclick="PL().pick={k:'furn',t:'rbed'};render()">🌳 Ute</button>`) + (BLD.has(P.pick.t) ? FURN_BLD : OUTF.has(P.pick.t) ? FURN_UTE : FURN).map(([k, n, w, h, e]) => `<button class="${P.pick.t === k ? 'on' : ''}" onclick="PL().pick={k:'furn',t:'${k}'};PL().msg=null;render()"><span style="font-size:15px">${e}</span>${n}</button>`).join('') : Object.entries(DEVS).map(([k, [n, e]]) => `<button class="${P.pick.t === k ? 'on' : ''}" onclick="PL().pick={k:'dev',t:'${k}'};PL().msg=null;render()"><span style="font-size:15px">${e}</span>${n}</button>`).join('')}</div>` : ''}${m === 'win' ? `<div class="wkind">${WK.map(([k, n]) => `<button class="${P.wkind === k ? 'on' : ''}" onclick="PL().wkind='${k}';PL().msg=null;render()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${WKI[k]}</svg>${n}</button>`).join('')}</div>` : ''}${(S.undo || []).length ? `<button class="pundo" onclick="undoPlan()" aria-label="Ångra"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Ångra</button>` : ''}<svg id="plan" width="100%" height="100%" onpointerdown="planDown(event)" onpointermove="planMove(event)" onpointerup="planUp(event)" onpointercancel="planUp(event)" onwheel="planWheel(event)">${planInner()}</svg>
-    <button class="pmapb ${m === 'map' ? 'on' : ''}" onclick="planMode(PL().mode === 'map' ? 'move' : 'map')" aria-label="Karta i bakgrunden"><i class="ph ph-map-trifold" style="font-size:20px"></i></button>${m === 'map' ? mapPanelV() : ''}${mapOn() && m !== 'map' ? `<span class="mattr">${TILES[S.hplan.map.layer || 'sat'][2]}</span>` : ''}
-    <button class="pnorth" onclick="rotNorth()" aria-label="Vrid norrpilen" title="Vrid norrpilen så den pekar mot norr"><span style="transform:rotate(${northDeg() + viewRot()}deg)">${compassSvg([], 40)}</span></button>
-    <div class="pzoom"><button onclick="planZoom(1.6)" aria-label="Zooma in">+</button><button onclick="planZoom(0.625)" aria-label="Zooma ut">−</button><button onclick="PL().fit=true;renderPlan()" aria-label="Visa allt" style="font-size:13px">⤢</button></div>${planSelV()}</div>
+    <button class="pmapb ${m === 'map' ? 'on' : ''}" onclick="planMode(PL().mode === 'map' ? 'move' : 'map')" aria-label="Karta i bakgrunden"><i class="ph ph-map-trifold" style="font-size:20px"></i><span>Karta</span></button>${m === 'map' ? mapPanelV() : ''}${mapOn() && m !== 'map' ? `<span class="mattr">${TILES[S.hplan.map.layer || 'sat'][2]}</span>` : ''}
+    <button class="pnorth" onclick="rotNorth()" aria-label="Vrid norrpilen" title="Vrid norrpilen så den pekar mot norr"><span style="transform:rotate(${northDeg() + viewRot()}deg)">${compassSvg([], 40)}</span><span class="pnl">Norr</span></button>
+    <div class="pzoom"><button onclick="planZoom(1.6)" aria-label="Zooma in">+</button><button onclick="planZoom(0.625)" aria-label="Zooma ut">−</button><button onclick="PL().fit=true;renderPlan()" style="font-size:12px;font-weight:800">Allt</button></div>${planSelV()}</div>
   ${unplaced.length ? `<div class="sec"><h2>Rum som inte är ritade</h2></div><div class="pad"><div class="chips2">${unplaced.map(r => `<button onclick="drawIn('${r.id}')">+ ${esc(r.name)}</button>`).join('')}</div></div>` : ''}
-  <p class="mut" style="margin:14px 18px 24px;font-size:13px">Norrpilen uppe till höger: tryck för att vrida den tills den pekar mot norr i din bostad. Fönstrens väderstreck räknas om direkt.</p>`;
+  <p class="mut" style="margin:14px 18px 24px;font-size:14px">Fönstrens färg visar ljuset: <b style="color:#D9921B">gul</b> ger mycket ljus, <b style="color:#B9A23F">ljusgul</b> lagom och <b style="color:#5E8FC9">blå</b> lite ljus. Pilen uppe till höger visar norr. Tryck på den för att vrida den rätt.</p>`;
 }
 function planSelV() {
   const P = PL(), html = planSelInner(); if (!html) return '';
@@ -3192,7 +3361,7 @@ function planSelInner() {
   if (sel.k === 'win') { const r = S.home.find(x => x.id === sel.id), w = r && r.wins[sel.i]; if (!w) return '';
     return `<div class="psel"><div class="grow"><b>${w.k ? WNAME[w.k] : 'Fönster mot ' + DIRS.find(d => d[0] === winDir(w.s))[1].toLowerCase()}</b><span>${esc(r.name)} · ${w.l} m ${w.k === 'door' || w.k === 'open' ? 'bred' : 'brett'}</span></div><div class="stepr"><small>Bredd</small><button onclick="winLen(-0.25)" aria-label="Smalare">−</button><button onclick="winLen(0.25)" aria-label="Bredare">+</button></div><div class="stepr"><small>Flytta</small><button onclick="winShift(-0.25)" aria-label="Flytta åt ena hållet">‹</button><button onclick="winShift(0.25)" aria-label="Flytta åt andra hållet">›</button></div><button class="x" onclick="delWin()">${w.k === 'open' ? 'Sätt tillbaka väggen' : 'Ta bort'}</button></div>`; }
   if (sel.k === 'plant') { const m = S.mine.find(x => x.id === sel.id); if (!m) return ''; const r = roomOf(m), p = S.plants.find(x => x.id === m.plant_id), hs = (r && p ? roomHints(p, r, (m.details || {}).win) : []).concat(posHints(m));
-    return `<div class="psel col"><div style="display:flex;gap:10px;align-items:center;width:100%"><div class="grow"><b>${esc(m.name)}</b><span>${r ? esc(r.name) + ((m.details || {}).win ? ' · ' + m.details.win.toLowerCase() : '') : 'Inte i något rum'}</span></div><button class="btn sm" onclick="openMine(${m.id})">Öppna</button><button class="x" onclick="unplacePlant(${m.id})">Ta bort</button></div>${hs.map(x => `<div class="pdhint ${x[0]}"><span class="ck">${x[0] === 'warn' ? '⚠️' : '💡'}</span><span>${esc(x[1])}</span></div>`).join('')}</div>`; }
+    return `<div class="psel col"><div style="display:flex;gap:10px;align-items:center;width:100%"><div class="grow"><b>${esc(m.name)}</b><span>${r ? esc(r.name) + ((m.details || {}).win ? ' · ' + m.details.win.toLowerCase() : '') : 'Inte i något rum'}</span></div><button class="btn sm" onclick="openMine(${m.id})">Öppna</button><button class="x" onclick="unplacePlant(${m.id})">Ta bort</button></div><button class="btn sm line" style="margin-top:8px" onclick="togHang(${m.id})">${(m.details || {}).place === 'Ampel' ? 'Ställ ner från taket' : 'Häng i taket (ampel)'}</button>${hs.map(x => `<div class="pdhint ${x[0]}"><span class="ck">${x[0] === 'warn' ? '⚠️' : '💡'}</span><span>${esc(x[1])}</span></div>`).join('')}</div>`; }
   if (sel.k === 'dev') { const it = planItems().find(x => x.id === sel.id); if (!it) return ''; const r = roomAt(it.x, it.y);
     return `<div class="psel"><span style="font-size:24px">${DEVS[it.t][1]}</span><div class="grow"><b>${DEVS[it.t][0]}</b><span>${r ? esc(r.name) : 'Utanför rummen'}</span></div>${['sensor', 'thermo', 'plug', 'grow', 'humid', 'pump'].includes(it.t) ? `<button class="btn sm line" onclick="openSmart()">Smarta hemmet</button>` : ''}<button class="x" onclick="delDev('${it.id}')">Ta bort</button></div>`; }
   return '';
@@ -4097,6 +4266,7 @@ function render() {
   { const fb = $('#fab'); if (fb) fb.hidden = !!(S.sel || S.tool || S.modal || !['home', 'mine'].includes(S.tab)); }
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tab));
   document.getElementById('app').classList.toggle('nochat', S.tool === 'chat');
+  document.body.classList.toggle('hadv', S.tool === 'house' && !S.room && !S.wz && hMode() === 'adv');
   const m = $('#main');
   if (S.loading) m.innerHTML = '<div class="center mut"><div class="lsp"><span></span><span></span><span></span></div><div style="margin-top:14px">Hämtar växter…</div></div>';
   else if (S.err) m.innerHTML = `<div class="center"><h2>Kunde inte hämta växterna</h2><p class="mut">Kontrollera internetanslutningen och försök igen.</p><p class="mut">${esc(S.err.message || S.err)}</p></div>`;
@@ -4868,8 +5038,8 @@ function bedPanelV() {
   return `<div class="psel col bpanel">
     <div class="brow2"><div class="grow"><b>${fmtM(L)} × ${fmtM(D)}</b><span>${String(polyArea(a.pts)).replace('.', ',')} m² · ${sp.length} växter${bad ? ` · <em class="bad">${bad} för tätt</em>` : ''}</span></div><button class="iconb" onclick="bedRot(-15)" aria-label="Vrid åt vänster">⟲</button><button class="iconb" onclick="bedRot(15)" aria-label="Vrid åt höger">⟳</button><button class="iconb ${P.bdimOpen ? 'on' : ''}" onclick="PL().bdimOpen=!PL().bdimOpen;render()" aria-label="Ändra mått">📏</button><button class="iconb" onclick="PL().bnew=true;PL().ssel=null;render()" aria-label="Ny rabatt">＋</button></div>
     ${P.bdimOpen ? (a.br ? dims(a.br.L, a.br.D, a.br.shape) : `<span class="mut" style="font-size:12.5px">Formen ändrar du med hörnen under Flytta.</span>`) : ''}
-    ${sel && sp2 ? `<div class="bsel"><span class="bdot" style="background:hsl(${plantHue(sp2.id)},55%,55%)"></span><div class="grow"><b>${esc(sp2.swedish_name)}</b><span>cc ${pSize(sp2)[2]} cm · ${fmtCm(pSize(sp2)[0])} hög${nn ? ` · närmast ${Math.round(nn.d * 100)} cm${nn.d < nn.need * 0.9 ? ` <em class="bad">(behöver ${Math.round(nn.need * 100)})</em>` : ''}` : ''}</span></div><button class="x" onclick="bedDelSpot()">Ta bort</button></div>` : ''}
-    <button class="bpick" onclick="openModal('bpick')">${p ? `<span class="bdot" style="background:hsl(${plantHue(p.id)},55%,55%)"></span><span class="grow"><b>Sätter ut: ${esc(p.swedish_name)}</b><span>cc ${pSize(p)[2]} cm${p.row_cm ? ' · rader ' + p.row_cm + ' cm' : ''} · ${fmtCm(pSize(p)[0])} hög · ${fmtCm(pSize(p)[1])} bred</span></span><span class="link3">Byt</span>` : `<span class="grow"><b>🌱 Välj växt ur Växtdatabasen</b><span>Sedan trycker du i rabatten för att sätta ut den</span></span>`}</button>
+    ${sel && sp2 ? `<div class="bsel"><span class="bdot" style="background:hsl(${plantHue(sp2.id)},55%,55%)"></span><div class="grow"><b>${esc(sp2.swedish_name)}</b><span>${pSize(sp2)[2]} cm mellan plantorna · ${fmtCm(pSize(sp2)[0])} hög${nn ? ` · närmast ${Math.round(nn.d * 100)} cm${nn.d < nn.need * 0.9 ? ` <em class="bad">(behöver ${Math.round(nn.need * 100)})</em>` : ''}` : ''}</span></div><button class="x" onclick="bedDelSpot()">Ta bort</button></div>` : ''}
+    <button class="bpick" onclick="openModal('bpick')">${p ? `<span class="bdot" style="background:hsl(${plantHue(p.id)},55%,55%)"></span><span class="grow"><b>Sätter ut: ${esc(p.swedish_name)}</b><span>${pSize(p)[2]} cm mellan plantorna${p.row_cm ? ' · rader ' + p.row_cm + ' cm' : ''} · ${fmtCm(pSize(p)[0])} hög · ${fmtCm(pSize(p)[1])} bred</span></span><span class="link3">Byt</span>` : `<span class="grow"><b>🌱 Välj växt ur Växtdatabasen</b><span>Sedan trycker du i rabatten för att sätta ut den</span></span>`}</button>
     ${Object.keys(cnt).length ? `<div class="bcnt">${Object.keys(cnt).map(k => { const q = plantById(+k); return q ? `<button onclick="PL().bpick=${q.id};render()" class="${P.bpick === q.id ? 'on' : ''}"><span class="bdot" style="background:hsl(${plantHue(q.id)},55%,55%)"></span>${esc(q.swedish_name)} ${cnt[k]} st</button>` : ''; }).join('')}</div>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm line" onclick="openBed('${a.id}')">Fyll automatiskt och råd</button>${sp.length ? '<button class="btn sm line" onclick="bedClearAll()">Töm</button>' : ''}</div></div>`;
 }
@@ -4877,15 +5047,15 @@ function bpickV() {
   const q = (S.bpq || '').trim().toLowerCase(), cat = S.bpcat || 'Alla', cats = ['Alla', 'Trädgård', 'Köksträdgård'];
   const list = S.plants.filter(p => (cat === 'Alla' ? OUTDOOR.includes(p.category) : p.category === cat) && (!q || (p.swedish_name || '').toLowerCase().includes(q) || (p.latin_name || '').toLowerCase().includes(q)));
   const shown = list.slice(0, S.bpn || 40);
-  return `<button class="close" onclick="closeModal()" aria-label="Stäng">×</button><h2>Välj växt</h2><p class="mut" style="margin:2px 0 10px;font-size:13.5px">Ur Växtdatabasen. cc betyder avståndet mellan plantornas mitt.</p>
+  return `<button class="close" onclick="closeModal()" aria-label="Stäng">×</button><h2>Välj växt</h2><p class="mut" style="margin:2px 0 10px;font-size:13.5px">Ur Växtdatabasen. Avståndet är hur långt det ska vara mellan plantorna.</p>
   <div class="search" style="margin:0"><input id="bpq" type="search" placeholder="Sök, t.ex. pion, lavendel eller vinbär" value="${esc(S.bpq || '')}" oninput="S.bpq=this.value;S.bpn=40;bpRefresh()" aria-label="Sök växt"></div>
   <div class="chips2 sm" style="margin-top:8px">${cats.map(c => `<button class="${cat === c ? 'on' : ''}" onclick="S.bpcat='${c}';S.bpn=40;bpRefresh()">${c}</button>`).join('')}</div>
   <div id="bplist">${bpListV(shown, list.length)}</div>`;
 }
 function bpListV(shown, total) { const LT = ['', 'Skugga', 'Halvskugga', 'Sol'];
-  return `<div class="bplist">${shown.map(p => { const [h, w, cc] = pSize(p); return `<button onclick="bpPick(${p.id})">${plantPh(p)}<span class="grow"><b>${esc(p.swedish_name)}</b><i>${esc(p.latin_name || '')}</i><span class="bpm"><em>cc ${cc} cm</em>${p.row_cm ? `<em>rader ${p.row_cm} cm</em>` : ''}<em>↕ ${fmtCm(h)}</em><em>↔ ${fmtCm(w)}</em><em>${LT[lightClass(p)]}</em></span></span></button>`; }).join('')}</div>${total > shown.length ? `<button class="btn sm line wide" style="margin-top:8px" onclick="S.bpn=(S.bpn||40)+40;bpRefresh()">Visa fler (${total - shown.length} till)</button>` : ''}${total ? '' : '<p class="mut">Ingen växt hittades.</p>'}`; }
+  return `<div class="bplist">${shown.map(p => { const [h, w, cc] = pSize(p); return `<button onclick="bpPick(${p.id})">${plantPh(p)}<span class="grow"><b>${esc(p.swedish_name)}</b><i>${esc(p.latin_name || '')}</i><span class="bpm"><em>${cc} cm mellan plantorna</em>${p.row_cm ? `<em>rader ${p.row_cm} cm</em>` : ''}<em>↕ ${fmtCm(h)}</em><em>↔ ${fmtCm(w)}</em><em>${LT[lightClass(p)]}</em></span></span></button>`; }).join('')}</div>${total > shown.length ? `<button class="btn sm line wide" style="margin-top:8px" onclick="S.bpn=(S.bpn||40)+40;bpRefresh()">Visa fler (${total - shown.length} till)</button>` : ''}${total ? '' : '<p class="mut">Ingen växt hittades.</p>'}`; }
 function bpRefresh() { const q = (S.bpq || '').trim().toLowerCase(), cat = S.bpcat || 'Alla', list = S.plants.filter(p => (cat === 'Alla' ? OUTDOOR.includes(p.category) : p.category === cat) && (!q || (p.swedish_name || '').toLowerCase().includes(q) || (p.latin_name || '').toLowerCase().includes(q))); $('#bplist').innerHTML = bpListV(list.slice(0, S.bpn || 40), list.length); document.querySelectorAll('.modal .chips2.sm button').forEach(b => b.classList.toggle('on', b.textContent === cat)); }
-function bpPick(id) { const P = PL(), p = plantById(id); P.bpick = id; P.ssel = null; S.modal = null; render(); planMsg(`Tryck i rabatten där ${esc(p.swedish_name.toLowerCase())} ska stå. Ringen visar cc ${pSize(p)[2]} cm.`); }
+function bpPick(id) { const P = PL(), p = plantById(id); P.bpick = id; P.ssel = null; S.modal = null; render(); planMsg(`Tryck i rabatten där ${esc(p.swedish_name.toLowerCase())} ska stå. Ringen visar ${pSize(p)[2]} cm mellan plantorna.`); }
 
 // ===== Rabattplanering =====
 const PT_NAME = { trad: 'Träd', barr: 'Barrväxt', frukt: 'Fruktträd', buske: 'Buske', ros: 'Ros', klatter: 'Klätterväxt', bar: 'Bärbuske', perenn: 'Perenn', marktack: 'Marktäckare', gras: 'Prydnadsgräs', ormbunke: 'Ormbunke', lok: 'Lök eller knöl', sommar: 'Sommarblomma', gron: 'Grönsak', rot: 'Rotfrukt eller lök', krydda: 'Krydda' };
@@ -6395,99 +6565,100 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
-  ['1.153', 'Nu', ['3D: burspråk har fönsterbrädor på alla tre fönsterdelarna, och växter i burspråket ställs på brädan']],
-  ['1.152', 'Nu', ['3D: varje vanlig krukväxt ser ut som sig själv. Monstera har hål i bladen, alocasia pilformade blad med vita nerver, calathea ränder, maranta prickar, gullranka gula strimmor, murgröna flikiga blad, fiollöv sin fiolform och schefflera handflikiga blad. Gummiträd och fiollöv växer längs en stam, dracena har en tofs i toppen och pilea runda blad på skaft']],
-  ['1.151', 'Nu', ['3D: rumsnamnen är små och lika stora oavsett hur nära du zoomar. Fönsterbrädorna är i ljust trä så att de syns mot väggen']],
-  ['1.150', 'Nu', ['3D: bord och skrivbord har bordsskiva och ben, runda bord har en fot. Altanen, gångar och rabatter sticker inte längre upp genom golvet i huset. Fönster har fönsterbrädor på insidan, och växter som står i fönstret ställs på brädan']],
-  ['1.149', 'Nu', ['3D: en växt som står på ett bord, skrivbord, en byrå, hylla, bänkskiva eller TV-bänk hamnar ovanpå möbeln. Välj platsen Ampel så hänger växten från taket']],
-  ['1.148', 'Nu', ['3D: stora bladväxter inomhus som monstera och calathea har fler och större blad på kortare skaft, så plantan blir tätare']],
-  ['1.147', 'Nu', ['3D: höga perenner har fler blad längs stjälken och större blommor. Funkior får lavendelfärgade blomax, och okända växter får riktiga blomfärger']],
-  ['1.146', 'Nu', ['3D: inomhusväxterna har riktiga blad. Orkidéer med blomstjälk, svärmors tunga, palmer och ormbunkar med fjäderblad, hängväxter med rankor, monstera och fredskalla med bladskaft, rumsträd med bladkrona och blommande krukväxter med kronblad']],
-  ['1.145', 'Nu', ['3D: höga perenner lutar lite, har blad längs stjälken och större blommor. De mörka formerna mitt i plantorna är borta']],
-  ['1.144', 'Nu', ['3D: växterna i rabatter och trädgård har riktiga blad med nerver och blommor med kronblad. Formen följer växten: tusenskönor, rosor och pioner, lavendel och riddarsporre, röllika och hortensia']],
-  ['1.143', 'Nu', ['Utforska: fördjupningarna (hem och trädgård, djur, permakultur) ligger sist och är märkta som fördjupning. Dagbok finns bara på ett ställe']],
-  ['1.142', 'Nu', ['Nya användare ser ett enda första steg på startsidan. Växtdatabasen har en egen knapp på Hem. Community heter nu Gemenskap, och byten och detektiver har ett namn var']],
-  ['1.141', 'Nu', ['Meddelanden, notiser och personsökning visar nu ett felmeddelande med knappen Försök igen när nätet svarar fel, i stället för en tom lista']],
-  ['1.140', 'Nu', ['Startsidan för nya användare har en tydligare rubrik']],
-  ['1.139', 'Nu', ['Rummet tas bort först när växterna är uppdaterade, så inga växter pekar på ett rum som inte finns']],
-  ['1.138', 'Nu', ['Fler rättningar: gilla-knappen går tillbaka om det inte gick att spara. Okänd senaste vattning visas som okänd. Snooze och veckodagar i väder är rättade']],
-  ['1.137', 'Nu', ['Inloggning och utloggning rensar förra kontots data. Den som loggar in efter dig ser inte dina vänner, meddelanden eller notiser']],
-  ['1.136', 'Nu', ['Inga utvecklingsmeddelanden visas längre för användare. Funktioner som inte är tillgängliga visar en vanlig text']],
-  ['1.135', 'Nu', ['Säkerhet: namn och texter från andra användare kan inte längre köra kod när man trycker på en knapp']],
-  ['1.134', 'Nu', ['Källor och licenser: en sida med vilka bibliotek, foton, kartor och typsnitt appen använder, länkad under Om Roothood']],
-  ['1.133', 'Nu', ['Den publicerade appen innehåller inte längre demoläget. Demoläget finns kvar för lokala tester']],
-  ['1.132', 'Nu', ['Offline: appen startar från sparad kopia när nätet saknas, och en banner visar att nya ändringar inte sparas']],
-  ['1.131', 'Nu', ['Tillgänglighet: knappar och länkar är lättare att träffa, och kopparfärgade knappar och märken är lättare att läsa']],
-  ['1.130', 'Nu', ['Integritet: andra användares namn hämtas på ett säkrare sätt. Ingen synlig ändring i appen']],
-  ['1.129', 'Nu', ['Varje Community-flik förklarar kort vad den är till för. Samling visar vad varje vattenknapp betyder. Tomma frågelistor har en knapp för att ställa första frågan']],
-  ['1.128', 'Nu', ['Smarta hemmet öppnas nu även via länk utan krasch. Växtdoktorns symptom med honung, blad och droppar är ikoner i stället för emojier']],
-  ['1.127', 'Nu', ['Färgprickarna i växtdoktorns symptomlistor är färgade cirklar i stället för ikoner']],
-  ['1.126', 'Nu', ['Möblerna i planeraren och på rumslistan är ikoner i stället för emojier']],
-  ['1.125', 'Nu', ['Mitt hem i 3D har gräs och en himmel runt huset. Vänner i profilen visas direkt, och växtikonerna i snabbknapparna syns igen. Blockera ligger under en … meny på profilen, och ortens pinne är borttagen']],
-  ['1.124', 'Nu', ['Djuren behåller sina emojier överallt i appen. Övriga emojier är ikoner']],
-  ['1.123', 'Nu', ['Bara djuren har emojier. Väderikonerna, vattenkannan och såkalendern är nu ikoner i stället']],
-  ['1.122', 'Nu', ['Följ en växtart i Community. Du får en notis när någon ställer en fråga om arten, även om du inte har växten']],
-  ['1.121', 'Nu', ['Bästa svar godkänns av en moderator innan det visas. Moderatorer hittar väntande svar under Moderering, fliken Bästa svar']],
-  ['1.120', 'Nu', ['Ställ en fråga: frågeformuläret öppnas i eget fönster från en knapp. Kategori väljs själv (Välj kategori) eller från din växt. Flikarna och filtren i Community går att skrolla sida vid sida, och långa namn förkortas automatiskt']],
-  ['1.119', 'Nu', ['Samling: Ta bort finns bara på växtsidan, vattenkannan visar dagar till nästa vattning, uppmaning att lägga till växt när man har få. Växtsidan: luft mellan knapparna och röd Ta bort med bekräftelse. Utforska: listrader, en knapp för Hem och unika ikoner. Community: Hitta användare är en sökikon i rubriken']],
-  ['1.118', 'Nu', ['Fler emojier i appen är bytta mot ikoner, bland annat djur, växtsymtom och färgprickar']],
-  ['1.117', 'Nu', ['Samling: knappen Mitt hem är borta bredvid Dina växter (finns kvar på Hem). Rum utan växter visas inte i filtret']],
-  ['1.116', 'Nu', ['Väderkortet är kompaktare. Varningarna fälls ut som en rad, och dagarna visas med knappen 5 dagar. Hälsningen säger inte längre samma sak som Inget att göra just nu. Inomhusfuktigheten är borttagen tills vi har riktiga sensordata']],
-  ['1.115', 'Nu', ['Chatten har ingen bottenmeny, så skrivfältet ligger längst ner. Välj ort finns i väderkortet som en ikon. Dagbok och Växtdoktorn har samma namn överallt. Pastellfärger är bytta mot gröna toner, varm färg bara för varningar. Emojier är bytta mot ikoner, och lövmönstret är en svag papperstextur']],
-  ['1.114', 'Nu', ['Välj ort ligger under hälsningen, inte i rubriken. Skrivfältet i chatten sitter längst ner. Egna meddelanden har krämvit text. Ikonerna på växtkorten överlappar inte längre texten']],
-  ['1.113', 'Nu', ['Startskärmen (splash) i logotypens färger: krämvit bakgrund med appikonen']],
-  ['1.112', 'Nu', ['Standardtemat är nu baserat på logotypen: skogsgrönt, krämvitt och bladgrönt. Mörkt läge använder samma gröna toner']],
-  ['1.111', 'Nu', ['Ny logga och appikon (blad med RH)']],
-  ['1.110', 'Nu', ['Community har flikarna Frågor, Visa upp, Byt växter och Nära dig. Detektiver, Forum och Vänner ligger under Mer', 'Visa upp visar frågor med bild', 'Nära dig visar annonser i din ort']],
-  ['1.109', 'Nu', ['Ny logga', 'Bakåt på mobilen stänger en öppen ruta, till exempel Lägg till växt, i stället för att lämna appen', 'Meddelanden har en egen ikon uppe på Hem', 'Din egen fråga visar inte knappen Jag har samma problem, bara hur många som har det', 'Sidan hoppar inte längre när tangentbordet stängs']],
-  ['1.108', 'Nu', ['Nytt rapportskäl: Handlar inte om växter', 'Moderatorer: filtrera Community på bild, ort, typ, rapporterade och dolda, och se inlägg som kanske inte handlar om växter. Markera flera och dölj dem på en gång, eller dölj allt från en person.']],
-  ['1.107', 'Nu', ['Påminnelserna tar hänsyn till vädret på din ort: varning när det blir varmt (vattna extra), frostvarning för trädgårdsväxter och inget extra vatten ute när det regnar mycket. Välj din ort på Hem']],
-  ['1.106', 'Nu', ['Community följer växterna i din samling: frågor om dem får etiketten Du har … och filtret Mina växter visar bara dem']],
-  ['1.105', 'Nu', ['Koppla en fråga till en av dina växter: välj växten när du frågar, så bifogas vattning, gödsling, omplantering, plats, kruka och de senaste anteckningarna ur dagboken. Då kan andra svara lättare']],
-  ['1.104', 'Nu', ['Märken i Community som du förtjänar genom att använda appen: Hjälpsam, Hjälpt 5, 10, 25, 50 och 100 för bästa svar på andras frågor, samt Växtexpert och Moderator. Pro-märket visas inte längre där.']],
-  ['1.103', 'Nu', ['Tidslinje: när en växt har två eller fler foton finns knappen Tidslinje under Mina foton. Bläddra eller spela upp fotona i ordning med datum']],
-  ['1.102', 'Nu', ['Knappen Jag har samma problem på frågor visar hur många som har samma problem', 'Svara direkt på ett svar, även i din egen fråga. Svaren läggs under det du svarar på.']],
-  ['1.101', 'Nu', ['Frågor visar Löst eller Obesvarad, och du kan filtrera på Obesvarade för att hitta någon att hjälpa', 'Profilen visar växter, inlägg, följare och vänner på en rad. Tryck på vänner för att se dem']],
-  ['1.100', 'Nu', ['Community: Rapportera och Ta bort ligger i en …-meny', 'Frågor visas med kort fet rubrik och text under', 'Samma ikoner överallt, inga emojis bland knapparna', 'Foton på dina växter är privata tills du själv väljer att visa dem.']],
-  ['1.99.4', 'Nu', ['Verktygskorten på Hem har samma stil som snabbknapparna']],
-  ['1.99.2', 'Nu', ['Ortsknappen är en glob när du valt en ort, så det tar mindre plats i rubriken']],
-  ['1.99.1', 'Nu', ['Fler ikoner i Phosphor: planeringsknappar, Mitt hem och tomma sidor']],
-  ['1.99', 'Nu', ['Samma ikoner i hela appen: Phosphor. Ikonerna laddas från nätet, så de syns inte när telefonen är offline']],
-  ['1.98', 'Nu', ['Snabbknapparna på Hem har ny design: Phosphor-ikoner, korta namn och Utforska som en bred banner. Identifiera är större eftersom den används mest']],
-  ['1.97.1', 'Nu', ['Hem: det går att scrolla förbi Mitt hem i 3D. Huset roterar fortfarande när du trycker på Visa stort']],
-  ['1.97', 'Nu', ['Radera konto: under Inställningar → Konto kan du radera ditt konto och allt som hör till det.']],
-  ['1.96', 'Nu', ['Skötseldagboken har fått en egen flik, Dagbok, under Min samling och en knapp på Hem. Där ser du vad varje växt behöver den här månaden och nästa, och kan bläddra månad för månad', 'Tryck Gjort på en uppgift så sparas den i växtens dagbok. Tiderna anpassas efter din odlingszon', 'Hem visar inte samma funktion två gånger: finns den bland snabbvalen döljs den stora rutan']],
-  ['1.95', 'Nu', ['Logga in med Google: knappen Fortsätt med Google högst upp i inloggningsrutan']],
-  ['1.94', 'Nu', ['Trädgårdar nära dig under Utforska → Verktyg: handelsträdgårdar, botaniska trädgårdar och parker inom 15 km, med vägbeskrivning. Uppgifter från OpenStreetMap']],
-  ['1.93', 'Nu', ['Byt profilbild: tryck på kameran på din profil. Bilden syns också i kommentarer och vänlistor']],
-  ['1.92.2', 'Nu', ['Ljusmätare och Kompass ligger under en egen rubrik, Verktyg, i Utforska']],
-  ['1.92', 'Nu', ['Ny Kompass under Utforska: visar vilket väderstreck telefonen pekar mot, med en röd norrpil']],
-  ['1.91', 'Nu', ['Kameran för Identifiera växt har blixt (ficklampa), zoom och närläge när din telefon klarar det']],
-  ['1.90', 'Nu', ['Önskelista: på varje växt finns knappen Önskelista. Under Min samling finns en ny flik där du ser växterna du vill ha, skriver var du ska köpa dem och trycker Köpt när du har dem. (sparas på flera enheter)']],
-  ['1.89', 'Nu', ['Var i ditt hem trivs växten? På varje inomhusväxt ser du vilka av dina rum som passar och hur långt från fönstret den ska stå. Det visas också när du identifierar en växt']],
-  ['1.88', 'Nu', ['Appen startar alltid på Hem, även om du stängde den i Mitt hem eller en annan sida']],
-  ['1.87', 'Nu', ['Ny + -knapp på Hem och Min samling: sök en växt och lägg till den med ett enda tryck. Du kan lägga till flera i rad, eller identifiera med foto och lägga till egen växt från samma ruta']],
-  ['1.86', 'Nu', ['Fönster och dörrar går nu att sätta på fristående väggar, även snedställda. Nya väggar fäster bättre mot rummens hörn, väggar och andra väggar']],
-  ['1.85', 'Nu', ['Notiser i mobilen när du får ett meddelande, en vänförfrågan eller när någon accepterar dig. Slå på under Inställningar → Påminnelser. Tryck på notisen så öppnas rätt sida']],
-  ['1.84', 'Nu', ['Enklare rumsredigering i Ritning: välj ett rum och byt namn, ändra bredd och djup med + och −, eller kopiera rummet direkt i rutan']],
-  ['1.83', 'Nu', ['Ny flik i Ritning: Byggnader (växthus, garage, carport, förråd, lekstuga, pergola). Möbler har kvar inne- och utemöbler']],
-  ['1.82', 'Nu', ['Fler utomhusobjekt i Ritning: garage, carport, pergola, altan, pool, damm, studsmatta, sandlåda, lekstuga, eldstad, grill, utemöbler, bikupa', 'Nytt inomhus: Växtskåp']],
-  ['1.81', 'Nu', ['Våningar i Ritning: lägg till Plan 2, vind, källare eller suterräng och rita varje våning för sig. Våningen under syns som en svag skugga', 'Våningarna staplas i 3D. Ny knapp för att dölja övre våningar och se in. Ny möbel: Trappa']],
-  ['1.80', 'Nu', ['Växterna i 3D ser mer ut som de riktiga: egen lövfärg och blomfärg för många arter, nya former för bland annat hosta, iris, ormbunkar, tulpaner, allium, solrosor, kaktusar, palmer och orkidéer', 'Ny knapp Säsong i 3D-vyn: sommar, höst, vinter och vår. Träd tappar löven på vintern, blommor och frukt kommer och går']],
-  ['1.79', 'Nu', ['Växtdatabasen kan nu sorteras efter typ: träd, fruktträd, barrväxter, buskar, rosor, bär, perenner, lökar, gräs, klätterväxter, marktäckare, ormbunkar, sommarblommor, grönsaker, rotfrukter och kryddor']],
-  ['1.78', 'Nu', ['Hjärtat på en växt sparar den nu som favorit, inte i Samling. Favoriter finns under Samling, i fliken Favoriter', 'I Samling lägger du bara växter du har. Använd knappen Lägg till i min samling på växtens sida, och + En till för fler av samma']],
-  ['1.77', 'Nu', ['Välj färgtema i Inställningar, Utseende: Roothood, Hav, Solnedgång, Lavendel, Körsbär, Lime eller Svartvit. Fungerar både i mörkt och ljust läge']],
-  ['1.76.1', 'Nu', ['Åtgärdat: när du scrollar över 3D-vyn av Mitt hem på Hem och Profil scrollar nu hela sidan som vanligt, i stället för att 3D-vyn zoomas']],
-  ['1.76', 'Nu', ['Mitt hem i 3D visas nu också på din Profil, och på andras profiler om de vill visa det', 'Du väljer om ditt hem ska synas för alla, bara vänner eller ingen under Inställningar']],
-  ['1.75.1', 'Nu', ['Ny flik Vänner under Community. Där ser du dina vänner, vänförfrågningar och kan skriva till dem']],
-  ['1.75', 'Nu', ['Privata meddelanden till dina vänner. Öppna en väns profil och tryck Skriv, eller gå via Meddelanden på Profil', 'Du kan skriva ett meddelande när du skickar en vänförfrågan, så personen ser varför du vill bli vän', 'Olästa meddelanden syns på notisklockan']],
-  ['1.74.1', 'Nu', ['Hjärtat på en växt sparar den direkt, utan att någon ruta med frågor dyker upp. Vill du berätta mer om växten trycker du på den i Samling']],
-  ['1.74', 'Nu', ['Flera av samma växt är separata i Samling, var och en med egen profil', 'Tryck på hjärtat på en växt du redan har så väljer du: egen växt, eller samplanterad i samma kruka (visas som en profil med antal)', 'Du kan ändra antal samplanterade under Berätta mer om din växt']],
-  ['1.73', 'Nu', ['Admin och moderatorer: en ny sida där rapporter granskas och inlägg kan döljas eller behållas', 'Inlägg och svar döljs automatiskt när tre olika personer har rapporterat dem', 'Du kan blockera användare. Då ser du inte deras inlägg', 'Admin kan göra andra till moderatorer']],
-  ['1.72.1', 'Nu', ['Växter i 3D går inte längre genom väggar. De flyttas till närmaste fria plats vid väggen']],
+  ['1.154', '27 okt 15:50', ['Mitt hem har ett enkelt läge: en guide med en fråga i taget. Vilka rum, åt vilket håll fönstret vetter (eller telefonens kompass), hur ljust det är och vilka växter som står där. Huset ritas automatiskt', 'Mallar att börja från: Lägenhet 1 rok, 2 rok och Villa', 'Planritningen finns kvar som avancerat läge, i en egen skärm utan bottenmeny. Fyra huvudverktyg (Rum, Fönster, Växt, Flytta) och resten under Mer. Våningar visas först när du har fler än en', 'Fönstren i ritningen är färgade efter hur mycket ljus de ger, och rumsnamnen ligger överst', 'Häng en växt i taket: välj Ampel i taket i växtens uppgifter, i guiden eller i ritningen', '35 cm mellan plantorna i stället för cc 35 cm', 'Uppdateringsloggen visar när varje version kom']],
+  ['1.153', '27 okt 15:19', ['3D: burspråk har fönsterbrädor på alla tre fönsterdelarna, och växter i burspråket ställs på brädan']],
+  ['1.152', '27 okt 15:15', ['3D: varje vanlig krukväxt ser ut som sig själv. Monstera har hål i bladen, alocasia pilformade blad med vita nerver, calathea ränder, maranta prickar, gullranka gula strimmor, murgröna flikiga blad, fiollöv sin fiolform och schefflera handflikiga blad. Gummiträd och fiollöv växer längs en stam, dracena har en tofs i toppen och pilea runda blad på skaft']],
+  ['1.151', '27 okt 14:57', ['3D: rumsnamnen är små och lika stora oavsett hur nära du zoomar. Fönsterbrädorna är i ljust trä så att de syns mot väggen']],
+  ['1.150', '27 okt 14:45', ['3D: bord och skrivbord har bordsskiva och ben, runda bord har en fot. Altanen, gångar och rabatter sticker inte längre upp genom golvet i huset. Fönster har fönsterbrädor på insidan, och växter som står i fönstret ställs på brädan']],
+  ['1.149', '27 okt 14:38', ['3D: en växt som står på ett bord, skrivbord, en byrå, hylla, bänkskiva eller TV-bänk hamnar ovanpå möbeln. Välj platsen Ampel så hänger växten från taket']],
+  ['1.148', '27 okt 14:35', ['3D: stora bladväxter inomhus som monstera och calathea har fler och större blad på kortare skaft, så plantan blir tätare']],
+  ['1.147', '27 okt 14:34', ['3D: höga perenner har fler blad längs stjälken och större blommor. Funkior får lavendelfärgade blomax, och okända växter får riktiga blomfärger']],
+  ['1.146', '27 okt 14:27', ['3D: inomhusväxterna har riktiga blad. Orkidéer med blomstjälk, svärmors tunga, palmer och ormbunkar med fjäderblad, hängväxter med rankor, monstera och fredskalla med bladskaft, rumsträd med bladkrona och blommande krukväxter med kronblad']],
+  ['1.145', '27 okt 14:25', ['3D: höga perenner lutar lite, har blad längs stjälken och större blommor. De mörka formerna mitt i plantorna är borta']],
+  ['1.144', '27 okt 14:20', ['3D: växterna i rabatter och trädgård har riktiga blad med nerver och blommor med kronblad. Formen följer växten: tusenskönor, rosor och pioner, lavendel och riddarsporre, röllika och hortensia']],
+  ['1.143', '27 okt 13:51', ['Utforska: fördjupningarna (hem och trädgård, djur, permakultur) ligger sist och är märkta som fördjupning. Dagbok finns bara på ett ställe']],
+  ['1.142', '27 okt 13:45', ['Nya användare ser ett enda första steg på startsidan. Växtdatabasen har en egen knapp på Hem. Community heter nu Gemenskap, och byten och detektiver har ett namn var']],
+  ['1.141', '27 okt 13:33', ['Meddelanden, notiser och personsökning visar nu ett felmeddelande med knappen Försök igen när nätet svarar fel, i stället för en tom lista']],
+  ['1.140', '27 okt 13:28', ['Startsidan för nya användare har en tydligare rubrik']],
+  ['1.139', '27 okt 13:19', ['Rummet tas bort först när växterna är uppdaterade, så inga växter pekar på ett rum som inte finns']],
+  ['1.138', '27 okt 13:15', ['Fler rättningar: gilla-knappen går tillbaka om det inte gick att spara. Okänd senaste vattning visas som okänd. Snooze och veckodagar i väder är rättade']],
+  ['1.137', '27 okt 13:13', ['Inloggning och utloggning rensar förra kontots data. Den som loggar in efter dig ser inte dina vänner, meddelanden eller notiser']],
+  ['1.136', '27 okt 13:09', ['Inga utvecklingsmeddelanden visas längre för användare. Funktioner som inte är tillgängliga visar en vanlig text']],
+  ['1.135', '27 okt 13:06', ['Säkerhet: namn och texter från andra användare kan inte längre köra kod när man trycker på en knapp']],
+  ['1.134', '27 okt 13:00', ['Källor och licenser: en sida med vilka bibliotek, foton, kartor och typsnitt appen använder, länkad under Om Roothood']],
+  ['1.133', '27 okt 12:16', ['Den publicerade appen innehåller inte längre demoläget. Demoläget finns kvar för lokala tester']],
+  ['1.132', '27 okt 12:14', ['Offline: appen startar från sparad kopia när nätet saknas, och en banner visar att nya ändringar inte sparas']],
+  ['1.131', '27 okt 12:07', ['Tillgänglighet: knappar och länkar är lättare att träffa, och kopparfärgade knappar och märken är lättare att läsa']],
+  ['1.130', '27 okt 12:05', ['Integritet: andra användares namn hämtas på ett säkrare sätt. Ingen synlig ändring i appen']],
+  ['1.129', '27 okt 10:54', ['Varje Community-flik förklarar kort vad den är till för. Samling visar vad varje vattenknapp betyder. Tomma frågelistor har en knapp för att ställa första frågan']],
+  ['1.128', '27 okt 10:48', ['Smarta hemmet öppnas nu även via länk utan krasch. Växtdoktorns symptom med honung, blad och droppar är ikoner i stället för emojier']],
+  ['1.127', '27 okt 10:44', ['Färgprickarna i växtdoktorns symptomlistor är färgade cirklar i stället för ikoner']],
+  ['1.126', '27 okt 10:29', ['Möblerna i planeraren och på rumslistan är ikoner i stället för emojier']],
+  ['1.125', '27 okt 10:19', ['Mitt hem i 3D har gräs och en himmel runt huset. Vänner i profilen visas direkt, och växtikonerna i snabbknapparna syns igen. Blockera ligger under en … meny på profilen, och ortens pinne är borttagen']],
+  ['1.124', '27 okt 10:07', ['Djuren behåller sina emojier överallt i appen. Övriga emojier är ikoner']],
+  ['1.123', '27 okt 10:03', ['Bara djuren har emojier. Väderikonerna, vattenkannan och såkalendern är nu ikoner i stället']],
+  ['1.122', '27 okt 09:57', ['Följ en växtart i Community. Du får en notis när någon ställer en fråga om arten, även om du inte har växten']],
+  ['1.121', '27 okt 09:50', ['Bästa svar godkänns av en moderator innan det visas. Moderatorer hittar väntande svar under Moderering, fliken Bästa svar']],
+  ['1.120', '27 okt 09:46', ['Ställ en fråga: frågeformuläret öppnas i eget fönster från en knapp. Kategori väljs själv (Välj kategori) eller från din växt. Flikarna och filtren i Community går att skrolla sida vid sida, och långa namn förkortas automatiskt']],
+  ['1.119', '27 okt 09:40', ['Samling: Ta bort finns bara på växtsidan, vattenkannan visar dagar till nästa vattning, uppmaning att lägga till växt när man har få. Växtsidan: luft mellan knapparna och röd Ta bort med bekräftelse. Utforska: listrader, en knapp för Hem och unika ikoner. Community: Hitta användare är en sökikon i rubriken']],
+  ['1.118', '27 okt 09:33', ['Fler emojier i appen är bytta mot ikoner, bland annat djur, växtsymtom och färgprickar']],
+  ['1.117', '27 okt 09:27', ['Samling: knappen Mitt hem är borta bredvid Dina växter (finns kvar på Hem). Rum utan växter visas inte i filtret']],
+  ['1.116', '27 okt 09:23', ['Väderkortet är kompaktare. Varningarna fälls ut som en rad, och dagarna visas med knappen 5 dagar. Hälsningen säger inte längre samma sak som Inget att göra just nu. Inomhusfuktigheten är borttagen tills vi har riktiga sensordata']],
+  ['1.115', '27 okt 09:20', ['Chatten har ingen bottenmeny, så skrivfältet ligger längst ner. Välj ort finns i väderkortet som en ikon. Dagbok och Växtdoktorn har samma namn överallt. Pastellfärger är bytta mot gröna toner, varm färg bara för varningar. Emojier är bytta mot ikoner, och lövmönstret är en svag papperstextur']],
+  ['1.114', '27 okt 09:15', ['Välj ort ligger under hälsningen, inte i rubriken. Skrivfältet i chatten sitter längst ner. Egna meddelanden har krämvit text. Ikonerna på växtkorten överlappar inte längre texten']],
+  ['1.113', '27 okt 09:07', ['Startskärmen (splash) i logotypens färger: krämvit bakgrund med appikonen']],
+  ['1.112', '27 okt 09:05', ['Standardtemat är nu baserat på logotypen: skogsgrönt, krämvitt och bladgrönt. Mörkt läge använder samma gröna toner']],
+  ['1.111', '27 okt 09:03', ['Ny logga och appikon (blad med RH)']],
+  ['1.110', '27 okt 08:44', ['Community har flikarna Frågor, Visa upp, Byt växter och Nära dig. Detektiver, Forum och Vänner ligger under Mer', 'Visa upp visar frågor med bild', 'Nära dig visar annonser i din ort']],
+  ['1.109', '27 okt 08:38', ['Ny logga', 'Bakåt på mobilen stänger en öppen ruta, till exempel Lägg till växt, i stället för att lämna appen', 'Meddelanden har en egen ikon uppe på Hem', 'Din egen fråga visar inte knappen Jag har samma problem, bara hur många som har det', 'Sidan hoppar inte längre när tangentbordet stängs']],
+  ['1.108', '27 okt 08:29', ['Nytt rapportskäl: Handlar inte om växter', 'Moderatorer: filtrera Community på bild, ort, typ, rapporterade och dolda, och se inlägg som kanske inte handlar om växter. Markera flera och dölj dem på en gång, eller dölj allt från en person.']],
+  ['1.107', '27 okt 08:21', ['Påminnelserna tar hänsyn till vädret på din ort: varning när det blir varmt (vattna extra), frostvarning för trädgårdsväxter och inget extra vatten ute när det regnar mycket. Välj din ort på Hem']],
+  ['1.106', '27 okt 08:16', ['Community följer växterna i din samling: frågor om dem får etiketten Du har … och filtret Mina växter visar bara dem']],
+  ['1.105', '27 okt 08:11', ['Koppla en fråga till en av dina växter: välj växten när du frågar, så bifogas vattning, gödsling, omplantering, plats, kruka och de senaste anteckningarna ur dagboken. Då kan andra svara lättare']],
+  ['1.104', '27 okt 08:08', ['Märken i Community som du förtjänar genom att använda appen: Hjälpsam, Hjälpt 5, 10, 25, 50 och 100 för bästa svar på andras frågor, samt Växtexpert och Moderator. Pro-märket visas inte längre där.']],
+  ['1.103', '27 okt 08:02', ['Tidslinje: när en växt har två eller fler foton finns knappen Tidslinje under Mina foton. Bläddra eller spela upp fotona i ordning med datum']],
+  ['1.102', '27 okt 07:58', ['Knappen Jag har samma problem på frågor visar hur många som har samma problem', 'Svara direkt på ett svar, även i din egen fråga. Svaren läggs under det du svarar på.']],
+  ['1.101', '27 okt 07:58', ['Frågor visar Löst eller Obesvarad, och du kan filtrera på Obesvarade för att hitta någon att hjälpa', 'Profilen visar växter, inlägg, följare och vänner på en rad. Tryck på vänner för att se dem']],
+  ['1.100', '27 okt 07:54', ['Community: Rapportera och Ta bort ligger i en …-meny', 'Frågor visas med kort fet rubrik och text under', 'Samma ikoner överallt, inga emojis bland knapparna', 'Foton på dina växter är privata tills du själv väljer att visa dem.']],
+  ['1.99.4', '27 okt 07:35', ['Verktygskorten på Hem har samma stil som snabbknapparna']],
+  ['1.99.2', '27 okt 07:27', ['Ortsknappen är en glob när du valt en ort, så det tar mindre plats i rubriken']],
+  ['1.99.1', '27 okt 07:27', ['Fler ikoner i Phosphor: planeringsknappar, Mitt hem och tomma sidor']],
+  ['1.99', '27 okt 07:26', ['Samma ikoner i hela appen: Phosphor. Ikonerna laddas från nätet, så de syns inte när telefonen är offline']],
+  ['1.98', '27 okt 07:24', ['Snabbknapparna på Hem har ny design: Phosphor-ikoner, korta namn och Utforska som en bred banner. Identifiera är större eftersom den används mest']],
+  ['1.97.1', '27 okt 07:20', ['Hem: det går att scrolla förbi Mitt hem i 3D. Huset roterar fortfarande när du trycker på Visa stort']],
+  ['1.97', '27 okt 00:34', ['Radera konto: under Inställningar → Konto kan du radera ditt konto och allt som hör till det.']],
+  ['1.96', '27 okt 00:15', ['Skötseldagboken har fått en egen flik, Dagbok, under Min samling och en knapp på Hem. Där ser du vad varje växt behöver den här månaden och nästa, och kan bläddra månad för månad', 'Tryck Gjort på en uppgift så sparas den i växtens dagbok. Tiderna anpassas efter din odlingszon', 'Hem visar inte samma funktion två gånger: finns den bland snabbvalen döljs den stora rutan']],
+  ['1.95', '26 okt 23:35', ['Logga in med Google: knappen Fortsätt med Google högst upp i inloggningsrutan']],
+  ['1.94', '26 okt 23:00', ['Trädgårdar nära dig under Utforska → Verktyg: handelsträdgårdar, botaniska trädgårdar och parker inom 15 km, med vägbeskrivning. Uppgifter från OpenStreetMap']],
+  ['1.93', '26 okt 22:52', ['Byt profilbild: tryck på kameran på din profil. Bilden syns också i kommentarer och vänlistor']],
+  ['1.92.2', '26 okt 22:48', ['Ljusmätare och Kompass ligger under en egen rubrik, Verktyg, i Utforska']],
+  ['1.92', '26 okt 22:42', ['Ny Kompass under Utforska: visar vilket väderstreck telefonen pekar mot, med en röd norrpil']],
+  ['1.91', '26 okt 22:34', ['Kameran för Identifiera växt har blixt (ficklampa), zoom och närläge när din telefon klarar det']],
+  ['1.90', '26 okt 22:27', ['Önskelista: på varje växt finns knappen Önskelista. Under Min samling finns en ny flik där du ser växterna du vill ha, skriver var du ska köpa dem och trycker Köpt när du har dem. (sparas på flera enheter)']],
+  ['1.89', '26 okt 22:23', ['Var i ditt hem trivs växten? På varje inomhusväxt ser du vilka av dina rum som passar och hur långt från fönstret den ska stå. Det visas också när du identifierar en växt']],
+  ['1.88', '26 okt 22:17', ['Appen startar alltid på Hem, även om du stängde den i Mitt hem eller en annan sida']],
+  ['1.87', '26 okt 22:07', ['Ny + -knapp på Hem och Min samling: sök en växt och lägg till den med ett enda tryck. Du kan lägga till flera i rad, eller identifiera med foto och lägga till egen växt från samma ruta']],
+  ['1.86', '26 okt 21:52', ['Fönster och dörrar går nu att sätta på fristående väggar, även snedställda. Nya väggar fäster bättre mot rummens hörn, väggar och andra väggar']],
+  ['1.85', '26 okt 21:48', ['Notiser i mobilen när du får ett meddelande, en vänförfrågan eller när någon accepterar dig. Slå på under Inställningar → Påminnelser. Tryck på notisen så öppnas rätt sida']],
+  ['1.84', '26 okt 21:40', ['Enklare rumsredigering i Ritning: välj ett rum och byt namn, ändra bredd och djup med + och −, eller kopiera rummet direkt i rutan']],
+  ['1.83', '26 okt 21:38', ['Ny flik i Ritning: Byggnader (växthus, garage, carport, förråd, lekstuga, pergola). Möbler har kvar inne- och utemöbler']],
+  ['1.82', '26 okt 20:53', ['Fler utomhusobjekt i Ritning: garage, carport, pergola, altan, pool, damm, studsmatta, sandlåda, lekstuga, eldstad, grill, utemöbler, bikupa', 'Nytt inomhus: Växtskåp']],
+  ['1.81', '26 okt 20:36', ['Våningar i Ritning: lägg till Plan 2, vind, källare eller suterräng och rita varje våning för sig. Våningen under syns som en svag skugga', 'Våningarna staplas i 3D. Ny knapp för att dölja övre våningar och se in. Ny möbel: Trappa']],
+  ['1.80', '26 okt 20:21', ['Växterna i 3D ser mer ut som de riktiga: egen lövfärg och blomfärg för många arter, nya former för bland annat hosta, iris, ormbunkar, tulpaner, allium, solrosor, kaktusar, palmer och orkidéer', 'Ny knapp Säsong i 3D-vyn: sommar, höst, vinter och vår. Träd tappar löven på vintern, blommor och frukt kommer och går']],
+  ['1.79', '26 okt 20:13', ['Växtdatabasen kan nu sorteras efter typ: träd, fruktträd, barrväxter, buskar, rosor, bär, perenner, lökar, gräs, klätterväxter, marktäckare, ormbunkar, sommarblommor, grönsaker, rotfrukter och kryddor']],
+  ['1.78', '26 okt 20:01', ['Hjärtat på en växt sparar den nu som favorit, inte i Samling. Favoriter finns under Samling, i fliken Favoriter', 'I Samling lägger du bara växter du har. Använd knappen Lägg till i min samling på växtens sida, och + En till för fler av samma']],
+  ['1.77', '26 okt 19:56', ['Välj färgtema i Inställningar, Utseende: Roothood, Hav, Solnedgång, Lavendel, Körsbär, Lime eller Svartvit. Fungerar både i mörkt och ljust läge']],
+  ['1.76.1', '26 okt 19:52', ['Åtgärdat: när du scrollar över 3D-vyn av Mitt hem på Hem och Profil scrollar nu hela sidan som vanligt, i stället för att 3D-vyn zoomas']],
+  ['1.76', '26 okt 19:49', ['Mitt hem i 3D visas nu också på din Profil, och på andras profiler om de vill visa det', 'Du väljer om ditt hem ska synas för alla, bara vänner eller ingen under Inställningar']],
+  ['1.75.1', '26 okt 19:47', ['Ny flik Vänner under Community. Där ser du dina vänner, vänförfrågningar och kan skriva till dem']],
+  ['1.75', '26 okt 19:42', ['Privata meddelanden till dina vänner. Öppna en väns profil och tryck Skriv, eller gå via Meddelanden på Profil', 'Du kan skriva ett meddelande när du skickar en vänförfrågan, så personen ser varför du vill bli vän', 'Olästa meddelanden syns på notisklockan']],
+  ['1.74.1', '26 okt 19:39', ['Hjärtat på en växt sparar den direkt, utan att någon ruta med frågor dyker upp. Vill du berätta mer om växten trycker du på den i Samling']],
+  ['1.74', '26 okt 19:29', ['Flera av samma växt är separata i Samling, var och en med egen profil', 'Tryck på hjärtat på en växt du redan har så väljer du: egen växt, eller samplanterad i samma kruka (visas som en profil med antal)', 'Du kan ändra antal samplanterade under Berätta mer om din växt']],
+  ['1.73', '26 okt 19:28', ['Admin och moderatorer: en ny sida där rapporter granskas och inlägg kan döljas eller behållas', 'Inlägg och svar döljs automatiskt när tre olika personer har rapporterat dem', 'Du kan blockera användare. Då ser du inte deras inlägg', 'Admin kan göra andra till moderatorer']],
+  ['1.72.1', '26 okt 19:28', ['Växter i 3D går inte längre genom väggar. De flyttas till närmaste fria plats vid väggen']],
   ['1.72', '26 okt', ['Notisklockan finns nu på Hem också, så den syns på alla sidor', 'Vänförfrågningar visas som en tydlig ruta högst upp på Hem med knapparna Acceptera och Neka']],
   ['1.71.1', '26 okt', ['Åtgärdat: Mitt hem gick inte att öppna för den som hade fönster och växter utplacerade i ett rum']],
-  ['1.71', 'Nu', ['Nytt mörkt neonutseende som matchar logotypen (du kan byta till ljust under Inställningar → Utseende)']],
+  ['1.71', '26 okt 19:28', ['Nytt mörkt neonutseende som matchar logotypen (du kan byta till ljust under Inställningar → Utseende)']],
   ['1.70', '26 okt', ['Ny logotyp: ett träd med kretsmönster', 'Ny ikon på startskärmen', 'Tydligare felruta om en vy kraschar, så att felet kan rättas']],
   ['1.69', '26 okt', ['Vänförfrågningar med notis där du accepterar eller nekar', 'Välj vad andra ser på din profil: ort, intressen, växter, djur och inlägg (alla, bara vänner eller ingen)', 'Vänner visas på din profil']],
   ['1.68', '26 okt', ['Att göra på Hem: en checklista där du bockar av vattning', 'Snyggare laddningsruta', 'Huset på Hem snurrar inte längre när du scrollar', 'Åtgärdat: foton hamnade på alla exemplar av samma växt', 'Installera-ruta när appen kan installeras', 'Uppdateringslogg', 'Alla funktioner är öppna för alla under testperioden']],
@@ -7081,7 +7252,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.153';
+const APP_VERSION = '1.154';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];

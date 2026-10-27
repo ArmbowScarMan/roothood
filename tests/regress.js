@@ -29,7 +29,7 @@ fs.unlinkSync(tmp);
 
 // 2. Versionen i koden matchar senaste raden i ändringsloggen
 const ver = (html.match(/const APP_VERSION = '([\d.]+)'/) || [])[1];
-const logVer = (html.match(/\['([\d.]+)', 'Nu'/) || [])[1];
+const logVer = (html.match(/const NEWS = \[\s*\['([\d.]+)'/) || [])[1];
 ok('APP_VERSION matchar ändringsloggen', ver && ver === logVer, `${ver} / ${logVer}`);
 
 // Lokal server
@@ -52,7 +52,7 @@ const server = http.createServer((req, res) => {
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(url); await page.waitForTimeout(1500);
 
-  const tabs = ['Hem', 'Utforska', 'Samling', 'Community', 'Profil'];
+  const tabs = ['Hem', 'Utforska', 'Samling', 'Gemenskap', 'Profil'];
   for (const t of tabs) {
     const btn = page.locator('nav button', { hasText: t }).first();
     if (await btn.count()) { await btn.click().catch(() => {}); await page.waitForTimeout(700); }
