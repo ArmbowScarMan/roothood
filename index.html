@@ -1297,6 +1297,13 @@ body.hadv nav{display:none}
 .pnorth{width:56px !important;height:64px !important;border-radius:16px !important;display:flex !important;flex-direction:column;align-items:center;justify-content:center}
 .pnorth .pnl{font-size:11px;font-weight:800;color:var(--ink);width:auto;height:auto}
 .pzoom button{width:48px !important;height:48px !important}
+/* Gå runt i hemmet */
+.wkstop{position:absolute;top:10px;left:10px;z-index:3;min-height:48px;border:0;border-radius:999px;padding:0 18px;background:var(--pri);color:var(--onpri);font:inherit;font-size:15px;font-weight:800;box-shadow:var(--sh)}
+.wkhint{position:absolute;top:64px;left:10px;right:10px;z-index:3;margin:0;font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+.walkui{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:3;display:grid;grid-template-columns:72px 72px 72px;grid-template-rows:72px 72px;gap:8px;grid-template-areas:". f ." "l b r";user-select:none;-webkit-user-select:none;touch-action:none}
+.wkb{border:0;border-radius:20px;background:rgba(20,40,30,.82);color:#fff;font:inherit;font-size:22px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 4px 12px rgba(0,0,0,.25);touch-action:none;-webkit-touch-callout:none}
+.wkb span{font-size:12px}.wkb:active{background:var(--pri);color:var(--onpri)}
+.wkb.f{grid-area:f}.wkb.l{grid-area:l}.wkb.r{grid-area:r}.wkb.b{grid-area:b}
 /* Offline: banner när nätet saknas */
 #offline{position:fixed;top:0;left:0;right:0;z-index:999;background:#5A4A2E;color:#fff;text-align:center;padding:10px 14px;font-size:14px;font-weight:600}
 #offline[hidden]{display:none}
@@ -2020,7 +2027,7 @@ function compassSvg(dirs, size) {
 function plantsIn(id) { return S.mine.filter(m => (m.details || {}).room === id); }
 // ===== Mitt hem: enkelt läge. En guide med en fråga per skärm, och en översikt med rumskort. =====
 const hMode = () => S.hmode || store.get('hmode', 'simple');
-function setHMode(m, view) { S.hmode = m; store.set('hmode', m); if (view) S.hview = view; S.wz = null; S.room = null; render(); $('#main').scrollTop = 0; }
+function setHMode(m, view) { if (S.walk) { S.walk = false; if (T3) T3.walk = null; } S.hmode = m; store.set('hmode', m); if (view) S.hview = view; S.wz = null; S.room = null; render(); $('#main').scrollTop = 0; }
 const WZ_ROOMS = ['Vardagsrum', 'Kök', 'Sovrum', 'Badrum', 'Balkong', 'Trädgård', 'Hall'];
 const WZ_SIZE = { Vardagsrum: [5, 4], Kök: [3.5, 3], Sovrum: [3.5, 3.5], Badrum: [2.5, 2], Hall: [2, 3], Arbetsrum: [3, 3] };
 const WZ_LIGHT = [['Mörkt', 'Långt från fönstret', 'ph-circle'], ['Halvljust', 'Nära fönstret, ingen direkt sol', 'ph-circle-half'], ['Mycket ljust', 'Sol rakt in flera timmar', 'ph-sun']];
@@ -2140,7 +2147,7 @@ function houseV() {
   if (S.room) { const r = rooms.find(x => x.id === S.room); if (r) return roomV(r); if (S.homeLoaded) S.room = null; else return `${topbar('Mitt hem', 'closeTool()')}<p class="mut" style="margin:0 18px">Hämtar dina rum…</p>`; }
   if (hMode() === 'simple') return S.wz ? wizardV() : simpleHomeV();
   const noRoom = S.mine.filter(m => !roomOf(m));
-  const hv = S.hview === '3d' ? '3d' : 'plan';
+  const hv = S.hview === '3d' ? '3d' : 'plan'; if (hv !== '3d' && S.walk) { S.walk = false; if (T3) T3.walk = null; }
   const seg = `<div class="seg2 hseg">${[['plan', 'Ritning'], ['3d', '3D']].map(([k, n]) => `<button class="${hv === k ? 'on' : ''}" onclick="S.hview='${k}';render()">${n}</button>`).join('')}</div>`;
   const advTop = topbar(hv === '3d' ? 'Huset i 3D' : 'Planritning', "setHMode('simple')", `<button class="btn sm" onclick="setHMode('simple')">Klar</button>`);
   if (hv === 'plan') return `${advTop}${seg}${planV()}`;
@@ -2261,10 +2268,41 @@ function home3dV(sz) {
   <div class="h3card"><div class="planbox home3d sz-${sz}" id="box3d"><p class="l3">Laddar 3D…</p></div>
     <div class="h3bar"><span class="mut">${planRoomsAll().length} rum${n ? ' · ' + n + (n === 1 ? ' växt utplacerad' : ' växter utplacerade') : ''}</span><button class="btn sm" onclick="openHouse();S.hview='plan';render()">${ic(PEN, 'currentColor', 15)} Redigera Mitt hem</button></div></div>`;
 }
+// ===== Gå runt i hemmet: förstapersonsvy i ögonhöjd =====
+// Väggar, fönster, burspråk, fristående väggar och möbler stoppar. Dörrar och öppningar går att gå igenom.
+function walkBlockers(fl) {
+  const segs = [];
+  planRoomsAll().filter(r => flOf(r) === fl && r.rect).forEach(r => { wallPieces(r).forEach(q => segs.push(q)); (r.bays || []).forEach(by => baySegs(r, by).forEach(([q]) => segs.push(q))); });
+  planWallsAll().filter(wl => wl.h !== 'hedge' && flOf(wl) === fl).forEach(wl => segs.push([wl.x1, wl.y1, wl.x2, wl.y2]));
+  planFurnAll().filter(f => (OUTF.has(f.t) ? fl === 0 : flOf(f) === fl) && !FLAT.has(f.t) && f.t !== 'stairs' && (FH[f.t] || 0.8) > 0.3).forEach(f => { const t = -(f.rot || 0) * Math.PI / 180, c = Math.cos(t), sn = Math.sin(t), hw = f.w / 2, hd = (f.h || f.w) / 2;
+    const P = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]].map(([lx, lz]) => [f.x + lx * c + lz * sn, f.y - lx * sn + lz * c]); P.forEach((p, i) => { const q = P[(i + 1) % 4]; segs.push([p[0], p[1], q[0], q[1]]); }); });
+  return segs;
+}
+const WALK_R = 0.22;
+const walkFree = (w, x, z) => !w.blk.some(q => segDist(x, z, q) < WALK_R);
+function walkStart() {
+  if (!T3) return; const rooms = planRoomsAll().filter(r => r.rect); if (!rooms.length) return toast('Rita minst ett rum först');
+  const r = rooms.find(x => x.id === S.room) || rooms.slice().sort((a, b) => plantsIn(b.id).length - plantsIn(a.id).length)[0], fl = flOf(r), R = r.rect;
+  let cx = R.x + R.w / 2, cz = R.y + R.h / 2, yaw = 0; const w0 = (r.wins || []).find(w => !w.k); if (w0) { const q = wallSeg(r, w0); yaw = Math.atan2((q[0] + q[2]) / 2 - cx, (q[1] + q[3]) / 2 - cz); }
+  const w = { x: cx, z: cz, yaw, pitch: -0.08, fl, blk: walkBlockers(fl) };
+  if (!walkFree(w, cx, cz)) { let best = null; for (let i = 1; i < 40 && !best; i++) for (let a = 0; a < 12; a++) { const x = cx + Math.cos(a / 12 * 6.283) * i * 0.15, z = cz + Math.sin(a / 12 * 6.283) * i * 0.15; if (x > R.x + 0.3 && x < R.x + R.w - 0.3 && z > R.y + 0.3 && z < R.y + R.h - 0.3 && walkFree(w, x, z)) { best = [x, z]; break; } } if (best) { w.x = best[0]; w.z = best[1]; } }
+  if (S.low3d) { S.lowBefore = true; S.low3d = false; }
+  T3.walk = w; T3.auto = false; S.walk = true; render(); build3d(); T3.dirty = true;
+}
+function walkStop() { S.walk = false; if (T3) { T3.walk = null; T3.wmove = null; } if (S.lowBefore) { S.low3d = true; S.lowBefore = false; } render(); if (T3) { build3d(); fit3d(); T3.dirty = true; } }
+function walkStep(dist, turn) { const w = T3 && T3.walk; if (!w) return; w.yaw += turn;
+  if (dist) { const nx = w.x + Math.sin(w.yaw) * dist, nz = w.z + Math.cos(w.yaw) * dist; if (walkFree(w, nx, nz)) { w.x = nx; w.z = nz; } else if (walkFree(w, nx, w.z)) w.x = nx; else if (walkFree(w, w.x, nz)) w.z = nz; }
+  T3.dirty = true; }
+function walkHold(k) { if (!T3 || !T3.walk) return; T3.wmove = k; T3.wlast = performance.now(); if (k) walkStep(k === 'f' ? 0.12 : k === 'b' ? -0.1 : 0, k === 'l' ? 0.12 : k === 'r' ? -0.12 : 0); }
+function walkTick() { if (!T3 || !T3.walk || !T3.wmove) return; const now = performance.now(), dt = Math.min(0.05, (now - (T3.wlast || now)) / 1000), k = T3.wmove; T3.wlast = now; walkStep(k === 'f' ? 1.3 * dt : k === 'b' ? -1.0 * dt : 0, k === 'l' ? 1.5 * dt : k === 'r' ? -1.5 * dt : 0); }
+document.addEventListener('keydown', e => { if (!S.walk || /input|textarea|select/i.test((e.target || {}).tagName || '')) return; const k = { ArrowUp: 'f', KeyW: 'f', ArrowDown: 'b', KeyS: 'b', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' }[e.code]; if (k) { e.preventDefault(); if (T3 && T3.wmove !== k) walkHold(k); } });
+document.addEventListener('keyup', e => { if (S.walk && T3 && ['ArrowUp', 'KeyW', 'ArrowDown', 'KeyS', 'ArrowLeft', 'KeyA', 'ArrowRight', 'KeyD'].includes(e.code)) walkHold(null); });
+function walkUiV() { const b = (k, txt, cls) => `<button class="wkb ${cls}" onpointerdown="walkHold('${k}')" onpointerup="walkHold(null)" onpointerleave="walkHold(null)" onpointercancel="walkHold(null)" oncontextmenu="return false">${txt}</button>`;
+  return `<button class="wkstop" onclick="walkStop()">Sluta gå</button><p class="wkhint">Håll in en knapp för att gå. Dra med fingret för att titta runt.</p><div class="walkui">${b('f', '▲<span>Framåt</span>', 'f')}${b('l', '◀<span>Vänster</span>', 'l')}${b('r', '▶<span>Höger</span>', 'r')}${b('b', '▼<span>Bakåt</span>', 'b')}</div>`; }
 function view3dV() {
   const has = planRoomsAll().length || planAreas().length;
   return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}
-    ${has ? `<div class="v3btns"><button onclick="cam3('top')">Uppifrån</button><button onclick="cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button><button onclick="cycleSea3()">Säsong: ${seas3()}</button>${floors().length > 1 ? `<button onclick="cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}</div>` : ''}</div>
+    ${has && S.walk ? walkUiV() : has ? `<div class="v3btns"><button class="on" onclick="walkStart()">Gå runt</button><button onclick="cam3('top')">Uppifrån</button><button onclick="cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button><button onclick="cycleSea3()">Säsong: ${seas3()}</button>${floors().length > 1 ? `<button onclick="cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}</div>` : ''}</div>
   <p class="mut" style="margin:10px 18px 24px;font-size:13px">Dra med ett finger för att snurra. Nyp med två fingrar för att zooma, och dra med två fingrar för att flytta. Solen lyser från söder enligt norrpilen i ritningen.</p>`;
 }
 async function mount3d() {
@@ -2279,7 +2317,8 @@ async function mount3d() {
     const c = r.domElement; c.style.touchAction = 'none'; c.style.display = 'block';
     c.addEventListener('pointerdown', e => { if (c.style.touchAction !== 'pan-y') T3.auto = false; if (c.style.touchAction !== 'pan-y') c.setPointerCapture(e.pointerId); T3.ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); T3.g = null; });
     c.addEventListener('pointermove', e => { if (c.style.touchAction === 'pan-y') return; const P = T3.ptr; if (!P.has(e.pointerId)) return; const o = P.get(e.pointerId), st = T3.st;
-      if (P.size === 1) { st.az -= (e.clientX - o.x) * 0.008; st.el = Math.max(0.12, Math.min(1.52, st.el + (e.clientY - o.y) * 0.006)); }
+      if (P.size === 1 && T3.walk) { T3.walk.yaw += (e.clientX - o.x) * 0.005; T3.walk.pitch = Math.max(-1.1, Math.min(1.1, T3.walk.pitch + (e.clientY - o.y) * 0.004)); }
+      else if (P.size === 1) { st.az -= (e.clientX - o.x) * 0.008; st.el = Math.max(0.12, Math.min(1.52, st.el + (e.clientY - o.y) * 0.006)); }
       P.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (P.size === 2) { const [a, b] = [...P.values()], d = Math.hypot(a.x - b.x, a.y - b.y), m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
         if (T3.g) { st.dist = Math.max(2, Math.min(400, st.dist * T3.g.d / d)); const k = st.dist / 600, dx = (m.x - T3.g.m.x) * k, dy = (m.y - T3.g.m.y) * k;
@@ -2287,7 +2326,7 @@ async function mount3d() {
         T3.g = { d, m }; }
       T3.dirty = true; });
     const up = e => { T3.ptr.delete(e.pointerId); T3.g = null; }; c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
-    c.addEventListener('wheel', e => { if (c.style.touchAction === 'pan-y') return; e.preventDefault(); T3.st.dist = Math.max(2, Math.min(400, T3.st.dist * (e.deltaY > 0 ? 1.1 : 0.9))); T3.dirty = true; }, { passive: false });
+    c.addEventListener('wheel', e => { if (c.style.touchAction === 'pan-y') return; e.preventDefault(); if (T3.walk) { walkStep(e.deltaY < 0 ? 0.3 : -0.3, 0); return; } T3.st.dist = Math.max(2, Math.min(400, T3.st.dist * (e.deltaY > 0 ? 1.1 : 0.9))); T3.dirty = true; }, { passive: false });
     build3d(true); T3.justBuilt = true;
   }
   const l = box.querySelector('.l3'); if (l) l.remove();
@@ -2296,9 +2335,11 @@ async function mount3d() {
   T3.justBuilt = false;
   const W = box.clientWidth, H = box.clientHeight; if (!W || !H) { setTimeout(() => { if ($('#box3d') === box) mount3d(); }, 200); return; } T3.renderer.setSize(W, H, false); T3.renderer.domElement.style.width = '100%'; T3.renderer.domElement.style.height = '100%';
   T3.camera.aspect = W / H; T3.camera.updateProjectionMatrix(); T3.dirty = true;
-  if (!T3.loop) { const tick = () => { if (!document.body.contains(T3.renderer.domElement)) { T3.loop = null; return; } if (T3.auto) { T3.st.az += 0.0035; T3.dirty = true; } if (T3.dirty) { place3dCam(); T3.renderer.render(T3.scene, T3.camera); T3.dirty = false; } T3.loop = requestAnimationFrame(tick); }; T3.loop = requestAnimationFrame(tick); }
+  if (!T3.loop) { const tick = () => { if (!document.body.contains(T3.renderer.domElement)) { T3.loop = null; return; } if (T3.auto) { T3.st.az += 0.0035; T3.dirty = true; } walkTick(); if (T3.dirty) { place3dCam(); T3.renderer.render(T3.scene, T3.camera); T3.dirty = false; } T3.loop = requestAnimationFrame(tick); }; T3.loop = requestAnimationFrame(tick); }
 }
-function place3dCam() { const st = T3.st, c = T3.camera, ty = T3.ty || 0; c.position.set(st.tx + st.dist * Math.cos(st.el) * Math.sin(st.az), ty + st.dist * Math.sin(st.el), st.tz + st.dist * Math.cos(st.el) * Math.cos(st.az)); c.lookAt(st.tx, 0.6 + ty, st.tz); }
+function place3dCam() { const st = T3.st, c = T3.camera, ty = T3.ty || 0;
+  if (T3.walk && !S.walk) T3.walk = null; const fov = T3.walk ? 70 : 45; if (c.fov !== fov) { c.fov = fov; c.updateProjectionMatrix(); }
+  if (T3.walk) { const w = T3.walk, ey = (T3.fyOf ? T3.fyOf(w.fl) : w.fl * 2.75) + 1.6; c.position.set(w.x, ey, w.z); c.lookAt(w.x + Math.sin(w.yaw) * Math.cos(w.pitch), ey + Math.sin(w.pitch), w.z + Math.cos(w.yaw) * Math.cos(w.pitch)); return; } c.position.set(st.tx + st.dist * Math.cos(st.el) * Math.sin(st.az), ty + st.dist * Math.sin(st.el), st.tz + st.dist * Math.cos(st.el) * Math.cos(st.az)); c.lookAt(st.tx, 0.6 + ty, st.tz); }
 function cam3(k) { if (!T3) return; const st = T3.st; if (k === 'top') { st.el = 1.52; st.az = 0; } else { st.el = 0.85; st.az = 0.75; } fit3d(); T3.dirty = true; }
 function fit3d() { const b = T3.bounds; if (!b) return; T3.st.tx = (b[0] + b[2]) / 2; T3.st.tz = (b[1] + b[3]) / 2; T3.st.dist = Math.max(6, Math.hypot(b[2] - b[0], b[3] - b[1]) * 1.15 + (T3.ty || 0) * 1.6); }
 function canvasTex3d(THREE, w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); return new THREE.CanvasTexture(c); }
@@ -2319,7 +2360,7 @@ function build3dInner(first) {
   sc.background = skyTex3d(THREE, dark);
   const WH = S.low3d ? 1.0 : 2.5, TH = 0.12, mats = {}, M = (col, o) => mats[col + JSON.stringify(o || {})] || (mats[col + JSON.stringify(o || {})] = new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.85 }, o || {})));
   const FLH = WH + 0.25, G = {}, F3 = floors(), fyOf = l => { const f = F3.find(x => x.l === l) || {}; return l >= 0 ? l * FLH : l * FLH + (f.sub ? 1.4 : 0); }, floorVis = l => S.f3 == null || l <= S.f3;
-  let cur = null; const grp = l => G[l] || (G[l] = (() => { const g = new THREE.Group(); g.position.y = fyOf(l); sc.add(g); return g; })());
+  T3.fyOf = fyOf; let cur = null; const grp = l => G[l] || (G[l] = (() => { const g = new THREE.Group(); g.position.y = fyOf(l); sc.add(g); return g; })());
   const add = (m, cast, recv) => { m.castShadow = cast !== false; m.receiveShadow = recv !== false; (cur || sc).add(m); return m; };
   const box = (x1, z1, x2, z2, y0, h, th, col, o) => { const L = Math.hypot(x2 - x1, z2 - z1); if (L < 0.01 || h <= 0) return; const g = new THREE.BoxGeometry(L + (o && o.noext ? 0 : th), h, th), m = new THREE.Mesh(g, M(col, o && o.mat)); m.position.set((x1 + x2) / 2, y0 + h / 2, (z1 + z2) / 2); m.rotation.y = -Math.atan2(z2 - z1, x2 - x1); return add(m, !(o && o.mat && o.mat.transparent)); };
   const shape = (pts, y, col, o) => { const sh = new THREE.Shape(pts.map(q => new THREE.Vector2(q[0], -q[1]))), m = new THREE.Mesh(new THREE.ShapeGeometry(sh), M(col, o)); m.rotation.x = -Math.PI / 2; m.position.y = y; return add(m, false, true); };
@@ -6667,6 +6708,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.158', '27 okt 17:05', ['3D: Gå runt i ditt hem i ögonhöjd. Håll in Framåt, Bakåt, Vänster eller Höger och dra med fingret för att titta runt. Du kan inte gå genom väggar, fönster eller möbler, men genom dörrar']],
   ['1.157', '27 okt 16:40', ['3D: ingen fönsterbräda ritas där en tv, garderob, bokhylla eller annan hög möbel står framför fönstret']],
   ['1.156', '27 okt 16:30', ['3D: alla möbler är detaljerade så att man ser vad de är. Soffor med dynor, sängar med kuddar och täcke, bokhyllor med böcker, köksbänk med luckor, spis med plattor, tv på tv-bänken, badkar, dusch, toalett och handfat. Ute: garage med port, carport, pergola, pool, damm, studsmatta med nät, sandlåda, lekstuga, eldstad, grill, utebänk och bikupa']],
   ['1.155', '27 okt 16:10', ['Planritningen går att använda med bara tryck: välj något och tryck där det ska stå, rita väggar och häckar genom att trycka på start och slut, och ändra storlek på ytor och flytta burspråk med knappar. Att dra fungerar fortfarande']],
@@ -7357,7 +7399,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.157';
+const APP_VERSION = '1.158';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
