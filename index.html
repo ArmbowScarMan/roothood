@@ -5784,7 +5784,7 @@ function plantsSec(c, self) {
     const why = self ? 'Din samling är tom eller dold för andra.' : esc(c.display_name) + ((c.hidden || []).includes('plants') ? ' visar inte sina växter för dig.' : ' visar inte sin samling.');
     return `${head}<div class="pad"><p class="mut" style="margin:0;font-size:14px">${why}</p></div>`;
   }
-  const view = S.plView || 'list', sort = S.plSort || 'new';
+  const view = 'list', sort = 'new';
   const name = pl => pl.name || 'Växt';
   const dbOf = pl => pl.plant_id ? S.plants.find(x => x.id === pl.plant_id) : S.plants.find(x => x.swedish_name === pl.name);
   const thumb = (pl, db) => pl.photo ? `<div class="ph has-img"><img src="${esc(pl.photo)}" alt="" loading="lazy"></div>` : db ? plantPh(db) : ph('', 'Krukväxt', pl.name);
@@ -5799,10 +5799,6 @@ function plantsSec(c, self) {
     + (all > 3 ? `<button class="btn wide line" style="margin-top:12px" onclick="openAllPl()">Se alla växter (${all})</button>` : '');
   const tog = (k, t, cur, setter) => `<button role="tab" aria-selected="${cur === k}" class="${cur === k ? 'on' : ''}" onclick="${setter}('${k}')">${t}</button>`;
   return `${head}<div class="pad">
-    <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap">
-      <div class="chips2 qfilt" role="tablist" aria-label="Sortera">${tog('new', 'Senast tillagd', sort, 'setPlSort')}${tog('az', 'A–Ö', sort, 'setPlSort')}${own ? tog('h', 'Höjd', sort, 'setPlSort') : ''}</div>
-      <div class="seg2 inset pl-view" role="group" aria-label="Visning">${tog('list', 'Lista', view, 'setPlView')}${tog('grid', 'Rutnät', view, 'setPlView')}</div>
-    </div>
     ${items}</div>`;
 }
 // ===== Alla växter med filter =====
@@ -7088,6 +7084,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.185', '27 okt 23:20', ['Profil: knapparna för sortering och visning är borttagna. Växterna visas alltid med den senast tillagda först']],
   ['1.184', '27 okt 23:30', ['Profil: tre växter visas, sedan knappen Se alla växter. Där kan du söka, sortera och filtrera på kategori, planterad, jord, plats, giftfri för djur och mer']],
   ['1.183', '27 okt 23:15', ['Profil: listan över din samling är mycket smalare, en rad per växt']],
   ['1.182', '27 okt 23:20', ['Profil: listan över din samling visar kruka, jord, höjd, plats och vattning för varje växt. Ny sortering på höjd']],
@@ -7805,7 +7802,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.184';
+const APP_VERSION = '1.185';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
