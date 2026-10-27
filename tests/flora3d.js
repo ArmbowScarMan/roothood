@@ -19,7 +19,7 @@ const srv = http.createServer((q, r) => { const p = path.join(dir, q.url.split('
     const THREE = { Group: Obj, Object3D: Obj, Mesh: class extends Obj { constructor(g, m) { super(); if (!g || !m) throw new Error('Mesh utan geometri/material'); this.geometry = g; this.material = m; } },
       InstancedMesh: class extends Obj { constructor(g, m, n) { super(); nInst++; nInstances += n; this.n = n; this.instanceMatrix = {}; if (!n) throw new Error('InstancedMesh med 0'); } setMatrixAt(i) { if (i >= this.n) throw new Error('index utanför'); } },
       PlaneGeometry, SphereGeometry: Geo, CylinderGeometry: Geo, ConeGeometry: Geo, BoxGeometry: Geo, TorusGeometry: Geo, CircleGeometry: Geo,
-      MeshStandardMaterial: class { constructor(o) { Object.assign(this, o); } }, CanvasTexture: class { constructor(c) { this.image = c; } }, DoubleSide: 2, SRGBColorSpace: 'srgb' };
+      MeshStandardMaterial: class { constructor(o) { Object.assign(this, o); } }, CanvasTexture: class { constructor(c) { this.image = c; this.repeat = { set() {} }; } }, DoubleSide: 2, SRGBColorSpace: 'srgb' };
     const M = (c, o) => new THREE.MeshStandardMaterial(Object.assign({ color: c }, o || {}));
     const out = { ok: 0, fail: [], kinds: {} };
     const kinds = ['perenn', 'sommar', 'krydda', 'gron', 'rot', 'blad', 'marktack', 'buske', 'ros', 'bar', 'lov', 'frukt', 'bjork', 'gran', 'tall', 'lok', 'svard', 'solros', 'gras', 'ormbunke', 'klatter'];
