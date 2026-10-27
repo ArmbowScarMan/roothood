@@ -1338,196 +1338,6 @@ function art(cat, name) {
   return `<svg viewBox="0 0 120 120" aria-hidden="true">${b}${pot}</svg>`;
 }
 
-// ===== Data: demoläge (sparas i webbläsaren) =====
-const demoApi = {
-  async setPushHour() {},
-  async setRemind(id, on) { const m = this._raw(); m.find(x => x.id === id).remind = on; await this.save(m); },
-  async saveDetails(id, d) { const m = this._raw(); m.find(x => x.id === id).details = d; await this.save(m); },
-  async getHome() { return store.get('home', []); },
-  async getPets() { return store.get('pets', null) || { list: [], tank: {} }; },
-  async savePets(d) { store.set('pets', d); },
-  _experts() { return [
-    { id: 'x-karin', display_name: 'Karin Lund', expert_title: 'Trädgårdsmästare', expert_bio: 'Över 30 år med perenner, fruktträd och odling i kallt klimat.', expert_tags: ['Trädgård', 'Fruktträd', 'Zon 5–8'], answered: 128 },
-    { id: 'x-erik', display_name: 'Erik Holm', expert_title: 'Krukväxtexpert', expert_bio: 'Jobbar på en handelsträdgård och kan det mesta om aroider, orkidéer och ovanliga krukväxter.', expert_tags: ['Krukväxt', 'Monstera', 'Orkidé'], answered: 214 },
-    { id: 'x-sofia', display_name: 'Sofia Berg', expert_title: 'Växtskyddsrådgivare', expert_bio: 'Agronom som hjälper dig med skadedjur och sjukdomar, gärna med ekologiska metoder.', expert_tags: ['Skadedjur', 'Sjukdomar', 'Ekologiskt'], answered: 96 }]; },
-  async experts() { return this._experts(); },
-  async isExpert() { return false; },
-  async myExpertQs() { if (!store.get('xqSeeded', false)) { store.set('xq', [{ id: 1, expert: 'x-erik', category: 'Krukväxt', body: 'Min monstera får bruna fläckar med gul kant på de nedre bladen. Vad kan det vara?', photo_url: null, created_at: new Date(Date.now() - 2 * 864e5).toISOString(), answer: 'Bruna fläckar med gul ring brukar vara bladfläcksjuka, och det kommer oftast av att jorden varit blöt länge. Klipp bort de värsta bladen, låt jorden torka ordentligt mellan vattningarna och vattna aldrig på bladen. Om det inte blir bättre på tre veckor kan du plantera om i luftigare jord med bark.', answered_by: 'x-erik', answered_at: new Date(Date.now() - 864e5).toISOString() }]); store.set('xqSeeded', true); } return store.get('xq', []); },
-  async askExpert(q, photo) { const l = store.get('xq', []), url = photo ? await fileShrink(photo, 720, true) : null; l.unshift(Object.assign({ id: Date.now(), created_at: new Date().toISOString(), answer: null, photo_url: url }, q)); store.set('xq', l); },
-  async expertInbox() { return []; },
-  async answerExpert() {},
-  _people() { return [
-    { id: 'u-lena', display_name: 'Lena', pets: [{ kind: 'katt', name: 'Misse', sp: '' }, { kind: 'fisk', name: 'Neontetra', sp: 'Neontetra', n: 8 }], city: S.city || 'Piteå', interests: ['Krukväxt', 'Orkidé'], plants: 34, posts: 12, followers: 8, share: true, plant_list: [{ name: 'Monstera Thai Constellation' }, { name: 'Phalaenopsis' }, { name: 'Hoya kerrii' }] },
-    { id: 'u-ahmed', display_name: 'Ahmed', city: 'Luleå', interests: ['Köksträdgård'], plants: 18, posts: 5, followers: 3, share: true, plant_list: [{ name: 'Chili' }, { name: 'Tomat' }] },
-    { id: 'u-maria', display_name: 'Maria', city: S.city || 'Piteå', interests: ['Trädgård', 'Krukväxt'], plants: 52, posts: 21, followers: 15, share: false, plant_list: null },
-    { id: 'u-johan', display_name: 'Johan', city: 'Umeå', interests: ['Kaktus'], plants: 61, posts: 9, followers: 6, share: true, plant_list: [{ name: 'Kaktusfikon' }, { name: 'Lithops' }] },
-    { id: 'u-sara', display_name: 'Sara', city: 'Stockholm', interests: ['Krukväxt'], plants: 27, posts: 3, followers: 2, share: true, plant_list: [{ name: 'Kalatea' }] }]; },
-  async findUsers(q) { q = (q || '').toLowerCase(); return this._people().filter(u => !q || u.display_name.toLowerCase().includes(q) || (u.city || '').toLowerCase().includes(q)); },
-  _fr() { const f = store.get('friends', null); if (f) return f; return { 'u-lena': { st: 'pending_in', at: new Date(Date.now() - 36e5).toISOString() } }; },
-  async userCard(id) { const u = this._people().find(x => x.id === id || x.id === 'u-' + String(id).toLowerCase()); if (!u) return null; const f = (this._fr()[u.id] || {}).st || 'none', fr = f === 'friends', vis = (store.get('profile', {}).vis) || {};
-    return Object.assign({ following: 4, friends: 3 }, u, { followers: u.followers + (store.get('follows', []).includes(id) ? 1 : 0), friend_status: f, friend_req: u.id, pets: fr ? (u.pets || []) : null, hidden: fr ? [] : ['pets'] }); },
-  async friendReq(id, msg) { const f = this._fr(); f[id] = { st: 'pending_out', at: new Date().toISOString(), msg: msg || '' }; store.set('friends', f); },
-  async friendAnswer(reqId, accept) { const f = this._fr(); if (accept) f[reqId] = { st: 'friends', at: new Date().toISOString() }; else delete f[reqId]; store.set('friends', f); },
-  async friendRemove(id) { const f = this._fr(); delete f[id]; store.set('friends', f); },
-  async myFriends() { const f = this._fr(); return this._people().filter(u => (f[u.id] || {}).st === 'friends').map(u => ({ id: u.id, display_name: u.display_name, city: u.city })); },
-  async saveVis(vis, share) { const pr = store.get('profile', {}); pr.vis = vis; store.set('profile', pr); store.set('share', share); },
-  async userPosts(id) { const u = this._people().find(x => x.id === id || x.id === 'u-' + String(id).toLowerCase()) || {}; return this._feed().filter(p => p.user_id === id || p.author === u.display_name).slice(0, 20); },
-  async myFollows() { return store.get('follows', []); },
-  async follow(id, on) { const f = store.get('follows', []).filter(x => x !== id); if (on) f.push(id); store.set('follows', f); },
-  async saveHome(r) { store.set('home', { rooms: r, plan: S.hplan || {}, layout: S.layout || null }); },
-  async othersPhotos() { return []; },
-  async setShare(on) { store.set('share', on); },
-  async log(upId) { return store.get('log', []).filter(x => x.user_plant_id === upId); },
-  async addLog(upId, kind, date, note) { const l = store.get('log', []); l.push({ id: Date.now(), user_plant_id: upId, kind, done_on: date, note: note || null, created_at: new Date().toISOString() }); store.set('log', l); },
-  async delLog(id) { store.set('log', store.get('log', []).filter(x => x.id !== id)); },
-  async savePush() {},
-  async deletePush() {},
-  async plants() { return DEMO_PLANTS.concat(store.get('myPlants', [])); },
-  async resend() {},
-  async resetPw() {},
-  async user() { return { id: 'demo', name: (store.get('profile', {}) || {}).display_name || 'Du' }; },
-  async saveAvatar(url) { store.set('avatarDemo', url || null); return; },
-  async deleteAccount() { try { localStorage.clear(); } catch (e) {} },
-  async getProfile() { return Object.assign({ avatar_url: store.get('avatarDemo', null), display_name: 'Du', city: '', interests: [], share_photos: store.get('share', false) }, store.get('profile', {})); },
-  async saveProfile(p) { store.set('profile', { display_name: p.display_name, city: p.city, interests: p.interests, vis: p.vis || (store.get('profile', {}).vis) }); },
-  async changePassword() {},
-  _raw() {
-    let m = store.get('mine', null);
-    if (!m) {
-      m = [[1, 7], [2, 5], [21, 1]].map(([id, ago], i) => {
-        const p = DEMO_PLANTS.find(x => x.id === id);
-        return { id: i + 1, plant_id: id, name: p.swedish_name, latin: p.latin_name, category: p.category, interval: p.water_interval_days, last_watered: daysAgo(ago), custom: false };
-      });
-      store.set('mine', m);
-    }
-    m.forEach(x => { if (x.photo && !x.photos) { x.photos = [x.photo]; x.showOwn = true; } });
-    return m;
-  },
-  async mine() { return this._raw().map(x => applyNick(Object.assign({}, x, { own: x.photo || null, photos: x.photos || [], showOwn: x.showOwn !== false, photo: x.showOwn !== false && x.photo ? x.photo : null }))); },
-  async save(m) { store.set('mine', m); },
-  async uploadOwn(file) { return await fileShrink(file, 480, true); },
-  async setPhotos(id, patch) {
-    const m = this._raw(), x = m.find(y => y.id === id);
-    if ('photo_url' in patch) x.photo = patch.photo_url;
-    if ('photos' in patch) x.photos = patch.photos;
-    if ('show_own' in patch) x.showOwn = patch.show_own;
-    await this.save(m);
-  },
-  async addMine(p, photo) {
-    const m = this._raw(), ph_ = photo ? await fileShrink(photo, 480, true) : null;
-    m.push({ id: Date.now(), plant_id: p.id, name: p.swedish_name, latin: p.latin_name, category: p.category, interval: p.water_interval_days, last_watered: today(), custom: false, photo: ph_, photos: ph_ ? [ph_] : [], showOwn: true, remind: newRemind() });
-    await this.save(m);
-  },
-  async addCustom(f) {
-    const ph_ = f.photo ? await fileShrink(f.photo, 480, true) : null;
-    const mine = store.get('myPlants', []);
-    const plant = Object.assign(plantRow(f), { id: 1000 + mine.length + 1, photo_url: ph_ });
-    store.set('myPlants', mine.concat([plant]));
-    const m = this._raw();
-    m.push({ id: Date.now(), plant_id: plant.id, name: plant.swedish_name, latin: plant.latin_name, category: plant.category, interval: plant.water_interval_days, last_watered: today(), custom: false, photo: ph_, photos: ph_ ? [ph_] : [], showOwn: true, remind: newRemind() });
-    await this.save(m);
-  },
-  async water(id) { const m = this._raw(); m.find(x => x.id === id).last_watered = today(); await this.save(m); },
-  async setWatered(id, date) { const m = this._raw(); m.find(x => x.id === id).last_watered = date; await this.save(m); },
-  async remove(id) { await this.save(this._raw().filter(x => x.id !== id)); },
-  async getPro() { return store.get('pro', false); },
-  async setPro(on) { store.set('pro', on); },
-  _feed() {
-    let f = store.get('feed', null);
-    if (!f) {
-      const h = 36e5, t = n => new Date(Date.now() - n * h).toISOString();
-      f = [
-        { id: 3, kind: 'question', user_id: 'maja', author: 'Maja', category: 'Orkidé', body: 'Orkidén blommar inte efter vintern. Tips?', created_at: t(2), best_answer_id: null, likers: ['a', 'b'], answers: [] },
-        { id: 2, kind: 'question', user_id: 'karim', author: 'Karim', category: 'Köksträdgård', body: 'När kan tomatplantorna stå ute i Västsverige?', created_at: t(20), best_answer_id: 21, likers: ['a', 'b', 'c', 'd', 'e'],
-          answers: [{ id: 21, user_id: 'lena', author: 'Lena', author_pro: true, body: 'Vänta tills nätterna ligger över 10 grader, oftast i början av juni.', created_at: t(18) }] },
-        { id: 1, kind: 'question', user_id: 'elin', author: 'Elin', category: 'Krukväxt', body: 'Mina monsterablad blir gula. Vad gör jag?', created_at: t(50), best_answer_id: 11, likers: ['a', 'b', 'c'],
-          answers: [{ id: 11, user_id: 'sara', author: 'Sara', body: 'Troligen för mycket vatten. Låt jorden torka mellan vattningarna.', created_at: t(48) },
-                    { id: 12, user_id: 'omar', author: 'Omar', body: 'Kolla också att krukan har hål i botten.', created_at: t(40) }] }];
-      store.set('feed', f);
-    }
-    if (!store.get('forumSeeded', false)) {
-      const h = 36e5, t = n => new Date(Date.now() - n * h).toISOString();
-      f.push(
-        { id: 101, kind: 'thread', user_id: 'lena', author: 'Lena', author_pro: true, category: 'Byten och sticklingar', title: 'Byter monsterasticklingar mot pilea', body: 'Jag har tre rotade sticklingar av monstera. Någon i Göteborg som vill byta mot en pilea eller gullranka?', created_at: t(5), best_answer_id: null, likers: ['a', 'b'],
-          answers: [{ id: 1011, user_id: 'omar', author: 'Omar', body: 'Jag har en pilea med massor av småplantor! Skickar ett meddelande.', created_at: t(3) }] },
-        { id: 102, kind: 'thread', user_id: 'sara', author: 'Sara', category: 'Krukväxter', title: 'Bästa växtlampan för mörka vintrar?', body: 'Mina växter blir långa och bleka från november. Vilka växtlampor använder ni, och hur många timmar om dagen?', created_at: t(30), best_answer_id: null, likers: ['a', 'b', 'c', 'd'],
-          answers: [{ id: 1021, user_id: 'karim', author: 'Karim', body: 'Jag kör en vanlig LED-växtlampa 12 timmar med timer. Stor skillnad!', created_at: t(26) },
-                    { id: 1022, user_id: 'maja', author: 'Maja', body: 'Häng den 20–30 cm ovanför bladen, inte för nära.', created_at: t(20) }] },
-        { id: 103, kind: 'thread', user_id: 'elin', author: 'Elin', category: 'Köksträdgård', title: 'Odlingsplanering inför våren', body: 'Vad sår ni först? Jag tänkte chili i januari och tomater i mars.', created_at: t(70), best_answer_id: null, likers: ['a'], answers: [] });
-      store.set('feed', f); store.set('forumSeeded', true);
-    }
-    return f;
-  },
-  _save(f) { store.set('feed', f); },
-  _swapSeed(f) {
-    if (store.get('swapSeeded', false)) return;
-    const h = 36e5, t = n => new Date(Date.now() - n * h).toISOString();
-    f.push(
-      { id: 201, kind: 'listing', user_id: 'elin', author: 'Elin', category: 'Ge bort', title: 'Monstera-sticklingar', body: 'Tre rotade sticklingar med 2–3 blad var. Hämtas i centrala Uppsala.', city: 'Uppsala', taken: false, created_at: t(3), best_answer_id: null, likers: [],
-        answers: [{ id: 2011, user_id: 'omar', author: 'Omar', body: 'Jag skulle gärna ta en! Kan hämta i helgen.', created_at: t(2) }] },
-      { id: 202, kind: 'listing', user_id: 'karim', author: 'Karim', category: 'Byta', title: 'Tomatfrön mot chilifrön', body: 'Har egna frön av Gardener’s Delight och Black Krim. Byter gärna mot starka chilisorter.', city: 'Göteborg', taken: false, created_at: t(26), best_answer_id: null, likers: [], answers: [] },
-      { id: 203, kind: 'listing', user_id: 'maja', author: 'Maja', category: 'Önskas', title: 'Hoya carnosa', body: 'Letar efter en stickling av vaxblomma. Kan bjuda på pilea-skott i utbyte.', city: 'Stockholm', taken: false, created_at: t(50), best_answer_id: null, likers: [], answers: [] },
-      { id: 204, kind: 'listing', user_id: 'sara', author: 'Sara', category: 'Ge bort', title: 'Stor svärmors tunga', body: 'Har blivit för stor för min lägenhet, ca 80 cm hög.', city: 'Malmö', taken: true, created_at: t(120), best_answer_id: null, likers: [], answers: [] });
-    this._save(f); store.set('swapSeeded', true);
-  },
-  async newListing(type, title, body, city, photo) {
-    const f = this._feed(), url = photo ? await fileShrink(photo, 720, true) : null;
-    f.unshift({ id: Date.now(), kind: 'listing', user_id: 'demo', author: 'Du', category: type, title, body, city: city || null, photo_url: url, taken: false, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f);
-  },
-  async setTaken(id, on) { const f = this._feed(); f.find(p => p.id === id).taken = on; this._save(f); },
-  _caseSeed(f) {
-    if (store.get('caseSeeded', false)) return;
-    const h = 36e5, t = n => new Date(Date.now() - n * h).toISOString();
-    f.push(
-      { id: 301, kind: 'mystery', user_id: 'anna', author: 'Anna', category: 'Detektiv', title: 'Hortlax', body: 'Fick den av en granne. Vad är det här?', city: 'Piteå', hint: 'Epipremnum aureum', created_at: t(2), best_answer_id: null, likers: [],
-        answers: [{ id: 3011, user_id: 'omar', author: 'Omar', body: 'Gullranka', created_at: t(1) }, { id: 3012, user_id: 'sara', author: 'Sara', body: 'Hjärtfilodendron', created_at: t(1) }] },
-      { id: 302, kind: 'mystery', user_id: 'karim', author: 'Karim', category: 'Detektiv', title: 'Göteborg', body: 'Växer vid vår altan, blir ca 1 meter hög.', city: 'Göteborg', hint: 'Echinacea purpurea', created_at: t(30), best_answer_id: null, likers: [], answers: [] },
-      { id: 303, kind: 'mystery', user_id: 'elin', author: 'Elin', category: 'Detektiv', title: 'Uppsala', body: 'Köpte den utan namnlapp.', city: 'Uppsala', hint: 'Goeppertia makoyana', created_at: t(70), best_answer_id: 3031, likers: [],
-        answers: [{ id: 3031, user_id: 'lena', author: 'Lena', author_pro: true, body: 'Kalatea', created_at: t(60) }] },
-      { id: 304, kind: 'mystery', user_id: 'maja', author: 'Maja', category: 'Detektiv', title: 'Stockholm', body: 'Står i ett soligt fönster.', city: 'Stockholm', hint: 'Crassula ovata', created_at: t(100), best_answer_id: 3041, likers: [],
-        answers: [{ id: 3041, user_id: 'lena', author: 'Lena', author_pro: true, body: 'Pengaträd', created_at: t(95) }, { id: 3042, user_id: 'omar', author: 'Omar', body: 'Jadeträd', created_at: t(96) }] });
-    this._save(f); store.set('caseSeeded', true);
-  },
-  async newCase(place, body, city, photo) {
-    const f = this._feed(), url = photo ? await fileShrink(photo, 720, true) : null;
-    f.unshift({ id: Date.now(), kind: 'mystery', user_id: 'demo', author: 'Du', category: 'Detektiv', title: place, body, city: city || null, photo_url: url, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f);
-  },
-  async feed(kind) { kind = kind || 'question'; const pro = store.get('pro', false); if (kind === 'listing') this._swapSeed(this._feed()); if (kind === 'mystery') this._caseSeed(this._feed()); return JSON.parse(JSON.stringify(this._feed().filter(p => (p.kind || 'question') === kind))).map(p => { if (p.user_id === 'demo') p.author_pro = pro; p.answers.forEach(a => { if (a.user_id === 'demo') a.author_pro = pro; }); return p; }); },
-  async newThread(cat, title, body, photo) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.unshift({ id: Date.now(), kind: 'thread', user_id: 'demo', author: 'Du', category: cat, title, body, photo_url: url, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
-  async ask(cat, body, photo) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.unshift({ id: Date.now(), kind: 'question', user_id: 'demo', author: 'Du', category: cat, body, photo_url: url, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f); },
-  async notifs() { const me = 'demo', out = []; this._feed().filter(p => p.user_id === me).forEach(p => (p.answers || []).filter(a => a.user_id !== me).forEach(a => out.push({ t: 'reply', at: a.created_at, who: a.author, body: a.body, post_id: p.id, kind: p.kind || 'question', cat: p.category, ptitle: p.title || p.body }))); (store.get('xq', []) || []).filter(q => q.answer).forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer })); Object.entries(this._fr()).forEach(([id, v]) => { const u = this._people().find(x => x.id === id); if (u && v.st === 'pending_in') out.push({ t: 'friend', pending: true, at: v.at, who: u.display_name, req: id, from: id, msg: v.msg || (id === 'u-lena' ? 'Hej! Jag såg din fina monstera och vill gärna byta sticklingar.' : '') }); }); return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 50); },
-  async answer(pid, body, photo, parent) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.find(p => p.id === pid).answers.push({ id: Date.now(), user_id: 'demo', author: 'Du', body, photo_url: url, parent_id: parent || null, created_at: new Date().toISOString() }); this._save(f); },
-  async like(pid, on) { const f = this._feed(), p = f.find(x => x.id === pid); p.likers = p.likers.filter(x => x !== 'demo'); if (on) p.likers.push('demo'); this._save(f); },
-  async best(pid, aid) { const f = this._feed(); f.find(p => p.id === pid).pending_best_answer_id = aid; this._save(f); },
-  async myPlantFollows() { return store.get('pfol', []); },
-  async followPlant(sp, on) { const f = store.get('pfol', []).filter(x => x !== sp); if (on) f.push(sp); store.set('pfol', f); },
-  async modBest() { const out = []; this._feed().forEach(p => { const a = p.pending_best_answer_id && (p.answers || []).find(x => x.id === p.pending_best_answer_id); if (a) out.push({ post_id: p.id, question: p.body, answer_id: a.id, answer_text: a.body, answer_author: a.author, asked_by: p.author, asked_at: p.created_at }); }); return out; },
-  async modBestCount() { return (await this.modBest()).length; },
-  async modBestDecide(pid, ok) { const f = this._feed(), p = f.find(x => x.id === pid); if (p) { if (ok) p.best_answer_id = p.pending_best_answer_id; p.pending_best_answer_id = null; } this._save(f); },
-  async report() {},
-  _dm() { return store.get('dm', {}); },
-  async inbox() { const d = this._dm(); return Object.entries(d).filter(([, l]) => l.length).map(([id, l]) => { const u = this._people().find(x => x.id === id) || {}, z = l[l.length - 1]; return { other: id, name: u.display_name || 'Vän', last_body: z.body, last_at: z.at, last_mine: z.from === 'me', unread: l.filter(m => m.from !== 'me' && !m.read).length }; }).sort((a, b) => Date.parse(b.last_at) - Date.parse(a.last_at)); },
-  async thread(id) { return (this._dm()[id] || []).map((m, i) => ({ id: i, mine: m.from === 'me', body: m.body, created_at: m.at })); },
-  async sendMsg(id, body) { const d = this._dm(); (d[id] = d[id] || []).push({ from: 'me', body, at: new Date().toISOString(), read: true }); store.set('dm', d); },
-  async markRead(id) { const d = this._dm(); (d[id] || []).forEach(m => m.read = true); store.set('dm', d); },
-  async userHome(id) { return { visible: true, data: { rooms: [{ id: 'r1', name: 'Vardagsrum', rect: { x: 0, y: 0, w: 5, h: 4 }, dirs: ['S'], wins: [{ s: 'b', p: 1, l: 1.5 }] }, { id: 'r2', name: 'Kök', rect: { x: 5, y: 0, w: 3, h: 4 }, dirs: ['S'], wins: [] }], plan: {} } }; },
-  async myRole() { return 'admin'; },
-  async myBlocks() { return store.get('blocks', []); },
-  async blockedList() { const b = store.get('blocks', []); return this._people().filter(u => b.includes(u.id)).map(u => ({ id: u.id, display_name: u.display_name })); },
-  async block(id, on) { let b = store.get('blocks', []).filter(x => x !== id); if (on) b.push(id); store.set('blocks', b); },
-  _mr() { let r = store.get('demoMods', null); if (!r) { r = [{ id: 1, kind: 'post', target: '1', reason: 'Reklam eller spam', created_at: new Date(Date.now() - 36e5).toISOString(), reporter: 'Maria', author: 'Spammaren', excerpt: 'Köp billiga växter på nätet, klicka här!', hidden: false, n: 2, status: 'open' }, { id: 2, kind: 'answer', target: '2', reason: 'Olämpligt', created_at: new Date(Date.now() - 72e5).toISOString(), reporter: 'Ted', author: 'Okänd', excerpt: 'Det där är ett dumt svar.', hidden: false, n: 1, status: 'open' }]; store.set('demoMods', r); } return r; },
-  async modReports(st) { return this._mr().filter(r => st === 'all' || r.status === st); },
-  async modAct(id, a) { const r = this._mr(); r.filter(x => x.id === id).forEach(x => { x.status = a === 'hide' ? 'hidden' : 'kept'; x.hidden = a === 'hide'; }); store.set('demoMods', r); },
-  async modOpen() { return this._mr().filter(r => r.status === 'open').length; },
-  async modFeed() { const F = this._feed(), out = []; F.slice(0, 20).forEach(p => { out.push({ kind: 'post', id: p.id, author_id: p.user_id, author: p.author, city: 'Piteå', excerpt: (p.title ? p.title + ' ' : '') + (p.body || ''), created_at: p.created_at, hidden: false, has_photo: !!p.photo_url, post_kind: p.kind || 'question', reports: 0 }); (p.answers || []).forEach(a => out.push({ kind: 'answer', id: a.id, author_id: a.user_id, author: a.author, city: a.author === 'Lena' ? 'Umeå' : 'Piteå', excerpt: a.body, created_at: a.created_at, hidden: false, has_photo: !!a.photo_url, post_kind: 'answer', reports: 0 })); }); out.push({ kind: 'answer', id: 999001, author_id: 'spam', author: 'Spammaren', city: 'Stockholm', excerpt: 'Billiga klockor och solglasögon, beställ på min sida idag!', created_at: new Date().toISOString(), hidden: false, has_photo: false, post_kind: 'answer', reports: 2 }); return out; },
-  async modHideUser() { return 1; },
-  async modHide() {},
-  async listStaff() { return [{ id: 'demo', display_name: 'Du (admin)', role: 'admin' }, { id: 'u-maria', display_name: 'Maria', role: 'mod' }]; },
-  async setRole() {},
-  async delPost(id) { this._save(this._feed().filter(p => p.id !== id)); },
-  async delAnswer(id) { const f = this._feed(); f.forEach(p => { p.answers = p.answers.filter(a => a.id !== id); if (p.best_answer_id === id) p.best_answer_id = null; }); this._save(f); }
-};
-
 // ===== Data: Supabase =====
 let sb;
 const sbApi = {
@@ -1751,9 +1561,9 @@ const sbApi = {
   async delPost(id) { const { error } = await sb.from('posts').delete().eq('id', id); if (error) throw error; },
   async delAnswer(id) { const { error } = await sb.from('answers').delete().eq('id', id); if (error) throw error; }
 };
-let api = demoApi;
+let api = sbApi;
 function cleanFeed(l) { const bl = S.blocks || []; return (l || []).filter(p => !p.hidden && !bl.includes(p.user_id)).map(p => ({ ...p, answers: (p.answers || []).filter(a => !a.hidden && !bl.includes(a.user_id)) })); }
-[demoApi, sbApi].forEach(a => { const f = a.feed; a.feed = async function (k) { return cleanFeed(await f.call(a, k)); }; });
+[sbApi].forEach(a => { const f = a.feed; a.feed = async function (k) { return cleanFeed(await f.call(a, k)); }; });
 const isMod = () => S.role === 'mod' || S.role === 'admin', isAdmin = () => S.role === 'admin';
 
 // ===== Åtgärder =====
@@ -6197,6 +6007,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.133', 'Nu', ['Den publicerade appen innehåller inte längre demoläget. Demoläget finns kvar för lokala tester']],
   ['1.132', 'Nu', ['Offline: appen startar från sparad kopia när nätet saknas, och en banner visar att nya ändringar inte sparas']],
   ['1.131', 'Nu', ['Tillgänglighet: knappar och länkar är lättare att träffa, och kopparfärgade knappar och märken är lättare att läsa']],
   ['1.130', 'Nu', ['Integritet: andra användares namn hämtas på ett säkrare sätt. Ingen synlig ändring i appen']],
@@ -6862,7 +6673,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.132';
+const APP_VERSION = '1.133';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
