@@ -177,6 +177,15 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .askrow select{flex:1;padding:9px 12px;background:var(--bg);border:0;border-radius:999px}
 .prow{display:flex;gap:14px;align-items:center;margin-top:12px}
 .prow .grow{flex:1}
+.morew{position:relative;display:inline-flex}
+.x.more{padding:6px 8px;display:inline-flex;align-items:center}
+.moremenu{position:absolute;right:0;bottom:calc(100% + 6px);z-index:6;display:flex;flex-direction:column;min-width:200px;padding:4px;background:var(--surf);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.moremenu button{all:unset;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
+.moremenu button:hover{background:var(--soft)}
+.moremenu button.danger{color:#C0392B}
+.qhead{display:block;margin-top:10px}
+.qhead b{display:block;font-size:16px;line-height:1.3}
+.qhead span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-top:4px;font-size:14.5px;line-height:1.45;color:var(--mut)}
 .plink{all:unset;cursor:pointer}
 .plink:focus-visible{outline:2px solid var(--pri)}
 .link2{border:0;background:none;color:var(--pri);font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:4px 0}
@@ -1285,7 +1294,7 @@ const demoApi = {
   async user() { return { id: 'demo', name: (store.get('profile', {}) || {}).display_name || 'Du' }; },
   async saveAvatar(url) { store.set('avatarDemo', url || null); return; },
   async deleteAccount() { try { localStorage.clear(); } catch (e) {} },
-  async getProfile() { return Object.assign({ avatar_url: store.get('avatarDemo', null), display_name: 'Du', city: '', interests: [], share_photos: store.get('share', true) }, store.get('profile', {})); },
+  async getProfile() { return Object.assign({ avatar_url: store.get('avatarDemo', null), display_name: 'Du', city: '', interests: [], share_photos: store.get('share', false) }, store.get('profile', {})); },
   async saveProfile(p) { store.set('profile', { display_name: p.display_name, city: p.city, interests: p.interests, vis: p.vis || (store.get('profile', {}).vis) }); },
   async changePassword() {},
   _raw() {
@@ -4293,7 +4302,7 @@ function notifV() {
   <div class="sec"><h2>Svar och aktivitet</h2>${(N || []).some(n => n.t !== 'friend' && Date.parse(n.at) > seen) ? '<button class="viewall" onclick="notifAllRead()">✓ Markera alla som lästa</button>' : ''}</div><div class="pad nlist">${N == null ? '<p class="mut">Hämtar…</p>' : act.length ? act.join('') : '<p class="mut" style="margin:0">Inga svar än. När någon svarar på dina frågor, trådar, annonser eller detektivfall syns det här.</p>'}</div>
   <p class="mut" style="font-size:12.5px;margin:14px 18px 24px">Notiser i mobilen när du inte har appen öppen gäller än så länge bara vattning.</p>`;
 }
-function cPhotoBtn() { return S.cph ? `<span class="cph"><img src="${esc(S.cphUrl)}" alt="Vald bild"><button onclick="S.cph=null;S.cphUrl=null;keepMain()" aria-label="Ta bort bilden">×</button></span>` : `<label onclick="photoPick(event,this)" class="btn sm line cphb">📷 Bild<input type="file" accept="image/*" class="sr" onchange="cPhoto(this)"></label>`; }
+function cPhotoBtn() { return S.cph ? `<span class="cph"><img src="${esc(S.cphUrl)}" alt="Vald bild"><button onclick="S.cph=null;S.cphUrl=null;keepMain()" aria-label="Ta bort bilden">×</button></span>` : `<label onclick="photoPick(event,this)" class="btn sm line cphb">${ic('ph-image', 'currentColor', 16)} Bild<input type="file" accept="image/*" class="sr" onchange="cPhoto(this)"></label>`; }
 function cPhoto(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.cph = f; S.cphUrl = URL.createObjectURL(f); keepMain(); }
 const postImg = p => p.photo_url ? `<img class="pimg" src="${esc(p.photo_url)}" alt="Bild i inlägget" loading="lazy" onclick="event.stopPropagation();this.classList.toggle('big')">` : '';
 
@@ -4691,7 +4700,7 @@ function userV() {
 function friendsSec() {
   if (S.friends == null) { if (!S.frLoad) { S.frLoad = true; api.myFriends().then(l => { S.friends = l; S.frLoad = false; if (S.tab === 'me' && !S.tool && !S.sel) render(); }).catch(() => { S.friends = []; S.frLoad = false; }); } return ''; }
   if (!S.friends.length) return '';
-  return `<div class="sec"><h2>Vänner</h2><button class="btn sm line" onclick="openMsgs()">💬 Meddelanden${msgUnread() ? ' (' + msgUnread() + ')' : ''}</button></div><div class="pad"><div class="chips2">${S.friends.map(f => `<button onclick="openUser('${esc(f.id)}')">${esc(f.display_name)}</button>`).join('')}</div></div>`;
+  return `<div class="sec"><h2>Vänner</h2><button class="btn sm line" onclick="openMsgs()">${ic('ph-chat-circle', 'currentColor', 16)} Meddelanden${msgUnread() ? ' (' + msgUnread() + ')' : ''}</button></div><div class="pad"><div class="chips2">${S.friends.map(f => `<button onclick="openUser('${esc(f.id)}')">${esc(f.display_name)}</button>`).join('')}</div></div>`;
 }
 function profHome(c, self) {
   if (self) { if (!S.user) return ''; return `${home3dV('s')}<p class="mut" style="margin:8px 18px 0;font-size:13px">Du väljer vem som ser ditt hem under Inställningar, Vad andra ser på din profil.</p>`; }
@@ -4712,7 +4721,7 @@ function profPets(c, self) {
 }
 function userBody(c, uposts, self) {
   const f = (S.follows || []).includes(c.id), posts = uposts || [];
-  return `  <div class="uhero"><div class="avwrap">${avBig(c.display_name, 'bigav', c.avatar_url)}${self ? `<label class="avedit" aria-label="Byt profilbild">📷<input type="file" accept="image/*" class="sr" onchange="changeAvatar(this.files[0]);this.value=''"></label>` : ''}</div><div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? '📍 ' + esc(c.city) : 'Ingen ort angiven'}</span>
+  return `  <div class="uhero"><div class="avwrap">${avBig(c.display_name, 'bigav', c.avatar_url)}${self ? `<label class="avedit" aria-label="Byt profilbild">${ic('ph-camera', 'currentColor', 18)}<input type="file" accept="image/*" class="sr" onchange="changeAvatar(this.files[0]);this.value=''"></label>` : ''}</div><div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? '📍 ' + esc(c.city) : 'Ingen ort angiven'}</span>
     ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">✏️ Redigera profil</button>` : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow('${esc(c.id)}')">${f ? 'Följer ✓' : '+ Följ'}</button>${frBtns(c)}${c.friend_status === 'friends' ? `<button class="btn sm" onclick="openChat('${esc(c.id)}','${esc(c.display_name)}')">💬 Skriv</button>` : ''}</div><button class="link2" style="margin-top:8px;align-self:flex-start" onclick="blockUser('${esc(c.id)}',${!(S.blocks || []).includes(c.id)})">${(S.blocks || []).includes(c.id) ? 'Avblockera' : '🚫 Blockera'}</button>`}</div></div>
   <div class="ustats"><div><b>${c.plants || 0}</b><span>växter</span></div><div><b>${c.posts || 0}</b><span>inlägg</span></div><div><b>${c.followers || 0}</b><span>följare</span></div><div><b>${c.friends != null ? c.friends : (self && S.friends ? S.friends.length : 0)}</b><span>vänner</span></div></div>
   ${self ? friendsSec() : ''}
@@ -5270,15 +5279,21 @@ function who(name, sub, pill, pro, uid) {
 }
 function likeBtn(p) {
   const on = !!(S.user && p.likers.includes(S.user.id));
-  return `<button class="like ${on ? 'on' : ''}" onclick="toggleLike(${p.id})" aria-pressed="${on}" aria-label="Gilla">♥ ${p.likers.length}</button>`;
+  return `<button class="like ${on ? 'on' : ''}" onclick="toggleLike(${p.id})" aria-pressed="${on}" aria-label="Gilla">${ic(on ? 'ph-heart-fill' : 'ph-heart', 'currentColor', 16)} ${p.likers.length}</button>`;
 }
+function moreBtn(k, id, mine) {
+  const key = k + id, open = S.more === key, sure = S.del === key;
+  const fn = k === 'p' ? 'delPost' : 'delAnswer', rk = k === 'p' ? 'post' : 'answer';
+  return `<span class="morew"><button class="x more" aria-label="Fler val" aria-expanded="${open}" onclick="S.more=S.more==='${key}'?null:'${key}';S.del=null;keepMain()">${ic('ph-dots-three', 'currentColor', 20)}</button>${open ? `<span class="moremenu" role="menu">${mine ? `<button role="menuitem" class="${sure ? 'danger' : ''}" onclick="${fn}(${id})">${ic('ph-trash', 'currentColor', 16)} ${sure ? 'Tryck igen för att ta bort' : 'Ta bort'}</button>` : `<button role="menuitem" onclick="S.more=null;openReport('${rk}',${id})">${ic('ph-flag', 'currentColor', 16)} Rapportera</button>`}</span>` : ''}</span>`;
+}
+document.addEventListener('click', e => { if (S.more && !(e.target.closest && e.target.closest('.morew'))) { S.more = null; S.del = null; keepMain(); } });
 function delBtn(key, fn, id) {
   const sure = S.del === key + id;
   return `<button class="x ${sure ? 'sure' : ''}" onclick="${fn}(${id})">${sure ? 'Bekräfta' : 'Ta bort'}</button>`;
 }
 function segBar() {
   return `<div class="seg2" role="tablist">${[['detect', 'Detektiver'], ['q', 'Frågor'], ['forum', 'Forum'], ['swap', 'Byt'], ['friends', 'Vänner']].map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>
-  <div class="pad cbtns" style="padding-top:10px"><button class="peopleb" onclick="openPeople()"><span>${ic('ph-users', 'currentColor', 20)}</span><span class="grow">Hitta användare</span></button><button class="peopleb xb" onclick="openExperts()"><span>🎓</span><span class="grow">Fråga en expert</span>${S.pro ? '' : proBadge()}</button><button class="peopleb ib" style="grid-column:1/-1" onclick="openInspo()"><span>▶️</span><span class="grow">Odlare att följa på YouTube och Instagram</span></button></div>`;
+  <div class="pad cbtns" style="padding-top:10px"><button class="peopleb" onclick="openPeople()"><span>${ic('ph-users', 'currentColor', 20)}</span><span class="grow">Hitta användare</span></button><button class="peopleb xb" onclick="openExperts()"><span>${ic('ph-graduation-cap', 'currentColor', 20)}</span><span class="grow">Fråga en expert</span>${S.pro ? '' : proBadge()}</button><button class="peopleb ib" style="grid-column:1/-1" onclick="openInspo()"><span>${ic('ph-video', 'currentColor', 20)}</span><span class="grow">Odlare att följa på YouTube och Instagram</span></button></div>`;
 }
 function listState(list, emptyText) {
   if (S.feedErr) return `<div class="empty"><p>${esc(S.feedErr)}</p><button class="btn sm" onclick="loadFeed()">Försök igen</button></div>`;
@@ -5295,15 +5310,21 @@ function answersV(p, allowBest) {
   return ans.map(a => {
     const isBest = allowBest && a.id === p.best_answer_id, own = !!(S.user && a.user_id === S.user.id);
     return `<div class="post ${isBest ? 'bestc' : ''}">${whoP(a, ago(a.created_at), isBest ? '<span class="pill ok">Bästa svar</span>' : '')}<p style="margin:0;white-space:pre-line">${esc(a.body)}</p>${postImg(a)}
-    <div class="prow">${allowBest && mine && !isBest ? `<button class="link2" onclick="markBest(${p.id},${a.id})">Markera som bästa svar</button>` : ''}<span class="grow"></span>${own ? delBtn('a', 'delAnswer', a.id) : `<button class="x" onclick="openReport('answer',${a.id})">Rapportera</button>`}</div></div>`;
+    <div class="prow">${allowBest && mine && !isBest ? `<button class="link2" onclick="markBest(${p.id},${a.id})">Markera som bästa svar</button>` : ''}<span class="grow"></span>${moreBtn('a', a.id, own)}</div></div>`;
   }).join('');
 }
 
 // --- Frågor ---
+function splitQ(t) {
+  t = String(t || '').trim(); const m = /^(.{12,90}?[?.!])\s+(.+)$/s.exec(t);
+  if (m) return [m[1], m[2]];
+  if (t.length <= 90) return [t, ''];
+  const cut = t.lastIndexOf(' ', 70); return [t.slice(0, cut > 30 ? cut : 70) + '…', t.slice(cut > 30 ? cut + 1 : 70)];
+}
 function postCard(p) {
   const best = p.answers.find(a => a.id === p.best_answer_id);
   return `<div class="post">${whoP(p, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>`)}
-  <h3><button class="plink" onclick="openPost(${p.id})">${esc(p.body)}</button></h3>${postImg(p)}
+  ${(() => { const [h, r] = splitQ(p.body); return `<button class="plink qhead" onclick="openPost(${p.id})"><b>${esc(h)}</b>${r ? `<span>${esc(r)}</span>` : ''}</button>`; })()}${postImg(p)}
   ${best ? `<div class="ans"><b>Bästa svar</b>${esc(best.body)}</div>` : ''}
   <div class="prow">${likeBtn(p)}<button class="link2" onclick="openPost(${p.id})">${p.answers.length ? p.answers.length + ' svar' : 'Svara'}</button></div></div>`;
 }
@@ -5313,8 +5334,8 @@ function friendsV() {
   const F = S.friends, un = id => ((S.inbox || []).find(c => c.other === id) || {}).unread || 0;
   return `${topbar('Community')}${segBar()}
   ${!S.user ? `<div class="empty"><p>Logga in för att se och skriva till dina vänner.</p><button class="btn sm" onclick="openModal('login')">Logga in eller skapa konto</button></div>` : `${friendReqCard()}
-  <div class="sec"><h2>Mina vänner</h2><button class="btn sm line" onclick="openMsgs()">💬 Meddelanden${msgUnread() ? ' (' + msgUnread() + ')' : ''}</button></div>
-  <div class="pad">${F == null ? '<p class="mut">Hämtar…</p>' : F.length ? F.map(f => `<div class="prow2"><button class="popen" onclick="openUser('${esc(f.id)}')">${avBig(f.display_name)}<span class="grow"><b>${esc(f.display_name)}</b><span>${f.city ? '📍 ' + esc(f.city) : 'Vän'}</span></span></button><button class="btn sm" onclick="openChat('${esc(f.id)}','${esc(f.display_name)}')">💬 Skriv${un(f.id) ? ' (' + un(f.id) + ')' : ''}</button></div>`).join('') : `<div class="empty"><p>Du har inga vänner än. Hitta andra odlare och skicka en vänförfrågan.</p><button class="btn sm" onclick="openPeople()">Hitta användare</button></div>`}</div>`}`;
+  <div class="sec"><h2>Mina vänner</h2><button class="btn sm line" onclick="openMsgs()">${ic('ph-chat-circle', 'currentColor', 16)} Meddelanden${msgUnread() ? ' (' + msgUnread() + ')' : ''}</button></div>
+  <div class="pad">${F == null ? '<p class="mut">Hämtar…</p>' : F.length ? F.map(f => `<div class="prow2"><button class="popen" onclick="openUser('${esc(f.id)}')">${avBig(f.display_name)}<span class="grow"><b>${esc(f.display_name)}</b><span>${f.city ? ic('ph-map-pin', 'currentColor', 13) + ' ' + esc(f.city) : 'Vän'}</span></span></button><button class="btn sm" onclick="openChat('${esc(f.id)}','${esc(f.display_name)}')">💬 Skriv${un(f.id) ? ' (' + un(f.id) + ')' : ''}</button></div>`).join('') : `<div class="empty"><p>Du har inga vänner än. Hitta andra odlare och skicka en vänförfrågan.</p><button class="btn sm" onclick="openPeople()">Hitta användare</button></div>`}</div>`}`;
 }
 function comm() {
   if (S.ctab === 'friends') return friendsV();
@@ -5334,7 +5355,7 @@ function postV() {
   const mine = !!(S.user && p.user_id === S.user.id);
   return `${topbar('Fråga', 'S.post=null;S.del=null;render()')}<div class="pad">
   <div class="post" style="margin-top:10px">${whoP(p, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>`)}<h2 style="font-size:21px">${esc(p.body)}</h2>${postImg(p)}
-  <div class="prow">${likeBtn(p)}<span class="grow"></span>${mine ? delBtn('p', 'delPost', p.id) : `<button class="x" onclick="openReport('post',${p.id})">Rapportera</button>`}</div></div>
+  <div class="prow">${likeBtn(p)}<span class="grow"></span>${moreBtn('p', p.id, mine)}</div></div>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
   ${answersV(p, true)}${replyBox(p.id, 'Skriv ett svar')}</div>`;
 }
@@ -5408,7 +5429,7 @@ function listingV() {
   <div class="post" style="margin-top:10px">${whoP(p, (p.city ? p.city + ' · ' : '') + ago(p.created_at), ltPill(p))}
   ${p.photo_url ? `<img class="lbig" src="${esc(p.photo_url)}" alt="${esc(p.title || '')}">` : ''}
   <h2 style="font-size:21px;margin:8px 0">${esc(p.title || '')}${p.taken ? ' <span class="pill">Bortlovad</span>' : ''}</h2><p style="margin:0;white-space:pre-line">${esc(p.body)}</p>
-  <div class="prow">${mine ? `<button class="btn sm line" onclick="setTaken(${p.id},${!p.taken})">${p.taken ? 'Öppna igen' : 'Markera som bortlovad'}</button>` : ''}<span class="grow"></span>${mine ? delBtn('p', 'delPost', p.id) : `<button class="x" onclick="openReport('post',${p.id})">Rapportera</button>`}</div></div>
+  <div class="prow">${mine ? `<button class="btn sm line" onclick="setTaken(${p.id},${!p.taken})">${p.taken ? 'Öppna igen' : 'Markera som bortlovad'}</button>` : ''}<span class="grow"></span>${moreBtn('p', p.id, mine)}</div></div>
   <p class="lnote">Svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
   ${answersV(p, false)}${mine ? replyBox(p.id, 'Svara på frågor om din annons') : replyBox(p.id, p.category === 'Önskas' ? 'Har du växten? Skriv till ' + p.author : 'Intresserad? Skriv till ' + p.author)}</div>`;
@@ -5440,7 +5461,7 @@ function detectV() {
   const c0 = city ? open.filter(c => String(c.city || '').toLowerCase().includes(city.toLowerCase())) : [];
   const show = c0.length ? c0.concat(open.filter(c => !c0.includes(c))) : open;
   return `${topbar('Community')}${segBar()}
-  <div class="dhead"><div class="grow"><h2 class="brand2">Växtdetektiverna</h2><span class="mut">Hjälp grannar${city ? ' i ' + esc(city) : ''} att artbestämma</span></div><span class="ptschip">${mine} p 🏆</span></div>
+  <div class="dhead"><div class="grow"><h2 class="brand2">Växtdetektiverna</h2><span class="mut">Hjälp grannar${city ? ' i ' + esc(city) : ''} att artbestämma</span></div><span class="ptschip">${ic('ph-trophy', 'currentColor', 14)} ${mine} p</span></div>
   <div class="addbar" style="padding:12px 18px 0"><button class="btn wide" onclick="startCase()">${ic('ph-camera', 'currentColor', 18)} Fråga detektiverna om en växt</button></div>
   ${st && (S.feedErr || !S.cases) ? `<div class="pad" style="padding-top:12px">${st}</div>` : `
   <div class="cases">${show.length ? show.map(c => `<div class="casec">${caseImg(c, 'cimg')}
@@ -5450,7 +5471,7 @@ function detectV() {
     : '<div class="empty" style="margin:12px 18px"><p>Inga olösta fall just nu. Fota en växt du inte känner igen!</p></div>'}</div>
   ${solved.length || stats.top.length ? `<div class="dcols">
     <div><h3 class="cap3">Nyligen lösta fall</h3>${solved.map(c => { const a = c.answers.find(x => x.id === c.best_answer_id); return `<button class="solvedr" onclick="openPost(${c.id})">${caseImg(c, 'sthumb')}<span class="grow"><b>${esc(a ? a.body : '?')}</b><span>${esc(c.title || c.city || '')} · ${CASE_PTS} p till ${esc(a ? a.author : '')}</span></span></button>`; }).join('') || '<p class="mut">Inga än.</p>'}</div>
-    <div><h3 class="cap3">Topplista</h3>${stats.top.slice(0, 5).map((t, i) => `<div class="toprow"><span class="tn">${i + 1}</span><span class="grow">${esc(t[1])}</span><b>${t[2]} p</b>${i === 0 ? ' 🏆' : ''}</div>`).join('') || '<p class="mut">Ingen har poäng än.</p>'}</div></div>` : ''}`}`;
+    <div><h3 class="cap3">Topplista</h3>${stats.top.slice(0, 5).map((t, i) => `<div class="toprow"><span class="tn">${i + 1}</span><span class="grow">${esc(t[1])}</span><b>${t[2]} p</b>${i === 0 ? ' ' + ic('ph-trophy', 'var(--sun)', 14) : ''}</div>`).join('') || '<p class="mut">Ingen har poäng än.</p>'}</div></div>` : ''}`}`;
 }
 function startCase(photo) { if (needLogin()) return; S.newCase = true; S.cphoto = photo || null; S.cphotoUrl = photo ? URL.createObjectURL(photo) : null; S.cplace = S.cplace || S.city || ''; render(); $('#main').scrollTop = 0; }
 function caseFromId() { if (needLogin()) return; stopIdCam(); const f = S.idFile; S.tool = null; S.tab = 'comm'; S.ctab = 'detect'; S.post = null; loadFeed(); startCase(f); }
@@ -5492,7 +5513,7 @@ function caseV() {
   <div class="post" style="margin-top:10px;padding:0;overflow:hidden">${caseImg(c, 'cbig')}<div style="padding:16px">${whoP(c, 'Upplagd i ' + (c.title || c.city || '') + ' · ' + ago(c.created_at), best ? '<span class="pill ok">Löst</span>' : '<span class="pill">Olöst</span>')}
   <h2 style="font-size:21px;margin:6px 0">${best ? esc(best.body) : 'Okänd växt (' + esc(c.title || '') + ')'}</h2><p style="margin:0;white-space:pre-line">${esc(c.body || '')}</p>
   ${best ? `<p class="mut" style="margin:8px 0 0">Löst av <b>${esc(best.author)}</b>, som fick ${CASE_PTS} p.</p>${bp ? `<button class="btn sm" style="margin-top:10px" onclick="S.tab='home';openPlant(${bp.id})">Se skötselråd för ${esc(bp.swedish_name)}</button>` : ''}` : ''}
-  <div class="prow"><span class="grow"></span>${mine ? delBtn('p', 'delPost', c.id) : `<button class="x" onclick="openReport('post',${c.id})">Rapportera</button>`}</div></div></div>
+  <div class="prow"><span class="grow"></span>${moreBtn('p', c.id, mine)}</div></div></div>
   ${!best && !mine ? `<div class="setcard" style="margin-top:12px"><b>Vad tror du att det är?</b>
     <div style="display:flex;gap:8px;margin-top:10px"><input id="gname" list="gplants" maxlength="80" placeholder="Skriv växtens namn" style="flex:1"><button class="btn sm cop" onclick="sendGuess(${c.id})">Gissa</button></div>
     <datalist id="gplants">${S.plants.map(p => `<option value="${esc(p.swedish_name)}">`).join('')}</datalist>
@@ -5501,7 +5522,7 @@ function caseV() {
   <h3 style="margin:20px 0 10px">${c.answers.length ? c.answers.length + (c.answers.length === 1 ? ' gissning' : ' gissningar') : 'Inga gissningar än'}</h3>
   ${c.answers.map(a => { const isBest = best && a.id === best.id, own = !!(S.user && a.user_id === myId());
     return `<div class="post ${isBest ? 'bestc' : ''}">${whoP(a, ago(a.created_at), isBest ? '<span class="pill ok">Rätt svar</span>' : '')}<p style="margin:0;font-size:17px;font-weight:700">${esc(a.body)}</p>
-    <div class="prow">${mine && !isBest ? `<button class="btn sm cop" onclick="markCorrect(${c.id},${a.id})">Rätt!</button>` : ''}<span class="grow"></span>${own ? delBtn('a', 'delAnswer', a.id) : `<button class="x" onclick="openReport('answer',${a.id})">Rapportera</button>`}</div></div>`; }).join('')}
+    <div class="prow">${mine && !isBest ? `<button class="btn sm cop" onclick="markCorrect(${c.id},${a.id})">Rätt!</button>` : ''}<span class="grow"></span>${moreBtn('a', a.id, own)}</div></div>`; }).join('')}
   </div>`;
 }
 
@@ -5523,7 +5544,7 @@ function forumCatV() {
   const form = S.newThread ? `<div class="ask" style="margin:12px 0 4px"><label class="sr" for="tt">Rubrik</label><input id="tt" maxlength="120" placeholder="Rubrik" value="${esc(S.tt)}" oninput="S.tt=this.value" style="margin-bottom:10px;background:var(--bg);border:0">
     <textarea rows="5" maxlength="5000" placeholder="Vad vill du berätta eller diskutera?" aria-label="Inlägg" oninput="S.tb=this.value">${esc(S.tb)}</textarea>
     <div class="askrow"><button class="btn sm line" onclick="S.newThread=false;S.cph=null;render()">Avbryt</button>${cPhotoBtn()}<span class="grow" style="flex:1"></span><button class="btn sm" onclick="sendThread()">Publicera tråd</button></div></div>` : '';
-  const list = ts.length ? ts.map(t => `<button class="thr" onclick="openPost(${t.id})"><b>${esc(t.title || t.body.slice(0, 60))}</b><span class="mut">${esc(t.author)}, ${ago(t.created_at)}</span><span class="tmeta"><span>${ic('<path d="M5 5h14v10h-7l-4 4v-4H5z"/>', 'currentColor', 15)}${t.answers.length} svar</span><span>♥ ${t.likers.length}</span>${t.photo_url ? '<span>📷</span>' : ''}</span></button>`).join('')
+  const list = ts.length ? ts.map(t => `<button class="thr" onclick="openPost(${t.id})"><b>${esc(t.title || t.body.slice(0, 60))}</b><span class="mut">${esc(t.author)}, ${ago(t.created_at)}</span><span class="tmeta"><span>${ic('<path d="M5 5h14v10h-7l-4 4v-4H5z"/>', 'currentColor', 15)}${t.answers.length} svar</span><span>${ic('ph-heart', 'currentColor', 15)}${t.likers.length}</span>${t.photo_url ? '<span>' + ic('ph-image', 'currentColor', 15) + '</span>' : ''}</span></button>`).join('')
     : `<div class="empty"><p>Inga trådar här än. Starta den första!</p></div>`;
   return `${topbar(f.id, 'S.forum=null;S.newThread=false;render()')}<p class="mut" style="text-align:center;margin:0 18px">${esc(f.d)}</p>
   <div class="pad">${S.newThread ? form : `<div class="addbar" style="padding:14px 0 4px"><button class="btn wide" onclick="startThread()">+ Ny tråd</button></div>`}
@@ -5535,7 +5556,7 @@ function threadV() {
   const mine = !!(S.user && p.user_id === S.user.id);
   return `${topbar(p.category, 'S.post=null;S.del=null;render()')}<div class="pad">
   <div class="post" style="margin-top:10px">${whoP(p, ago(p.created_at))}<h2 style="font-size:21px;margin-bottom:8px">${esc(p.title || '')}</h2><p style="margin:0;white-space:pre-line">${esc(p.body)}</p>${postImg(p)}
-  <div class="prow">${likeBtn(p)}<span class="grow"></span>${mine ? delBtn('p', 'delPost', p.id) : `<button class="x" onclick="openReport('post',${p.id})">Rapportera</button>`}</div></div>
+  <div class="prow">${likeBtn(p)}<span class="grow"></span>${moreBtn('p', p.id, mine)}</div></div>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
   ${answersV(p, false)}${replyBox(p.id, 'Skriv ett svar i tråden')}</div>`;
 }
@@ -5827,6 +5848,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.100', 'Nu', ['Community: Rapportera och Ta bort ligger i en …-meny', 'Frågor visas med kort fet rubrik och text under', 'Samma ikoner överallt, inga emojis bland knapparna', 'Foton på dina växter är privata tills du själv väljer att visa dem. SQL-steg 040 behövs']],
   ['1.99.4', 'Nu', ['Verktygskorten på Hem har samma stil som snabbknapparna']],
   ['1.99.2', 'Nu', ['Ortsknappen är en glob när du valt en ort, så det tar mindre plats i rubriken']],
   ['1.99.1', 'Nu', ['Fler ikoner i Phosphor: planeringsknappar, Mitt hem och tomma sidor']],
@@ -6459,7 +6481,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.99.4';
+const APP_VERSION = '1.100';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];

@@ -1,0 +1,5 @@
+-- 040: Foton på egna växter är privata som standard.
+-- Nya konton får share_photos = false. Befintliga konton som inte själva valt "Alla" för växter blir privata.
+alter table public.profiles alter column share_photos set default false;
+update public.profiles set share_photos = false
+where coalesce(vis ->> 'plants', '') <> 'all';
