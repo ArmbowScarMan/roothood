@@ -6955,6 +6955,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.173', '27 okt 21:30', ['Familj: skapa en familjekod i Inställningar och skicka den till din familj, eller gå med med en kod. Delning av Mitt hem och växter kommer i nästa steg']],
   ['1.172', '27 okt 19:30', ['Engelska: alla växttexter i Växtdatabasen är nu översatta, inklusive vanliga problem, tips och sortbeskrivningar']],
   ['1.171', '27 okt 19:20', ['3D: löjtnantshjärtans blommor är hjärtformade och hänger under stjälken, och bladen är smala och sitter utåt']],
   ['1.170', '27 okt 19:10', ['3D: stjärnflockan och löjtnantshjärtan är större, med tjockare stjälkar och fler blommor']],
@@ -7660,7 +7661,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.172';
+const APP_VERSION = '1.173';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -7676,9 +7677,57 @@ function applyInterests(list) {
   if (ints.every(c => INDOOR.includes(c))) S.env = 'in';
   else if (ints.every(c => OUTDOOR.includes(c))) S.env = 'out';
 }
+// ===== Familj: hushåll med flera konton =====
+async function loadFam() {
+  try {
+    const { data, error } = await sb.from('household_members').select('household_id, households(code, owner)').eq('user_id', S.user.id);
+    if (error) throw error;
+    const row = data && data[0];
+    if (!row) { S.fam = { none: true }; }
+    else {
+      const c = await sb.from('household_members').select('user_id', { count: 'exact', head: true }).eq('household_id', row.household_id);
+      S.fam = { hid: row.household_id, code: row.households.code, owner: row.households.owner, mine: row.households.owner === S.user.id, n: c.count || 1 };
+    }
+  } catch (e) { S.fam = { err: true }; }
+  if (S.tool === 'settings') render();
+}
+async function famCreate() {
+  const { error } = await sb.rpc('create_household');
+  S.famMsg = error ? 'Kunde inte skapa familjekoden just nu.' : 'Familjekoden är skapad.';
+  S.fam = null; await loadFam();
+}
+async function famJoin() {
+  const c = (($('#famc') || {}).value || '').trim();
+  if (!c) { S.famMsg = 'Skriv in koden först.'; render(); return; }
+  const { error } = await sb.rpc('join_household', { p_code: c });
+  S.famMsg = !error ? 'Du är nu med i hushållet.' : /BAD_CODE/.test(error.message || '') ? 'Koden finns inte. Kontrollera att du skrev rätt.' : /ALREADY_MEMBER/.test(error.message || '') ? 'Du är redan med i ett hushåll.' : 'Kunde inte gå med just nu.';
+  S.fam = null; await loadFam();
+}
+async function famLeave() {
+  if (!confirm('Lämna hushållet? Dina växter och ditt konto ligger kvar.')) return;
+  const { error } = await sb.from('household_members').delete().eq('user_id', S.user.id);
+  S.famMsg = error ? 'Kunde inte lämna just nu.' : 'Du har lämnat hushållet.';
+  S.fam = null; await loadFam();
+}
+function famV() {
+  if (!S.user || DEMO) return '';
+  const f = S.fam, msg = S.famMsg ? `<p class="formmsg" style="margin:10px 0 0">${esc(S.famMsg)}</p>` : '';
+  if (!f) return `<div class="sec"><h2>Familj</h2></div><div class="pad"><div class="setcard"><p class="mut" style="margin:0">Hämtar…</p></div></div>`;
+  if (f.err) return `<div class="sec"><h2>Familj</h2></div><div class="pad"><div class="setcard"><p class="mut" style="margin:0">Familjekonton är inte klara ännu. Försök igen senare.</p></div></div>`;
+  if (f.none) return `<div class="sec"><h2>Familj</h2></div><div class="pad"><div class="setcard">
+    <p class="mut" style="margin:0 0 10px">Har fler i hushållet eget konto? Skapa en familjekod och skicka den till dem, så delar ni hem och växter.</p>
+    <button class="btn sm" onclick="famCreate()">Skapa familjekod</button>
+    <label class="fl" for="famc" style="margin-top:14px">Eller gå med med en kod</label><input id="famc" autocomplete="off" autocapitalize="characters" placeholder="Koden">
+    <button class="btn sm line" style="margin-top:10px" onclick="famJoin()">Gå med</button>${msg}</div></div>`;
+  return `<div class="sec"><h2>Familj</h2></div><div class="pad"><div class="setcard">
+    <p style="margin:0 0 4px">Familjekod</p><p style="margin:0 0 10px;font-size:22px;font-weight:800;letter-spacing:.12em">${esc(f.code)}</p>
+    <p class="mut" style="margin:0 0 12px">${f.n} ${f.n === 1 ? 'person' : 'personer'} i hushållet. Skicka koden till den som ska gå med.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn sm" onclick="navigator.clipboard && navigator.clipboard.writeText(${jsArg(f.code)}).then(() => { S.famMsg = 'Koden är kopierad.'; render(); })">Kopiera kod</button><button class="btn sm line" onclick="famLeave()">Lämna hushållet</button></div>${msg}</div></div>`;
+}
 async function openSettings() {
   stopLight();
-  S.tool = 'settings'; S.prof = null; S.del = null; S.pwMsg = '';
+  S.tool = 'settings'; S.prof = null; S.del = null; S.pwMsg = ''; S.fam = null; S.famMsg = '';
+  if (S.user && !DEMO) loadFam();
   render(); $('#main').scrollTop = 0;
   refreshPush();
   if (S.user) {
@@ -7770,6 +7819,7 @@ function settingsV() {
   <div class="sec"><h2>Påminnelser</h2></div><div class="pad">${pushCard()}</div>
   ${isMod() ? `<div class="sec"><h2>Moderering</h2></div><div class="pad"><button class="setrow" onclick="openMod('open')"><span class="tic">🛡️</span><span class="grow"><b>Moderering${S.modOpen ? ' (' + S.modOpen + ')' : ''}</b><span>${isAdmin() ? 'Du är admin. Granska rapporter och hantera moderatorer.' : 'Du är moderator. Granska rapporter och community.'}</span></span></button></div>` : ''}
   ${S.user ? `<div class="sec"><h2>Blockerade</h2></div><div class="pad"><div class="setcard">${S.blockedL == null ? (loadBlocked(), '<p class="mut" style="margin:0">Hämtar…</p>') : S.blockedL.length ? S.blockedL.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b></span><button class="btn sm line" onclick="blockUser(${jsArg(u.id)},false)">Avblockera</button></div>`).join('') : '<p class="mut" style="margin:0">Du har inte blockerat någon.</p>'}</div></div>` : ''}
+  ${famV()}
   ${account}
   <div class="sec"><h2>Nytt i appen</h2></div><div class="pad"><button class="setrow" onclick="openNews()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Uppdateringslogg</b><span>Se vad som är nytt i version ${APP_VERSION}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   ${PRO_FREE ? '' : `<div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`}
