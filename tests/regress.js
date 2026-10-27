@@ -100,6 +100,13 @@ const server = http.createServer((req, res) => {
   });
   ok('Kontoreset: förra användarens vänner, meddelanden och notiser rensas', resetOk);
 
+  // 4c. Små buggar: ogiltigt datum, ljusbehov och snooze
+  const bugsOk = await page.evaluate(() => {
+    const today0 = today();
+    return since('inte ett datum') === null && since(today0) === 0 && lightClass({ light_level: 2, light_text: 'Skugga' }) === 2;
+  });
+  ok('Buggar: ogiltigt datum ger okänt, ljusbehov följer light_level', bugsOk);
+
   // 4a. XSS: ett elakt namn i en onclick ska inte kunna köra kod
   const xssOk = await page.evaluate(() => {
     window.__PWN = undefined;

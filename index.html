@@ -1301,8 +1301,8 @@ const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const jsArg = v => esc(JSON.stringify(String(v ?? '')));
 const today = () => new Date().toLocaleDateString('sv-SE');
 const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toLocaleDateString('sv-SE'); };
-const since = d => Math.round((Date.parse(today()) - Date.parse(d)) / 864e5);
-const left = m => { if (m.remind !== false && sensorDry(m)) return 0; return m.interval && m.remind !== false ? Math.max(0, m.interval - since(m.last_watered)) : null; };
+const since = d => { const t = Date.parse(d); return isNaN(t) ? null : Math.round((Date.parse(today()) - t) / 864e5); };
+const left = m => { if (m.remind !== false && sensorDry(m)) return 0; if (!m.interval || m.remind === false) return null; const s0 = since(m.last_watered); return Math.max(0, m.interval - (s0 == null ? m.interval : s0)); };
 const newRemind = () => S.addRemind !== undefined ? S.addRemind : store.get('remindDefault', true);
 const ord = n => (n % 10 === 1 || n % 10 === 2) && n % 100 !== 11 && n % 100 !== 12 ? ':a' : ':e';
 const hueOf = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
@@ -1397,7 +1397,7 @@ const sbApi = {
     await sb.auth.updateUser({ data: { display_name: p.display_name } });
   },
   async changePassword(pw) { const { error } = await sb.auth.updateUser({ password: pw }); if (error) throw error; },
-  async signInGoogle() { const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'https://armbowscarman.github.io/roothood/' } }); if (error) throw error; },
+  async signInGoogle() { const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }); if (error) throw error; },
   async signIn(email, pw) { const { error } = await sb.auth.signInWithPassword({ email, password: pw }); if (error) throw error; },
   async signUp(email, pw, name) {
     const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { display_name: name }, emailRedirectTo: location.origin + location.pathname } });
@@ -3493,11 +3493,12 @@ const LOGK = { water: ['Vattnat', I.drop, 'var(--wat)'], feed: ['Gödslat', I.le
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 function whenTxt(d) {
   const n = since(d);
+  if (n == null) return 'Okänt';
   if (n === 0) return 'Idag'; if (n === 1) return 'Igår'; if (n > 1 && n < 7) return 'För ' + n + ' dagar sedan';
   const [y, m, dd] = d.split('-').map(Number);
   return dd + ' ' + MONTHS[m - 1] + (y !== new Date().getFullYear() ? ' ' + y : '');
 }
-function agoTxt(d) { if (!d) return 'Aldrig'; const n = since(d); return n <= 0 ? 'Idag' : n === 1 ? 'Igår' : n < 60 ? n + ' dagar sen' : Math.round(n / 30) + ' mån sen'; }
+function agoTxt(d) { if (!d) return 'Aldrig'; const n = since(d); if (n == null) return 'Okänt'; return n <= 0 ? 'Idag' : n === 1 ? 'Igår' : n < 60 ? n + ' dagar sen' : Math.round(n / 30) + ' mån sen'; }
 async function loadLog(id) {
   S.log[id] = 'loading';
   try { const l = await api.log(id); S.log[id] = l.sort((a, b) => b.done_on.localeCompare(a.done_on) || String(b.created_at).localeCompare(String(a.created_at))); }
@@ -3574,7 +3575,7 @@ function careTasks(m, month) {
   const p = plantOf(m), g = careGroup(m), lt = p ? p.light_level || 2 : 2, T = [];
   const n = ((m.name || '') + ' ' + (m.latin || '') + ' ' + (p ? p.latin_name || '' : '')).toLowerCase();
   const add = (mids, sh, k, t, d) => { if (inMonth(month, mids, sh)) T.push({ k, t, d }); };
-  const repot = since(lastLog(m, 'repot') || '2000-01-01');
+  const repot = since(lastLog(m, 'repot') || '2000-01-01') ?? 9999;
   if (g === 'inne') {
     add([11, 12, 1, 2], '', null, 'Vintervila', 'Vattna mindre och låt jorden torka mer mellan gångerna. Ingen näring nu.');
     if (lt >= 2) add([12, 1], '', null, 'Ge den mer ljus', 'Ställ den så ljust du kan, gärna nära ett fönster eller under en växtlampa.');
@@ -3629,7 +3630,7 @@ function careTasks(m, month) {
   const cur = new Date().getMonth() + 1;
   if (month === cur) {
     const L = Array.isArray(S.log[m.id]) ? S.log[m.id] : [], win = { feed: g === 'inne' || g === 'kok' ? 14 : 28, repot: 300, prune: 60 };
-    T.forEach(t => { const e = t.k ? L.find(x => x.kind === t.k) : L.find(x => x.kind === 'note' && x.note === 'Gjort: ' + t.t); if (e && since(e.done_on) <= (t.k ? win[t.k] : 31)) { t.done = true; t.when = e.done_on; } });
+    T.forEach(t => { const e = t.k ? L.find(x => x.kind === t.k) : L.find(x => x.kind === 'note' && x.note === 'Gjort: ' + t.t); if (e && (since(e.done_on) ?? 9999) <= (t.k ? win[t.k] : 31)) { t.done = true; t.when = e.done_on; } });
     const d = left(m); if (d === 0) T.unshift({ k: 'water', t: 'Vattna idag', d: m.interval ? 'Den vattnas ungefär var ' + m.interval + ord(m.interval) + ' dag.' : '' });
   }
   return T;
@@ -3861,7 +3862,7 @@ function indoorRH(t, rh) { const es = T => 6.112 * Math.exp(17.62 * T / (243.12 
 function wxWarnings(w) {
   const out = [], d = w.d, c = w.cur; if (!d || !c) return out;
   const outdoor = S.mine.filter(m => ['Trädgård', 'Köksträdgård'].includes(m.category) || (m.details && ['Ute i sol', 'Ute i skugga'].includes(m.details.light)) || (m.details && m.details.room && ((S.home || []).find(r => r.id === m.details.room) || {}).type === 'Balkong'));
-  const day = i => i === 0 ? 'i natt' : i === 1 ? 'i morgon' : DAYS[new Date(d.time[i]).getDay()] + 'dag';
+  const day = i => i === 0 ? 'i natt' : i === 1 ? 'i morgon' : DAYS[new Date(String(d.time[i]).length === 10 ? d.time[i] + 'T12:00' : d.time[i]).getDay()] + 'dag';
   const fi = d.temperature_2m_min.findIndex((v, i) => i < 3 && v <= 0), cold = Math.min(...d.temperature_2m_min.slice(0, 3));
   if (fi >= 0) out.push(['frost', '🥶', `Frost ${day(fi)}, ner till ${Math.round(d.temperature_2m_min[fi])} °C`, outdoor.length ? `Ta in eller täck över ${outdoor.slice(0, 2).map(m => m.name.toLowerCase()).join(' och ')}${outdoor.length > 2 ? ' med flera' : ''}. Krukor ute fryser lätt sönder.` : 'Ta in känsliga krukväxter från balkong och uteplats.']);
   else if (cold <= 4) out.push(['cold', '🌡️', `Kallt ${day(d.temperature_2m_min.indexOf(cold))}, ${Math.round(cold)} °C`, 'Tropiska växter på balkongen bör in nu. Låt inga blad nudda kalla fönsterrutor.']);
@@ -3888,7 +3889,7 @@ function weatherV(sz) {
   return `<div class="wxc">${wxLocBtn()}
     <div class="wxtop"><span class="wxi">${wxIco(wx[1], 34)}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]}</span></div>
       <div class="wxmeta"><span>${wxIco('💨', 14)} ${Math.round(c.wind_speed_10m)} m/s</span><span>${wxIco('💧', 14)} ${c.relative_humidity_2m} % ute</span></div></div>
-    ${showDays ? `<div class="wxdays">${d.time.slice(0, 5).map((t, i) => `<div><small>${i === 0 ? 'Idag' : DAYS[new Date(t).getDay()]}</small><span>${(WX[d.weather_code[i]] || ['', '·'])[1]}</span><b>${Math.round(d.temperature_2m_max[i])}°</b><small>${Math.round(d.temperature_2m_min[i])}°</small></div>`).join('')}</div>` : ''}
+    ${showDays ? `<div class="wxdays">${d.time.slice(0, 5).map((t, i) => `<div><small>${i === 0 ? 'Idag' : DAYS[new Date(String(t).length === 10 ? t + 'T12:00' : t).getDay()]}</small><span>${(WX[d.weather_code[i]] || ['', '·'])[1]}</span><b>${Math.round(d.temperature_2m_max[i])}°</b><small>${Math.round(d.temperature_2m_min[i])}°</small></div>`).join('')}</div>` : ''}
     ${warn.length ? `<button class="wxrow" onclick="S.wxOpen=!S.wxOpen;render()" aria-expanded="${!!S.wxOpen}"><span>${wxIco(warn[0][1], 14)} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span><span>${S.wxOpen ? 'Dölj' : 'Visa'}</span></button>${S.wxOpen ? `<div class="wxwarn">${warn.map(x => `<div class="wxw w-${x[0]}"><span class="wwi">${x[1]}</span><div><b>${x[2]}</b><span>${x[3]}</span></div></div>`).join('')}</div>` : ''}` : `<p class="wxok">Inga vädervarningar just nu.</p>`}
     <div class="wxfoot"><span class="wxsrc">Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}</span><button class="link3" onclick="S.wxAll=!S.wxAll;render()">${S.wxAll ? 'Dölj dagar' : '5 dagar'}</button></div></div>`;
 }
@@ -4543,7 +4544,7 @@ function bedDims(pts) {
   return [Math.max(...along) - Math.min(...along), Math.max(...across) - Math.min(...across)];
 }
 function northVec() { const r = northDeg() * Math.PI / 180; return [Math.sin(r), -Math.cos(r)]; }
-function lightClass(p) { const t = (p.light_text || '').toLowerCase(); if (/skugga/.test(t) && !/sol/.test(t)) return 1; if (/halvskugga|skugga/.test(t)) return 2; return 3; }
+function lightClass(p) { if (p.light_level) return p.light_level; const t = (p.light_text || '').toLowerCase(); if (/skugga/.test(t) && !/sol/.test(t)) return 1; if (/halvskugga|skugga/.test(t)) return 2; return 3; }
 function soilClass(p) { const t = (p.soil || '').toLowerCase(); if (/fukt|blöt|våt/.test(t)) return 'fukt'; if (/torr|mager|sandig|väldränerad|kalkrik, väldränerad/.test(t)) return 'torr'; return ''; }
 function openBed(id) { S.bedId = id; S.bq = ''; S.modal = 'bed'; render(); }
 function bedItems(a) { return (a.bp || []).map(x => [x, plantById(x.pid)]).filter(x => x[1]); }
@@ -5097,9 +5098,10 @@ function detail() {
   </div>`;
 }
 function snooze(id) {
-  const m = S.mine.find(x => x.id === id), d = new Date();
-  d.setDate(d.getDate() - Math.max(0, m.interval - 2));
-  run(() => api.setWatered(id, d.toLocaleDateString('sv-SE')), 'Okej! Vi påminner dig om ' + Math.min(2, m.interval) + ' dagar');
+  const m = S.mine.find(x => x.id === id); if (!m) return;
+  const iv = m.interval >= 1 ? m.interval : 2, days = Math.min(2, iv), d = new Date();
+  d.setDate(d.getDate() - (iv - days));
+  run(() => api.setWatered(id, d.toLocaleDateString('sv-SE')), 'Okej! Vi påminner dig om ' + days + (days === 1 ? ' dag' : ' dagar'));
 }
 function mineV() {
   if (S.mtab === 'fav') return favV();
@@ -5365,9 +5367,10 @@ function sendAnswer(pid) {
 function toggleLike(pid) {
   if (needLogin()) return;
   const p = curList().find(x => x.id === pid), on = !p.likers.includes(S.user.id);
+  const prev = p.likers;
   p.likers = on ? p.likers.concat(S.user.id) : p.likers.filter(x => x !== S.user.id);
   render();
-  commRun(() => api.like(pid, on));
+  commRun(async () => { try { await api.like(pid, on); } catch (e) { p.likers = prev; render(); throw e; } });
 }
 function markBest(pid, aid) { commRun(() => api.best(pid, aid), 'Skickat till en moderator för godkännande'); }
 async function modBestAct(pid, ok) { try { await api.modBestDecide(pid, ok); toast(ok ? 'Godkänt som bästa svar' : 'Avslaget'); } catch (e) { toast(errMsg(e)); } loadMod(); }
@@ -6016,6 +6019,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.138', 'Nu', ['Fler rättningar: gilla-knappen går tillbaka om det inte gick att spara. Okänd senaste vattning visas som okänd. Snooze och veckodagar i väder är rättade']],
   ['1.137', 'Nu', ['Inloggning och utloggning rensar förra kontots data. Den som loggar in efter dig ser inte dina vänner, meddelanden eller notiser']],
   ['1.136', 'Nu', ['Inga utvecklingsmeddelanden visas längre för användare. Funktioner som inte är tillgängliga visar en vanlig text']],
   ['1.135', 'Nu', ['Säkerhet: namn och texter från andra användare kan inte längre köra kod när man trycker på en knapp']],
@@ -6686,7 +6690,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.137';
+const APP_VERSION = '1.138';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
