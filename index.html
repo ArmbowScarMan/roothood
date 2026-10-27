@@ -3852,7 +3852,7 @@ function iconize(root) {
   while (w.nextNode()) nodes.push(w.currentNode);
   for (const n of nodes) {
     const p = n.parentNode, txt = n.nodeValue;
-    if (!p || p.namespaceURI === 'http://www.w3.org/2000/svg' || /^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(p.nodeName)) continue;
+    if (!p || p.namespaceURI === 'http://www.w3.org/2000/svg' || /^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(p.nodeName) || (p.closest && p.closest('.petc,.petr,.petwarn,.pchip,.pw,.pem'))) continue;
     if (!EMO_RE.test(txt)) { EMO_RE.lastIndex = 0; continue; }
     EMO_RE.lastIndex = 0;
     const frag = document.createDocumentFragment();
@@ -3982,6 +3982,8 @@ function home() {
 
 // ===== Väder (Open-Meteo, gratis och utan nyckel) =====
 const WX = { 0: ['Klart', '☀️'], 1: ['Mest klart', '🌤️'], 2: ['Halvklart', '⛅'], 3: ['Mulet', '☁️'], 45: ['Dimma', '🌫️'], 48: ['Rimfrost och dimma', '🌫️'], 51: ['Lätt duggregn', '🌦️'], 53: ['Duggregn', '🌦️'], 55: ['Kraftigt duggregn', '🌧️'], 56: ['Underkylt duggregn', '🧊'], 57: ['Underkylt duggregn', '🧊'], 61: ['Lätt regn', '🌦️'], 63: ['Regn', '🌧️'], 65: ['Kraftigt regn', '🌧️'], 66: ['Underkylt regn', '🧊'], 67: ['Underkylt regn', '🧊'], 71: ['Lätt snöfall', '🌨️'], 73: ['Snöfall', '🌨️'], 75: ['Kraftigt snöfall', '❄️'], 77: ['Snökorn', '🌨️'], 80: ['Regnskurar', '🌦️'], 81: ['Regnskurar', '🌧️'], 82: ['Kraftiga skurar', '⛈️'], 85: ['Snöbyar', '🌨️'], 86: ['Kraftiga snöbyar', '❄️'], 95: ['Åska', '⛈️'], 96: ['Åska med hagel', '⛈️'], 99: ['Åska med hagel', '⛈️'] };
+const WXI = { '☀': 'ph-sun', '🌤': 'ph-cloud-sun', '⛅': 'ph-cloud-sun', '☁': 'ph-cloud', '🌫': 'ph-cloud-fog', '🌦': 'ph-cloud-rain', '🌧': 'ph-cloud-rain', '🌨': 'ph-cloud-snow', '🧊': 'ph-snowflake', '❄': 'ph-snowflake', '🥶': 'ph-snowflake', '🌡': 'ph-thermometer', '💨': 'ph-wind', '💧': 'ph-drop', '🔥': 'ph-fire', '⛈': 'ph-cloud-lightning' };
+const wxIco = (e, s) => ic(WXI[String(e || '').replace(/\uFE0F/g, '')] || 'ph-warning', 'currentColor', s || 20);
 const DAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
 function wxPlace() { const M = S.hplan && S.hplan.map; if (M && M.lat != null) return { lat: M.lat, lon: M.lon, name: S.city || 'ditt hem' }; const g = store.get('wxGeo', null); if (g && g.q === (S.city || '').trim().toLowerCase() && g.lat != null) return g; return null; }
 async function loadWeather(force) {
@@ -4029,13 +4031,13 @@ function weatherV(sz) {
   if (!w || (w.none && !w.cur)) return `<div class="wxc">${wxLocBtn()}<div class="wxtop">${ic('ph-cloud-sun', 'var(--pri)', 30)}<div class="grow"><b>Väder för dina växter</b><span>${w && w.none ? 'Välj din ort så visas vädret och varningar för frost, blåst och torr luft.' : 'Hämtar vädret…'}</span></div></div>${w && w.none ? `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn sm" onclick="${S.user ? 'openSettings()' : "openModal('login')"}">Välj ort</button><button class="btn sm line" onclick="wxHere()">📍 Min position</button></div>` : ''}</div>`;
   if (!w.cur) return `<div class="wxc">${wxLocBtn()}<div class="wxtop">${ic('ph-cloud-sun', 'var(--pri)', 30)}<div class="grow"><b>Vädret kunde inte hämtas</b><span>Kontrollera internet och försök igen.</span></div><button class="btn sm line" onclick="loadWeather(true)">Försök igen</button></div></div>`;
   const c = w.cur, d = w.d, wx = WX[c.weather_code] || ['', '🌡️'], warn = wxWarnings(w);
-  if (sz === 's') return `<div class="wxc wxs"><div class="wxtop"><span class="wxi">${wx[1]}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]}</span></div>${warn.length ? `<span class="wxbadge">${warn[0][1]} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span>` : '<span class="wxbadge ok">Inga varningar</span>'}</div></div>`;
+  if (sz === 's') return `<div class="wxc wxs"><div class="wxtop"><span class="wxi">${wxIco(wx[1], 34)}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]}</span></div>${warn.length ? `<span class="wxbadge">${wxIco(warn[0][1], 14)} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span>` : '<span class="wxbadge ok">Inga varningar</span>'}</div></div>`;
   const showDays = sz === 'l' || S.wxAll;
   return `<div class="wxc">${wxLocBtn()}
-    <div class="wxtop"><span class="wxi">${wx[1]}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]}</span></div>
-      <div class="wxmeta"><span>💨 ${Math.round(c.wind_speed_10m)} m/s</span><span>💧 ${c.relative_humidity_2m} % ute</span></div></div>
+    <div class="wxtop"><span class="wxi">${wxIco(wx[1], 34)}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]}</span></div>
+      <div class="wxmeta"><span>${wxIco('💨', 14)} ${Math.round(c.wind_speed_10m)} m/s</span><span>${wxIco('💧', 14)} ${c.relative_humidity_2m} % ute</span></div></div>
     ${showDays ? `<div class="wxdays">${d.time.slice(0, 5).map((t, i) => `<div><small>${i === 0 ? 'Idag' : DAYS[new Date(t).getDay()]}</small><span>${(WX[d.weather_code[i]] || ['', '·'])[1]}</span><b>${Math.round(d.temperature_2m_max[i])}°</b><small>${Math.round(d.temperature_2m_min[i])}°</small></div>`).join('')}</div>` : ''}
-    ${warn.length ? `<button class="wxrow" onclick="S.wxOpen=!S.wxOpen;render()" aria-expanded="${!!S.wxOpen}"><span>${warn[0][1]} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span><span>${S.wxOpen ? 'Dölj' : 'Visa'}</span></button>${S.wxOpen ? `<div class="wxwarn">${warn.map(x => `<div class="wxw w-${x[0]}"><span class="wwi">${x[1]}</span><div><b>${x[2]}</b><span>${x[3]}</span></div></div>`).join('')}</div>` : ''}` : `<p class="wxok">Inga vädervarningar just nu.</p>`}
+    ${warn.length ? `<button class="wxrow" onclick="S.wxOpen=!S.wxOpen;render()" aria-expanded="${!!S.wxOpen}"><span>${wxIco(warn[0][1], 14)} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span><span>${S.wxOpen ? 'Dölj' : 'Visa'}</span></button>${S.wxOpen ? `<div class="wxwarn">${warn.map(x => `<div class="wxw w-${x[0]}"><span class="wwi">${x[1]}</span><div><b>${x[2]}</b><span>${x[3]}</span></div></div>`).join('')}</div>` : ''}` : `<p class="wxok">Inga vädervarningar just nu.</p>`}
     <div class="wxfoot"><span class="wxsrc">Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}</span><button class="link3" onclick="S.wxAll=!S.wxAll;render()">${S.wxAll ? 'Dölj dagar' : '5 dagar'}</button></div></div>`;
 }
 function openDb(focus) { stopLight(); S.sel = null; S.modal = null; S.tool = 'db'; render(); $('#main').scrollTop = 0; if (focus) setTimeout(() => { const i = $('.search input'); if (i) i.focus(); }, 50); }
@@ -5031,7 +5033,9 @@ const QUICK = () => [
 const QGROUPS = [['Växter', ['db', 'id', 'care', 'season', 'sow']], ['Verktyg', ['light', 'compass', 'nearby']], ['Lär dig', ['perma']], ['Hjälp med växterna', ['doc', 'expert']], ['Hem och trädgård', ['house', 'bed', 'smart']], ['Djur', ['pets']], ['Community', ['comm', 'forum', 'swap', 'detect', 'people', 'inspo']], ['Mitt', ['mine', 'care', 'notif', 'cfg']]];
 const favs = () => { const f = store.get('favQuick', null); if (Array.isArray(f)) { if (!store.get('careFavAdded', false)) { store.set('careFavAdded', true); if (!f.includes('care') && f.length < 7) { f.push('care'); store.set('favQuick', f); } } return f; } return ['db', 'id', 'care', 'doc']; };
 function qBtn(q, edit) { const [k, n, icon, cls, act, pro] = q, on = favs().includes(k); return `<button class="qbtn q-${cls || 'cam'} ${edit ? 'editing' : ''}" onclick="${edit ? `togFav('${k}')` : act}"><span class="tic ${cls}">${ic(icon, 'currentColor', 22)}${pro && !S.pro ? '<em>PRO</em>' : ''}${edit ? `<i class="fav ${on ? 'on' : ''}">${on ? '★' : '☆'}</i>` : ''}</span><span>${n}</span></button>`; }
-const QPH = { db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-calendar-check', 'Dagbok'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-seal-check', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: ['ph-seedling', 'Såkalender'], perma: ['ph-recycle', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Detektiver'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
+const SEEDLING = '<path d="M12 21v-9"/><path d="M12 12c0-4 3-6.5 7.5-6.5 0 4.5-3 6.5-7.5 6.5z"/><path d="M12 14.5c0-3.5-2.5-5.5-6.5-5.5 0 3.5 2.5 5.5 6.5 5.5z"/><path d="M7 21h10"/>';
+const WATER_CAN = '<path d="M3 10h12v7a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M15 13l5-7"/><path d="M7 10V7a3 3 0 0 1 6 0"/><path d="M19.5 4.5l1.5-1.5"/><path d="M6 21.5v.5M10 21.5v.5"/>';
+const QPH = { db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-calendar-check', 'Dagbok'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-seal-check', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: [SEEDLING, 'Såkalender'], perma: ['ph-recycle', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Detektiver'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
 function qcard(q) {
   const [k, n, , cls, act, pro] = q, [icn, lbl] = QPH[k] || ['ph-star', n];
   const big = k === 'id';
@@ -5253,7 +5257,7 @@ function mineV() {
     const d = left(m), pct = m.interval ? Math.round((m.interval - d) / m.interval * 100) : 0;
     const status = d === null ? `<span class="mut">${m.remind === false ? 'Ingen påminnelse, du sköter vattningen' : 'Växer ute, vattna vid torka'}</span>` : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
     return `<div class="mrow"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${nameHtml(m)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${m.details && +m.details.count > 1 ? `<span class="mini">× ${+m.details.count} samplanterade i samma kruka</span>` : ''}${roomOf(m) && !S.mroom ? `<span class="mini rtag">${ic(DOORI, 'currentColor', 11)} ${esc(roomOf(m).name)}</span>` : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
-      <div class="side"><label onclick="photoPick(event,this)" class="pbtn" title="Ta eller välj ett foto" aria-label="Lägg till foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(I.drop, 'currentColor', 22)}</button>` : ''}${d !== null ? `<small class="wnext">${d === 0 ? 'idag' : 'om ' + d + ' d'}</small>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
+      <div class="side"><label onclick="photoPick(event,this)" class="pbtn" title="Ta eller välj ett foto" aria-label="Lägg till foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(WATER_CAN, 'currentColor', 22)}</button>` : ''}${d !== null ? `<small class="wnext">${d === 0 ? 'idag' : 'om ' + d + ' d'}</small>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
   }).join('');
   return `${topbar('Min samling')}${mtabBar()}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
@@ -6154,6 +6158,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.123', 'Nu', ['Bara djuren har emojier. Väderikonerna, vattenkannan och såkalendern är nu ikoner i stället']],
   ['1.122', 'Nu', ['Följ en växtart i Community. Du får en notis när någon ställer en fråga om arten, även om du inte har växten']],
   ['1.121', 'Nu', ['Bästa svar godkänns av en moderator innan det visas. Moderatorer hittar väntande svar under Moderering, fliken Bästa svar']],
   ['1.120', 'Nu', ['Ställ en fråga: frågeformuläret öppnas i eget fönster från en knapp. Kategori väljs själv (Välj kategori) eller från din växt. Flikarna och filtren i Community går att skrolla sida vid sida, och långa namn förkortas automatiskt']],
@@ -6809,7 +6814,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.122';
+const APP_VERSION = '1.123';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
