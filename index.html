@@ -3129,21 +3129,21 @@ function opt3dBase(p) { const g = genusOf(p), n = (p.swedish_name || '').toLower
   if (/Sorbus|Crataegus/.test(g)) return { fruit: true, fruitCol: '#D2391F' };
   return {}; }
 // Planta i 3D från databasen, med egen höjd och bredd i cm om man skrivit in det
-function bead3(THREE, M, x, y, z, r, col, sx, sy, sz) { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), M(col)); m.position.set(x, y, z); if (sx || sy || sz) m.scale.set(sx || 1, sy || 1, sz || 1); return m; }
+function bead3(THREE, M, x, y, z, r, col, sx, sy, sz, ry) { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), M(col)); m.position.set(x, y, z); if (sx || sy || sz) m.scale.set(sx || 1, sy || 1, sz || 1); if (ry) m.rotation.y = ry; return m; }
 function bez3(a, b, c, t) { const u = 1 - t; return [0, 1, 2].map(i => u * u * a[i] + 2 * u * t * b[i] + t * t * c[i]); }
 // Löjtnantshjärta: bågformade stjälkar med hjärtformade rosa blommor som hänger ner
 function dicentra3d(THREE, M, h, w, seed) {
   const g = new THREE.Group(), R = rng3(seed), SC = Math.max(0.5, Math.min(1.4, h));
-  for (let j = 0; j < 6; j++) { const a = j / 6 * Math.PI * 2 + R() * 0.5, rr = 0.07 * SC; g.add(bead3(THREE, M, Math.cos(a) * rr * 2, 0.02 * SC, Math.sin(a) * rr * 2, 0.09 * SC, '#4E7F3F', 1.8, 0.25, 1)); }
+  for (let j = 0; j < 6; j++) { const a = j / 6 * Math.PI * 2 + R() * 0.5, rr = 0.09 * SC; g.add(bead3(THREE, M, Math.cos(a) * rr, 0.02 * SC, Math.sin(a) * rr, 0.07 * SC, '#5E8F4C', 3.2, 0.12, 0.7, -a)); }
   for (let i = 0; i < 7; i++) {
     const a = R() * Math.PI * 2, reach = w * (0.25 + 0.3 * R()), top = h * (0.55 + 0.4 * R());
     const p0 = [0, 0, 0], p1 = [Math.cos(a) * reach * 0.3, top * 0.95, Math.sin(a) * reach * 0.3], p2 = [Math.cos(a) * reach, top * 0.45, Math.sin(a) * reach];
     for (let k = 0; k <= 10; k++) { const [x, y, z] = bez3(p0, p1, p2, k / 10); g.add(bead3(THREE, M, x, y, z, 0.013 * SC, '#5B8A46')); }
     for (const t of [0.4, 0.55, 0.7, 0.85, 1]) {
       const [x, y, z] = bez3(p0, p1, p2, t);
-      g.add(bead3(THREE, M, x - 0.04 * SC, y - 0.045 * SC, z, 0.05 * SC, '#E8779E', 0.8, 1, 0.5));
-      g.add(bead3(THREE, M, x + 0.04 * SC, y - 0.045 * SC, z, 0.05 * SC, '#E8779E', 0.8, 1, 0.5));
-      g.add(bead3(THREE, M, x, y - 0.1 * SC, z, 0.02 * SC, '#FFF4F7'));
+      g.add(bead3(THREE, M, x - 0.022 * SC, y - 0.04 * SC, z, 0.03 * SC, '#E8779E', 0.9, 1.2, 0.8));
+      g.add(bead3(THREE, M, x + 0.022 * SC, y - 0.04 * SC, z, 0.03 * SC, '#E8779E', 0.9, 1.2, 0.8));
+      g.add(bead3(THREE, M, x, y - 0.075 * SC, z, 0.014 * SC, '#D9587F', 0.8, 1.3, 0.8));
     }
   }
   return g;
@@ -3151,7 +3151,7 @@ function dicentra3d(THREE, M, h, w, seed) {
 // Stjärnflocka: tunna stjälkar med platta, ljusrosa skärmar av små blommor och gröna hörblad
 function astrantia3d(THREE, M, h, w, seed) {
   const g = new THREE.Group(), R = rng3(seed), H = Math.max(0.3, h), S = Math.max(0.5, Math.min(1.4, w * 1.2));
-  for (let j = 0; j < 6; j++) { const a = j / 6 * Math.PI * 2, rr = 0.12 * Math.max(0.5, w); g.add(bead3(THREE, M, Math.cos(a) * rr, 0.01, Math.sin(a) * rr, 0.04 * S, '#5E8C4A', 2, 0.2, 1)); }
+  for (let j = 0; j < 7; j++) { const a = j / 7 * Math.PI * 2, rr = 0.14 * Math.max(0.5, w); g.add(bead3(THREE, M, Math.cos(a) * rr, 0.01, Math.sin(a) * rr, 0.05 * S, '#5E8C4A', 3, 0.12, 0.6, -a)); }
   for (let i = 0; i < 5; i++) {
     const a = R() * Math.PI * 2, lean = 0.1 + 0.2 * R(), tip = [Math.cos(a) * lean * H * 0.4, H * (0.7 + 0.3 * R()), Math.sin(a) * lean * H * 0.4];
     for (let k = 0; k <= 14; k++) g.add(bead3(THREE, M, tip[0] * k / 14, tip[1] * k / 14, tip[2] * k / 14, 0.008 * S, '#5E8C4A'));
@@ -6955,6 +6955,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.171', '27 okt 19:20', ['3D: löjtnantshjärtans blommor är hjärtformade och hänger under stjälken, och bladen är smala och sitter utåt']],
   ['1.170', '27 okt 19:10', ['3D: stjärnflockan och löjtnantshjärtan är större, med tjockare stjälkar och fler blommor']],
   ['1.169', '27 okt 19:05', ['3D: Stjärnflocka (Astrantia) och löjtnantshjärta (Lamprocapnos) har egna modeller. Löjtnantshjärtan har rosa hjärtblommor som hänger på bågformade stjälkar, stjärnflockan har platta skärmar av små ljusrosa blommor']],
   ['1.168', '27 okt 18:30', ['Gemenskap: Fråga en expert och Ställ en fråga är nu små knappar högst upp, bredvid sökningen. De stora knapparna är borta så att fler inlägg syns direkt']],
@@ -7658,7 +7659,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.170';
+const APP_VERSION = '1.171';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
