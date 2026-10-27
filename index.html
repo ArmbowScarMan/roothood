@@ -1454,12 +1454,12 @@ const sbApi = {
   async setWatered(id, date) { const { error } = await sb.from('user_plants').update({ last_watered: date }).eq('id', id); if (error) throw error; },
   async uploadOwn(file) {
     const url = await uploadPhoto(file);
-    if (!url) { S.photoWarn = false; throw new Error('Fotot kunde inte sparas. Har du kört den senaste SQL-koden i Supabase?'); }
+    if (!url) { S.photoWarn = false; throw new Error('Fotot kunde inte sparas. Försök igen.'); }
     return url;
   },
   async setPhotos(id, patch) {
     const { error } = await sb.from('user_plants').update(patch).eq('id', id);
-    if (error) throw /photos|show_own|photo_url/.test(error.message || '') ? new Error('Fotogalleriet är inte påslaget i databasen än. Kör den senaste SQL-koden.') : error;
+    if (error) throw /photos|show_own|photo_url/.test(error.message || '') ? new Error('Fotogalleriet går inte att använda just nu. Försök igen senare.') : error;
   },
 
   async remove(id) { const { error } = await sb.from('user_plants').delete().eq('id', id); if (error) throw error; },
@@ -1526,7 +1526,7 @@ const sbApi = {
     if (!xq.error) xq.data.forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer }));
     return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 60);
   },
-  async answer(pid, body, photo, parent) { const url = photo ? await uploadPhoto(photo) : null, row = { post_id: pid, user_id: S.user.id, body }; if (url) row.photo_url = url; if (parent) row.parent_id = parent; const { error } = await sb.from('answers').insert(row); if (error) throw /photo_url/.test(error.message || '') ? new Error('Bilder i svar är inte påslagna i databasen än (steg 026).') : /parent_id/.test(error.message || '') ? new Error('Svar på svar är inte påslaget i databasen än (steg 041).') : error; },
+  async answer(pid, body, photo, parent) { const url = photo ? await uploadPhoto(photo) : null, row = { post_id: pid, user_id: S.user.id, body }; if (url) row.photo_url = url; if (parent) row.parent_id = parent; const { error } = await sb.from('answers').insert(row); if (error) throw /photo_url/.test(error.message || '') ? new Error('Bilder i svar går inte att använda just nu.') : /parent_id/.test(error.message || '') ? new Error('Svar på svar går inte att använda just nu.') : error; },
   async like(pid, on) {
     const { error } = on ? await sb.from('likes').insert({ post_id: pid, user_id: S.user.id })
       : await sb.from('likes').delete().eq('post_id', pid).eq('user_id', S.user.id);
@@ -1556,7 +1556,7 @@ const sbApi = {
   async modAct(id, a) { const { error } = await sb.rpc('mod_act', { p_report: id, p_action: a }); if (error) throw error; },
   async modOpen() { const { data, error } = await sb.rpc('mod_open_count'); return error ? 0 : (data || 0); },
   async modFeed() { let r = await sb.rpc('mod_feed2', { p_limit: 300 }); if (r.error && /mod_feed2|function/i.test(r.error.message || '')) r = await sb.rpc('mod_feed'); if (r.error) throw r.error; return r.data || []; },
-  async modHideUser(uid, on) { const { data, error } = await sb.rpc('mod_hide_user', { p_user: uid, p_hide: on }); if (error) throw /mod_hide_user|function/i.test(error.message || '') ? new Error('Det här är inte påslaget i databasen än (steg 043).') : error; return data || 0; },
+  async modHideUser(uid, on) { const { data, error } = await sb.rpc('mod_hide_user', { p_user: uid, p_hide: on }); if (error) throw /mod_hide_user|function/i.test(error.message || '') ? new Error('Det här går inte att använda just nu.') : error; return data || 0; },
   async modHide(kind, id, on) { const { error } = await sb.rpc('mod_hide', { p_kind: kind, p_id: id, p_hide: on }); if (error) throw error; },
   async listStaff() { const { data, error } = await sb.rpc('list_staff'); if (error) throw error; return data || []; },
   async setRole(id, role) { const { error } = await sb.rpc('set_role', { p_user: id, p_role: role }); if (error) throw error; },
@@ -1683,7 +1683,7 @@ async function sendPhotoReport(reason) {
     await api.report('photo', id, reason);
     if (Array.isArray(S.others[pid])) S.others[pid] = S.others[pid].filter(x => x.url !== id);
     toast('Tack! Bilden är dold för dig och granskas.');
-  } catch (e) { toast(e.message === 'REPORT_PHOTO_NOT_READY' ? 'Rapportering av bilder är inte påslagen i databasen än.' : errMsg(e)); }
+  } catch (e) { toast(e.message === 'REPORT_PHOTO_NOT_READY' ? 'Rapportering av bilder går inte att använda just nu.' : errMsg(e)); }
   render();
 }
 function openLb(pid, i) { S.lb = { pid, i }; openModal('photo'); }
@@ -1830,7 +1830,7 @@ async function saveDetails() {
     S.mine = await api.mine();
     toast('Uppgifterna är sparade');
     S.busy = false; closeDetails(); return;
-  } catch (e) { toast(e.message === 'DETAILS_NOT_READY' ? 'Uppgifterna är inte påslagna i databasen än.' : errMsg(e)); }
+  } catch (e) { toast(e.message === 'DETAILS_NOT_READY' ? 'Uppgifterna går inte att använda just nu.' : errMsg(e)); }
   S.busy = false; render();
 }
 
@@ -1894,7 +1894,7 @@ async function readSensor(id, kind, demo) {
     S.mine = await api.mine();
     toast(kind === 'thermo' ? 'Klimatet är avläst' : sensorDry(S.mine.find(x => x.id === id)) ? 'Jorden är torr, dags att vattna!' : 'Sensorn är avläst');
   } catch (e) {
-    toast(e && e.name === 'NotFoundError' ? 'Ingen sensor valdes' : e && e.name === 'NotAllowedError' ? 'Tillåt Bluetooth och plats i Chrome' : e && e.message === 'DETAILS_NOT_READY' ? 'Uppgifter är inte påslaget i databasen än.' : 'Kunde inte läsa sensorn: ' + ((e && e.message) || e));
+    toast(e && e.name === 'NotFoundError' ? 'Ingen sensor valdes' : e && e.name === 'NotAllowedError' ? 'Tillåt Bluetooth och plats i Chrome' : e && e.message === 'DETAILS_NOT_READY' ? 'Uppgifter går inte att använda just nu.' : 'Kunde inte läsa sensorn: ' + ((e && e.message) || e));
   }
   S.sbusy = null; render();
 }
@@ -1985,7 +1985,7 @@ function houseV() {
   if (hv === '3d') return `${topbar('Mitt hem', 'closeTool()')}${seg}${view3dV()}`;
   return `${topbar('Mitt hem', 'closeTool()')}${seg}
   <p class="mut" style="margin:0 18px 4px">Lägg in dina rum och åt vilket väderstreck fönstren vetter. Då vet Roothood hur mycket ljus varje växt får och tipsar om bättre platser.</p>
-  ${S.homeErr === 'HOME_NOT_READY' ? '<div class="instc" style="margin:12px 18px 0"><div><b>Mitt hem är inte påslaget i databasen än</b><span>Kör SQL-koden för steg 019 i Supabase.</span></div></div>' : ''}
+  ${S.homeErr === 'HOME_NOT_READY' ? '<div class="instc" style="margin:12px 18px 0"><div><b>Mitt hem går inte att använda just nu</b><span>Försök igen senare.</span></div></div>' : ''}
   ${rooms.length ? `<div class="rooms">${rooms.map(r => { const ps = plantsIn(r.id); return `<button class="roomc" onclick="openHouse('${r.id}')"><span class="rtop">${compassSvg(r.dirs, 46)}<span class="rl ${roomSun(r) >= 2.5 ? 'hi' : roomSun(r) < 0.9 ? 'lo' : ''}">${roomLightWord(r)}</span></span><b>${esc(r.name)}</b><span class="mut rd">${esc(dirTxt(r))}${r.lamp ? ' · växtlampa' : ''}</span><span class="rps">${ps.slice(0, 4).map(m => `<span class="rp">${myPh(m)}</span>`).join('')}${ps.length > 4 ? `<span class="rp more">+${ps.length - 4}</span>` : ''}${ps.length ? '' : '<span class="mut" style="font-size:12.5px">Inga växter än</span>'}</span></button>`; }).join('')}
     <button class="roomc add" onclick="newRoom()"><span class="plus">+</span><b>Lägg till rum</b></button></div>`
   : `<div class="smcard" style="text-align:center"><div style="margin:4px auto 8px;width:64px">${compassSvg(['S', 'V'], 64)}</div><h3 style="justify-content:center">Börja med ditt första rum</h3><p class="mut" style="font-size:14px;margin:4px 0 12px">Till exempel vardagsrummet med fönster mot söder.</p><button class="btn" onclick="newRoom()">+ Lägg till rum</button></div>`}
@@ -2005,7 +2005,7 @@ async function moveTo(mid, rid, win) {
   else { delete d.room; delete d.win; delete d.light; }
   S.pickFor = null;
   try { await api.saveDetails(mid, d); S.mine = await api.mine(); render(); if (win === undefined) toast(rid ? m.name + ' står nu i ' + S.home.find(x => x.id === rid).name.toLowerCase() : m.name + ' har inget rum längre'); }
-  catch (e) { toast(e.message === 'DETAILS_NOT_READY' ? 'Uppgifterna är inte påslagna i databasen än.' : errMsg(e)); }
+  catch (e) { toast(e.message === 'DETAILS_NOT_READY' ? 'Uppgifterna går inte att använda just nu.' : errMsg(e)); }
 }
 function roomV(r) {
   const ps = plantsIn(r.id), others = S.mine.filter(m => (m.details || {}).room !== r.id), v = roomSun(r);
@@ -2063,7 +2063,7 @@ async function saveRoom() {
     if (S.rfBack === 'plan') { PL().sel = { k: 'room', id: r.id }; if (!f.id) setTimeout(() => toast('Tryck på + Fönster och sedan på väggen där fönstret sitter'), 2900); }
     toast(f.id ? 'Rummet är sparat' : name + ' är tillagt');
     closeRoom();
-  } catch (e) { S.busy = false; render(); toast(e.message === 'HOME_NOT_READY' ? 'Mitt hem är inte påslaget i databasen än (steg 019).' : errMsg(e)); }
+  } catch (e) { S.busy = false; render(); toast(e.message === 'HOME_NOT_READY' ? 'Mitt hem går inte att använda just nu.' : errMsg(e)); }
 }
 async function delRoom() {
   if (!S.delRoom) { S.delRoom = true; return keepScroll(); }
@@ -2622,7 +2622,7 @@ function saveHomeSoon() { S.hDirty = true; S.hSaveErr = null; updSaveBar(); clea
 async function saveHomeNow(auto) {
   clearTimeout(homeSaveT); if (!S.hDirty && auto) return; S.hSaving = true; updSaveBar();
   try { await api.saveHome(S.home); S.homeErr = null; S.hDirty = false; S.hSavedAt = Date.now(); if (!auto) toast('Ditt hem är sparat'); }
-  catch (e) { S.hSaveErr = 1; toast(e.message === 'HOME_NOT_READY' ? 'Mitt hem är inte påslaget i databasen än (steg 019).' : 'Kunde inte spara. ' + errMsg(e)); }
+  catch (e) { S.hSaveErr = 1; toast(e.message === 'HOME_NOT_READY' ? 'Mitt hem går inte att använda just nu.' : 'Kunde inte spara. ' + errMsg(e)); }
   S.hSaving = false; updSaveBar();
 }
 function saveBarInner() { return S.hSaving ? '<button class="savep" disabled>Sparar…</button>' : S.hDirty ? `<button class="savep dirty" onclick="saveHomeNow()" title="${S.hSaveErr ? 'Kunde inte spara, försök igen' : 'Du har osparade ändringar'}">💾 Spara</button>` : `<button class="savep ok" onclick="saveHomeNow()" title="Allt är sparat">✓ Sparat</button>`; }
@@ -2958,7 +2958,7 @@ async function savePos(m, quiet) {
   if (r) { d.room = r.id; const ww = winWord(r, d.pos.x, d.pos.y); if (ww) d.win = ww; else if (!(r.dirs || []).length) delete d.win; d.light = roomLightWord(r, d.win); }
   else if (d.pos) { delete d.room; delete d.win; }
   try { await api.saveDetails(m.id, d); S.mine = await api.mine(); if (!quiet) { const sel = PL().sel; PL().sel = { k: 'plant', id: m.id }; render(); if (r && !sel) {} } }
-  catch (e) { toast(e.message === 'DETAILS_NOT_READY' ? 'Uppgifterna är inte påslagna i databasen än.' : errMsg(e)); render(); }
+  catch (e) { toast(e.message === 'DETAILS_NOT_READY' ? 'Uppgifterna går inte att använda just nu.' : errMsg(e)); render(); }
 }
 const WK = [['win', 'Fönster'], ['bay', 'Burspråk'], ['door', 'Dörr'], ['open', 'Ta bort vägg'], ['wall', 'Lägg till vägg'], ['rad', 'Element'], ['vent', 'Ventil'], ['half', 'Halvvägg']];
 const WL = { win: 1, door: 0.9, open: 1.5, rad: 1, vent: 0.4 };
@@ -3218,7 +3218,7 @@ function smartV() {
   <div class="smcard"><h3>${ic(I.leaf, 'currentColor', 20)} Så blir det vid lansering</h3>
   <p class="mut" style="margin:0;font-size:14px">Med en egen server kan Roothood styra lampor och uttag själv, helt automatiskt:</p>
   <div class="flow"><div>🌱 Sensorn i krukan mäter att jorden är torr</div><div class="arr">↓</div><div>☁️ Roothoods server får värdet</div><div class="arr">↓</div><div>🔌 Servern säger åt Tapo, Hue, IKEA eller Google Home att starta pumpen eller tända lampan</div><div class="arr">↓</div><div>📱 Du får en notis: "Monsteran fick 200 ml vatten"</div></div>
-  <p class="mut" style="font-size:12.5px;margin:10px 0 0">Kräver att varje företag godkänner appen (Google kräver certifiering), därför är det steget planerat till efter skolprojektet.</p></div>
+  <p class="mut" style="font-size:12.5px;margin:10px 0 0">Kräver att varje företag godkänner appen (Google kräver certifiering), därför kommer det senare.</p></div>
   <div style="height:20px"></div>`;
 }
 
@@ -3361,7 +3361,7 @@ function renderModalKeep(form) {
 async function googleLogin() {
   if (DEMO || !sb) return toast('Google-inloggning finns inte i demoläget');
   try { S.busy = true; render(); await api.signInGoogle(); }
-  catch (e) { S.busy = false; S.msg = 'Google-inloggningen är inte påslagen än. ' + errMsg(e); render(); }
+  catch (e) { S.busy = false; S.msg = 'Google-inloggningen går inte att använda just nu. ' + errMsg(e); render(); }
 }
 async function doAuth(form) {
   const d = Object.fromEntries(new FormData(form));
@@ -3414,7 +3414,7 @@ async function deleteAccount() {
     await api.deleteAccount();
     S.delBusy = false; S.delAcc = false; S.user = null; S.mine = []; S.home = []; S.hplan = {}; S.log = {}; S.prof = null; S.meCard = undefined; S.pro = PRO_FREE; S.tool = null; S.tab = 'home';
     render(); toast('Ditt konto är raderat. Tack för att du använde Roothood 🌱');
-  } catch (e) { S.delBusy = false; render(); toast(e.message === 'DEL_NOT_READY' ? 'Det här är inte påslaget i databasen än.' : errMsg(e)); }
+  } catch (e) { S.delBusy = false; render(); toast(e.message === 'DEL_NOT_READY' ? 'Det här går inte att använda just nu.' : errMsg(e)); }
 }
 async function signOut() { await api.signOut(); S.user = null; S.mine = []; S.home = []; S.hplan = {}; S.pro = PRO_FREE; render(); toast('Du är utloggad'); }
 
@@ -3499,7 +3499,7 @@ async function loadLog(id) {
 }
 async function setRemind(id, on) {
   try { await api.setRemind(id, on); S.mine = await api.mine(); toast(on ? 'Påminnelser är på för växten' : 'Inga påminnelser för växten'); }
-  catch (e) { toast(e.message === 'REMIND_NOT_READY' ? 'Det här är inte påslaget i databasen än.' : errMsg(e)); }
+  catch (e) { toast(e.message === 'REMIND_NOT_READY' ? 'Det här går inte att använda just nu.' : errMsg(e)); }
   render();
 }
 function logOpen(kind) { S.logForm = S.logForm === kind ? null : kind; render(); const t = $('#lnote'); if (t && kind === 'note') t.focus(); }
@@ -3911,7 +3911,7 @@ async function sendExpertQ() {
   if (needPro()) return; const body = (S.xbody || '').trim(); if (body.length < 10) return toast('Beskriv problemet med minst några ord.');
   S.busy = true; render();
   try { await api.askExpert({ expert: S.xpick && S.xpick !== 'any' ? S.xpick : null, category: S.xcat || XCATS[0], body }, S.xph); S.xbody = ''; S.xph = null; S.xphUrl = null; S.xpick = null; toast('Din fråga är skickad till experterna'); await loadExperts(); }
-  catch (e) { toast(e.message === 'EXPERTS_NOT_READY' ? 'Växtexperterna är inte påslagna i databasen än (steg 023).' : errMsg(e)); }
+  catch (e) { toast(e.message === 'EXPERTS_NOT_READY' ? 'Växtexperterna går inte att använda just nu.' : errMsg(e)); }
   S.busy = false; render();
 }
 async function sendExpertAnswer(id) { const t = ($('#xa' + id) || {}).value || ''; if (t.trim().length < 10) return toast('Skriv ett lite längre svar.'); try { await api.answerExpert(id, t.trim()); toast('Svaret är skickat'); await loadExperts(); } catch (e) { toast(errMsg(e)); } }
@@ -3923,7 +3923,7 @@ function expertCard(x) {
 }
 function expertsV() {
   const ex = S.experts, qs = S.xq || [], waiting = qs.filter(q => !q.answer).length;
-  if (S.xErr === 'EXPERTS_NOT_READY') return `${topbar('Växtexperter', 'closeTool()')}<div class="instc" style="margin:12px 18px 0"><div><b>Växtexperterna är inte påslagna i databasen än</b><span>Kör SQL-koden för steg 023 i Supabase.</span></div></div>`;
+  if (S.xErr === 'EXPERTS_NOT_READY') return `${topbar('Växtexperter', 'closeTool()')}<div class="instc" style="margin:12px 18px 0"><div><b>Växtexperterna går inte att använda just nu</b><span>Försök igen senare.</span></div></div>`;
   const form = S.pro ? `<div class="sec"><h2>Ställ en fråga</h2></div><div class="pad"><div class="setcard xform">
       <label class="fl" style="margin-top:0">Till</label><div class="chips2">${[['any', 'Första lediga expert']].concat((ex || []).map(x => [x.id, x.display_name.split(' ')[0]])).map(([id, n]) => `<button class="${(S.xpick || 'any') === id ? 'on' : ''}" onclick="S.xpick=${jsArg(id)};keepMain()">${esc(n)}</button>`).join('')}</div>
       <label class="fl" for="xcat">Ämne</label><select id="xcat" onchange="S.xcat=this.value">${XCATS.map(c => `<option ${c === (S.xcat || XCATS[0]) ? 'selected' : ''}>${c}</option>`).join('')}</select>
@@ -4099,7 +4099,7 @@ function petsV() {
   const lvIcon = { d: '⛔', w: '⚠️', u: 'ℹ️', s: '✅' };
   return `${topbar('Mina djur', 'closeTool()')}
   <p class="mut" style="margin:0 18px">Lägg in dina djur. Appen varnar om någon av dina växter är giftig för dem och visar vad de får äta.</p>
-  ${S.petsErr === 'PETS_NOT_READY' && S.user ? `<div class="instc" style="margin:12px 18px 0"><div><b>Djuren sparas bara i den här webbläsaren</b><span>Kör SQL-koden för steg 024 i Supabase så sparas de på ditt konto.</span></div></div>` : ''}
+  ${S.petsErr === 'PETS_NOT_READY' && S.user ? `<div class="instc" style="margin:12px 18px 0"><div><b>Djuren sparas bara i den här webbläsaren</b><span>Försök igen senare.</span></div></div>` : ''}
   ${an.length ? `<div class="sec"><h2>Varningar</h2></div><div class="pad">${warns.length ? `<div class="petwarn">${warns.slice(0, S.pwAll ? 99 : 5).map(x => `<button class="pw ${x.lv}" onclick="openMine(${x.m.id})"><span>${petEmoji(x.a.kind, x.a.sp)}</span><div><b>${esc(x.m.name)} är ${x.lv === 'd' ? 'farlig' : 'giftig'} för ${esc(x.a.name)}</b><span>${esc(x.t)}</span></div></button>`).join('')}</div>${warns.length > 5 ? `<button class="link3" onclick="S.pwAll=!S.pwAll;keepMain()">${S.pwAll ? 'Visa färre' : 'Visa alla ' + warns.length}</button>` : ''}` : `<div class="petok">✅ Inga av dina växter är kända som giftiga för dina djur.</div>`}</div>` : ''}
   <div class="sec"><h2>Dina djur</h2>${petsList().length && !S.petAdd ? '<button class="viewall" onclick="S.petAdd=true;keepMain()">+ Lägg till</button>' : ''}</div>
   <div class="pad">${an.map(petCard).join('')}${!petsList().length || S.petAdd ? petFormV() : ''}</div>
@@ -4226,7 +4226,7 @@ function goPost(kind, id, cat) { S.tool = null; S.sel = null; S.tab = 'comm'; S.
   if (window.visualViewport) { let vh = visualViewport.height; visualViewport.addEventListener('resize', () => { if (visualViewport.height > vh + 60) setTimeout(reset, 50); vh = visualViewport.height; }); }
 })();
 const msgUnread = () => (S.inbox || []).reduce((a, c) => a + (c.unread || 0), 0);
-async function loadInbox() { if (!S.user) return; try { S.inbox = await api.inbox(); S.msgErr = null; } catch (e) { S.inbox = S.inbox || []; S.msgErr = e.message === 'MSG_NOT_READY' ? 'Meddelanden är inte påslagna i databasen än (steg 029).' : null; } }
+async function loadInbox() { if (!S.user) return; try { S.inbox = await api.inbox(); S.msgErr = null; } catch (e) { S.inbox = S.inbox || []; S.msgErr = e.message === 'MSG_NOT_READY' ? 'Meddelanden går inte att använda just nu.' : null; } }
 function openMsgs() { if (!S.user) return openModal('login'); stopLight(); S.sel = null; S.modal = null; S.tool = 'msgs'; render(); $('#main').scrollTop = 0; if (S.friends == null) api.myFriends().then(l => { S.friends = l; if (S.tool === 'msgs') keepMain(); }).catch(() => { S.friends = []; }); loadInbox().then(() => { if (S.tool === 'msgs') keepMain(); }); }
 function msgsV() {
   const I = S.inbox, F = S.friends || [];
@@ -4247,7 +4247,7 @@ async function loadChat(force) {
 async function sendChat() {
   const body = (S.dmDraft || '').trim(); if (!body || S.chatBusy) return; S.chatBusy = true;
   try { await api.sendMsg(S.chatId, body); S.dmDraft = ''; await loadChat(true); }
-  catch (e) { toast(e.message === 'BLOCKED' ? 'Du kan inte skriva till den här personen.' : e.message === 'MSG_DENIED' ? 'Ni måste vara vänner för att skriva till varandra. Meddelanden kräver också att steg 029 är körd.' : errMsg(e)); }
+  catch (e) { toast(e.message === 'BLOCKED' ? 'Du kan inte skriva till den här personen.' : e.message === 'MSG_DENIED' ? 'Ni måste vara vänner för att skriva till varandra. Meddelanden går inte att använda just nu.' : errMsg(e)); }
   S.chatBusy = false;
 }
 function chatV() {
@@ -4267,7 +4267,7 @@ async function loadMod() {
     else if (t === 'best') S.modData = await api.modBest();
     else if (t === 'team') { S.modData = await api.listStaff(); }
     S.modErr = null; S.modOpen = await api.modOpen(); S.modBestN = await api.modBestCount();
-  } catch (e) { S.modData = []; S.modErr = e.message === 'MOD_NOT_READY' || /mod_|NOT_MOD/.test(e.message || '') ? 'Modereringen är inte påslagen i databasen än (steg 028).' : errMsg(e); }
+  } catch (e) { S.modData = []; S.modErr = e.message === 'MOD_NOT_READY' || /mod_|NOT_MOD/.test(e.message || '') ? 'Modereringen går inte att använda just nu.' : errMsg(e); }
   S.modBusy = false; if (S.tool === 'mod') { const y = $('#main').scrollTop; render(); $('#main').scrollTop = y; }
 }
 function modTab(t) { S.modTab = t; S.modData = null; S.modSel = []; S.modQ = ''; S.modRes = null; render(); loadMod(); }
@@ -4346,7 +4346,7 @@ function modV() {
 // ===== Blockera =====
 async function blockUser(id, on) {
   if (on && !confirm('Blockera den här personen? Du ser inte längre personens inlägg, och ni kan inte skicka vänförfrågningar till varandra.')) return;
-  try { await api.block(id, on); } catch (e) { toast(e.message === 'MOD_NOT_READY' ? 'Blockering är inte påslaget i databasen än (steg 028).' : errMsg(e)); return; }
+  try { await api.block(id, on); } catch (e) { toast(e.message === 'MOD_NOT_READY' ? 'Blockering går inte att använda just nu.' : errMsg(e)); return; }
   S.blocks = (S.blocks || []).filter(x => x !== id); if (on) { S.blocks.push(id); S.follows = (S.follows || []).filter(x => x !== id); S.friends = null; if (S.ucard && S.ucard.id === id) S.ucard.friend_status = 'none'; }
   S.feed = null; S.blockedL = null; toast(on ? 'Personen är blockerad' : 'Blockeringen är borttagen'); keepMain(); if (S.tab === 'comm') loadFeed();
 }
@@ -4696,12 +4696,12 @@ function peopleV() {
   const sec = (t, l) => l.length ? `<div class="sec"><h2>${t}</h2></div><div class="pad"><div class="norm">${l.map(personRow).join('')}</div></div>` : '';
   return `${topbar('Hitta användare', 'closeTool()')}
   <div class="searchrow"><div class="search">${ic(I.search, null, 20)}<input id="pq" type="search" placeholder="Sök på namn eller ort" value="${esc(S.pq || '')}" oninput="pqInput(this.value)" aria-label="Sök användare" autocomplete="off"></div></div>
-  ${S.pplErr === 'USERS_NOT_READY' ? '<div class="instc" style="margin:12px 18px 0"><div><b>Användarsökningen är inte påslagen i databasen än</b><span>Kör SQL-koden för steg 022 i Supabase.</span></div></div>' : ''}
+  ${S.pplErr === 'USERS_NOT_READY' ? '<div class="instc" style="margin:12px 18px 0"><div><b>Användarsökningen går inte att använda just nu</b><span>Försök igen senare.</span></div></div>' : ''}
   ${S.ppl == null ? '<p class="mut" style="margin:16px 18px">Letar…</p>' : !list.length ? `<p class="mut" style="margin:16px 18px">${q ? 'Ingen användare matchar "' + esc(q) + '".' : 'Inga andra användare än.'}</p>`
     : q ? sec(list.length + (list.length === 1 ? ' träff' : ' träffar'), list) : sec('Du följer', following) + sec('Nära dig i ' + esc(S.city || ''), near) + sec('Fler växtvänner', rest)}
   <div style="height:24px"></div>`;
 }
-const FR_ERR = e => e.message === 'FRIENDS_NOT_READY' ? 'Vänner är inte påslaget i databasen än (steg 027).' : /BLOCKED/.test(e.message || '') ? 'Du kan inte skicka vänförfrågan till den här personen.' : errMsg(e);
+const FR_ERR = e => e.message === 'FRIENDS_NOT_READY' ? 'Vänner går inte att använda just nu.' : /BLOCKED/.test(e.message || '') ? 'Du kan inte skicka vänförfrågan till den här personen.' : errMsg(e);
 function friendAsk(id) { if (needLogin()) return; S.frTo = id; S.frMsg = ''; openModal('frask'); }
 function friendAskV() {
   const u = (S.ucard && S.ucard.id === S.frTo ? S.ucard.display_name : '') || 'personen';
@@ -4737,7 +4737,7 @@ async function toggleFollow(id) {
   S.follows = on ? (S.follows || []).concat(id) : S.follows.filter(x => x !== id);
   if (S.ucard && S.ucard.id === id) S.ucard.followers = Math.max(0, (S.ucard.followers || 0) + (on ? 1 : -1));
   const y = $('#main').scrollTop; render(); $('#main').scrollTop = y;
-  try { await api.follow(id, on); } catch (e) { S.follows = on ? S.follows.filter(x => x !== id) : S.follows.concat(id); render(); toast(e.message === 'USERS_NOT_READY' ? 'Att följa är inte påslaget i databasen än (steg 022).' : errMsg(e)); return; }
+  try { await api.follow(id, on); } catch (e) { S.follows = on ? S.follows.filter(x => x !== id) : S.follows.concat(id); render(); toast(e.message === 'USERS_NOT_READY' ? 'Att följa går inte att använda just nu.' : errMsg(e)); return; }
   const u = S.ucard && S.ucard.id === id ? S.ucard : (S.ppl || []).find(x => x.id === id); if (u) toast(on ? 'Du följer nu ' + u.display_name : 'Du följer inte längre ' + u.display_name);
 }
 function meCardNow() { const r = S.meCard || {}, c = r.card || {}, pr = r.prof || {};
@@ -4759,7 +4759,7 @@ function openUserPost(id, kind, cat) { S.tool = null; S.tab = 'comm'; S.ctab = K
 function userV() {
   const c = S.ucard, back = 'userBack()';
   if (!c) return `${topbar('Profil', back)}<p class="mut" style="margin:16px 18px">Hämtar profilen…</p>`;
-  if (c.err || c.missing) return `${topbar('Profil', back)}<p class="mut" style="margin:16px 18px">${c.err === 'USERS_NOT_READY' ? 'Profiler är inte påslagna i databasen än (steg 022).' : 'Profilen hittades inte.'}</p>`;
+  if (c.err || c.missing) return `${topbar('Profil', back)}<p class="mut" style="margin:16px 18px">${c.err === 'USERS_NOT_READY' ? 'Profiler går inte att använda just nu.' : 'Profilen hittades inte.'}</p>`;
   return `${topbar(c.display_name, back)}${userBody(c, S.uposts, false)}`;
 }
 function friendsSec() {
@@ -5244,7 +5244,7 @@ async function changeAvatar(file) {
     else { const path = S.user.id + '/avatar-' + Date.now() + '.jpg'; const { error } = await sb.storage.from('plant-photos').upload(path, blob, { contentType: 'image/jpeg' }); if (error) throw error; url = sb.storage.from('plant-photos').getPublicUrl(path).data.publicUrl; }
     await api.saveAvatar(url);
     S.meCard = null; S.avatarNow = url; toast('Profilbilden är bytt'); loadMe(); render();
-  } catch (e) { toast(e.message === 'AVATAR_NOT_READY' ? 'Profilbilder är inte påslagna i databasen än (steg 034).' : 'Kunde inte byta profilbild. ' + errMsg(e)); }
+  } catch (e) { toast(e.message === 'AVATAR_NOT_READY' ? 'Profilbilder går inte att använda just nu.' : 'Kunde inte byta profilbild. ' + errMsg(e)); }
 }
 async function removeAvatar() { try { await api.saveAvatar(null); S.meCard = null; S.avatarNow = null; toast('Profilbilden är borttagen'); loadMe(); render(); } catch (e) { toast(errMsg(e)); } }
 async function uploadPhoto(file) {
@@ -5294,7 +5294,7 @@ async function refreshComm() {
 }
 async function loadFeed() {
   try { await refreshComm(); S.feedErr = null; }
-  catch (e) { S.feedErr = e.message === 'DETECT_NOT_READY' ? 'Växtdetektiverna är inte påslaget i databasen än.' : e.message === 'FORUM_NOT_READY' ? 'Forumet är inte påslaget i databasen än.' : e.message === 'SWAP_NOT_READY' ? 'Byt & ge bort är inte påslaget i databasen än.' : errMsg(e); }
+  catch (e) { S.feedErr = e.message === 'DETECT_NOT_READY' ? 'Växtdetektiverna går inte att använda just nu.' : e.message === 'FORUM_NOT_READY' ? 'Forumet går inte att använda just nu.' : e.message === 'SWAP_NOT_READY' ? 'Byt & ge bort går inte att använda just nu.' : errMsg(e); }
   render();
 }
 async function commRun(fn, ok) {
@@ -5578,7 +5578,7 @@ async function sendListing() {
     await api.newListing(S.lt, ti, bo, ci, S.lt !== 'Önskas' ? S.lphoto : null);
     S.lti = ''; S.lbo = ''; S.lphoto = null; S.newL = false; S.lf = 'Alla'; S.lcity = '';
     await refreshComm(); toast('Din annons är publicerad');
-  } catch (e) { toast(e.message === 'SWAP_NOT_READY' ? 'Byt & ge bort är inte påslaget i databasen än.' : errMsg(e)); }
+  } catch (e) { toast(e.message === 'SWAP_NOT_READY' ? 'Byt & ge bort går inte att använda just nu.' : errMsg(e)); }
   S.busy = false; render();
 }
 function setTaken(id, on) { commRun(() => api.setTaken(id, on), on ? 'Markerad som bortlovad' : 'Annonsen är öppen igen'); }
@@ -5653,7 +5653,7 @@ async function sendCase() {
   try {
     await api.newCase(place, (S.cbody || '').trim() || 'Vad är detta?', S.city || place, S.cphoto);
     S.newCase = false; S.cphoto = null; S.cbody = ''; await refreshComm(); toast('Fallet är publicerat! Detektiverna är på väg 🔎');
-  } catch (e) { toast(e.message === 'DETECT_NOT_READY' ? 'Växtdetektiverna är inte påslaget i databasen än.' : errMsg(e)); }
+  } catch (e) { toast(e.message === 'DETECT_NOT_READY' ? 'Växtdetektiverna går inte att använda just nu.' : errMsg(e)); }
   S.busy = false; render();
 }
 function sendGuess(pid) {
@@ -5738,7 +5738,7 @@ function overLimit() { return !S.pro && S.mine.length >= FREE_LIMIT; }
 async function setPro(on) {
   S.modal = null;
   try { await api.setPro(on); S.pro = on; toast(on ? 'Välkommen som Pro! 🌱' : 'Pro är avslutat'); }
-  catch (e) { toast(e.message === 'PRO_NOT_READY' ? 'Pro är inte påslaget i databasen än.' : errMsg(e)); }
+  catch (e) { toast(e.message === 'PRO_NOT_READY' ? 'Pro går inte att använda just nu.' : errMsg(e)); }
   render();
 }
 function proV() {
@@ -6009,6 +6009,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.136', 'Nu', ['Inga utvecklingsmeddelanden visas längre för användare. Funktioner som inte är tillgängliga visar en vanlig text']],
   ['1.135', 'Nu', ['Säkerhet: namn och texter från andra användare kan inte längre köra kod när man trycker på en knapp']],
   ['1.134', 'Nu', ['Källor och licenser: en sida med vilka bibliotek, foton, kartor och typsnitt appen använder, länkad under Om Roothood']],
   ['1.133', 'Nu', ['Den publicerade appen innehåller inte längre demoläget. Demoläget finns kvar för lokala tester']],
@@ -6036,22 +6037,22 @@ const NEWS = [
   ['1.111', 'Nu', ['Ny logga och appikon (blad med RH)']],
   ['1.110', 'Nu', ['Community har flikarna Frågor, Visa upp, Byt växter och Nära dig. Detektiver, Forum och Vänner ligger under Mer', 'Visa upp visar frågor med bild', 'Nära dig visar annonser i din ort']],
   ['1.109', 'Nu', ['Ny logga', 'Bakåt på mobilen stänger en öppen ruta, till exempel Lägg till växt, i stället för att lämna appen', 'Meddelanden har en egen ikon uppe på Hem', 'Din egen fråga visar inte knappen Jag har samma problem, bara hur många som har det', 'Sidan hoppar inte längre när tangentbordet stängs']],
-  ['1.108', 'Nu', ['Nytt rapportskäl: Handlar inte om växter', 'Moderatorer: filtrera Community på bild, ort, typ, rapporterade och dolda, och se inlägg som kanske inte handlar om växter. Markera flera och dölj dem på en gång, eller dölj allt från en person. SQL-steg 043 behövs']],
+  ['1.108', 'Nu', ['Nytt rapportskäl: Handlar inte om växter', 'Moderatorer: filtrera Community på bild, ort, typ, rapporterade och dolda, och se inlägg som kanske inte handlar om växter. Markera flera och dölj dem på en gång, eller dölj allt från en person.']],
   ['1.107', 'Nu', ['Påminnelserna tar hänsyn till vädret på din ort: varning när det blir varmt (vattna extra), frostvarning för trädgårdsväxter och inget extra vatten ute när det regnar mycket. Välj din ort på Hem']],
   ['1.106', 'Nu', ['Community följer växterna i din samling: frågor om dem får etiketten Du har … och filtret Mina växter visar bara dem']],
   ['1.105', 'Nu', ['Koppla en fråga till en av dina växter: välj växten när du frågar, så bifogas vattning, gödsling, omplantering, plats, kruka och de senaste anteckningarna ur dagboken. Då kan andra svara lättare']],
-  ['1.104', 'Nu', ['Märken i Community som du förtjänar genom att använda appen: Hjälpsam, Hjälpt 5, 10, 25, 50 och 100 för bästa svar på andras frågor, samt Växtexpert och Moderator. Pro-märket visas inte längre där. SQL-steg 042 behövs']],
+  ['1.104', 'Nu', ['Märken i Community som du förtjänar genom att använda appen: Hjälpsam, Hjälpt 5, 10, 25, 50 och 100 för bästa svar på andras frågor, samt Växtexpert och Moderator. Pro-märket visas inte längre där.']],
   ['1.103', 'Nu', ['Tidslinje: när en växt har två eller fler foton finns knappen Tidslinje under Mina foton. Bläddra eller spela upp fotona i ordning med datum']],
-  ['1.102', 'Nu', ['Knappen Jag har samma problem på frågor visar hur många som har samma problem', 'Svara direkt på ett svar, även i din egen fråga. Svaren läggs under det du svarar på. SQL-steg 041 behövs']],
+  ['1.102', 'Nu', ['Knappen Jag har samma problem på frågor visar hur många som har samma problem', 'Svara direkt på ett svar, även i din egen fråga. Svaren läggs under det du svarar på.']],
   ['1.101', 'Nu', ['Frågor visar Löst eller Obesvarad, och du kan filtrera på Obesvarade för att hitta någon att hjälpa', 'Profilen visar växter, inlägg, följare och vänner på en rad. Tryck på vänner för att se dem']],
-  ['1.100', 'Nu', ['Community: Rapportera och Ta bort ligger i en …-meny', 'Frågor visas med kort fet rubrik och text under', 'Samma ikoner överallt, inga emojis bland knapparna', 'Foton på dina växter är privata tills du själv väljer att visa dem. SQL-steg 040 behövs']],
+  ['1.100', 'Nu', ['Community: Rapportera och Ta bort ligger i en …-meny', 'Frågor visas med kort fet rubrik och text under', 'Samma ikoner överallt, inga emojis bland knapparna', 'Foton på dina växter är privata tills du själv väljer att visa dem.']],
   ['1.99.4', 'Nu', ['Verktygskorten på Hem har samma stil som snabbknapparna']],
   ['1.99.2', 'Nu', ['Ortsknappen är en glob när du valt en ort, så det tar mindre plats i rubriken']],
   ['1.99.1', 'Nu', ['Fler ikoner i Phosphor: planeringsknappar, Mitt hem och tomma sidor']],
   ['1.99', 'Nu', ['Samma ikoner i hela appen: Phosphor. Ikonerna laddas från nätet, så de syns inte när telefonen är offline']],
   ['1.98', 'Nu', ['Snabbknapparna på Hem har ny design: Phosphor-ikoner, korta namn och Utforska som en bred banner. Identifiera är större eftersom den används mest']],
   ['1.97.1', 'Nu', ['Hem: det går att scrolla förbi Mitt hem i 3D. Huset roterar fortfarande när du trycker på Visa stort']],
-  ['1.97', 'Nu', ['Radera konto: under Inställningar → Konto kan du radera ditt konto och allt som hör till det. SQL-steg 035 behövs']],
+  ['1.97', 'Nu', ['Radera konto: under Inställningar → Konto kan du radera ditt konto och allt som hör till det.']],
   ['1.96', 'Nu', ['Skötseldagboken har fått en egen flik, Dagbok, under Min samling och en knapp på Hem. Där ser du vad varje växt behöver den här månaden och nästa, och kan bläddra månad för månad', 'Tryck Gjort på en uppgift så sparas den i växtens dagbok. Tiderna anpassas efter din odlingszon', 'Hem visar inte samma funktion två gånger: finns den bland snabbvalen döljs den stora rutan']],
   ['1.95', 'Nu', ['Logga in med Google: knappen Fortsätt med Google högst upp i inloggningsrutan']],
   ['1.94', 'Nu', ['Trädgårdar nära dig under Utforska → Verktyg: handelsträdgårdar, botaniska trädgårdar och parker inom 15 km, med vägbeskrivning. Uppgifter från OpenStreetMap']],
@@ -6059,7 +6060,7 @@ const NEWS = [
   ['1.92.2', 'Nu', ['Ljusmätare och Kompass ligger under en egen rubrik, Verktyg, i Utforska']],
   ['1.92', 'Nu', ['Ny Kompass under Utforska: visar vilket väderstreck telefonen pekar mot, med en röd norrpil']],
   ['1.91', 'Nu', ['Kameran för Identifiera växt har blixt (ficklampa), zoom och närläge när din telefon klarar det']],
-  ['1.90', 'Nu', ['Önskelista: på varje växt finns knappen Önskelista. Under Min samling finns en ny flik där du ser växterna du vill ha, skriver var du ska köpa dem och trycker Köpt när du har dem. SQL-steg 033 behövs för att spara på flera enheter']],
+  ['1.90', 'Nu', ['Önskelista: på varje växt finns knappen Önskelista. Under Min samling finns en ny flik där du ser växterna du vill ha, skriver var du ska köpa dem och trycker Köpt när du har dem. (sparas på flera enheter)']],
   ['1.89', 'Nu', ['Var i ditt hem trivs växten? På varje inomhusväxt ser du vilka av dina rum som passar och hur långt från fönstret den ska stå. Det visas också när du identifierar en växt']],
   ['1.88', 'Nu', ['Appen startar alltid på Hem, även om du stängde den i Mitt hem eller en annan sida']],
   ['1.87', 'Nu', ['Ny + -knapp på Hem och Min samling: sök en växt och lägg till den med ett enda tryck. Du kan lägga till flera i rad, eller identifiera med foto och lägga till egen växt från samma ruta']],
@@ -6677,7 +6678,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.135';
+const APP_VERSION = '1.136';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -6836,7 +6837,7 @@ async function setPushHour(h) {
   try {
     if (!DEMO) { const reg = await swReady(), sub = await reg.pushManager.getSubscription(); if (sub) await api.setPushHour(sub.endpoint, h); }
     toast('Påminnelsen kommer kl ' + String(h).padStart(2, '0') + '.00');
-  } catch (e) { toast(e.message === 'HOUR_NOT_READY' ? 'Tidsval är inte påslaget i databasen än.' : errMsg(e)); }
+  } catch (e) { toast(e.message === 'HOUR_NOT_READY' ? 'Tidsval går inte att använda just nu.' : errMsg(e)); }
 }
 async function disablePush() {
   S.pushBusy = true; render();
@@ -6860,7 +6861,7 @@ async function testPush() {
     }
     const { data } = await sb.auth.getSession();
     const res = await fetch(SUPABASE_URL + '/functions/v1/send-reminders', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + (data.session ? data.session.access_token : '') }, body: '{"test":true}' });
-    if (res.status === 404) throw new Error('notisfunktionen finns inte i Supabase än');
+    if (res.status === 404) throw new Error('notisfunktionen är inte tillgänglig just nu');
     const out = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(out.error || out.msg || 'fel ' + res.status);
     toast(out.sent ? 'Testnotis skickad! Den kommer om några sekunder.' : 'Hittade ingen mobil. Stäng av och slå på igen.');
