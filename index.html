@@ -2302,11 +2302,22 @@ async function mount3d() {
 function place3dCam() { const st = T3.st, c = T3.camera, ty = T3.ty || 0; c.position.set(st.tx + st.dist * Math.cos(st.el) * Math.sin(st.az), ty + st.dist * Math.sin(st.el), st.tz + st.dist * Math.cos(st.el) * Math.cos(st.az)); c.lookAt(st.tx, 0.6 + ty, st.tz); }
 function cam3(k) { if (!T3) return; const st = T3.st; if (k === 'top') { st.el = 1.52; st.az = 0; } else { st.el = 0.85; st.az = 0.75; } fit3d(); T3.dirty = true; }
 function fit3d() { const b = T3.bounds; if (!b) return; T3.st.tx = (b[0] + b[2]) / 2; T3.st.tz = (b[1] + b[3]) / 2; T3.st.dist = Math.max(6, Math.hypot(b[2] - b[0], b[3] - b[1]) * 1.15 + (T3.ty || 0) * 1.6); }
+function canvasTex3d(THREE, w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); return new THREE.CanvasTexture(c); }
+function skyTex3d(THREE, dark) { return canvasTex3d(THREE, 4, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, dark ? '#0E1D16' : '#CFE4EC'); g.addColorStop(0.6, dark ? '#16281E' : '#EAF2EE'); g.addColorStop(1, dark ? '#1F3427' : '#F3F1E6'); x.fillStyle = g; x.fillRect(0, 0, w, h); }); }
+function groundMat3d(THREE, span, dark, o) {
+  const tex = canvasTex3d(THREE, 256, 256, (x, w, h) => {
+    x.fillStyle = dark ? '#20372A' : '#DCE6D2'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 260; i++) { x.fillStyle = (dark ? ['#2B4B37', '#193024'] : ['#CBDDB9', '#E6EFD9'])[i % 2]; const px = Math.random() * w, py = Math.random() * h; x.beginPath(); x.ellipse(px, py, 2 + Math.random() * 5, 1 + Math.random() * 2.5, 0, 0, Math.PI * 2); x.fill(); }
+    for (let i = 0; i < 120; i++) { x.strokeStyle = dark ? '#3C6248' : '#B3CC9A'; x.lineWidth = 1; const px = Math.random() * w, py = Math.random() * h; x.beginPath(); x.moveTo(px, py); x.lineTo(px + (Math.random() - 0.5) * 4, py - 3 - Math.random() * 3); x.stroke(); }
+  });
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(span * 3, span * 3);
+  return new THREE.MeshStandardMaterial(Object.assign({ color: '#ffffff', map: tex, roughness: 0.95 }, o || {}));
+}
 function build3d(first) { ALLFL = true; try { build3dInner(first); } finally { ALLFL = false; } }
 function build3dInner(first) {
   if (!T3) return; const THREE = T3.THREE, sc = T3.scene, dark = document.documentElement.getAttribute('data-theme') === 'dark' || (document.documentElement.getAttribute('data-theme') !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
   sc.children.slice().forEach(o => o.traverse(x => { if (x.geometry) x.geometry.dispose(); if (x.material) { (Array.isArray(x.material) ? x.material : [x.material]).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); }); } })); sc.clear();
-  sc.background = new THREE.Color(dark ? '#13241B' : '#E8F0F2');
+  sc.background = skyTex3d(THREE, dark);
   const WH = S.low3d ? 1.0 : 2.5, TH = 0.12, mats = {}, M = (col, o) => mats[col + JSON.stringify(o || {})] || (mats[col + JSON.stringify(o || {})] = new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.85 }, o || {})));
   const FLH = WH + 0.25, G = {}, F3 = floors(), fyOf = l => { const f = F3.find(x => x.l === l) || {}; return l >= 0 ? l * FLH : l * FLH + (f.sub ? 1.4 : 0); }, floorVis = l => S.f3 == null || l <= S.f3;
   let cur = null; const grp = l => G[l] || (G[l] = (() => { const g = new THREE.Group(); g.position.y = fyOf(l); sc.add(g); return g; })());
@@ -2317,7 +2328,7 @@ function build3dInner(first) {
   // mark och ljus
   const all = [].concat(...planRooms().map(roomPoly), ...planAreas().map(a => a.pts), ...planGarden().map(t => [[t.x - (t.r || 1), t.y - (t.r || 1)], [t.x + (t.r || 1), t.y + (t.r || 1)]]), ...planFurn().map(f => [[f.x, f.y]]), ...planWalls().map(wl => [[wl.x1, wl.y1], [wl.x2, wl.y2]])); const xs = all.map(q => q[0]), zs = all.map(q => q[1]);
   const b = T3.bounds = [Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs)], cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2, span = Math.max(10, b[2] - b[0], b[3] - b[1]);
-  const g = new THREE.Mesh(new THREE.PlaneGeometry(span * 6, span * 6), M(dark ? '#20372A' : '#DCE6D2', F3.some(f3 => f3.l < 0 && !f3.sub) && floorVis(-1) ? { transparent: true, opacity: 0.4, depthWrite: false } : null)); g.rotation.x = -Math.PI / 2; g.position.set(cx, -0.02, cz); add(g, false, true);
+  const g = new THREE.Mesh(new THREE.PlaneGeometry(span * 6, span * 6), groundMat3d(THREE, span, dark, F3.some(f3 => f3.l < 0 && !f3.sub) && floorVis(-1) ? { transparent: true, opacity: 0.4, depthWrite: false } : null)); g.rotation.x = -Math.PI / 2; g.position.set(cx, -0.02, cz); add(g, false, true);
   sc.add(new THREE.HemisphereLight(dark ? '#9fb7c8' : '#ffffff', dark ? '#1b2a20' : '#cbd6c2', dark ? 0.7 : 1.0));
   const th = northDeg() * Math.PI / 180, sx = -Math.sin(th), sz = Math.cos(th), sun = new THREE.DirectionalLight('#fff4e0', dark ? 1.0 : 1.6);
   sun.position.set(cx + sx * span, span * 0.9, cz + sz * span); sun.target.position.set(cx, 0, cz); sun.castShadow = true;
@@ -4898,7 +4909,7 @@ async function toggleFollow(id) {
 function meCardNow() { const r = S.meCard || {}, c = r.card || {}, pr = r.prof || {};
   return { id: S.user.id, avatar_url: pr.avatar_url || null, display_name: S.user.name + (S.pro ? '' : ''), city: pr.city || S.city || c.city || '', interests: pr.interests || c.interests || [], plants: S.mine.length, posts: r.posts ? r.posts.length : (c.posts || 0), followers: c.followers || 0, following: c.following || (S.follows || []).length,
     plant_list: S.mine.map(m => ({ name: m.name, plant_id: m.plant_id, photo: m.photo || null })) }; }
-async function loadMe() { if (!S.user) return; const out = {}; try { out.prof = await api.getProfile(); } catch (e) {} try { out.card = await api.userCard(S.user.id); } catch (e) {} try { out.posts = await api.userPosts(S.user.id); } catch (e) { out.posts = []; } S.meCard = out; if (S.tab === 'me' && !S.tool && !S.sel) render(); }
+async function loadMe() { if (!S.user) return; const out = {}; try { out.prof = await api.getProfile(); } catch (e) {} try { out.card = await api.userCard(S.user.id); } catch (e) {} try { out.posts = await api.userPosts(S.user.id); } catch (e) { out.posts = []; } try { S.friends = await api.myFriends(); } catch (e) { S.friends = S.friends || []; } S.meCard = out; if (S.tab === 'me' && !S.tool && !S.sel) render(); }
 async function openUser(id, fromHash) {
   if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.uBack = fromHash ? null : (S.tool === 'people' ? 'people' : S.tab === 'comm' ? 'comm' : null);
   S.tool = 'user'; S.uid = id; S.ucard = null; S.uposts = null; S.uhome = null; render(); $('#main').scrollTop = 0;
@@ -4939,10 +4950,14 @@ function profPets(c, self) {
   return `<div class="sec cap2"><h2>Mina djur</h2>${self ? '<button class="viewall" onclick="openPets()">' + (L.length ? 'Öppna' : 'Lägg till') + '</button>' : ''}</div>
   <div class="pad">${L.length ? `<div class="pchips">${an.map(chip).join('')}${fish.length ? fchip : ''}</div>` : (!S.pets ? '<p class="mut" style="margin:0;font-size:14px">Hämtar…</p>' : '<p class="mut" style="margin:0;font-size:14px">Du har inga djur tillagda än. Lägg till husdjur, fåglar, reptiler eller akvarium och få giftvarningar för dina växter.</p>')}</div>`;
 }
+function umoreV(c) {
+  const key = 'u' + c.id, open = S.more === key, blocked = (S.blocks || []).includes(c.id);
+  return `<span class="morew"><button class="x more" aria-label="Fler val" aria-expanded="${open}" onclick="S.more=S.more==='${esc(key)}'?null:'${esc(key)}';keepMain()">${ic('ph-dots-three', 'currentColor', 20)}</button>${open ? `<span class="moremenu" role="menu"><button role="menuitem" onclick="S.more=null;blockUser('${esc(c.id)}',${!blocked})">${blocked ? 'Avblockera' : 'Blockera'}</button></span>` : ''}</span>`;
+}
 function userBody(c, uposts, self) {
   const f = (S.follows || []).includes(c.id), posts = uposts || [];
-  return `  <div class="uhero"><div class="avwrap">${avBig(c.display_name, 'bigav', c.avatar_url)}${self ? `<label class="avedit" aria-label="Byt profilbild">${ic('ph-camera', 'currentColor', 18)}<input type="file" accept="image/*" class="sr" onchange="changeAvatar(this.files[0]);this.value=''"></label>` : ''}</div><div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? '📍 ' + esc(c.city) : 'Ingen ort angiven'}</span>
-    ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">${ic('ph-pencil-simple', 'currentColor', 15)} Redigera profil</button>` : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow('${esc(c.id)}')">${f ? 'Följer ✓' : '+ Följ'}</button>${frBtns(c)}${c.friend_status === 'friends' ? `<button class="btn sm" onclick="openChat('${esc(c.id)}','${esc(c.display_name)}')">💬 Skriv</button>` : ''}</div><button class="link2" style="margin-top:8px;align-self:flex-start" onclick="blockUser('${esc(c.id)}',${!(S.blocks || []).includes(c.id)})">${(S.blocks || []).includes(c.id) ? 'Avblockera' : '🚫 Blockera'}</button>`}</div></div>
+  return `  <div class="uhero"><div class="avwrap">${avBig(c.display_name, 'bigav', c.avatar_url)}${self ? `<label class="avedit" aria-label="Byt profilbild">${ic('ph-camera', 'currentColor', 18)}<input type="file" accept="image/*" class="sr" onchange="changeAvatar(this.files[0]);this.value=''"></label>` : ''}</div><div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? esc(c.city) : 'Ingen ort angiven'}</span>
+    ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">${ic('ph-pencil-simple', 'currentColor', 15)} Redigera profil</button>` : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow('${esc(c.id)}')">${f ? 'Följer ✓' : '+ Följ'}</button>${frBtns(c)}${c.friend_status === 'friends' ? `<button class="btn sm" onclick="openChat('${esc(c.id)}','${esc(c.display_name)}')">💬 Skriv</button>` : ''}${umoreV(c)}</div>`}</div></div>
   ${(() => { const n = (v, a, b) => (v || 0) + ' ' + ((v || 0) === 1 ? a : b), fr = c.friends != null ? c.friends : (self && S.friends ? S.friends.length : 0);
     return `<p class="ustatl">${n(c.plants, 'växt', 'växter')} · ${n(c.posts, 'inlägg', 'inlägg')} · ${n(c.followers, 'följare', 'följare')}${self ? ` · <button class="link3" aria-expanded="${!!S.showFr}" onclick="S.showFr=!S.showFr;keepMain()">${n(fr, 'vän', 'vänner')} ${ic(S.showFr ? 'ph-caret-up' : 'ph-caret-down', 'currentColor', 13)}</button>` : ` · ${n(fr, 'vän', 'vänner')}`}</p>`; })()}
   ${self && S.showFr ? (friendsSec() || (Array.isArray(S.friends) && !S.friends.length ? `<p class="mut" style="margin:10px 18px 0;font-size:14px">Inga vänner än. <button class="link3" onclick="openPeople()">Hitta vänner</button></p>` : '')) : ''}
@@ -5039,7 +5054,7 @@ const QPH = { db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Id
 function qcard(q) {
   const [k, n, , cls, act, pro] = q, [icn, lbl] = QPH[k] || ['ph-star', n];
   const big = k === 'id';
-  return `<button class="qc${big ? ' big' : ''}${k === 'doc' ? ' warn' : ''}" onclick="${act}"><i class="ph ${icn}" aria-hidden="true"></i><span>${lbl}</span>${pro && !S.pro ? '<em class="pro">PRO</em>' : ''}</button>`;
+  return `<button class="qc${big ? ' big' : ''}${k === 'doc' ? ' warn' : ''}" onclick="${act}">${icn.startsWith('ph-') ? `<i class="ph ${icn}" aria-hidden="true"></i>` : ic(icn, 'currentColor', 24)}<span>${lbl}</span>${pro && !S.pro ? '<em class="pro">PRO</em>' : ''}</button>`;
 }
 function quickV() {
   const Q = QUICK(), f = favs().map(k => Q.find(q => q[0] === k)).filter(Boolean).slice(0, 7);
@@ -6158,6 +6173,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.125', 'Nu', ['Mitt hem i 3D har gräs och en himmel runt huset. Vänner i profilen visas direkt, och växtikonerna i snabbknapparna syns igen. Blockera ligger under en … meny på profilen, och ortens pinne är borttagen']],
   ['1.124', 'Nu', ['Djuren behåller sina emojier överallt i appen. Övriga emojier är ikoner']],
   ['1.123', 'Nu', ['Bara djuren har emojier. Väderikonerna, vattenkannan och såkalendern är nu ikoner i stället']],
   ['1.122', 'Nu', ['Följ en växtart i Community. Du får en notis när någon ställer en fråga om arten, även om du inte har växten']],
@@ -6815,7 +6831,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.124';
+const APP_VERSION = '1.125';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
