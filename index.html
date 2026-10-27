@@ -209,6 +209,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .tlbtns{display:flex;gap:8px;justify-content:center}
 .tlbtns .btn{display:inline-flex;align-items:center;gap:6px}
 .ubadge{display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:2px 7px;border-radius:999px;background:var(--soft);color:var(--pri);font-size:11px;font-weight:700;vertical-align:2px}
+.qpick{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.qpick label{font-size:13px}
+.qplant{margin-top:10px;background:var(--soft);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.qplant b{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--pri)}
+.qplant span{white-space:pre-line;font-size:13.5px;line-height:1.45;color:var(--ink)}
+.qplant.small span{font-size:12.5px;color:var(--mut)}
+.qchip{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--pri);font-size:12.5px;font-weight:700}
 .plink{all:unset;cursor:pointer}
 .plink:focus-visible{outline:2px solid var(--pri)}
 .link2{border:0;background:none;color:var(--pri);font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:4px 0}
@@ -5270,12 +5277,39 @@ async function commRun(fn, ok) {
 function setCtab(t) { S.ctab = t; S.newCase = false; S.newL = false; S.post = null; S.forum = null; S.del = null; S.feedErr = null; if (t === 'friends') { S.friends = null; S.inbox = null; render(); return; } render(); loadFeed(); }
 function openPost(id) { S.post = id; S.adraft = ''; S.del = null; render(); $('#main').scrollTop = 0; }
 function openForum(id) { S.forum = id; S.post = null; S.newThread = false; render(); $('#main').scrollTop = 0; }
+const QMARK = '\n\n— Om växten —\n';
+const qParts = b => { const i = String(b || '').indexOf(QMARK); return i < 0 ? [String(b || ''), ''] : [String(b).slice(0, i), String(b).slice(i + QMARK.length)]; };
+function plantBrief(m) {
+  const d = m.details || {}, L = Array.isArray(S.log[m.id]) ? S.log[m.id] : [], last = k => (L.find(x => x.kind === k) || {}).done_on, lo = t => String(t).toLowerCase();
+  const out = [m.name + (m.latin ? ' (' + m.latin + ')' : '')];
+  if (m.interval) out.push('Vattnas ungefär var ' + m.interval + ord(m.interval) + ' dag, senast ' + lo(agoTxt(m.last_watered)));
+  const f = last('feed'), r = last('repot'); if (f || r) out.push([f ? 'Gödslad ' + lo(agoTxt(f)) : '', r ? 'omplanterad ' + lo(agoTxt(r)) : ''].filter(Boolean).join(', '));
+  let rm = null; try { rm = roomOf(m); } catch (e) {}
+  if (rm) out.push('Står i ' + rm.name + ([dirTxt(rm), d.win].filter(Boolean).length ? ' (' + [dirTxt(rm), d.win].filter(Boolean).join(', ') + ')' : '')); else if (d.light) out.push('Plats: ' + d.light);
+  if (d.cm || (d.soil && d.soil.length)) out.push([d.cm ? 'Kruka ' + d.cm + ' cm' : '', d.soil && d.soil.length ? 'jord: ' + d.soil.join(', ') : ''].filter(Boolean).join(', '));
+  const notes = L.filter(x => x.note && !/^Gjort: /.test(x.note)).slice(0, 2).map(x => whenTxt(x.done_on) + ': ' + x.note);
+  if (notes.length) out.push('Dagbok: ' + notes.join(' / '));
+  return out.join('\n').slice(0, 420);
+}
+function qPlantPick(v) {
+  S.qplant = v ? +v : null; const m = S.mine.find(x => x.id === S.qplant);
+  if (m) { if (S.log[m.id] === undefined) loadLog(m.id); const c = m.category || (plantOf(m) || {}).category; if (QCATS.includes(c)) S.qcat = c; }
+  keepMain();
+}
+function qPlantV() {
+  if (!S.user || !S.mine.length) return '';
+  const m = S.mine.find(x => x.id === S.qplant);
+  return `<div class="qpick"><label class="mut" for="qpl">Gäller frågan en av dina växter?</label><select id="qpl" onchange="qPlantPick(this.value)"><option value="">Ingen särskild växt</option>${S.mine.map(x => `<option value="${x.id}" ${x.id === S.qplant ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
+  ${m ? `<div class="qplant small"><b>${ic('ph-paperclip', 'currentColor', 14)} Bifogas från din samling och dagbok</b><span>${esc(plantBrief(m))}</span></div>` : ''}</div>`;
+}
 function askQ() {
   if (needLogin()) return;
   const v = S.draft.trim();
   if (v.length < 5) return toast('Skriv minst 5 tecken.');
-  S.draft = ''; const ph = S.cph; S.cph = null; S.cphUrl = null;
-  commRun(() => api.ask(S.qcat, v, ph), 'Din fråga är publicerad');
+  const m = S.mine.find(x => x.id === S.qplant), info = m ? QMARK + plantBrief(m) : '';
+  const body = info ? v.slice(0, 1000 - info.length) + info : v;
+  S.draft = ''; S.qplant = null; const ph = S.cph; S.cph = null; S.cphUrl = null;
+  commRun(() => api.ask(S.qcat, body, ph), 'Din fråga är publicerad');
 }
 function startThread() { if (needLogin()) return; S.newThread = true; render(); const f = $('#tt'); if (f) f.focus(); }
 function sendThread() {
@@ -5385,7 +5419,7 @@ function qPill(p) { const st = qStat(p); return st === 'solved' ? `<span class="
 function postCard(p) {
   const best = p.answers.find(a => a.id === p.best_answer_id);
   return `<div class="post">${whoP(p, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>${qPill(p)}`)}
-  ${(() => { const [h, r] = splitQ(p.body); return `<button class="plink qhead" onclick="openPost(${p.id})"><b>${esc(h)}</b>${r ? `<span>${esc(r)}</span>` : ''}</button>`; })()}${postImg(p)}
+  ${(() => { const [q, info] = qParts(p.body), [h, r] = splitQ(q); return `<button class="plink qhead" onclick="openPost(${p.id})"><b>${esc(h)}</b>${r ? `<span>${esc(r)}</span>` : ''}</button>${info ? `<span class="qchip">${ic('ph-plant', 'currentColor', 13)} ${esc(info.split('\n')[0])}</span>` : ''}`; })()}${postImg(p)}
   ${best ? `<div class="ans"><b>Bästa svar</b>${esc(best.body)}</div>` : ''}
   <div class="prow">${likeBtn(p, 1)}<button class="link2" onclick="openPost(${p.id})">${p.answers.length ? p.answers.length + ' svar' : 'Svara'}</button></div></div>`;
 }
@@ -5407,7 +5441,7 @@ function comm() {
   const st = listState(S.feed, 'Inga frågor än. Bli först med att fråga något!');
   return `${topbar('Community')}${segBar()}
   <div class="ask"><textarea id="nq" rows="2" maxlength="1000" placeholder="Snabb fråga? Skriv den här" aria-label="Din fråga" oninput="S.draft=this.value">${esc(S.draft)}</textarea>
-  <div class="askrow"><select aria-label="Kategori" onchange="S.qcat=this.value">${QCATS.map(c => `<option ${c === S.qcat ? 'selected' : ''}>${c}</option>`).join('')}</select>${cPhotoBtn()}<button class="btn sm" onclick="askQ()">Publicera</button></div></div>
+  ${qPlantV()}<div class="askrow"><select aria-label="Kategori" onchange="S.qcat=this.value">${QCATS.map(c => `<option ${c === S.qcat ? 'selected' : ''}>${c}</option>`).join('')}</select>${cPhotoBtn()}<button class="btn sm" onclick="askQ()">Publicera</button></div></div>
   ${!st ? (() => { const f = S.qf || 'all', cnt = k => S.feed.filter(p => qStat(p) === k).length;
     return `<div class="chips2 qfilt" role="tablist">${[['all', 'Alla', S.feed.length], ['open', 'Obesvarade', cnt('open')], ['solved', 'Lösta', cnt('solved')]].map(([k, n, c]) => `<button role="tab" aria-selected="${f === k}" class="${f === k ? 'on' : ''}" onclick="S.qf='${k}';keepMain()">${n} <small>${c}</small></button>`).join('')}</div>`; })() : ''}
   <div class="pad">${st || (() => { const f = S.qf || 'all', L = f === 'all' ? S.feed : S.feed.filter(p => qStat(p) === f); return L.length ? L.map(postCard).join('') : `<p class="mut" style="text-align:center">${f === 'open' ? 'Alla frågor har fått svar. Snyggt jobbat!' : 'Inga lösta frågor än.'}</p>`; })()}</div>`;
@@ -5417,7 +5451,7 @@ function postV() {
   if (!p) { S.post = null; return comm(); }
   const mine = !!(S.user && p.user_id === S.user.id);
   return `${topbar('Fråga', 'S.post=null;S.del=null;render()')}<div class="pad">
-  <div class="post" style="margin-top:10px">${whoP(p, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>${qPill(p)}`)}${(() => { const [h, r] = splitQ(p.body); return `<div class="qhead full"><b>${esc(h)}</b>${r ? `<span>${esc(r)}</span>` : ''}</div>`; })()}${postImg(p)}
+  <div class="post" style="margin-top:10px">${whoP(p, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>${qPill(p)}`)}${(() => { const [q, info] = qParts(p.body), [h, r] = splitQ(q); return `<div class="qhead full"><b>${esc(h)}</b>${r ? `<span>${esc(r)}</span>` : ''}</div>${info ? `<div class="qplant"><b>${ic('ph-plant', 'currentColor', 15)} Om växten</b><span>${esc(info)}</span></div>` : ''}`; })()}${postImg(p)}
   <div class="prow">${likeBtn(p, 1)}<span class="grow"></span>${moreBtn('p', p.id, mine)}</div></div>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
   ${answersV(p, true)}${replyBox(p.id, 'Skriv ett svar')}</div>`;
@@ -5911,6 +5945,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.105', 'Nu', ['Koppla en fråga till en av dina växter: välj växten när du frågar, så bifogas vattning, gödsling, omplantering, plats, kruka och de senaste anteckningarna ur dagboken. Då kan andra svara lättare']],
   ['1.104', 'Nu', ['Märken i Community som du förtjänar genom att använda appen: Hjälpsam, Hjälpt 5, 10, 25, 50 och 100 för bästa svar på andras frågor, samt Växtexpert och Moderator. Pro-märket visas inte längre där. SQL-steg 042 behövs']],
   ['1.103', 'Nu', ['Tidslinje: när en växt har två eller fler foton finns knappen Tidslinje under Mina foton. Bläddra eller spela upp fotona i ordning med datum']],
   ['1.102', 'Nu', ['Knappen Jag har samma problem på frågor visar hur många som har samma problem', 'Svara direkt på ett svar, även i din egen fråga. Svaren läggs under det du svarar på. SQL-steg 041 behövs']],
@@ -6548,7 +6583,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.104';
+const APP_VERSION = '1.105';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
