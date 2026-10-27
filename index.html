@@ -208,6 +208,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .tlrange{width:100%;margin:12px 0 4px;accent-color:var(--pri)}
 .tlbtns{display:flex;gap:8px;justify-content:center}
 .tlbtns .btn{display:inline-flex;align-items:center;gap:6px}
+.ubadge{display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:2px 7px;border-radius:999px;background:var(--soft);color:var(--pri);font-size:11px;font-weight:700;vertical-align:2px}
 .plink{all:unset;cursor:pointer}
 .plink:focus-visible{outline:2px solid var(--pri)}
 .link2{border:0;background:none;color:var(--pri);font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:4px 0}
@@ -1606,8 +1607,10 @@ const sbApi = {
     const profs = pr.data;
     const isPro = id => !!(profs.find(p => p.id === id) || {}).is_pro;
     const name = id => (profs.find(p => p.id === id) || {}).display_name || 'Okänd';
-    return posts.map(p => ({ ...p, author: name(p.user_id), author_pro: isPro(p.user_id),
-      answers: a.data.filter(x => x.post_id === p.id).map(x => ({ ...x, author: name(x.user_id), author_pro: isPro(x.user_id) })),
+    const bd = {}; try { const r = await sb.rpc('user_badges', { p_ids: uids }); if (!r.error) (r.data || []).forEach(x => { bd[x.user_id] = x; }); } catch (e) {}
+    const bOf = id => badgeOf(bd[id]);
+    return posts.map(p => ({ ...p, author: name(p.user_id), author_pro: isPro(p.user_id), author_badge: bOf(p.user_id),
+      answers: a.data.filter(x => x.post_id === p.id).map(x => ({ ...x, author: name(x.user_id), author_pro: isPro(x.user_id), author_badge: bOf(x.user_id) })),
       likers: l.data.filter(x => x.post_id === p.id).map(x => x.user_id) }));
   },
   async ask(cat, body, photo) { const url = photo ? await uploadPhoto(photo) : null, row = { user_id: S.user.id, category: cat, body }; if (url) row.photo_url = url; const { error } = await sb.from('posts').insert(row); if (error) throw error; },
@@ -5315,10 +5318,18 @@ function sendReport(form) {
   if (S.rep.kind === 'photo') return sendPhotoReport(r);
   commRun(() => api.report(S.rep.kind, S.rep.id, r), 'Tack! Rapporten är skickad.');
 }
-function whoP(o, sub, pill) { return who(o.author, sub, pill, o.author_pro, o.user_id); }
+// Förtjänade märken i stället för Pro: Växtexpert, Moderator, Hjälpt N
+function badgeOf(b) {
+  if (!b) return null;
+  if (b.expert) return ['ph-graduation-cap', 'Växtexpert'];
+  if (b.moderator) return ['ph-shield-check', 'Moderator'];
+  const h = +b.helped || 0, tier = [100, 50, 25, 10, 5].find(t => h >= t);
+  return tier ? ['ph-hand-heart', 'Hjälpt ' + tier] : h >= 1 ? ['ph-hand-heart', 'Hjälpsam'] : null;
+}
+function whoP(o, sub, pill) { const b = o.author_badge || (DEMO && o.author_pro ? ['ph-hand-heart', 'Hjälpt 10'] : null); return who(o.author, sub, pill, b, o.user_id); }
 function who(name, sub, pill, pro, uid) {
   const link = uid && uid !== myId() && !String(uid).startsWith('seed') ? ` role="button" tabindex="0" class="whol" onclick="event.stopPropagation();openUser('${esc(uid)}')" onkeydown="if(event.key==='Enter')openUser('${esc(uid)}')" aria-label="Visa ${esc(name)}s profil"` : '';
-  return `<div class="who"><span${link || ' class="whol0"'}>${avSmall(name)}<div><b>${esc(name)}</b>${pro ? proBadge() : ''}<br><span class="mut">${esc(sub)}</span></div></span>${pill || ''}</div>`;
+  return `<div class="who"><span${link || ' class="whol0"'}>${avSmall(name)}<div><b>${esc(name)}</b>${Array.isArray(pro) ? `<span class="ubadge">${ic(pro[0], 'currentColor', 12)} ${pro[1]}</span>` : ''}<br><span class="mut">${esc(sub)}</span></div></span>${pill || ''}</div>`;
 }
 function likeBtn(p, same) {
   const on = !!(S.user && p.likers.includes(S.user.id));
@@ -5900,6 +5911,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.104', 'Nu', ['Märken i Community som du förtjänar genom att använda appen: Hjälpsam, Hjälpt 5, 10, 25, 50 och 100 för bästa svar på andras frågor, samt Växtexpert och Moderator. Pro-märket visas inte längre där. SQL-steg 042 behövs']],
   ['1.103', 'Nu', ['Tidslinje: när en växt har två eller fler foton finns knappen Tidslinje under Mina foton. Bläddra eller spela upp fotona i ordning med datum']],
   ['1.102', 'Nu', ['Knappen Jag har samma problem på frågor visar hur många som har samma problem', 'Svara direkt på ett svar, även i din egen fråga. Svaren läggs under det du svarar på. SQL-steg 041 behövs']],
   ['1.101', 'Nu', ['Frågor visar Löst eller Obesvarad, och du kan filtrera på Obesvarade för att hitta någon att hjälpa', 'Profilen visar växter, inlägg, följare och vänner på en rad. Tryck på vänner för att se dem']],
@@ -6536,7 +6548,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.103';
+const APP_VERSION = '1.104';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
