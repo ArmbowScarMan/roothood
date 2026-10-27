@@ -1,0 +1,50 @@
+-- 043: Bättre moderatorverktyg.
+-- mod_feed2: fler inlägg och svar, med bild, ort, typ och antal rapporter så att moderatorn kan filtrera.
+create or replace function public.mod_feed2(p_limit int default 300)
+returns table (kind text, id bigint, author_id uuid, author text, city text, excerpt text, created_at timestamptz, hidden boolean, has_photo boolean, post_kind text, reports int)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query
+  select * from (
+    select 'post'::text, p.id::bigint, p.user_id, pr.display_name, pr.city,
+           left(coalesce(p.title || ' ', '') || coalesce(p.body, ''), 300), p.created_at, p.hidden,
+           p.photo_url is not null, coalesce(p.kind, 'question')::text,
+           (select count(*)::int from reports r where r.post_id = p.id)
+    from posts p left join profiles pr on pr.id = p.user_id
+    union all
+    select 'answer'::text, a.id::bigint, a.user_id, pr.display_name, pr.city,
+           left(coalesce(a.body, ''), 300), a.created_at, a.hidden,
+           a.photo_url is not null, 'answer'::text,
+           (select count(*)::int from reports r where r.answer_id = a.id)
+    from answers a left join profiles pr on pr.id = a.user_id
+  ) x order by 7 desc limit greatest(1, least(p_limit, 1000));
+end $$;
+grant execute on function public.mod_feed2(int) to authenticated;
+
+-- mod_hide_user: dölj (eller visa) allt en person har skrivit, för snabb spamrensning.
+create or replace function public.mod_hide_user(p_user uuid, p_hide boolean)
+returns int language plpgsql security definer set search_path = public as $$
+declare n int; m int;
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  update posts set hidden = p_hide where user_id = p_user; get diagnostics n = row_count;
+  update answers set hidden = p_hide where user_id = p_user; get diagnostics m = row_count;
+  return n + m;
+end $$;
+grant execute on function public.mod_hide_user(uuid, boolean) to authenticated;
+
+-- Rättelse av 042: rollen heter 'mod' i databasen.
+create or replace function public.user_badges(p_ids uuid[])
+returns table(user_id uuid, expert boolean, moderator boolean, helped int)
+language sql stable security definer set search_path = public
+as $$
+  select p.id,
+         coalesce(p.is_expert, false),
+         coalesce(p.role, 'user') in ('mod', 'moderator', 'admin'),
+         (select count(*)::int from posts po join answers a on a.id = po.best_answer_id
+           where a.user_id = p.id and po.user_id <> p.id)
+  from profiles p
+  where p.id = any(p_ids);
+$$;
+grant execute on function public.user_badges(uuid[]) to anon, authenticated;

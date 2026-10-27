@@ -218,6 +218,17 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .qfilt{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.qfilt button{flex:none}
 .qchip.mine{background:transparent;border:1px solid var(--line);color:var(--ink)}
 .qchip{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--pri);font-size:12.5px;font-weight:700}
+.mfilt{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.mfilt button{flex:none}.mfilt small{opacity:.7;margin-left:2px}
+.mtools{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.mtools select,.mtools input{flex:1;min-width:140px}
+.mbulk{position:sticky;top:8px;z-index:4;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--surf);border-radius:14px;padding:10px 12px;box-shadow:0 6px 18px rgba(0,0,0,.18);margin-bottom:10px}
+.mbulk b{flex:1}
+.modrow{display:flex;gap:10px;padding:12px;margin-bottom:10px;align-items:flex-start}
+.modrow.sel{box-shadow:inset 0 0 0 2px var(--pri),var(--sh)}
+.mchk{padding-top:2px}.mchk input{width:20px;height:20px;accent-color:var(--pri)}
+.mtags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.tag.warn{background:#F6DED4;color:#A04A2C}
+.btn.danger{background:#D9534F;color:#fff;border-color:#D9534F}
 .plink{all:unset;cursor:pointer}
 .plink:focus-visible{outline:2px solid var(--pri)}
 .link2{border:0;background:none;color:var(--pri);font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:4px 0}
@@ -1452,7 +1463,8 @@ const demoApi = {
   async modReports(st) { return this._mr().filter(r => st === 'all' || r.status === st); },
   async modAct(id, a) { const r = this._mr(); r.filter(x => x.id === id).forEach(x => { x.status = a === 'hide' ? 'hidden' : 'kept'; x.hidden = a === 'hide'; }); store.set('demoMods', r); },
   async modOpen() { return this._mr().filter(r => r.status === 'open').length; },
-  async modFeed() { return this._feed().slice(0, 12).map(p => ({ kind: 'post', id: p.id, author: p.author, excerpt: (p.title ? p.title + ' ' : '') + (p.body || ''), created_at: p.created_at, hidden: false })); },
+  async modFeed() { const F = this._feed(), out = []; F.slice(0, 20).forEach(p => { out.push({ kind: 'post', id: p.id, author_id: p.user_id, author: p.author, city: 'Piteå', excerpt: (p.title ? p.title + ' ' : '') + (p.body || ''), created_at: p.created_at, hidden: false, has_photo: !!p.photo_url, post_kind: p.kind || 'question', reports: 0 }); (p.answers || []).forEach(a => out.push({ kind: 'answer', id: a.id, author_id: a.user_id, author: a.author, city: a.author === 'Lena' ? 'Umeå' : 'Piteå', excerpt: a.body, created_at: a.created_at, hidden: false, has_photo: !!a.photo_url, post_kind: 'answer', reports: 0 })); }); out.push({ kind: 'answer', id: 999001, author_id: 'spam', author: 'Spammaren', city: 'Stockholm', excerpt: 'Billiga klockor och solglasögon, beställ på min sida idag!', created_at: new Date().toISOString(), hidden: false, has_photo: false, post_kind: 'answer', reports: 2 }); return out; },
+  async modHideUser() { return 1; },
   async modHide() {},
   async listStaff() { return [{ id: 'demo', display_name: 'Du (admin)', role: 'admin' }, { id: 'u-maria', display_name: 'Maria', role: 'mod' }]; },
   async setRole() {},
@@ -1671,7 +1683,8 @@ const sbApi = {
   async modReports(st) { const { data, error } = await sb.rpc('mod_reports', { p_status: st }); if (error) throw /mod_reports/.test(error.message || '') ? new Error('MOD_NOT_READY') : error; return data || []; },
   async modAct(id, a) { const { error } = await sb.rpc('mod_act', { p_report: id, p_action: a }); if (error) throw error; },
   async modOpen() { const { data, error } = await sb.rpc('mod_open_count'); return error ? 0 : (data || 0); },
-  async modFeed() { const { data, error } = await sb.rpc('mod_feed'); if (error) throw error; return data || []; },
+  async modFeed() { let r = await sb.rpc('mod_feed2', { p_limit: 300 }); if (r.error && /mod_feed2|function/i.test(r.error.message || '')) r = await sb.rpc('mod_feed'); if (r.error) throw r.error; return r.data || []; },
+  async modHideUser(uid, on) { const { data, error } = await sb.rpc('mod_hide_user', { p_user: uid, p_hide: on }); if (error) throw /mod_hide_user|function/i.test(error.message || '') ? new Error('Det här är inte påslaget i databasen än (steg 043).') : error; return data || 0; },
   async modHide(kind, id, on) { const { error } = await sb.rpc('mod_hide', { p_kind: kind, p_id: id, p_hide: on }); if (error) throw error; },
   async listStaff() { const { data, error } = await sb.rpc('list_staff'); if (error) throw error; return data || []; },
   async setRole(id, role) { const { error } = await sb.rpc('set_role', { p_user: id, p_role: role }); if (error) throw error; },
@@ -4302,8 +4315,49 @@ async function loadMod() {
   } catch (e) { S.modData = []; S.modErr = e.message === 'MOD_NOT_READY' || /mod_|NOT_MOD/.test(e.message || '') ? 'Modereringen är inte påslagen i databasen än (steg 028).' : errMsg(e); }
   S.modBusy = false; if (S.tool === 'mod') { const y = $('#main').scrollTop; render(); $('#main').scrollTop = y; }
 }
-function modTab(t) { S.modTab = t; S.modData = null; S.modQ = ''; S.modRes = null; render(); loadMod(); }
+function modTab(t) { S.modTab = t; S.modData = null; S.modSel = []; S.modQ = ''; S.modRes = null; render(); loadMod(); }
 async function modAct(id, a) { try { await api.modAct(id, a); toast(a === 'hide' ? 'Dolt för alla' : a === 'keep' ? 'Behålls' : 'Visas igen'); } catch (e) { toast(errMsg(e)); } loadMod(); }
+// Gissar om en text inte handlar om växter: längre text utan ett enda växtord.
+const PLANTW = /växt|blad|rot|jord|kruk|vattn|gödsl|blom|frö|stickl|plant|odl|sol|ljus|skugg|ohyra|spinn|lus|mjöldagg|svamp|trädgård|rabatt|träd|busk|gräs|grönsak|tomat|chili|ört|krydd|kaktus|suckulent|orkidé|monstera|pilea|fikus|ormbunk|lök|potatis|sallad|bär|frukt|äpple|ros|perenn|sådd|skörd|kompost|växthus|balkong|fönster|beskär|omplant|näring|fukt|torr|gul|brun|hängig|ny skott|knopp|stam|gren|grader|frost|natt|vår|höst|sommar|vinter|väder|hämta|byt|bortlov|stickling/i;
+const SPAMW = /https?:\/\/|www\.|\.(com|se|net|shop)\b|beställ|köp nu|billig|rabattkod|gratis|tjäna pengar|klicka här|kasino|casino|bitcoin|krypto|lån utan/i;
+let plantNamesRe = null;
+function notPlanty(t) {
+  t = String(t || ''); if (SPAMW.test(t)) return true; if (t.length < 60) return false;
+  if (PLANTW.test(t)) return false;
+  if (!plantNamesRe && S.plants.length) plantNamesRe = new RegExp(S.plants.map(p => (p.swedish_name || '').toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '')).filter(n => n.length >= 4).join('|'), 'i');
+  return !(plantNamesRe && plantNamesRe.test(t));
+}
+function modSel(k) { const s = new Set(S.modSel || []); s.has(k) ? s.delete(k) : s.add(k); S.modSel = [...s]; keepMain(); }
+async function modHideSel() {
+  const L = S.modSel || []; if (!L.length) return;
+  let ok = 0; for (const k of L) { const [kind, id] = k.split(':'); try { await api.modHide(kind, +id, true); ok++; } catch (e) {} }
+  S.modSel = []; toast(ok + (ok === 1 ? ' dold' : ' dolda')); loadMod();
+}
+async function modHideUser(uid, name) {
+  if (S.del !== 'hu' + uid) { S.del = 'hu' + uid; return keepMain(); }
+  S.del = null;
+  try { const n = await api.modHideUser(uid, true); toast('Allt från ' + name + ' är dolt (' + n + ')'); } catch (e) { toast(errMsg(e)); }
+  loadMod();
+}
+function modFeedV(D) {
+  const f = S.mf || 'all', ty = S.mty || 'all', city = S.mcity || '', q = (S.mq2 || '').trim().toLowerCase(), sel = new Set(S.modSel || []);
+  const cities = [...new Set(D.map(r => r.city).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sv'));
+  const cnt = fn => D.filter(fn).length;
+  const FIL = [['all', 'Alla', () => true], ['photo', 'Med bild', r => r.has_photo], ['off', 'Kanske inte om växter', r => notPlanty(r.excerpt)], ['rep', 'Rapporterade', r => (r.reports || 0) > 0], ['hid', 'Dolda', r => r.hidden]];
+  const ff = (FIL.find(x => x[0] === f) || FIL[0])[2];
+  const L = D.filter(r => ff(r) && (ty === 'all' || r.kind === ty) && (!city || r.city === city) && (!q || (r.excerpt || '').toLowerCase().includes(q) || (r.author || '').toLowerCase().includes(q)));
+  return `<div class="pad" style="padding-top:10px"><div class="chips2 mfilt">${FIL.map(([k, n, fn]) => `<button class="${f === k ? 'on' : ''}" onclick="S.mf='${k}';S.modSel=[];keepMain()">${n} <small>${cnt(fn)}</small></button>`).join('')}</div>
+  <div class="mtools"><select aria-label="Typ" onchange="S.mty=this.value;keepMain()">${[['all', 'Inlägg och svar'], ['post', 'Bara inlägg'], ['answer', 'Bara svar']].map(([k, n]) => `<option value="${k}" ${ty === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
+  <select aria-label="Ort" onchange="S.mcity=this.value;keepMain()"><option value="">Alla orter</option>${cities.map(c => `<option ${c === city ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
+  <input type="search" placeholder="Sök text eller namn" value="${esc(S.mq2 || '')}" oninput="S.mq2=this.value;clearTimeout(window.__mqT);window.__mqT=setTimeout(keepMain,250)"></div>
+  ${sel.size ? `<div class="mbulk"><b>${sel.size} markerade</b><button class="btn sm" onclick="modHideSel()">Dölj markerade</button><button class="btn sm line" onclick="S.modSel=[];keepMain()">Avmarkera</button></div>` : ''}
+  ${L.length ? L.map(r => { const k = r.kind + ':' + r.id, off = notPlanty(r.excerpt);
+    return `<div class="card modrow ${sel.has(k) ? 'sel' : ''}"><label class="mchk"><input type="checkbox" ${sel.has(k) ? 'checked' : ''} onchange="modSel('${k}')" aria-label="Markera"></label><div class="grow">
+    <div class="mtags"><span class="tag lime">${KIND_SV[r.kind]}</span>${r.hidden ? '<span class="tag">Dolt</span>' : ''}${r.has_photo ? `<span class="tag">${ic('ph-image', 'currentColor', 12)} Bild</span>` : ''}${off ? '<span class="tag warn">Kanske inte om växter</span>' : ''}${r.reports ? `<span class="tag warn">${r.reports} rapport${r.reports > 1 ? 'er' : ''}</span>` : ''}</div>
+    <small class="mut">${esc(r.author || 'okänd')}${r.city ? ' · ' + esc(r.city) : ''} · ${ago(r.created_at)}</small>
+    <p style="margin:6px 0 8px">${esc((r.excerpt || '').slice(0, 220))}</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm ${r.hidden ? '' : 'line'}" onclick="modHide('${r.kind}',${r.id},${!r.hidden})">${r.hidden ? 'Visa igen' : 'Dölj'}</button>${r.author_id ? `<button class="btn sm line ${S.del === 'hu' + r.author_id ? 'danger' : ''}" onclick="modHideUser('${esc(r.author_id)}','${esc(String(r.author || '').replace(/'/g, ''))}')">${S.del === 'hu' + r.author_id ? 'Tryck igen: dölj allt från ' + esc(r.author || '') : 'Dölj allt från personen'}</button>` : ''}</div></div></div>`; }).join('') : '<p class="mut">Inget matchar filtret.</p>'}</div>`;
+}
 async function modHide(kind, id, on) { try { await api.modHide(kind, id, on); toast(on ? 'Dolt för alla' : 'Visas igen'); } catch (e) { toast(errMsg(e)); } loadMod(); }
 async function modRole(id, role) { try { await api.setRole(id, role); toast(role === 'mod' ? 'Är nu moderator' : 'Är inte längre moderator'); } catch (e) { toast(errMsg(e)); } S.modRes = null; S.modTab = 'team'; loadMod(); }
 async function modFind(form) { S.modQ = form.mq.value.trim(); try { S.modRes = S.modQ ? await api.findUsers(S.modQ) : []; } catch (e) { S.modRes = []; toast(errMsg(e)); } render(); }
@@ -4321,7 +4375,7 @@ function modV() {
       <small class="mut">Av ${esc(r.author || 'okänd')}</small><br><small class="mut">${reasons(r)}</small>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${r.status === 'open' ? `<button class="btn sm" onclick="modAct(${r.id},'hide')">Dölj</button><button class="btn sm line" onclick="modAct(${r.id},'keep')">Behåll</button>` : r.hidden ? `<button class="btn sm line" onclick="modAct(${r.id},'unhide')">Visa igen</button>` : `<button class="btn sm" onclick="modAct(${r.id},'hide')">Dölj ändå</button>`}</div></div>`).join('')}</div>` : `<p class="mut" style="margin:16px 18px">${t === 'open' ? 'Inga rapporter att granska. 🎉' : 'Inga hanterade rapporter än.'}</p>`;
   } else if (t === 'feed') {
-    body = D.length ? `<div class="pad">${D.map(r => `<div class="card" style="padding:12px;margin-bottom:10px"><div style="display:flex;gap:8px;align-items:center"><span class="tag lime">${KIND_SV[r.kind]}</span>${r.hidden ? '<span class="tag">Dolt</span>' : ''}<small class="mut">${esc(r.author || 'okänd')} · ${ago(r.created_at)}</small></div><p style="margin:8px 0">${esc((r.excerpt || '').slice(0, 160))}</p><button class="btn sm ${r.hidden ? '' : 'line'}" onclick="modHide('${r.kind}',${r.id},${!r.hidden})">${r.hidden ? 'Visa igen' : 'Dölj'}</button></div>`).join('')}</div>` : '<p class="mut" style="margin:16px 18px">Inget i communityt än.</p>';
+    body = D.length ? modFeedV(D) : '<p class="mut" style="margin:16px 18px">Inget i communityt än.</p>';
   } else {
     body = `<div class="sec"><h2>Moderatorer</h2></div><div class="pad">${D.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b><span class="mut" style="display:block;font-size:13px">${u.role === 'admin' ? 'Admin' : 'Moderator'}</span></span>${u.role === 'mod' ? `<button class="btn sm line" onclick="modRole('${esc(u.id)}','user')">Ta bort</button>` : ''}</div>`).join('')}</div>
     <div class="sec"><h2>Lägg till moderator</h2></div><div class="pad"><form onsubmit="event.preventDefault();modFind(this)" style="display:flex;gap:8px"><input name="mq" placeholder="Sök på namn" value="${esc(S.modQ || '')}" style="flex:1"><button class="btn sm">Sök</button></form>
@@ -5235,7 +5289,7 @@ async function uploadPhoto(file) {
 }
 // ===== Community: frågor och forum =====
 const QCATS = ['Allmänt'].concat(CATS);
-const REASONS = ['Olämpligt eller elakt', 'Spam eller reklam', 'Farliga eller felaktiga råd', 'Annat'];
+const REASONS = ['Handlar inte om växter', 'Olämpligt eller elakt', 'Spam eller reklam', 'Farliga eller felaktiga råd', 'Annat'];
 const PHOTO_REASONS = ['Fel växt på bilden', 'Ingen växt på bilden', 'Olämplig eller stötande bild', 'Visar personuppgifter (t.ex. ansikte, adress)', 'Annat'];
 const FORUMS = [
   { id: 'Krukväxter', d: 'Allt om växter inomhus', c: '#1F4D3A' },
@@ -5957,6 +6011,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.108', 'Nu', ['Nytt rapportskäl: Handlar inte om växter', 'Moderatorer: filtrera Community på bild, ort, typ, rapporterade och dolda, och se inlägg som kanske inte handlar om växter. Markera flera och dölj dem på en gång, eller dölj allt från en person. SQL-steg 043 behövs']],
   ['1.107', 'Nu', ['Påminnelserna tar hänsyn till vädret på din ort: varning när det blir varmt (vattna extra), frostvarning för trädgårdsväxter och inget extra vatten ute när det regnar mycket. Välj din ort på Hem']],
   ['1.106', 'Nu', ['Community följer växterna i din samling: frågor om dem får etiketten Du har … och filtret Mina växter visar bara dem']],
   ['1.105', 'Nu', ['Koppla en fråga till en av dina växter: välj växten när du frågar, så bifogas vattning, gödsling, omplantering, plats, kruka och de senaste anteckningarna ur dagboken. Då kan andra svara lättare']],
@@ -6597,7 +6652,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.107';
+const APP_VERSION = '1.108';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
