@@ -449,6 +449,14 @@ details.tech p b{color:var(--ink)}
 .setcard>.fl:first-child{margin-top:0}
 .seg2.inset{margin:0;box-shadow:none;background:var(--bg)}
 .seg2.inset button{font-size:13.5px}
+.prow{all:unset;box-sizing:border-box;cursor:pointer;display:flex;gap:12px;align-items:flex-start;width:100%;background:var(--surf);border-radius:18px;padding:10px 12px 12px 10px;box-shadow:var(--sh)}
+.prow .ph{width:64px;height:64px;border-radius:14px;flex:none}.prow img{width:100%;height:100%;object-fit:cover}
+.prow .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.prow .grow>b{font-size:15px;font-weight:800}.prow .grow>i{font-size:12.5px;color:var(--mut)}
+.pfacts{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;margin-top:8px}
+.pfacts span{font-size:13px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.pfacts small{display:block;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+.pmiss{font-size:12.5px;color:var(--pri);font-weight:700;margin-top:6px}
 .seg2.pl-view{flex:none;width:auto}.seg2.pl-view button{flex:none;padding:7px 11px;font-size:13px;white-space:nowrap}
 .setrow{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;width:100%;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh);cursor:pointer}
 .setrow:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
@@ -5725,7 +5733,7 @@ async function toggleFollow(id) {
 }
 function meCardNow() { const r = S.meCard || {}, c = r.card || {}, pr = r.prof || {};
   return { id: S.user.id, avatar_url: pr.avatar_url || null, display_name: S.user.name + (S.pro ? '' : ''), city: pr.city || S.city || c.city || '', interests: pr.interests || c.interests || [], plants: S.mine.length, posts: r.posts ? r.posts.length : (c.posts || 0), followers: c.followers || 0, following: c.following || (S.follows || []).length,
-    plant_list: S.mine.map(m => ({ name: m.name, plant_id: m.plant_id, photo: m.photo || null })) }; }
+    plant_list: S.mine.slice().reverse().map(m => ({ name: m.name, plant_id: m.plant_id, photo: m.photo || null, mid: m.id, latin: m.latin, d: m.details || {}, interval: m.interval })) }; }
 async function loadMe() { if (!S.user) return; const out = {}; try { out.prof = await api.getProfile(); } catch (e) { console.warn('Roothood:', e); } try { out.card = await api.userCard(S.user.id); } catch (e) { console.warn('Roothood:', e); } try { out.posts = await api.userPosts(S.user.id); } catch (e) { out.posts = []; } try { S.friends = await api.myFriends(); } catch (e) { S.friends = S.friends || []; } S.meCard = out; if (S.tab === 'me' && !S.tool && !S.sel) render(); }
 async function openUser(id, fromHash) {
   if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.uBack = fromHash ? null : (S.tool === 'people' ? 'people' : S.tab === 'comm' ? 'comm' : null);
@@ -5783,16 +5791,31 @@ function plantsSec(c, self) {
   const thumb = (pl, db) => pl.photo ? `<div class="ph has-img"><img src="${esc(pl.photo)}" alt="" loading="lazy"></div>` : db ? plantPh(db) : ph('', 'Krukväxt', pl.name);
   const list = c.plant_list.slice();
   if (sort === 'az') list.sort((a, b) => name(a).localeCompare(name(b), 'sv'));
+  if (sort === 'h') list.sort((a, b) => ((b.d || {}).h || 0) - ((a.d || {}).h || 0));
+  const own = list.some(pl => pl.mid);
   const items = view === 'list'
-    ? `<div class="norm">${list.map(pl => { const db = dbOf(pl); return `<button class="nrow" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${thumb(pl, db)}<span class="grow"><b>${esc(name(pl))}</b>${db && db.latin ? `<small>${esc(db.latin)}</small>` : ''}</span></button>`; }).join('')}</div>`
+    ? `<div class="norm">${list.map(pl => { const db = dbOf(pl); if (pl.mid) return plRow(pl, db, thumb(pl, db)); return `<button class="nrow" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${thumb(pl, db)}<span class="grow"><b>${esc(name(pl))}</b>${db && db.latin ? `<small>${esc(db.latin)}</small>` : ''}</span></button>`; }).join('')}</div>`
     : `<div class="uplants">${list.map(pl => { const db = dbOf(pl); return `<button class="upl" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${thumb(pl, db)}<span>${esc(name(pl))}</span></button>`; }).join('')}</div>`;
   const tog = (k, t, cur, setter) => `<button role="tab" aria-selected="${cur === k}" class="${cur === k ? 'on' : ''}" onclick="${setter}('${k}')">${t}</button>`;
   return `${head}<div class="pad">
     <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap">
-      <div class="chips2 qfilt" role="tablist" aria-label="Sortera">${tog('new', 'Senast tillagd', sort, 'setPlSort')}${tog('az', 'A–Ö', sort, 'setPlSort')}</div>
+      <div class="chips2 qfilt" role="tablist" aria-label="Sortera">${tog('new', 'Senast tillagd', sort, 'setPlSort')}${tog('az', 'A–Ö', sort, 'setPlSort')}${own ? tog('h', 'Höjd', sort, 'setPlSort') : ''}</div>
       <div class="seg2 inset pl-view" role="group" aria-label="Visning">${tog('list', 'Lista', view, 'setPlView')}${tog('grid', 'Rutnät', view, 'setPlView')}</div>
     </div>
     ${items}</div>`;
+}
+function plRow(pl, db, th) {
+  const d = pl.d || {}, f = [], lat = pl.latin || (db && db.latin);
+  if (d.place) f.push(['Planterad', d.place]);
+  if (d.cm || d.mat) f.push(['Kruka', [d.cm ? d.cm + ' cm' : '', d.mat || ''].filter(Boolean).join(', ')]);
+  if (d.soil && d.soil.length) f.push(['Jord', d.soil.join(', ')]);
+  if (d.h) f.push(['Höjd', d.h + ' cm']);
+  if (d.w) f.push(['Bredd', d.w + ' cm']);
+  if (d.light) f.push(['Plats', d.light]);
+  if (pl.interval) f.push(['Vattning', pl.interval === 1 ? 'Varje dag' : pl.interval === 2 ? 'Varannan dag' : 'Var ' + pl.interval + ':e dag']);
+  return `<button class="prow" onclick="openMine(${pl.mid})">${th}<span class="grow"><b>${esc(pl.name || 'Växt')}</b>${lat ? `<i>${esc(lat)}</i>` : ''}
+    ${f.length ? `<span class="pfacts">${f.map(([k, v]) => `<span><small>${k}</small>${esc(v)}</span>`).join('')}</span>` : ''}
+    ${f.length < 3 ? '<span class="pmiss">+ Lägg till kruka, jord och höjd</span>' : ''}</span></button>`;
 }
 function setPlSort(v) { S.plSort = v; keepMain(); }
 function setPlView(v) { S.plView = v; keepMain(); }
@@ -7020,6 +7043,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.182', '27 okt 23:20', ['Profil: listan över din samling visar kruka, jord, höjd, plats och vattning för varje växt. Ny sortering på höjd']],
   ['1.181', '27 okt 23:10', ['Profil: din samling visas som lista, sorterad på senast tillagd eller A–Ö. Du kan växla till rutnät']],
   ['1.180', '27 okt 22:40', ['Profil: Roothood Pro-rutan visas för inloggade under testperioden, så att du kan prova och avsluta Pro']],
   ['1.179', '27 okt 22:30', ['Pro: provperioden på 7 dagar startas på servern och kan bara användas en gång per konto. Pro går inte längre att sätta direkt från appen']],
@@ -7734,7 +7758,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.181';
+const APP_VERSION = '1.182';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
