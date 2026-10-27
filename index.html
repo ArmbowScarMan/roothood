@@ -4581,8 +4581,9 @@ function topbar(title, backFn, extra) {
     ? `<button class="circ" onclick="${backFn}" aria-label="Tillbaka">${ic(I.back, null, 22)}</button>`
     : `<img class="logoimg" src="${LOGO}" alt="Roothood" width="40" height="40">`;
   const right = bellBtn();
-  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1>${esc(title)}</h1>${extra || (title === 'Gemenskap' ? peopleSearchBtn() : '')}${right}</div>`;
+  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1>${esc(title)}</h1>${extra || (title === 'Gemenskap' ? communityBtns() : '')}${right}</div>`;
 }
+function communityBtns() { return `<button class="circ" onclick="openExperts()" aria-label="Fråga en expert">${ic('ph-graduation-cap', null, 22)}</button><button class="circ" onclick="openAskQ()" aria-label="Ställ en fråga">${ic('ph-question', null, 22)}</button>${peopleSearchBtn()}`; }
 function peopleSearchBtn() { return `<button class="circ" onclick="openPeople()" aria-label="Hitta användare">${ic('ph-magnifying-glass', null, 22)}</button>`;
 }
 
@@ -6329,7 +6330,7 @@ function segBar() {
   const moreOn = !!S.cmore || MORE_TABS.some(([k]) => k === S.ctab);
   return `<div class="seg2 ctabs" role="tablist">${CTABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}<button class="${moreOn ? 'on' : ''}" role="tab" aria-selected="${moreOn}" onclick="S.cmore=!S.cmore;render()">Mer</button></div>${moreOn ? `<div class="seg2 ctabs more2" role="tablist">${MORE_TABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>` : ''}
   <p class="mut" style="margin:10px 18px 0;font-size:13px">${CTAB_HELP[S.ctab] || ''}</p>
-  <div class="pad cbtns" style="padding-top:10px"><button class="peopleb xb" style="grid-column:1/-1" onclick="openExperts()"><span>${ic('ph-graduation-cap', 'currentColor', 20)}</span><span class="grow">Fråga en expert</span>${S.pro ? '' : proBadge()}</button></div>`;
+  `;
 }
 // Visas när en lista inte gick att hämta (till exempel offline). Inte samma som en tom lista.
 function retryBox(fn) { return `<div class="empty"><p>Det går inte att hämta just nu. Kontrollera internetanslutningen och försök igen.</p><button class="btn sm" onclick="${fn}">Försök igen</button></div>`; }
@@ -6418,7 +6419,6 @@ function comm() {
   if (S.post) return postV();
   const st = listState(S.feed, 'Inga frågor än. <button class="btn sm" onclick="openAskQ()">Ställ den första frågan</button>');
   return `${topbar('Gemenskap')}${segBar()}
-  <div class="pad" style="padding-top:12px"><button class="btn line" style="width:100%" onclick="openAskQ()">${ic('ph-question', 'currentColor', 18)} Ställ en fråga</button></div>
   ${!st ? (() => { const f = S.qf || 'all', cnt = k => S.feed.filter(p => qStat(p) === k).length;
     return `<div class="chips2 qfilt" role="tablist">${[['all', 'Alla', S.feed.length]].concat(S.user && S.mine.length ? [['mine', 'Mina växter', S.feed.filter(aboutMine).length]] : [], [['open', 'Obesvarade', cnt('open')], ['solved', 'Lösta', cnt('solved')]]).map(([k, n, c]) => `<button role="tab" aria-selected="${f === k}" class="${f === k ? 'on' : ''}" onclick="S.qf='${k}';keepMain()">${n} <small>${c}</small></button>`).join('')}</div>`; })() : ''}
   <div class="pad">${st || (() => { const f = S.qf || 'all', L = f === 'all' ? S.feed : f === 'mine' ? S.feed.filter(aboutMine) : S.feed.filter(p => qStat(p) === f); return L.length ? L.map(postCard).join('') : `<p class="mut" style="text-align:center">${f === 'open' ? 'Alla frågor har fått svar. Snyggt jobbat!' : f === 'mine' ? 'Inga frågor om dina växter än.' : 'Inga lösta frågor än.'}</p>`; })()}</div>`;
@@ -6921,6 +6921,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.168', '27 okt 18:30', ['Gemenskap: Fråga en expert och Ställ en fråga är nu små knappar högst upp, bredvid sökningen. De stora knapparna är borta så att fler inlägg syns direkt']],
   ['1.167', '27 okt 20:05', ['Frågor: filtreringsknapparna ligger på en rad som går att skrolla i sidled, i stället för att bryta ner till en ensam knapp. Texten "har samma problem" översätts på engelska']],
   ['1.166', '27 okt 19:58', ['Engelska: ordet varningar och några knappar på startsidan visas nu på engelska']],
   ['1.165', '27 okt 19:50', ['Engelska: växtnamn, skötselråd, ljus, vatten, jord, giftighet och förökning i Växtdatabasen översätts. Namn på sorter (äpplen, bär, monstera) översätts där det går. Vissa långa tips och problemtexter är ännu kvar på svenska']],
@@ -7621,7 +7622,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.167';
+const APP_VERSION = '1.168';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
