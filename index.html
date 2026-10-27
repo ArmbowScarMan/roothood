@@ -4672,7 +4672,7 @@ function iconize(root) {
 }
 function render() {
   HV = otherHome();
-  { const fb = $('#fab'); if (fb) fb.hidden = !!(S.sel || S.tool || S.modal || !['home', 'mine'].includes(S.tab)); }
+  { const fb = $('#fab'); if (fb) fb.hidden = !!(S.sel || S.tool || S.modal || S.tab !== 'mine'); }
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tab));
   document.getElementById('app').classList.toggle('nochat', S.tool === 'chat');
   document.body.classList.toggle('hadv', S.tool === 'house' && !S.room && !S.wz && hMode() === 'adv');
@@ -4775,7 +4775,7 @@ function home() {
     ? `<h2>Börja din samling</h2><p>Öppna en växt du har och tryck Lägg till i min samling, så påminner vi dig när den behöver vatten.</p><button class="pillbtn" onclick="openDb(true)">Sök växter</button>`
     : `<h2>Växtfolk som hjälper varandra</h2><p>Spara dina växter, få vattningspåminnelser och fråga andra.</p><button class="pillbtn" onclick="openModal('login')">Kom igång</button>`}</div></div>`;
   const city = S.city || '';
-  return `<div class="homehead"><div class="grow"><h1 class="brand">Roothood</h1><span>${S.user ? 'Hej' + (name ? ' ' + esc(name) : '') + '! ' + sub : sub}</span></div><div style="display:flex;gap:8px;align-items:center;flex:none">${S.user ? msgBtn() + bell : ''}</div></div>
+  return `<div class="homehead"><div class="grow"><h1 class="brand">Roothood</h1><span>${S.user ? 'Hej' + (name ? ' ' + esc(name) : '') + '! ' + sub : sub}</span></div><div style="display:flex;gap:8px;align-items:center;flex:none"><button class="circ" onclick="openQAdd()" aria-label="Lägg till växt">${ic('ph-plus', null, 22)}</button>${S.user ? msgBtn() + bell : ''}</div></div>
   ${DEMO ? '<p style="text-align:center;margin:4px 0 0"><span class="badge" title="Ingen databas kopplad. Det du gör sparas bara i den här webbläsaren.">Demoläge</span></p>' : ''}
   ${homeBlocks(intro)}
   <div class="hcfgrow"><button class="hcfgb" onclick="openHomeCfg()">${ic(PEN, 'currentColor', 15)} Anpassa startskärmen</button></div>`;
@@ -6994,6 +6994,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.177', '27 okt 21:50', ['Hem: plus-knappen för att lägga till växt ligger uppe i rubriken, bredvid meddelanden och notiser. Den täcker inte längre korten när du scrollar']],
   ['1.176', '27 okt 21:40', ['Familj: medlemmar i samma hushåll delar Mitt hem och växter. Ni ser och ändrar samma rum och växter. Kör SQL-steget i Inställningar om du inte gjort det']],
   ['1.175', '27 okt 21:30', ['Mina djur: registrera vilda djur runt ditt hem, som rådjur, mus, fåglar och älg. Du får tips för att skydda grödor och rabatter, och ser vilka av dina växter som brukar skadas']],
   ['1.174', '27 okt 21:15', ['Hem: Mina djur finns som knapp under Vad vill du göra?, bredvid Växtdoktorn']],
@@ -7703,7 +7704,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.176';
+const APP_VERSION = '1.177';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
