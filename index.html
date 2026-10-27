@@ -2242,6 +2242,81 @@ function kind3d(p) {
   if (t === 'trad') return /Erecta/.test(lat) ? 'pelarlov' : /Betula/.test(g) ? 'bjork' : 'lov';
   return t;
 }
+// ===== Realistiska blad och blommor: delade former, texturer och material =====
+let G3 = null;
+function g3(THREE) {
+  if (G3 && G3.T === THREE) return G3;
+  const tex = (w, h, draw) => { const t = canvasTex3d(THREE, w, h, draw); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
+  // Bladtextur: ljus mittnerv, sidonerver och mörkare kanter (färgen kommer från materialet)
+  const leafTex = tex(64, 128, (x, w, h) => {
+    const g = x.createLinearGradient(0, 0, w, 0); g.addColorStop(0, '#bfcfac'); g.addColorStop(0.5, '#f4f8ec'); g.addColorStop(1, '#bfcfac'); x.fillStyle = g; x.fillRect(0, 0, w, h);
+    x.strokeStyle = 'rgba(255,255,236,.95)'; x.lineWidth = 2.4; x.beginPath(); x.moveTo(w / 2, h); x.lineTo(w / 2, 0); x.stroke();
+    x.strokeStyle = 'rgba(110,140,90,.5)'; x.lineWidth = 1.2;
+    for (let i = 1; i < 10; i++) { const y = h - i * h / 10.5; x.beginPath(); x.moveTo(w / 2, y); x.quadraticCurveTo(w * 0.3, y - 5, 1, y - 13); x.moveTo(w / 2, y); x.quadraticCurveTo(w * 0.7, y - 5, w - 1, y - 13); x.stroke(); }
+  });
+  // Kronbladstextur: ljusare vid basen, svaga ådror mot spetsen
+  const petalTex = tex(32, 64, (x, w, h) => {
+    const g = x.createLinearGradient(0, h, 0, 0); g.addColorStop(0, '#fff6dc'); g.addColorStop(0.3, '#ffffff'); g.addColorStop(1, '#e4dde4'); x.fillStyle = g; x.fillRect(0, 0, w, h);
+    x.strokeStyle = 'rgba(0,0,0,.08)'; x.lineWidth = 1; for (let i = -2; i <= 2; i++) { x.beginPath(); x.moveTo(w / 2, h); x.quadraticCurveTo(w / 2 + i * 4, h / 2, w / 2 + i * 6, 2); x.stroke(); }
+  });
+  // Formade ytor: v går från bas (0) till spets (1), bredden och böjen styrs per höjd
+  const shaped = (sw, sh, widthAt, bendAt, cup) => { const geo = new THREE.PlaneGeometry(1, 1, sw, sh), q = geo.attributes.position;
+    for (let i = 0; i < q.count; i++) { const u = q.getX(i), v = q.getY(i) + 0.5, x = u * widthAt(v); q.setXYZ(i, x, v, bendAt(v) + cup * x * x); }
+    q.needsUpdate = true; geo.computeVertexNormals(); return geo; };
+  const leafGeo = shaped(4, 7, v => Math.pow(Math.sin(Math.PI * v), 0.85) * (1.15 - 0.35 * v), v => 0.3 * v * v, 0.6);
+  const broadGeo = shaped(4, 7, v => Math.pow(Math.sin(Math.PI * Math.min(1, v * 1.04)), 0.55) * 1.0, v => 0.18 * v * v, 0.9);
+  const petalGeo = shaped(2, 4, v => Math.sqrt(Math.sin(Math.PI * (0.05 + 0.92 * v))) * (0.3 + 0.7 * Math.min(1, v * 1.6)), v => -0.22 * v * v, 0.5);
+  const discGeo = new THREE.SphereGeometry(1, 12, 6), floretGeo = new THREE.SphereGeometry(1, 6, 4), stemGeo = new THREE.CylinderGeometry(1, 1, 1, 5); stemGeo.translate(0, 0.5, 0);
+  const mats = {}, mat = (k, col) => mats[k + col] || (mats[k + col] = new THREE.MeshStandardMaterial(k === 'leaf' ? { color: col, map: leafTex, side: THREE.DoubleSide, roughness: 0.72 }
+    : k === 'petal' ? { color: col, map: petalTex, side: THREE.DoubleSide, roughness: 0.5 } : { color: col, roughness: 0.8 }));
+  return G3 = { T: THREE, leafGeo, broadGeo, petalGeo, discGeo, floretGeo, stemGeo, mat };
+}
+// Många likadana delar i ett anrop: [x, y, z, rotX, rotY, rotZ, skalaX, skalaY, skalaZ], rotation i ordningen YXZ
+function inst3d(THREE, geo, mat, list) {
+  const m = new THREE.InstancedMesh(geo, mat, list.length), o = new THREE.Object3D();
+  list.forEach((t, i) => { o.position.set(t[0], t[1], t[2]); o.rotation.set(t[3], t[4], t[5], 'YXZ'); o.scale.set(t[6], t[7], t[8]); o.updateMatrix(); m.setMatrixAt(i, o.matrix); });
+  m.instanceMatrix.needsUpdate = true; m.castShadow = true; m.receiveShadow = true; return m;
+}
+// Bladrosett: blad som växer ut från mitten och böjer sig utåt. cols = två gröna nyanser.
+function leaves3d(THREE, gr, n, cx, cy, cz, spread, len, wid, cols, R, o) {
+  const G = g3(THREE), t0 = o && o.tilt != null ? o.tilt : 0.45, t1 = o && o.tilt1 != null ? o.tilt1 : 1.15, rise = (o && o.rise) || 0, A = [], B = [];
+  for (let i = 0; i < n; i++) { const a = i / n * 6.283 + R() * 0.7, d = Math.sqrt(R()) * spread, sc = 0.7 + R() * 0.45;
+    (i % 2 ? A : B).push([cx + Math.sin(a) * d, cy + R() * rise, cz + Math.cos(a) * d, t0 + R() * (t1 - t0), a, (R() - 0.5) * 0.35, wid * sc, len * sc, len * sc]); }
+  const geo = o && o.broad ? G.broadGeo : G.leafGeo;
+  if (A.length) gr.add(inst3d(THREE, geo, G.mat('leaf', cols[0]), A)); if (B.length) gr.add(inst3d(THREE, geo, G.mat('leaf', cols[1] || cols[0]), B));
+}
+// Blommor med riktiga kronblad. heads = blommornas mittpunkter. shape: simple, daisy, cup, star, spike, umbel, ball
+function bloom3d(THREE, gr, heads, r, col, shape, center, R, lo) {
+  const G = g3(THREE), pet = [], disc = [], flo = [], P = (x, y, z, th, a, L, W) => pet.push([x, y, z, th, a, 0, W, L, L]);
+  heads.forEach(([x, y, z]) => {
+    const a0 = R() * 6.283;
+    if (shape === 'spike' || shape === 'umbel' || shape === 'ball') {
+      const n = lo ? 8 : shape === 'ball' ? 26 : shape === 'spike' ? 18 : 16;
+      for (let i = 0; i < n; i++) {
+        if (shape === 'spike') { const t = i / n, rr = r * 0.3 * (1 - t * 0.55), an = i * 2.4; flo.push([x + Math.cos(an) * r * 0.22 * (1 - t), y + t * r * 5, z + Math.sin(an) * r * 0.22 * (1 - t), 0, 0, 0, rr, rr * 1.25, rr]); }
+        else if (shape === 'umbel') { const d = Math.sqrt(R()) * r * 1.3, an = R() * 6.283; flo.push([x + Math.cos(an) * d, y + (1 - d / (r * 1.3)) * r * 0.25, z + Math.sin(an) * d, 0, 0, 0, r * 0.2, r * 0.15, r * 0.2]); }
+        else { const u = R() * 2 - 1, an = R() * 6.283, sq = Math.sqrt(1 - u * u); flo.push([x + sq * Math.cos(an) * r * 1.1, y + u * r * 0.9, z + sq * Math.sin(an) * r * 1.1, 0, 0, 0, r * 0.3, r * 0.3, r * 0.3]); }
+      }
+      return;
+    }
+    if (shape === 'cup') { [[5, 0.62, 1.15], [5, 0.82, 0.85], [6, 1.0, 0.55]].forEach(([k, sz, up], li) => { for (let i = 0; i < k; i++) P(x, y, z, Math.PI / 2 - up, a0 + (i + li * 0.5) / k * 6.283, r * sz, r * sz * 0.85); });
+      disc.push([x, y + r * 0.1, z, 0, 0, 0, r * 0.16, r * 0.1, r * 0.16]); return; }
+    const k = shape === 'daisy' ? (lo ? 9 : 14) : shape === 'star' ? 6 : 5, W = shape === 'daisy' ? 0.26 : shape === 'star' ? 0.42 : 0.8, L = shape === 'star' ? 1.25 : 1;
+    const th = shape === 'star' ? 0.75 : shape === 'daisy' ? (center === 'droop' ? -0.35 : 0.12) : 0.35;
+    for (let i = 0; i < k; i++) P(x, y, z, Math.PI / 2 - th - (R() - 0.5) * 0.15, a0 + i / k * 6.283, r * L, r * W);
+    const dark = center === 'dark' || center === 'droop', dw = shape === 'daisy' ? 0.36 : 0.2;
+    disc.push([x, y + r * 0.05, z, 0, 0, 0, r * dw, r * (dark ? 0.3 : 0.14), r * dw]);
+  });
+  if (pet.length) gr.add(inst3d(THREE, G.petalGeo, G.mat('petal', col), pet));
+  if (flo.length) gr.add(inst3d(THREE, G.floretGeo, G.mat('plain', col), flo));
+  if (disc.length) gr.add(inst3d(THREE, G.discGeo, G.mat('plain', center === 'dark' || center === 'droop' ? '#4A2C14' : '#E8B923'), disc));
+}
+// Blomform per släkte (används av look3d)
+const SHAPE3 = [[/Echinacea/, 'daisy', 'droop'], [/Rudbeckia|Helianthus|Gaillardia/, 'daisy', 'dark'],
+  [/Lavandula|Perovskia|Nepeta|Salvia|Digitalis|Delphinium|Lupinus|Veronica|Astilbe|Liatris|Agastache|Verbascum|Lythrum|Kniphofia|Antirrhinum|Syringa/, 'spike'],
+  [/Leucanthemum|Aster|Symphyotrichum|Cosmos|Calendula|Tagetes|Bellis|Coreopsis|Erigeron|Zinnia|Dahlia|Anthemis|Osteospermum|Gerbera|Argyranthemum|Chrysanthemum|Achillea millefolium 'Summer/, 'daisy'],
+  [/Rosa|Rosor|ros$|Paeonia|Papaver|Ranunculus|Camellia|Peon/, 'cup'], [/Hemerocallis|Lilium|Clematis|Magnolia/, 'star'],
+  [/Achillea|Sedum|Hylotelephium|Eupatorium|Phlox|Verbena|Spiraea|Sambucus/, 'umbel'], [/Hydrangea|Viburnum|Rhododendron/, 'ball']];
 function veg3d(THREE, M, kind, h, w, seed, hue, opt) {
   const gr = new THREE.Group(), R = rng3(seed), lo = S.low3d, seg = lo ? [8, 6] : [14, 10], o = opt || {};
   const sn = seas3(), sk = { Sommar: 's', Höst: 'h', Vinter: 'w', Vår: 'v' }[sn];
@@ -2249,15 +2324,18 @@ function veg3d(THREE, M, kind, h, w, seed, hue, opt) {
   const PER = ['perenn', 'sommar', 'lok', 'blad', 'svard', 'ormbunke', 'krydda', 'gron', 'rot', 'solros', 'gras'].includes(kind) && !o.everg;
   const dead = (DEC || PER) && sk === 'w', bare = dead && kind !== 'gras';
   const showFl = !o.when ? (sk === 's' || sk === 'v') : o.when.includes(sk), showFruit = sk === 's' || sk === 'h';
-  const green = (l, s) => { let hh = o.leaf ? o.leaf[0] + Math.round((R() - 0.5) * 14) : 95 + Math.round(R() * 30), ss = o.leaf ? o.leaf[1] : (s || 38), ll = o.leaf ? o.leaf[2] + (l - 34) * 0.4 : l;
+  const gcol = (l, s) => { let hh = o.leaf ? o.leaf[0] + Math.round((R() - 0.5) * 14) : 95 + Math.round(R() * 30), ss = o.leaf ? o.leaf[1] : (s || 38), ll = o.leaf ? o.leaf[2] + (l - 34) * 0.4 : l;
     if (!EG && sk === 'h' && (DEC || PER) && !(o.leaf && o.leaf[0] > 300)) { hh = 22 + Math.round(R() * 28); ss = 68; ll = Math.max(ll, 40) + 6; }
     else if (!EG && sk === 'v' && !o.leaf) { hh = 88 + Math.round(R() * 18); ss = 52; ll += 8; }
     else if (!EG && sk === 'w' && PER) { hh = 40; ss = 22; ll = 40; }
-    return M(`hsl(${hh},${ss}%,${Math.round(ll)}%)`); }, fcol = o.flower || `hsl(${hue},62%,64%)`, bark = M(kind === 'bjork' ? '#E8E4DA' : kind === 'tall' ? '#9A5B34' : '#6B4A2A');
+    return `hsl(${hh},${ss}%,${Math.round(ll)}%)`; }, green = (l, s) => M(gcol(l, s)), fcol = o.flower || `hsl(${hue},62%,64%)`, bark = M(kind === 'bjork' ? '#E8E4DA' : kind === 'tall' ? '#9A5B34' : '#6B4A2A');
   const blob = (r, x, y, z, sy, m) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, seg[0], seg[1]), m); b.position.set(x, y, z); b.scale.y = sy || 1; b.castShadow = true; b.receiveShadow = true; gr.add(b); return b; };
   const cyl = (r0, r1, len, x, y, z, m, rz, ry) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, len, lo ? 6 : 10), m); c.position.set(x, y, z); if (rz) c.rotation.z = rz; if (ry) c.rotation.y = ry; c.castShadow = true; gr.add(c); return c; };
   const cone = (r, len, x, y, z, m, rz, ry) => { const c = new THREE.Mesh(new THREE.ConeGeometry(r, len, lo ? 8 : 16), m); c.position.set(x, y, z); if (rz) c.rotation.z = rz; if (ry != null) c.rotation.y = ry; c.castShadow = true; gr.add(c); return c; };
-  const flowers = (n, r, cy, spread, col) => { if (!showFl && !col) return; if (!showFl) return; const m = M(col || fcol); for (let i = 0; i < n; i++) { const a = R() * 6.283, d = Math.sqrt(R()) * spread; blob(r, Math.cos(a) * d, cy + (R() - 0.3) * r * 3, Math.sin(a) * d, 1, m); } };
+  const flowers = (n, r, cy, spread, col) => { if (!showFl) return;
+    if (lo) { const m = M(col || fcol); for (let i = 0; i < n; i++) { const a = R() * 6.283, d = Math.sqrt(R()) * spread; blob(r, Math.cos(a) * d, cy + (R() - 0.3) * r * 3, Math.sin(a) * d, 1, m); } return; }
+    const heads = []; for (let i = 0; i < n; i++) { const a = R() * 6.283, d = Math.sqrt(R()) * spread; heads.push([Math.cos(a) * d, cy + (R() - 0.3) * r * 2, Math.sin(a) * d]); }
+    bloom3d(THREE, gr, heads, r * 1.3, col || fcol, o.fshape || 'simple', o.fcenter, R, lo); };
   const crown = (cy, cw, ch, n, l) => { const nb = lo ? Math.min(n, 4) : n; blob(Math.min(cw, ch) * 0.7, 0, cy, 0, ch / Math.min(cw, ch), green(l || 34)); for (let i = 0; i < nb; i++) { const a = i / nb * 6.283 + R() * 0.8, d = cw * (0.35 + R() * 0.25), rb = cw * (0.38 + R() * 0.18); blob(rb, Math.cos(a) * d, cy + (R() - 0.45) * ch * 0.9, Math.sin(a) * d, Math.max(0.7, Math.min(1.4, ch / cw)), green((l || 34) + Math.round(R() * 10 - 4))); } };
   if (kind === 'lov' || kind === 'frukt' || kind === 'bjork' || kind === 'pelarlov') {
     const th = h * (kind === 'frukt' ? 0.3 : 0.36), rt = Math.max(0.05, Math.min(0.6, h * 0.02 + w * 0.01)), cw = kind === 'pelarlov' ? w / 2 : w / 2, ch = (h - th) / 2;
@@ -2282,20 +2360,29 @@ function veg3d(THREE, M, kind, h, w, seed, hue, opt) {
   } else if (kind === 'gras') { const m = M(sk === 'w' ? '#CDBB8A' : sk === 'h' ? '#C9A85A' : `hsl(${70 + hue % 20},35%,52%)`); for (let i = 0; i < (lo ? 4 : 9); i++) { const a = i / 9 * 6.283; cone(Math.max(0.02, w * 0.07), h, Math.cos(a) * w * 0.12, h / 2, Math.sin(a) * w * 0.12, m, (R() - 0.5) * 0.5, a); } }
   else if (kind === 'lok') { if (bare || sk === 'h') return gr; const lm = green(40), br = Math.max(0.03, Math.min(0.12, w * 0.5)), fc = M(fcol); cyl(0.01, 0.012, h, 0, h / 2, 0, lm); if (!lo) [0.5, -0.5, 0.25].forEach(r => cone(Math.max(0.02, w * 0.12), h * 0.6, 0, h * 0.28, 0, lm, r, r * 3));
     if (showFl || sk === 'v') { if (o.bulb === 'allium') blob(br * 1.5, 0, h, 0, 1, fc); else if (o.bulb === 'tulip') { const c = cone(br * 0.9, br * 2.4, 0, h, 0, fc); c.rotation.x = Math.PI; } else if (o.bulb === 'narciss') { cyl(br * 0.45, br * 0.3, br * 1.6, 0, h, 0, M('#F0A020')); blob(br * 1.15, 0, h - br * 0.4, 0, 0.25, fc); } else if (o.bulb === 'croc') { const c = cone(br * 0.8, br * 1.8, 0, h * 0.6, 0, fc); c.rotation.x = Math.PI; } else blob(br, 0, h, 0, 1.2, fc); } }
-  else if (kind === 'blad') { if (bare) { blob(w * 0.25, 0, 0.03, 0, 0.12, green(34)); return gr; } for (let i = 0; i < (lo ? 5 : 10); i++) { const a = i / 10 * 6.283 + R() * 0.4, d = w * 0.22, b = blob(Math.max(0.05, w * 0.22), Math.cos(a) * d, h * 0.25 + (i % 3) * h * 0.08, Math.sin(a) * d, 0.22, green(30 + (i % 3) * 6)); b.rotation.z = Math.cos(a) * 0.3; b.rotation.x = Math.sin(a) * 0.3; }
+  else if (kind === 'blad') { if (bare) { blob(w * 0.25, 0, 0.03, 0, 0.12, green(34)); return gr; }
+    if (!lo) { const L = Math.max(0.08, Math.min(w * 0.42, h * 1.1)); leaves3d(THREE, gr, 13, 0, 0.01, 0, w * 0.06, L, L * 0.72, [gcol(34), gcol(28)], R, { broad: true, tilt: 0.55, tilt1: 1.25 }); }
+    else for (let i = 0; i < 5; i++) { const a = i / 10 * 6.283 + R() * 0.4, d = w * 0.22, b = blob(Math.max(0.05, w * 0.22), Math.cos(a) * d, h * 0.25 + (i % 3) * h * 0.08, Math.sin(a) * d, 0.22, green(30 + (i % 3) * 6)); b.rotation.z = Math.cos(a) * 0.3; b.rotation.x = Math.sin(a) * 0.3; }
     if (showFl && h > 0.25) { cyl(0.008, 0.01, h, 0, h * 0.6, 0, green(40)); flowers(lo ? 3 : 6, Math.max(0.02, w * 0.03), h * 1.0, w * 0.06); } }
   else if (kind === 'svard') { if (bare) { cone(w * 0.12, h * 0.25, 0, h * 0.12, 0, M('#8A7B5A')); return gr; } const gm = green(34); for (let i = 0; i < (lo ? 4 : 9); i++) { const a = (i - 4) * 0.22 + R() * 0.1, c = cone(Math.max(0.02, w * 0.05), h * 0.85, Math.sin(a) * w * 0.3, h * 0.42, 0, gm); c.rotation.z = -a * 0.9; c.scale.z = 0.25; }
     if (showFl) for (let i = 0; i < (lo ? 2 : 4); i++) { const x = (R() - 0.5) * w * 0.5; cyl(0.01, 0.012, h * 1.2, x, h * 0.6, 0, green(40)); blob(Math.max(0.03, w * 0.07), x, h * 1.22, 0, 1, M(fcol)); } }
   else if (kind === 'solros') { cyl(0.025, 0.035, h, 0, h / 2, 0, green(36)); if (!lo) [1, -1].forEach(sd => blob(Math.max(0.08, w * 0.25), sd * w * 0.22, h * 0.45, 0, 0.18, green(34))); if (showFl) { const hd = Math.max(0.08, Math.min(0.3, w * 0.4)), d = new THREE.Mesh(new THREE.CylinderGeometry(hd, hd, 0.03, lo ? 8 : 18), M(o.flower || '#F5C400')); d.position.set(0, h, 0); d.rotation.x = 1.25; gr.add(d); const c = new THREE.Mesh(new THREE.CylinderGeometry(hd * 0.55, hd * 0.55, 0.05, lo ? 8 : 14), M('#4A2F18')); c.position.set(0, h - 0.01, hd * 0.04); c.rotation.x = 1.25; gr.add(c); } }
   else if (kind === 'ormbunke') { if (bare) { blob(w * 0.12, 0, 0.04, 0, 0.3, M('#8A7B5A')); return gr; } const fm = green(32); for (let i = 0; i < (lo ? 5 : 11); i++) { const a = i / 11 * 6.283 + R() * 0.3, c = cone(Math.max(0.02, w * 0.07), h * 0.9, Math.cos(a) * w * 0.2, h * 0.42, Math.sin(a) * w * 0.2, fm, 0.7 + R() * 0.3, -a); c.rotation.order = 'YXZ'; c.scale.z = 0.35; } }
   else if (kind === 'klatter') { cyl(0.02, 0.02, h, 0, h / 2, 0, M('#B49A78')); for (let i = 0; i < (lo ? 3 : 7); i++) blob(w * 0.22, (R() - 0.5) * w * 0.4, h * (i + 0.5) / 7, (R() - 0.5) * w * 0.2, 1.3, green(32)); if (o.bloom !== false) flowers(lo ? 4 : 10, Math.max(0.03, w * 0.05), h * 0.6, w * 0.3); }
-  else if (kind === 'marktack') { for (let i = 0; i < (lo ? 2 : 5); i++) { const a = i * 1.3 + R(), d = w * 0.25 * R(); blob(w * 0.3, Math.cos(a) * d, h * 0.3, Math.sin(a) * d, Math.max(0.15, h / (w * 0.6)), green(40)); } flowers(lo ? 4 : 10, Math.max(0.015, w * 0.04), h * 0.6, w * 0.4); }
+  else if (kind === 'marktack') { if (!lo) { blob(w * 0.36, 0, h * 0.12, 0, Math.max(0.12, h / (w * 1.2)), green(30)); const L = Math.max(0.03, w * 0.1); leaves3d(THREE, gr, 30, 0, h * 0.15, 0, w * 0.4, L, L * 0.6, [gcol(40), gcol(34)], R, { tilt: 1.05, tilt1: 1.45 }); }
+    else for (let i = 0; i < 2; i++) { const a = i * 1.3 + R(), d = w * 0.25 * R(); blob(w * 0.3, Math.cos(a) * d, h * 0.3, Math.sin(a) * d, Math.max(0.15, h / (w * 0.6)), green(40)); } flowers(lo ? 4 : 10, Math.max(0.015, w * 0.04), h * 0.6, w * 0.4); }
   else { // perenn, sommar, krydda, grönsaker
     const base = Math.min(h, Math.max(0.15, h * (h > 0.7 ? 0.45 : 0.8))), rb = w * 0.3;
-    for (let i = 0; i < (lo ? 2 : 4); i++) { const a = i * 1.6 + R(), d = w * 0.15; blob(rb, Math.cos(a) * d, base * 0.5, Math.sin(a) * d, Math.max(0.4, base / (rb * 2)), green(34 + Math.round(R() * 8))); }
     const veg = ['gron', 'rot', 'krydda'].includes(kind);
+    if (lo) for (let i = 0; i < 2; i++) { const a = i * 1.6 + R(), d = w * 0.15; blob(rb, Math.cos(a) * d, base * 0.5, Math.sin(a) * d, Math.max(0.4, base / (rb * 2)), green(34 + Math.round(R() * 8))); }
+    else { blob(rb * 0.55, 0, base * 0.3, 0, Math.max(0.4, base / (rb * 1.4)), green(27));
+      const len = Math.max(0.06, Math.min(base * 1.05, w * 0.55)), wid = len * (kind === 'rot' ? 0.18 : kind === 'krydda' ? 0.45 : 0.38);
+      leaves3d(THREE, gr, kind === 'rot' ? 14 : veg ? 18 : 22, 0, 0.01, 0, w * 0.12, len, wid, [gcol(36), gcol(30)], R, { tilt: 0.25, tilt1: 1.05, rise: base * 0.25 }); }
     if (h > 0.7 && !veg && !showFl) { /* utan blommor */ }
-    else if (h > 0.7 && !veg) { const sm = M(fcol), st = green(38); for (let i = 0; i < (lo ? 2 : 5); i++) { const a = R() * 6.283, d = w * 0.18 * R(), x = Math.cos(a) * d, z = Math.sin(a) * d; cyl(0.008, 0.012, h - base * 0.4, x, base * 0.4 + (h - base * 0.4) / 2, z, st); cone(Math.max(0.025, w * 0.06), h * 0.3, x, h - h * 0.12, z, sm); } }
+    else if (h > 0.7 && !veg && !lo) { const G = g3(THREE), r = Math.max(0.025, w * 0.06), sp = o.fshape === 'spike', n = 5 + Math.round(R() * 3), stems = [], heads = [];
+      for (let i = 0; i < n; i++) { const a = R() * 6.283, d = w * 0.2 * Math.sqrt(R()), x = Math.cos(a) * d, z = Math.sin(a) * d, top = h * (0.85 + R() * 0.15) - (sp ? r * 5 : 0); stems.push([x, base * 0.4, z, 0, 0, 0, 0.006, Math.max(0.05, top - base * 0.4), 0.006]); heads.push([x, top, z]); }
+      gr.add(inst3d(THREE, G.stemGeo, G.mat('plain', gcol(38)), stems)); bloom3d(THREE, gr, heads, r, fcol, o.fshape || 'simple', o.fcenter, R, lo); }
+    else if (h > 0.7 && !veg) { const sm = M(fcol), st = green(38); for (let i = 0; i < 2; i++) { const a = R() * 6.283, d = w * 0.18 * R(), x = Math.cos(a) * d, z = Math.sin(a) * d; cyl(0.008, 0.012, h - base * 0.4, x, base * 0.4 + (h - base * 0.4) / 2, z, st); cone(Math.max(0.025, w * 0.06), h * 0.3, x, h - h * 0.12, z, sm); } }
     else if (!veg) flowers(lo ? 4 : 9, Math.max(0.02, w * 0.06), base * 0.9, w * 0.32);
     if (o.fruit && showFruit) { const fm = M(o.fruitCol || '#D2553F'); for (let i = 0; i < (lo ? 3 : 8); i++) { const a = R() * 6.283, d = w * 0.3; blob(Math.max(0.025, w * 0.05), Math.cos(a) * d, base * (0.3 + R() * 0.6), Math.sin(a) * d, 1, fm); } }
   }
@@ -2312,6 +2399,7 @@ const EVERG3 = /Buxus|Ilex|Rhododendron|Hedera|Vinca|Pachysandra|Mahonia|Skimmia
 function look3d(p, o) {
   const nm = (p.latin_name || '') + ' ' + (p.swedish_name || '');
   for (const [re, c, w] of FLOWER3) if (re.test(nm)) { o.flower = c; o.when = w; break; }
+  for (const [re, sh, ce] of SHAPE3) if (re.test(nm)) { o.fshape = sh; if (ce) o.fcenter = ce; break; }
   for (const [re, c] of LEAF3) if (re.test(nm)) { o.leaf = c; break; }
   if (EVERG3.test(nm)) o.everg = true;
   const n = (p.swedish_name || '').toLowerCase(); if (/tulpan/.test(n)) o.bulb = 'tulip'; else if (/allium|prydnadslök|jättelök/.test(n)) o.bulb = 'allium'; else if (/påsklilja|narciss/.test(n)) o.bulb = 'narciss'; else if (/krokus/.test(n)) o.bulb = 'croc';
@@ -6027,6 +6115,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.144', 'Nu', ['3D: växterna i rabatter och trädgård har riktiga blad med nerver och blommor med kronblad. Formen följer växten: tusenskönor, rosor och pioner, lavendel och riddarsporre, röllika och hortensia']],
   ['1.143', 'Nu', ['Utforska: fördjupningarna (hem och trädgård, djur, permakultur) ligger sist och är märkta som fördjupning. Dagbok finns bara på ett ställe']],
   ['1.142', 'Nu', ['Nya användare ser ett enda första steg på startsidan. Växtdatabasen har en egen knapp på Hem. Community heter nu Gemenskap, och byten och detektiver har ett namn var']],
   ['1.141', 'Nu', ['Meddelanden, notiser och personsökning visar nu ett felmeddelande med knappen Försök igen när nätet svarar fel, i stället för en tom lista']],
@@ -6703,7 +6792,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.143';
+const APP_VERSION = '1.144';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
