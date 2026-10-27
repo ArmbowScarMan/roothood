@@ -2410,6 +2410,85 @@ function look3d(p, o) {
   return o;
 }
 const seed3 = id => Math.abs(Math.round(id * 7919));
+// Inomhusväxter med riktiga blad, bladskaft, rankor och blommor. Kaktusar och suckulenter behåller sina former (returnerar null).
+function indoorReal(THREE, p, ok, seed, nm, cat, leafH) {
+  if (/Opuntia|Cereus|Echinocactus|Mammillaria|Echinopsis|Ferocactus|Gymnocalycium|Astrophytum|Rebutia|kaktus|Aloe|Echeveria|Haworth|Gasteria|Sempervivum|Aeonium|Crassula|Pengaträd|Kalanchoe|Sedum|Graptopetalum|Lithops|Jade|Schlumbergera|Hatiora|Rhipsalis|Julkaktus|Epiphyllum/i.test(nm) || cat === 'Kaktus') return null;
+  const g = new THREE.Group(), R = rng3(seed), G = g3(THREE), Y0 = 0.3, sick = ok === false ? '#B9A23F' : null;
+  const sat = leafH > 300 ? 28 : 40, lcol = (l, hh, ss) => sick || `hsl(${(hh == null ? leafH : hh) + Math.round(R() * 12)},${ss == null ? sat : ss}%,${l + Math.round(R() * 6)}%)`;
+  const st = [], lf = [], bl = [], add = (geo, m, list) => { if (list.length) g.add(inst3d(THREE, geo, m, list)); };
+  // Stjälk mellan två punkter
+  const seg = (a, b, r) => { const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L = Math.hypot(dx, dy, dz) || 0.001; st.push([a[0], a[1], a[2], Math.acos(Math.max(-1, Math.min(1, dy / L))), Math.atan2(dx, dz), 0, r, L, r]); };
+  const dir = (pitch, a) => [Math.sin(pitch) * Math.sin(a), Math.cos(pitch), Math.sin(pitch) * Math.cos(a)];
+  // Fjäderblad (palm, ormbunke): mittnerv i några led med småblad på båda sidor
+  const frond = (o, a, L, up, droop, nPer, lw, ll, list) => { let q = o.slice(); const n = 5;
+    for (let k = 0; k < n; k++) { const t = (k + 0.5) / n, pt = up + droop * t, sl = L / n, d = dir(pt, a), nq = [q[0] + d[0] * sl, q[1] + d[1] * sl, q[2] + d[2] * sl]; seg(q, nq, 0.004);
+      for (let j = 0; j < nPer; j++) { const tt = (j + 0.5) / nPer, x = q[0] + d[0] * sl * tt, y = q[1] + d[1] * sl * tt, z = q[2] + d[2] * sl * tt, sz = 0.45 + 0.55 * Math.sin(Math.PI * Math.min(1, t + 0.1));
+        [-1, 1].forEach(sd => list.push([x, y, z, Math.min(1.55, pt + 0.35), a + sd * 1.2, 0, lw * sz, ll * sz, ll * sz])); }
+      q = nq; } };
+  const leafM = (l, hh, ss) => G.mat('leaf', lcol(l, hh, ss));
+  // Orkidéer: breda blad nära krukan, en böjd blomstjälk med platta blommor
+  if (cat === 'Orkidé' || /Phalaenopsis|Orchid|orkidé|Dendrobium|Cymbidium|Oncidium|Paphiopedilum|Vanda/i.test(nm)) {
+    for (let i = 0; i < 4; i++) { const a = i * 2.6 + R() * 0.4; lf.push([0, Y0 + 0.01 + i * 0.012, 0, 1.25 + R() * 0.2, a, 0, 0.13, 0.22, 0.22]); }
+    add(G.broadGeo, leafM(30), lf);
+    const a = R() * 6.283, pts = [[0.02, Y0, 0]]; for (let k = 1; k <= 6; k++) { const t = k / 6, pt = 0.1 + t * 1.1, d = dir(pt, a), q = pts[k - 1]; pts.push([q[0] + d[0] * 0.09, q[1] + d[1] * 0.09, q[2] + d[2] * 0.09]); }
+    for (let k = 1; k < pts.length; k++) seg(pts[k - 1], pts[k], 0.005); add(G.stemGeo, G.mat('plain', '#6E8F4A'), st);
+    bloom3d(THREE, g, pts.slice(3).map(q => [q[0], q[1] - 0.02, q[2]]), 0.05, sick || (/Cymbidium|Oncidium/.test(nm) ? '#F2D46B' : R() < 0.5 ? '#F3E6EE' : '#E28DC0'), 'simple', null, R, false);
+    return g; }
+  // Svärmors tunga, Zamioculcas, Yucca, Aspidistra: upprätta svärdsblad
+  if (/Dracaena trifasciata|Sansevieria|Svärmors|Zamioculcas|Yucca|Aspidistra/i.test(nm)) {
+    const zz = /Zamioculcas/.test(nm);
+    for (let i = 0; i < (zz ? 6 : 8); i++) { const a = i / 8 * 6.283 + R() * 0.5, len = 0.45 + R() * 0.4, d = R() * 0.06;
+      if (zz) { const tip = dir(0.15 + R() * 0.3, a), b = [Math.sin(a) * d, Y0, Math.cos(a) * d], e = [b[0] + tip[0] * len, b[1] + tip[1] * len, b[2] + tip[2] * len]; seg(b, e, 0.008);
+        for (let j = 1; j <= 6; j++) { const t = j / 7, q = [b[0] + tip[0] * len * t, b[1] + tip[1] * len * t, b[2] + tip[2] * len * t]; [-1, 1].forEach(sd => lf.push([q[0], q[1], q[2], 1.0, a + sd * 1.1, 0, 0.045, 0.085, 0.085])); } }
+      else lf.push([Math.sin(a) * d, Y0, Math.cos(a) * d, 0.05 + R() * 0.25, a, (R() - 0.5) * 0.3, 0.075, len, len * 0.15]); }
+    add(G.stemGeo, G.mat('plain', '#3F6B35'), st); add(G.leafGeo, leafM(28, 135, 38), lf); return g; }
+  // Palmer: kort stam och böjda fjäderblad
+  if (/Palm|Howea|Chamaedorea|Areca|Dypsis|Phoenix|Rhapis|Kentia|Cycas|Livistona|Chrysalidocarpus/i.test(nm)) {
+    const top = [0, Y0 + 0.22, 0]; seg([0, Y0, 0], top, 0.03);
+    for (let i = 0; i < 8; i++) frond(top, i / 8 * 6.283 + R() * 0.3, 0.55 + R() * 0.2, 0.25 + R() * 0.25, 1.0, 4, 0.025, 0.15, lf);
+    add(G.stemGeo, G.mat('plain', '#7A5B3A'), st.slice(0, 1)); add(G.stemGeo, G.mat('plain', '#5E7F3E'), st.slice(1)); add(G.leafGeo, leafM(32), lf); return g; }
+  // Ormbunkar: många fjäderblad direkt från krukan
+  if (/Nephrolepis|Asplenium|Pteris|Adiantum|ormbunke|Davallia|Platycerium/i.test(nm)) {
+    if (/Asplenium|Platycerium/.test(nm)) { leaves3d(THREE, g, 12, 0, Y0, 0, 0.03, 0.4, 0.12, [lcol(36), lcol(30)], R, { tilt: 0.3, tilt1: 1.1 }); return g; }
+    for (let i = 0; i < 14; i++) frond([0, Y0, 0], i / 14 * 6.283 + R() * 0.3, 0.4 + R() * 0.2, 0.2 + R() * 0.4, 1.3, 5, 0.022, 0.06, lf);
+    add(G.stemGeo, G.mat('plain', '#5E7F3E'), st); add(G.leafGeo, leafM(36), lf); return g; }
+  // Klätter- och hängväxter: bladtuva i krukan och rankor som hänger ner
+  if (/Epipremnum|Gullranka|Chlorophytum|Grönlilja|Tradescantia|Hedera|Murgröna|Ceropegia|Senecio|Scindapsus|Philodendron scandens|Hoya|Pilea glauc/i.test(nm)) {
+    if (/Chlorophytum|Grönlilja/.test(nm)) { leaves3d(THREE, g, 26, 0, Y0, 0, 0.03, 0.38, 0.045, [lcol(42, 95, 35), lcol(34, 95, 35)], R, { tilt: 0.5, tilt1: 1.5 }); return g; }
+    const small = /Tradescantia|Senecio|Ceropegia|Pilea/.test(nm), lw = small ? 0.035 : 0.065, ll = small ? 0.045 : 0.08;
+    for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283 + R(); lf.push([Math.sin(a) * 0.04, Y0 + 0.02, Math.cos(a) * 0.04, 0.6 + R() * 0.6, a, 0, lw * 1.2, ll * 1.2, ll * 1.2]); }
+    for (let v = 0; v < 6; v++) { const a = v / 6 * 6.283 + R() * 0.4; let q = [Math.sin(a) * 0.1, Y0 + 0.03, Math.cos(a) * 0.1]; const n = 5 + Math.round(R() * 4);
+      for (let k = 0; k < n; k++) { const out = k === 0 ? 0.07 : 0.015, nq = [q[0] + Math.sin(a) * out + (R() - 0.5) * 0.02, q[1] - (k === 0 ? 0.0 : 0.065), q[2] + Math.cos(a) * out + (R() - 0.5) * 0.02]; seg(q, nq, 0.003);
+        lf.push([nq[0], nq[1], nq[2], 1.3 + R() * 0.3, a + (k % 2 ? 0.9 : -0.9), 0, lw, ll, ll]); q = nq; } }
+    add(G.stemGeo, G.mat('plain', '#5C7F3E'), st); add(G.broadGeo, leafM(/Epipremnum|Gullranka|Scindapsus/.test(nm) ? 40 : 32), lf); return g; }
+  // Stora bladväxter: bladskaft och stora blad. Fredskalla och anthurium får sitt hölsterblad.
+  if (/Monstera|Philodendron|Alocasia|Colocasia|Calathea|Maranta|Spathiphyllum|Fredskalla|Anthurium|Ficus lyrata|Fiddle|Caladium|Strelitzia|Musa|Aglaonema|Dieffenbachia|Stromanthe/i.test(nm)) {
+    const big = /Monstera|Alocasia|Colocasia|Strelitzia|Musa|lyrata/.test(nm), L = big ? 0.3 : 0.2, n = big ? 7 : 9;
+    for (let i = 0; i < n; i++) { const a = i / n * 6.283 + R() * 0.5, hh = (big ? 0.35 : 0.22) + R() * 0.25, pt = 0.15 + R() * 0.45, d = dir(pt, a), b = [Math.sin(a) * 0.02, Y0, Math.cos(a) * 0.02], e = [b[0] + d[0] * hh, b[1] + d[1] * hh, b[2] + d[2] * hh];
+      seg(b, e, 0.007); lf.push([e[0], e[1], e[2], 1.0 + R() * 0.4, a, (R() - 0.5) * 0.3, L * (/Calathea|Maranta|Stromanthe|Spathiphyllum|Aglaonema|Dieffenbachia/.test(nm) ? 0.55 : 0.85), L, L]); }
+    add(G.stemGeo, G.mat('plain', '#5C8F46'), st); add(G.broadGeo, leafM(30), lf);
+    if (/Spathiphyllum|Fredskalla|Anthurium/.test(nm) && !sick) { const an = /Anthurium/.test(nm), sp = [], sx = [];
+      for (let i = 0; i < 3; i++) { const a = i * 2.1 + R(), hh = 0.5 + R() * 0.1, d = dir(0.15, a), e = [d[0] * hh, Y0 + d[1] * hh, d[2] * hh]; sp.push([e[0], e[1], e[2], an ? 0.9 : 0.35, a + Math.PI, 0, 0.07, 0.11, 0.11]); sx.push([e[0], e[1], e[2], 0.25, a, 0, 0.008, 0.06, 0.008]); }
+      add(G.petalGeo, G.mat('petal', an ? '#D9342B' : '#F4F1E8'), sp); add(G.stemGeo, G.mat('plain', an ? '#F2D46B' : '#EDE6C8'), sx); }
+    return g; }
+  // Rumsträd: stam och bladkrona. Dracaena och Cordyline får en topp av långa blad.
+  if (/Ficus|Schefflera|Pachira|Dracaena|Cordyline|Coffea|Citrus|Olea|Laurus|Murraya|Gummi|Benjamin|Brachychiton|Radermachera/i.test(nm)) {
+    const top = [0, Y0 + 0.5, 0]; seg([0, Y0, 0], top, 0.025); add(G.stemGeo, G.mat('plain', '#7A5B3A'), st);
+    if (/Dracaena|Cordyline/.test(nm)) { leaves3d(THREE, g, 18, 0, top[1], 0, 0.02, 0.32, 0.045, [lcol(34), lcol(28)], R, { tilt: 0.2, tilt1: 1.6 }); return g; }
+    const c = [0, Y0 + 0.62, 0], big = /Ficus elastica|Gummi|lyrata/.test(nm), n = big ? 26 : 70, ll = big ? 0.13 : 0.075;
+    for (let i = 0; i < n; i++) { const u = R() * 2 - 1, an = R() * 6.283, sq = Math.sqrt(1 - u * u), dx = sq * Math.sin(an), dz = sq * Math.cos(an), rr = 0.17 + R() * 0.06;
+      lf.push([c[0] + dx * rr, c[1] + u * rr * 0.85, c[2] + dz * rr, Math.max(0.3, Math.min(1.8, Math.acos(u) + 0.3)), Math.atan2(dx, dz), (R() - 0.5) * 0.5, ll * (big ? 0.6 : 0.5), ll, ll]); }
+    add(big ? G.broadGeo : G.leafGeo, leafM(big ? 24 : 32), lf);
+    if (/Citrus/.test(nm) && !sick) bloom3d(THREE, g, [[0.1, c[1], 0.12], [-0.12, c[1] + 0.05, 0.05], [0.02, c[1] - 0.1, -0.15]], 0.025, '#E8A21E', 'ball', null, R, false);
+    return g; }
+  // Övriga: en tät bladtuva, med blommor för kända blommare
+  leaves3d(THREE, g, 26, 0, Y0, 0, 0.05, 0.15, 0.085, [lcol(34), lcol(28)], R, { broad: true, tilt: 0.45, tilt1: 1.35, rise: 0.12 });
+  const fl = /Saintpaulia/.test(nm) ? ['#7B52C9', 'simple'] : /Cyclamen/.test(nm) ? ['#E8508C', 'star'] : /Gerbera/.test(nm) ? ['#E8452B', 'daisy'] : /Hibiscus/.test(nm) ? ['#E8452B', 'simple', 0.07]
+    : /Begonia/.test(nm) ? ['#E8508C', 'simple'] : /Pelargonium|Impatiens|Primula/.test(nm) ? ['#E8452B', 'simple'] : null;
+  if (fl && !sick) { const heads = []; for (let i = 0; i < 6; i++) { const a = R() * 6.283, d = Math.sqrt(R()) * 0.12; heads.push([Math.sin(a) * d, Y0 + 0.2 + R() * 0.06, Math.cos(a) * d]); }
+    bloom3d(THREE, g, heads, fl[2] || 0.035, fl[0], fl[1], null, R, false); }
+  return g;
+}
 function indoor3d(THREE, M, p, ok, seed) {
   const g = new THREE.Group(), R = rng3(seed), lo = S.low3d, nm = ((p.latin_name || '') + ' ' + (p.swedish_name || '')), lc = ok === false ? '#B9A23F' : null;
   const col = (h, sat, l) => M(lc || `hsl(${h + Math.round(R() * 12)},${sat}%,${l + Math.round(R() * 6)}%)`);
@@ -2418,6 +2497,7 @@ function indoor3d(THREE, M, p, ok, seed) {
   if (/Aeonium|Echeveria|Sempervivum|Graptopetalum/.test(nm)) leafH = 175;
   const lm = (l) => col(leafH, leafH > 300 ? 28 : leafH === 175 ? 25 : 40, l || 34);
   const cat = p.category;
+  if (!lo) { const real = indoorReal(THREE, p, ok, seed, nm, cat, leafH); if (real) return real; }
   if (/Opuntia|Cereus|Echinocactus|Mammillaria|Echinopsis|Ferocactus|Gymnocalycium|Astrophytum|Rebutia|kaktus/i.test(nm) && !/Schlumbergera|Hatiora|Rhipsalis|Julkaktus/.test(nm)) {
     if (/Opuntia|fikon/i.test(nm)) { [[0, 0.5, 0], [-0.1, 0.78, 0], [0.1, 0.82, 0]].forEach(([x, y, z], i) => { const b = add(new THREE.SphereGeometry(0.12, 10, 8), lm(28), x, y, z); b.scale.set(1, 1.3, 0.35); }); }
     else if (/Cereus|Echinopsis|Ferocactus/.test(nm)) { add(new THREE.CylinderGeometry(0.1, 0.11, 0.62, 12), lm(30), 0, 0.55, 0); add(new THREE.CylinderGeometry(0.06, 0.06, 0.3, 10), lm(30), 0.17, 0.62, 0).rotation.z = 0; }
@@ -6119,6 +6199,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.146', 'Nu', ['3D: inomhusväxterna har riktiga blad. Orkidéer med blomstjälk, svärmors tunga, palmer och ormbunkar med fjäderblad, hängväxter med rankor, monstera och fredskalla med bladskaft, rumsträd med bladkrona och blommande krukväxter med kronblad']],
   ['1.145', 'Nu', ['3D: höga perenner lutar lite, har blad längs stjälken och större blommor. De mörka formerna mitt i plantorna är borta']],
   ['1.144', 'Nu', ['3D: växterna i rabatter och trädgård har riktiga blad med nerver och blommor med kronblad. Formen följer växten: tusenskönor, rosor och pioner, lavendel och riddarsporre, röllika och hortensia']],
   ['1.143', 'Nu', ['Utforska: fördjupningarna (hem och trädgård, djur, permakultur) ligger sist och är märkta som fördjupning. Dagbok finns bara på ett ställe']],
@@ -6797,7 +6878,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.145';
+const APP_VERSION = '1.146';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];

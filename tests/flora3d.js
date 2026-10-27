@@ -31,6 +31,12 @@ const srv = http.createServer((q, r) => { const p = path.join(dir, q.url.split('
       }
       for (const p of S.plants) { try { plant3d(p, THREE, M); out.ok++; const o = opt3d(p); if (o.fshape) out.kinds[o.fshape] = (out.kinds[o.fshape] || 0) + 1; } catch (e) { out.fail.push(`${sz}/${lo}/${p.swedish_name}: ${e.message}`); } }
     }
+    // Inomhusväxter: alla växter i databasen och några typiska namn, frisk och sjuk, båda kvalitetslägena
+    const names = ['Phalaenopsis', 'Sansevieria trifasciata', 'Zamioculcas zamiifolia', 'Howea forsteriana', 'Nephrolepis exaltata', 'Asplenium nidus', 'Epipremnum aureum', 'Chlorophytum comosum', 'Tradescantia zebrina', 'Monstera deliciosa', 'Spathiphyllum', 'Anthurium andraeanum', 'Ficus benjamina', 'Ficus elastica', 'Dracaena marginata', 'Citrus limon', 'Saintpaulia', 'Cyclamen persicum', 'Gerbera', 'Hibiscus rosa-sinensis', 'Peperomia', 'Opuntia', 'Echeveria'];
+    out.indoor = { ok: 0, nya: 0 };
+    for (const lo of [false, true]) { S.low3d = lo;
+      for (const p of S.plants.concat(names.map((n, i) => ({ id: 9000 + i, latin_name: n, swedish_name: n, category: /Phalaenopsis/.test(n) ? 'Orkidé' : 'Krukväxt' })))) for (const okv of [true, false]) {
+        try { const before = nInst; indoor3d(THREE, M, p, okv, 11); out.indoor.ok++; if (nInst > before) out.indoor.nya++; } catch (e) { out.fail.push(`inne/${lo}/${p.swedish_name}: ${e.message}`); } } }
     S.sea3 = realSeas; S.low3d = false;
     // jämför antal objekt per perenn sommartid
     S.sea3 = 'Sommar'; nObj = 0; nInst = 0; nInstances = 0; veg3d(THREE, M, 'perenn', 0.9, 0.5, 7, 120, { fshape: 'daisy', flower: '#E56A93' }); out.perennNy = { objekt: nObj, instancedMeshes: nInst, delar: nInstances };
