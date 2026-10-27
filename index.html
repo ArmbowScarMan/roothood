@@ -2214,7 +2214,16 @@ function build3dInner(first) {
     const ok = plantMarkerOk(m), gr = new THREE.Group();
     const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.28, 18), M('#C2643F')); pot.position.y = 0.14; pot.castShadow = true; gr.add(pot);
     gr.add(indoor3d(THREE, M, pp || { swedish_name: m.name, latin_name: m.latin || '', category: m.category }, ok, seed3(m.id)));
-    gr.position.set(x, fyOf(pfl), y); sc.add(gr); });
+    // Ampel: hänger från taket i tre linor. Annars: står växten på en möbel hamnar den ovanpå i stället för inuti.
+    let lift = 0;
+    if (m.details.place === 'Ampel') { lift = 1.7; const top = 2.4 - lift, wm = M('#3A3A3A'), up = new THREE.Vector3(0, 1, 0);
+      [0, 2.094, 4.189].forEach(an => { const a = new THREE.Vector3(Math.sin(an) * 0.15, 0.28, Math.cos(an) * 0.15), b = new THREE.Vector3(0, top, 0), d = b.clone().sub(a), L = d.length(), wire = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, L, 4), wm);
+        wire.position.copy(a).add(b).multiplyScalar(0.5); wire.quaternion.setFromUnitVectors(up, d.normalize()); gr.add(wire); });
+      const hook = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.02, 10), wm); hook.position.y = top; gr.add(hook); }
+    else { const SURF = ['table', 'dtable', 'desk', 'dresser', 'tv', 'counter', 'round', 'shelf', 'pshelf', 'otable'];
+      planFurnAll().forEach(f => { if (!SURF.includes(f.t) || flOf(f) !== pfl) return; const dx = x - f.x, dz = y - f.y, r = (f.rot || 0) * Math.PI / 180, lx = dx * Math.cos(r) + dz * Math.sin(r), lz = -dx * Math.sin(r) + dz * Math.cos(r);
+        const inside = ROUNDS.has(f.t) ? Math.hypot(dx, dz) <= f.w / 2 + 0.05 : Math.abs(lx) <= f.w / 2 + 0.05 && Math.abs(lz) <= f.h / 2 + 0.05; if (inside) lift = Math.max(lift, (FH[f.t] || 0.8) + 0.01); }); }
+    gr.position.set(x, fyOf(pfl) + lift, y); sc.add(gr); });
   // smarta saker
   planItems().forEach(it => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), M('#7D6CB3', { emissive: '#3a2f66' })); m.position.set(it.x, 0.95, it.y); add(m); });
   // träd och buskar
@@ -6199,6 +6208,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.149', 'Nu', ['3D: en växt som står på ett bord, skrivbord, en byrå, hylla, bänkskiva eller TV-bänk hamnar ovanpå möbeln. Välj platsen Ampel så hänger växten från taket']],
   ['1.148', 'Nu', ['3D: stora bladväxter inomhus som monstera och calathea har fler och större blad på kortare skaft, så plantan blir tätare']],
   ['1.147', 'Nu', ['3D: höga perenner har fler blad längs stjälken och större blommor. Funkior får lavendelfärgade blomax, och okända växter får riktiga blomfärger']],
   ['1.146', 'Nu', ['3D: inomhusväxterna har riktiga blad. Orkidéer med blomstjälk, svärmors tunga, palmer och ormbunkar med fjäderblad, hängväxter med rankor, monstera och fredskalla med bladskaft, rumsträd med bladkrona och blommande krukväxter med kronblad']],
@@ -6880,7 +6890,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.148';
+const APP_VERSION = '1.149';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
