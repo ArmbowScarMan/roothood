@@ -449,6 +449,7 @@ details.tech p b{color:var(--ink)}
 .setcard>.fl:first-child{margin-top:0}
 .seg2.inset{margin:0;box-shadow:none;background:var(--bg)}
 .seg2.inset button{font-size:13.5px}
+.seg2.pl-view{flex:none;width:auto}.seg2.pl-view button{flex:none;padding:7px 11px;font-size:13px;white-space:nowrap}
 .setrow{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;width:100%;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh);cursor:pointer}
 .setrow:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
 .setrow .grow{flex:1;display:flex;flex-direction:column;min-width:0}
@@ -5770,6 +5771,31 @@ function umoreV(c) {
   const key = 'u' + c.id, open = S.more === key, blocked = (S.blocks || []).includes(c.id);
   return `<span class="morew"><button class="x more" aria-label="Fler val" aria-expanded="${open}" onclick="S.more=S.more===${jsArg(key)}?null:${jsArg(key)};keepMain()">${ic('ph-dots-three', 'currentColor', 20)}</button>${open ? `<span class="moremenu" role="menu"><button role="menuitem" onclick="S.more=null;blockUser(${jsArg(c.id)},${!blocked})">${blocked ? 'Avblockera' : 'Blockera'}</button></span>` : ''}</span>`;
 }
+function plantsSec(c, self) {
+  const head = '<div class="sec"><h2>Växter</h2></div>';
+  if (!(c.plant_list && c.plant_list.length)) {
+    const why = self ? 'Din samling är tom eller dold för andra.' : esc(c.display_name) + ((c.hidden || []).includes('plants') ? ' visar inte sina växter för dig.' : ' visar inte sin samling.');
+    return `${head}<div class="pad"><p class="mut" style="margin:0;font-size:14px">${why}</p></div>`;
+  }
+  const view = S.plView || 'list', sort = S.plSort || 'new';
+  const name = pl => pl.name || 'Växt';
+  const dbOf = pl => pl.plant_id ? S.plants.find(x => x.id === pl.plant_id) : S.plants.find(x => x.swedish_name === pl.name);
+  const thumb = (pl, db) => pl.photo ? `<div class="ph has-img"><img src="${esc(pl.photo)}" alt="" loading="lazy"></div>` : db ? plantPh(db) : ph('', 'Krukväxt', pl.name);
+  const list = c.plant_list.slice();
+  if (sort === 'az') list.sort((a, b) => name(a).localeCompare(name(b), 'sv'));
+  const items = view === 'list'
+    ? `<div class="norm">${list.map(pl => { const db = dbOf(pl); return `<button class="nrow" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${thumb(pl, db)}<span class="grow"><b>${esc(name(pl))}</b>${db && db.latin ? `<small>${esc(db.latin)}</small>` : ''}</span></button>`; }).join('')}</div>`
+    : `<div class="uplants">${list.map(pl => { const db = dbOf(pl); return `<button class="upl" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${thumb(pl, db)}<span>${esc(name(pl))}</span></button>`; }).join('')}</div>`;
+  const tog = (k, t, cur, setter) => `<button role="tab" aria-selected="${cur === k}" class="${cur === k ? 'on' : ''}" onclick="${setter}('${k}')">${t}</button>`;
+  return `${head}<div class="pad">
+    <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap">
+      <div class="chips2 qfilt" role="tablist" aria-label="Sortera">${tog('new', 'Senast tillagd', sort, 'setPlSort')}${tog('az', 'A–Ö', sort, 'setPlSort')}</div>
+      <div class="seg2 inset pl-view" role="group" aria-label="Visning">${tog('list', 'Lista', view, 'setPlView')}${tog('grid', 'Rutnät', view, 'setPlView')}</div>
+    </div>
+    ${items}</div>`;
+}
+function setPlSort(v) { S.plSort = v; keepMain(); }
+function setPlView(v) { S.plView = v; keepMain(); }
 function userBody(c, uposts, self) {
   const f = (S.follows || []).includes(c.id), posts = uposts || [];
   return `  <div class="uhero"><div class="avwrap">${avBig(c.display_name, 'bigav', c.avatar_url)}${self ? `<label class="avedit" aria-label="Byt profilbild">${ic('ph-camera', 'currentColor', 18)}<input type="file" accept="image/*" class="sr" onchange="changeAvatar(this.files[0]);this.value=''"></label>` : ''}</div><div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? esc(c.city) : 'Ingen ort angiven'}</span>
@@ -5778,10 +5804,7 @@ function userBody(c, uposts, self) {
     return `<p class="ustatl">${n(c.plants, 'växt', 'växter')} · ${n(c.posts, 'inlägg', 'inlägg')} · ${n(c.followers, 'följare', 'följare')}${self ? ` · <button class="link3" aria-expanded="${!!S.showFr}" onclick="S.showFr=!S.showFr;keepMain()">${n(fr, 'vän', 'vänner')} ${ic(S.showFr ? 'ph-caret-up' : 'ph-caret-down', 'currentColor', 13)}</button>` : ` · ${n(fr, 'vän', 'vänner')}`}</p>`; })()}
   ${self && S.showFr ? (friendsSec() || (Array.isArray(S.friends) && !S.friends.length ? `<p class="mut" style="margin:10px 18px 0;font-size:14px">Inga vänner än. <button class="link3" onclick="openPeople()">Hitta vänner</button></p>` : '')) : ''}
   ${(c.interests || []).length ? `<div class="sec"><h2>Intressen</h2></div><div class="pad"><div class="chips2">${c.interests.map(i => `<span class="tag lime">${esc(i)}</span>`).join('')}</div></div>` : ''}
-  <div class="sec"><h2>Växter</h2></div>
-  <div class="pad">${c.plant_list && c.plant_list.length ? `<div class="uplants">${c.plant_list.slice(0, 30).map(pl => { const db = pl.plant_id ? S.plants.find(x => x.id === pl.plant_id) : S.plants.find(x => x.swedish_name === pl.name);
-      return `<button class="upl" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${pl.photo ? `<div class="ph has-img"><img src="${esc(pl.photo)}" alt="" loading="lazy"></div>` : db ? plantPh(db) : ph('', 'Krukväxt', pl.name)}<span>${esc(pl.name || 'Växt')}</span></button>`; }).join('')}</div>`
-    : `<p class="mut" style="margin:0;font-size:14px">${self ? 'Din samling är tom eller dold för andra.' : esc(c.display_name) + ((c.hidden || []).includes('plants') ? ' visar inte sina växter för dig.' : ' visar inte sin samling.')}</p>`}</div>
+  ${plantsSec(c, self)}
   ${profPets(c, self)}
   ${profHome(c, self)}
   <div class="sec"><h2>Inlägg</h2></div>
@@ -6997,6 +7020,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.181', '27 okt 23:10', ['Profil: din samling visas som lista, sorterad på senast tillagd eller A–Ö. Du kan växla till rutnät']],
   ['1.180', '27 okt 22:40', ['Profil: Roothood Pro-rutan visas för inloggade under testperioden, så att du kan prova och avsluta Pro']],
   ['1.179', '27 okt 22:30', ['Pro: provperioden på 7 dagar startas på servern och kan bara användas en gång per konto. Pro går inte längre att sätta direkt från appen']],
   ['1.178', '27 okt 21:55', ['Gemenskap: titeln på frågekorten tar hela kortets bredd, i stället för att brytas i en smal spalt bredvid texten']],
@@ -7710,7 +7734,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.180';
+const APP_VERSION = '1.181';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
