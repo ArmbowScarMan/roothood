@@ -3372,6 +3372,7 @@ async function doAuth(form) {
       const active = await api.signUp(d.email.trim(), d.pw, d.name.trim());
       if (!active) { S.busy = false; S.authMode = 'in'; S.msgOk = true; S.msg = 'Vi har skickat en länk till ' + d.email + '. Klicka på den och logga sedan in här.'; return render(); }
     } else await api.signIn(d.email.trim(), d.pw);
+    resetUserState();
     S.user = await api.user(); S.mine = await api.mine(); S.pro = PRO_FREE || await api.getPro(); loadHome();
     S.busy = false; S.modal = null; render(); toast('Välkommen, ' + S.user.name + '!');
   } catch (e) {
@@ -3412,11 +3413,17 @@ async function deleteAccount() {
   S.delBusy = true; render();
   try {
     await api.deleteAccount();
-    S.delBusy = false; S.delAcc = false; S.user = null; S.mine = []; S.home = []; S.hplan = {}; S.log = {}; S.prof = null; S.meCard = undefined; S.pro = PRO_FREE; S.tool = null; S.tab = 'home';
+    S.delBusy = false; S.delAcc = false; resetUserState(); S.tool = null; S.tab = 'home';
     render(); toast('Ditt konto är raderat. Tack för att du använde Roothood 🌱');
   } catch (e) { S.delBusy = false; render(); toast(e.message === 'DEL_NOT_READY' ? 'Det här går inte att använda just nu.' : errMsg(e)); }
 }
-async function signOut() { await api.signOut(); S.user = null; S.mine = []; S.home = []; S.hplan = {}; S.pro = PRO_FREE; render(); toast('Du är utloggad'); }
+// Nollställer allt som hör till ett konto, så nästa användare inte ser förra kontots data
+function resetUserState() {
+  S.user = null; S.mine = []; S.home = []; S.hplan = {}; S.log = {}; S.logForm = null; S.prof = null; S.meCard = undefined; S.ucard = null; S.pro = PRO_FREE;
+  S.feed = null; S.listings = null; S.friends = null; S.frLoad = false; S.inbox = null; S.blockedL = null; S.msgErr = null;
+  S.threads = []; S.cases = []; S.notifs = []; S.blocks = []; S.follows = []; S.pfol = []; S.modData = []; S.modRes = []; S.role = 'user';
+}
+async function signOut() { await api.signOut(); resetUserState(); render(); toast('Du är utloggad'); }
 
 // ===== Foton från Wikipedia (illustration visas om inget foto finns) =====
 const IMG = store.get('imgs', {});
@@ -6009,6 +6016,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.137', 'Nu', ['Inloggning och utloggning rensar förra kontots data. Den som loggar in efter dig ser inte dina vänner, meddelanden eller notiser']],
   ['1.136', 'Nu', ['Inga utvecklingsmeddelanden visas längre för användare. Funktioner som inte är tillgängliga visar en vanlig text']],
   ['1.135', 'Nu', ['Säkerhet: namn och texter från andra användare kan inte längre köra kod när man trycker på en knapp']],
   ['1.134', 'Nu', ['Källor och licenser: en sida med vilka bibliotek, foton, kartor och typsnitt appen använder, länkad under Om Roothood']],
@@ -6678,7 +6686,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.136';
+const APP_VERSION = '1.137';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -6950,7 +6958,7 @@ async function init() {
         return fetch(input, opts);
       };
       sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { fetch: plainFetch } });
-      if (sb.auth.onAuthStateChange) sb.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY') setTimeout(() => { S.msg = ''; openModal('newpw'); }, 300); });
+      if (sb.auth.onAuthStateChange) sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') resetUserState(); if (ev === 'PASSWORD_RECOVERY') setTimeout(() => { S.msg = ''; openModal('newpw'); }, 300); });
       api = sbApi;
     }
     S.plants = await api.plants();

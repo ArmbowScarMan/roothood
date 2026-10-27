@@ -92,6 +92,14 @@ const server = http.createServer((req, res) => {
   ok('Online igen: banner döljs', back === true);
   await octx.close();
 
+  // 4b. Kontoreset: förra användarens data ska rensas vid utloggning
+  const resetOk = await page.evaluate(() => {
+    S.friends = [{ id: 'x', display_name: 'Test' }]; S.inbox = [{ other: 'x' }]; S.notifs = [{ t: 'friend' }]; S.blocks = ['x']; S.follows = ['x'];
+    resetUserState();
+    return S.friends === null && S.inbox === null && S.notifs.length === 0 && S.blocks.length === 0 && S.follows.length === 0 && S.user === null;
+  });
+  ok('Kontoreset: förra användarens vänner, meddelanden och notiser rensas', resetOk);
+
   // 4a. XSS: ett elakt namn i en onclick ska inte kunna köra kod
   const xssOk = await page.evaluate(() => {
     window.__PWN = undefined;
