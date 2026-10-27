@@ -2271,6 +2271,29 @@ function home3dV(sz) {
   <div class="h3card"><div class="planbox home3d sz-${sz}" id="box3d"><p class="l3">Laddar 3D…</p></div>
     <div class="h3bar"><span class="mut">${planRoomsAll().length} rum${n ? ' · ' + n + (n === 1 ? ' växt utplacerad' : ' växter utplacerade') : ''}</span><button class="btn sm" onclick="openHouse();S.hview='plan';render()">${ic(PEN, 'currentColor', 15)} Redigera Mitt hem</button></div></div>`;
 }
+// ===== Smarta saker i 3D: riktiga små apparater som står där de hör hemma =====
+// PLT = växter i krukor med position och höjd på krukans botten. Sensorn sticks ner i närmaste kruka, lampan hänger ovanför växten.
+function devices3d(THREE, M, sc, PLT, fyOf) {
+  const SURF = ['table', 'dtable', 'desk', 'dresser', 'tv', 'counter', 'round', 'shelf', 'pshelf', 'otable'];
+  const surfY = (x, z, fl) => { let y = 0; planFurnAll().forEach(f => { if (!SURF.includes(f.t) || flOf(f) !== fl) return; const dx = x - f.x, dz = z - f.y, r = (f.rot || 0) * Math.PI / 180, lx = dx * Math.cos(r) + dz * Math.sin(r), lz = -dx * Math.sin(r) + dz * Math.cos(r);
+    if (ROUNDS.has(f.t) ? Math.hypot(dx, dz) <= f.w / 2 : Math.abs(lx) <= f.w / 2 && Math.abs(lz) <= f.h / 2) y = Math.max(y, (FH[f.t] || 0.8) + 0.01); }); return y; };
+  const wallAt = (x, z) => { const r = roomAt(x, z); if (!r || !r.rect) return null; const pg = roomPoly(r); let best = null; pg.forEach((p, i) => { const q = pg[(i + 1) % pg.length], dx = q[0] - p[0], dz = q[1] - p[1], L = dx * dx + dz * dz || 1, t = Math.max(0, Math.min(1, ((x - p[0]) * dx + (z - p[1]) * dz) / L)), px = p[0] + dx * t, pz = p[1] + dz * t, d = Math.hypot(x - px, z - pz);
+    if (!best || d < best.d) { const len = Math.sqrt(L); let nx = -dz / len, nz = dx / len; const cx = pg.reduce((a, v) => a + v[0], 0) / pg.length, cz = pg.reduce((a, v) => a + v[1], 0) / pg.length; if ((cx - px) * nx + (cz - pz) * nz < 0) { nx = -nx; nz = -nz; } best = { d, x: px + nx * 0.08, z: pz + nz * 0.08, yaw: Math.atan2(nx, nz) }; } }); return best && best.d < 1.2 ? best : null; };
+  planItems().forEach(it => {
+    const fl = flOf(it), fy = fyOf(fl), g = new THREE.Group(), K = kit3(THREE, M, g, 3), near = PLT.filter(p => p.fl === fl).map(p => ({ ...p, d: Math.hypot(p.x - it.x, p.z - it.y) })).sort((a, b) => a.d - b.d)[0], pot = near && near.d < 0.6 ? near : null;
+    let x = it.x, z = it.y, y = fy + surfY(it.x, it.y, fl), yaw = 0;
+    if (it.t === 'sensor') { if (pot) { x = pot.x + 0.05; z = pot.z + 0.03; y = pot.y + 0.24; } K.cyl(0.006, 0.006, 0.14, '#EDEDED', 0, 0.07, 0, 8); K.box(0.035, 0.07, 0.014, '#F6F6F6', 0, 0.17, 0); K.box(0.02, 0.012, 0.016, '#5FAE4A', 0, 0.185, 0); }
+    else if (it.t === 'thermo' || it.t === 'plug') { const w0 = wallAt(it.x, it.y); if (w0) { x = w0.x; z = w0.z; yaw = w0.yaw; y = fy + (it.t === 'thermo' ? 1.35 : 0.3); }
+      if (it.t === 'thermo') { K.box(0.08, 0.08, 0.022, '#F6F6F6', 0, 0, 0); K.box(0.06, 0.035, 0.004, '#22313A', 0, 0.012, 0.012); } else { K.box(0.07, 0.07, 0.03, '#F2F2F2', 0, 0, 0); K.cyl(0.006, 0.006, 0.01, '#3A3A3A', -0.015, 0, 0.018, 6).rotation.x = Math.PI / 2; K.cyl(0.006, 0.006, 0.01, '#3A3A3A', 0.015, 0, 0.018, 6).rotation.x = Math.PI / 2; K.sph(0.006, '#5FAE4A', 0, 0.025, 0.016); } }
+    else if (it.t === 'grow') { if (pot) { x = pot.x; z = pot.z; y = pot.y + 0.28 + 0.75; } else y = fy + 1.9; const top = fy + 2.4 - y;
+      K.box(0.6, 0.03, 0.09, '#2A2A2A', 0, 0, 0); K.box(0.56, 0.008, 0.07, '#E58BE8', 0, -0.018, 0, { emissive: '#B040C0' }); [-0.25, 0.25].forEach(dx => K.cyl(0.003, 0.003, top, '#3A3A3A', dx, top / 2, 0, 4)); }
+    else if (it.t === 'lamp') { K.cyl(0.14, 0.15, 0.03, '#3A3A3A', 0, 0.015, 0, 20); K.cyl(0.012, 0.012, 1.45, '#3A3A3A', 0, 0.74, 0, 8); K.cyl(0.12, 0.2, 0.25, '#F4E8D0', 0, 1.5, 0, 20, { emissive: '#7A6030' }); y = fy; }
+    else if (it.t === 'humid') { K.cyl(0.09, 0.1, 0.24, '#F4F4F2', 0, 0.12, 0, 20); K.cyl(0.03, 0.03, 0.02, '#BFDCE8', 0, 0.25, 0, 14); K.sph(0.08, '#FFFFFF', 0, 0.36, 0, { transparent: true, opacity: 0.3 }); }
+    else if (it.t === 'speaker') { K.cyl(0.05, 0.05, 0.1, '#9A9A98', 0, 0.05, 0, 20); K.cyl(0.05, 0.05, 0.02, '#F4F4F2', 0, 0.11, 0, 20); [-0.015, -0.005, 0.005, 0.015].forEach(dx => K.sph(0.004, '#E8E8E8', dx, 0.122, 0)); }
+    else if (it.t === 'pump') { if (pot) { x = pot.x + 0.28; z = pot.z; y = pot.y; } K.box(0.12, 0.08, 0.08, '#2A2A2A', 0, 0.04, 0); if (pot) { const dy = 0.3, dx = -0.24, L = Math.hypot(dx, dy), t = K.cyl(0.006, 0.006, L, '#4A90C8', dx / 2, 0.08 + dy / 2, 0, 6); t.rotation.z = Math.atan2(-dx, dy); } }
+    else K.sph(0.06, '#7D6CB3', 0, 0.06, 0);
+    g.position.set(x, y, z); g.rotation.y = yaw; sc.add(g); });
+}
 // ===== Gå runt i hemmet: förstapersonsvy i ögonhöjd =====
 // Väggar, fönster, burspråk, fristående väggar och möbler stoppar. Dörrar och öppningar går att gå igenom.
 function walkBlockers(fl) {
@@ -2418,6 +2441,7 @@ function build3dInner(first) {
   const WS = {}, wsPush = (l, sg) => (WS[l] = WS[l] || []).push(sg); planRooms().forEach(r => { const pg = roomPoly(r); pg.forEach((q, i) => { const n = pg[(i + 1) % pg.length]; wsPush(flOf(r), [q[0], q[1], n[0], n[1]]); }); }); planWalls().filter(wl => wl.h !== 'hedge').forEach(wl => wsPush(flOf(wl), [wl.x1, wl.y1, wl.x2, wl.y2]));
   const clr = (x, y, r, fl) => { const wallSegs = WS[fl || 0] || []; for (let it = 0; it < 4; it++) wallSegs.forEach(([x1, y1, x2, y2]) => { const dx = x2 - x1, dy = y2 - y1, L = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / L)), nx = x1 + t * dx, ny = y1 + t * dy, d = Math.hypot(x - nx, y - ny);
       if (d < r) { if (d < 1e-4) { const ln = Math.sqrt(L); x += -dy / ln * r; y += dx / ln * r; } else { x = nx + (x - nx) / d * r; y = ny + (y - ny) / d * r; } } }); return [x, y]; };
+  const PLT = [];
   (HV ? [] : S.mine).filter(m => m.details && m.details.pos).forEach(m => { const pp = plantById(m.plant_id), isOut = OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel'].includes(m.details.place);
     const pRoom = m.details.room && (S.home || []).find(rr => rr.id === m.details.room), pfl = pRoom && !isOut ? flOf(pRoom) : 0; if (!floorVis(pfl)) return;
     const rad = isOut ? Math.min(2.5, ((m.details.w || pSize(pp || {})[1]) / 100) / 2) + TH / 2 + 0.02 : 0.32 + TH / 2 + 0.03, [x, y] = clr(m.details.pos.x, m.details.pos.y, rad, pfl);
@@ -2438,9 +2462,9 @@ function build3dInner(first) {
     else { const SURF = ['table', 'dtable', 'desk', 'dresser', 'tv', 'counter', 'round', 'shelf', 'pshelf', 'otable'];
       planFurnAll().forEach(f => { if (!SURF.includes(f.t) || flOf(f) !== pfl) return; const dx = sx - f.x, dz = sy - f.y, r = (f.rot || 0) * Math.PI / 180, lx = dx * Math.cos(r) + dz * Math.sin(r), lz = -dx * Math.sin(r) + dz * Math.cos(r);
         const inside = ROUNDS.has(f.t) ? Math.hypot(dx, dz) <= f.w / 2 + 0.05 : Math.abs(lx) <= f.w / 2 + 0.05 && Math.abs(lz) <= f.h / 2 + 0.05; if (inside) lift = Math.max(lift, (FH[f.t] || 0.8) + 0.01); }); }
-    gr.position.set(sx, fyOf(pfl) + lift, sy); sc.add(gr); });
+    gr.position.set(sx, fyOf(pfl) + lift, sy); sc.add(gr); PLT.push({ x: sx, z: sy, y: fyOf(pfl) + lift, fl: pfl }); });
   // smarta saker
-  planItems().forEach(it => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), M('#7D6CB3', { emissive: '#3a2f66' })); m.position.set(it.x, 0.95, it.y); add(m); });
+  devices3d(THREE, M, sc, PLT, fyOf);
   // träd och buskar
   planGarden().forEach(t => { const R = t.r || 1.5, g3 = veg3d(THREE, M, GKIND[t.t] || 'lov', t.h || gDefH(t), R * 2, Math.round(t.x * 577 + t.y * 97), 120, t.t === 'fruit' ? { fruit: true } : {}); g3.position.set(t.x, 0, t.y); sc.add(g3); });
   T3.ty = Math.max(0, ...F3.filter(f3 => floorVis(f3.l)).map(f3 => f3.l)) * FLH / 2;
@@ -6769,6 +6793,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.161', '27 okt 18:00', ['3D: smarta saker är riktiga apparater. Växtsensorn sitter i krukan, termometern och uttaget på väggen, växtlampan hänger över växten, golvlampan står på golvet, och luftfuktare och högtalare står på bordet']],
   ['1.160', '27 okt 17:45', ['3D: knapparna under bilden får plats på smala skärmar, och rumsnamnen är lite mindre så att de inte täcker varandra']],
   ['1.159', '27 okt 17:30', ['3D: träd och utomhusväxter är detaljerade. Lövträd har kronor av lövklasar och bark med mönster, björken vit stam, granen hängande barrgrenar, tallen barrtofsar, tujan fjällblad. Buskar, gräs, ormbunkar, iris, lökväxter, solros och klätterväxter har riktiga blad']],
   ['1.158', '27 okt 17:05', ['3D: Gå runt i ditt hem i ögonhöjd. Håll in Framåt, Bakåt, Vänster eller Höger och dra med fingret för att titta runt. Du kan inte gå genom väggar, fönster eller möbler, men genom dörrar']],
@@ -7462,7 +7487,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.160';
+const APP_VERSION = '1.161';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];

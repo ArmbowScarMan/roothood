@@ -22,6 +22,13 @@ const srv = http.createServer((q, r) => { const p = path.join(dir, q.url.split('
     try {
       // Alla detaljerade möbler byggs utan fel och består av flera delar
       out.mobler = Object.keys(FURN3).every(t => { const g = new Obj(), F = FURN_M[t]; FURN3[t](kit3(THREE, M, g, 3), F[2], F[3], FH[t] || 0.8, { t }); return g.children.length >= 2; });
+      // Smarta saker: sensorn i krukan, termometern på väggen, växtlampan ovanför växten
+      { const oldP = S.hplan; S.hplan = { items: ['sensor', 'thermo', 'grow', 'plug', 'lamp', 'humid', 'speaker', 'pump'].map((t, i) => ({ id: 'i' + i, t, x: t === 'thermo' || t === 'plug' ? 0.4 : 2.1, y: 1.5 })) };
+        const sc = new Obj(); devices3d(THREE, M, sc, [{ x: 2, z: 1.5, y: 0, fl: 0 }], () => 0); const P = sc.children.map(g => g.position);
+        out.sensorIKruka = Math.hypot(P[0].x - 2, P[0].z - 1.5) < 0.1 && P[0].y > 0.15 && P[0].y < 0.4;
+        out.termometerPaVagg = Math.abs(P[1].x - 0.08) < 0.01 && P[1].y > 1.2;
+        out.lampaOverVaxt = Math.hypot(P[2].x - 2, P[2].z - 1.5) < 0.01 && P[2].y > 0.9;
+        out.allaApparater = sc.children.length === 8 && sc.children.every(g => g.children.length >= 1); S.hplan = oldP; }
       // Bord med ben
       const added = []; furn3d({ t: 'dtable', x: 2, y: 1.5, w: 1.6, h: 0.9 }, THREE, M, o => added.push(o));
       out.bord = added.length === 1 && added[0].children.length === 5;   // skiva + 4 ben
