@@ -1,0 +1,29 @@
+-- Roothood steg 047: man ser bara sin egen profilrad direkt i databasen.
+-- Andra användares namn hämtas via profile_names() (bara id, namn och pro-status).
+-- Kör en gång i Supabase. Det gör inget om du kör den två gånger.
+-- Kör den INNAN appen uppdateras.
+
+-- 1. Funktion för namn på andra användare (säker, körs med definierarrättigheter)
+create or replace function public.profile_names(p_ids uuid[])
+returns table (id uuid, display_name text, is_pro boolean)
+language sql stable security definer set search_path = public as $$
+  select p.id, p.display_name, coalesce(p.is_pro, false)
+  from profiles p where p.id = any(p_ids);
+$$;
+grant execute on function public.profile_names(uuid[]) to authenticated;
+
+-- 2. Ta bort alla SELECT-regler på profiles (bland dem "Läs profiler" med true)
+do $$
+declare r record;
+begin
+  for r in select policyname from pg_policies where schemaname = 'public' and tablename = 'profiles' and cmd = 'SELECT' loop
+    execute format('drop policy if exists %I on public.profiles', r.policyname);
+  end loop;
+end $$;
+
+-- 3. Ny regel: man läser bara sin egen rad
+drop policy if exists "Läs egen profil" on public.profiles;
+create policy "Läs egen profil" on public.profiles for select to authenticated using (auth.uid() = id);
+
+-- Kontroll (valfri): ska bara ge raden "Läs egen profil" med cmd SELECT
+-- select policyname, cmd, qual from pg_policies where schemaname = 'public' and tablename = 'profiles';

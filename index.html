@@ -1657,8 +1657,7 @@ const sbApi = {
     if (a.error) throw a.error;
     if (l.error) throw l.error;
     const uids = [...new Set(posts.map(p => p.user_id).concat(a.data.map(x => x.user_id)))];
-    let pr = await sb.from('profiles').select('id,display_name,is_pro').in('id', uids);
-    if (pr.error && /is_pro/.test(pr.error.message || '')) pr = await sb.from('profiles').select('id,display_name').in('id', uids);
+    let pr = await sb.rpc('profile_names', { p_ids: uids });
     if (pr.error) throw pr.error;
     const profs = pr.data;
     const isPro = id => !!(profs.find(p => p.id === id) || {}).is_pro;
@@ -1685,10 +1684,10 @@ const sbApi = {
   async notifs() {
     const out = [], me = S.user.id, mp = await sb.from('posts').select('id,kind,title,body,category').eq('user_id', me).order('created_at', { ascending: false }).limit(150);
     if (!mp.error && mp.data.length) { const byId = Object.fromEntries(mp.data.map(p => [p.id, p])), an = await sb.from('answers').select('id,post_id,user_id,body,created_at').in('post_id', mp.data.map(p => p.id)).neq('user_id', me).order('created_at', { ascending: false }).limit(60);
-      if (!an.error && an.data.length) { const pr = await sb.from('profiles').select('id,display_name').in('id', [...new Set(an.data.map(a => a.user_id))]), nm = Object.fromEntries(((pr.data) || []).map(x => [x.id, x.display_name]));
+      if (!an.error && an.data.length) { const pr = await sb.rpc('profile_names', { p_ids: [...new Set(an.data.map(a => a.user_id))] }), nm = Object.fromEntries(((pr.data) || []).map(x => [x.id, x.display_name]));
         an.data.forEach(a => { const p = byId[a.post_id]; out.push({ t: 'reply', at: a.created_at, who: nm[a.user_id], body: a.body, post_id: a.post_id, kind: p.kind || 'question', cat: p.category, ptitle: p.title || p.body }); }); } }
     try { const fr = await sb.from('friend_requests').select('*').or(`to_user.eq.${me},from_user.eq.${me}`).order('created_at', { ascending: false }).limit(40);
-      if (!fr.error && fr.data.length) { const ids = [...new Set(fr.data.map(f => f.from_user === me ? f.to_user : f.from_user))], pr = await sb.from('profiles').select('id,display_name').in('id', ids), nm = Object.fromEntries(((pr.data) || []).map(x => [x.id, x.display_name]));
+      if (!fr.error && fr.data.length) { const ids = [...new Set(fr.data.map(f => f.from_user === me ? f.to_user : f.from_user))], pr = await sb.rpc('profile_names', { p_ids: ids }), nm = Object.fromEntries(((pr.data) || []).map(x => [x.id, x.display_name]));
         fr.data.forEach(f => { if (f.status === 'pending' && f.to_user === me) out.push({ t: 'friend', pending: true, at: f.created_at, who: nm[f.from_user], req: f.id, from: f.from_user, msg: f.message || '' }); else if (f.status === 'accepted' && f.from_user === me) out.push({ t: 'friend_ok', at: f.responded_at || f.created_at, who: nm[f.to_user], from: f.to_user }); }); } } catch (e) {}
     const xq = await sb.from('expert_questions').select('id,answer,answered_at').eq('asker', me).not('answer', 'is', null).order('answered_at', { ascending: false }).limit(20);
     if (!xq.error) xq.data.forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer }));
@@ -1718,7 +1717,7 @@ const sbApi = {
   async userHome(id) { const { data, error } = await sb.rpc('user_home', { p_id: id }); if (error) throw error; return (data && data[0]) || { visible: false }; },
   async myRole() { const { data, error } = await sb.rpc('my_role'); return error ? 'user' : (data || 'user'); },
   async myBlocks() { const { data, error } = await sb.from('blocks').select('blocked').eq('blocker', S.user.id); return error ? [] : (data || []).map(x => x.blocked); },
-  async blockedList() { const ids = await this.myBlocks(); if (!ids.length) return []; const { data } = await sb.from('profiles').select('id,display_name').in('id', ids); return data || []; },
+  async blockedList() { const ids = await this.myBlocks(); if (!ids.length) return []; const { data } = await sb.rpc('profile_names', { p_ids: ids }); return data || []; },
   async block(id, on) { const { error } = on ? await sb.from('blocks').insert({ blocked: id }) : await sb.from('blocks').delete().eq('blocker', S.user.id).eq('blocked', id); if (error && !/duplicate/.test(error.message || '')) throw /blocks/.test(error.message || '') ? new Error('MOD_NOT_READY') : error; },
   async modReports(st) { const { data, error } = await sb.rpc('mod_reports', { p_status: st }); if (error) throw /mod_reports/.test(error.message || '') ? new Error('MOD_NOT_READY') : error; return data || []; },
   async modAct(id, a) { const { error } = await sb.rpc('mod_act', { p_report: id, p_action: a }); if (error) throw error; },
@@ -6178,6 +6177,7 @@ function seasonV() {
 // ===== Uppdateringslogg =====
 const NEWS = [
   ['1.129', 'Nu', ['Varje Community-flik förklarar kort vad den är till för. Samling visar vad varje vattenknapp betyder. Tomma frågelistor har en knapp för att ställa första frågan']],
+  ['1.130', 'Nu', ['Integritet: andra användares namn hämtas på ett säkrare sätt. Ingen synlig ändring i appen']],
   ['1.128', 'Nu', ['Smarta hemmet öppnas nu även via länk utan krasch. Växtdoktorns symptom med honung, blad och droppar är ikoner i stället för emojier']],
   ['1.127', 'Nu', ['Färgprickarna i växtdoktorns symptomlistor är färgade cirklar i stället för ikoner']],
   ['1.126', 'Nu', ['Möblerna i planeraren och på rumslistan är ikoner i stället för emojier']],
@@ -6839,7 +6839,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.129';
+const APP_VERSION = '1.130';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
