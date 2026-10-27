@@ -3858,7 +3858,7 @@ function applyView(h) {
   else if (a[0] === 't' && a[1] === 'house' && S.user && S.pro) { S.tool = 'house'; S.room = a[2] || null; }
   else if (a[0] === 't' && ['id', 'light'].includes(a[1]) && S.pro) S.tool = a[1];
   else if (a[0] === 'c') {
-    S.tab = 'comm'; S.ctab = ['q', 'forum', 'swap', 'detect', 'friends'].includes(a[1]) ? a[1] : 'q';
+    S.tab = 'comm'; S.ctab = ['q', 'forum', 'swap', 'detect', 'friends', 'show', 'near'].includes(a[1]) ? a[1] : 'q';
     for (let i = 2; i < a.length; i++) { if (a[i] === 'f') S.forum = a[++i]; else if (a[i] === 'p') S.post = +a[++i]; else if (a[i] === 'new' && S.user) { if (S.ctab === 'detect') S.newCase = true; else S.newL = true; } }
     loadFeed();
   } else if (['home', 'mine', 'me'].includes(a[0])) S.tab = a[0];
@@ -5334,11 +5334,13 @@ function ago(t) {
 function needLogin() { if (!S.user) { openModal('login'); return true; } return false; }
 const isForum = () => S.ctab === 'forum';
 const isSwap = () => S.ctab === 'swap';
+const isNear = () => S.ctab === 'near';
+const isShow = () => S.ctab === 'show';
 const isDetect = () => S.ctab === 'detect';
-const curList = () => (isForum() ? S.threads : isSwap() ? S.listings : isDetect() ? S.cases : S.feed) || [];
+const curList = () => (isForum() ? S.threads : (isSwap() || isNear()) ? S.listings : isDetect() ? S.cases : S.feed) || [];
 async function refreshComm() {
   if (isDetect()) S.cases = await api.feed('mystery');
-  else if (isSwap()) S.listings = await api.feed('listing');
+  else if (isSwap() || isNear()) S.listings = await api.feed('listing');
   else if (isForum()) S.threads = await api.feed('thread');
   else S.feed = await api.feed('question');
 }
@@ -5351,7 +5353,7 @@ async function commRun(fn, ok) {
   try { await fn(); await refreshComm(); if (ok) toast(ok); } catch (e) { toast(errMsg(e)); }
   render();
 }
-function setCtab(t) { S.ctab = t; S.newCase = false; S.newL = false; S.post = null; S.forum = null; S.del = null; S.feedErr = null; if (t === 'friends') { S.friends = null; S.inbox = null; render(); return; } render(); loadFeed(); }
+function setCtab(t) { S.ctab = t; S.cmore = false; if (t === 'near') S.lcity = (S.prof && S.prof.city) || ''; S.newCase = false; S.newL = false; S.post = null; S.forum = null; S.del = null; S.feedErr = null; if (t === 'friends') { S.friends = null; S.inbox = null; render(); return; } render(); loadFeed(); }
 function openPost(id) { S.post = id; S.adraft = ''; S.del = null; render(); $('#main').scrollTop = 0; }
 function openForum(id) { S.forum = id; S.post = null; S.newThread = false; render(); $('#main').scrollTop = 0; }
 const QMARK = '\n\n— Om växten —\n';
@@ -5458,8 +5460,11 @@ function delBtn(key, fn, id) {
   const sure = S.del === key + id;
   return `<button class="x ${sure ? 'sure' : ''}" onclick="${fn}(${id})">${sure ? 'Bekräfta' : 'Ta bort'}</button>`;
 }
+const CTABS = [['q', 'Frågor'], ['show', 'Visa upp'], ['swap', 'Byt växter'], ['near', 'Nära dig']];
+const MORE_TABS = [['detect', 'Detektiver'], ['forum', 'Forum'], ['friends', 'Vänner']];
 function segBar() {
-  return `<div class="seg2" role="tablist">${[['detect', 'Detektiver'], ['q', 'Frågor'], ['forum', 'Forum'], ['swap', 'Byt'], ['friends', 'Vänner']].map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>
+  const moreOn = !!S.cmore || MORE_TABS.some(([k]) => k === S.ctab);
+  return `<div class="seg2" role="tablist">${CTABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}<button class="${moreOn ? 'on' : ''}" role="tab" aria-selected="${moreOn}" onclick="S.cmore=!S.cmore;render()">Mer</button></div>${moreOn ? `<div class="seg2 more2" role="tablist">${MORE_TABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>` : ''}
   <div class="pad cbtns" style="padding-top:10px"><button class="peopleb" onclick="openPeople()"><span>${ic('ph-users', 'currentColor', 20)}</span><span class="grow">Hitta användare</span></button><button class="peopleb xb" onclick="openExperts()"><span>${ic('ph-graduation-cap', 'currentColor', 20)}</span><span class="grow">Fråga en expert</span>${S.pro ? '' : proBadge()}</button><button class="peopleb ib" style="grid-column:1/-1" onclick="openInspo()"><span>${ic('ph-video', 'currentColor', 20)}</span><span class="grow">Odlare att följa på YouTube och Instagram</span></button></div>`;
 }
 function listState(list, emptyText) {
@@ -5520,10 +5525,23 @@ function friendsV() {
   <div class="sec"><h2>Mina vänner</h2><button class="btn sm line" onclick="openMsgs()">${ic('ph-chat-circle', 'currentColor', 16)} Meddelanden${msgUnread() ? ' (' + msgUnread() + ')' : ''}</button></div>
   <div class="pad">${F == null ? '<p class="mut">Hämtar…</p>' : F.length ? F.map(f => `<div class="prow2"><button class="popen" onclick="openUser('${esc(f.id)}')">${avBig(f.display_name)}<span class="grow"><b>${esc(f.display_name)}</b><span>${f.city ? ic('ph-map-pin', 'currentColor', 13) + ' ' + esc(f.city) : 'Vän'}</span></span></button><button class="btn sm" onclick="openChat('${esc(f.id)}','${esc(f.display_name)}')">💬 Skriv${un(f.id) ? ' (' + un(f.id) + ')' : ''}</button></div>`).join('') : `<div class="empty"><p>Du har inga vänner än. Hitta andra odlare och skicka en vänförfrågan.</p><button class="btn sm" onclick="openPeople()">Hitta användare</button></div>`}</div>`}`;
 }
+function showV() {
+  if (S.post) return postV();
+  const st = listState(S.feed, '');
+  const L = (S.feed || []).filter(p => p.photo_url);
+  return `${topbar('Community')}${segBar()}<div class="pad" style="padding-top:12px">${st || (L.length ? L.map(postCard).join('') : '<div class="empty"><p>Inga bilder än. Bifoga ett foto när du frågar, så visas det här.</p></div>')}</div>`;
+}
+function nearV() {
+  const h = swapV();
+  if (S.post || S.newL || (S.prof && S.prof.city)) return h;
+  return h.replace('<div class="pad" style="padding-top:8px">', '<div class="pad" style="padding-top:8px"><p class="mut">Lägg till din ort i Profil så visas annonser nära dig.</p>');
+}
 function comm() {
   if (S.ctab === 'friends') return friendsV();
   if (isDetect()) return detectV();
   if (isSwap()) return swapV();
+  if (isNear()) return nearV();
+  if (isShow()) return showV();
   if (isForum()) return forumV();
   if (S.post) return postV();
   const st = listState(S.feed, 'Inga frågor än. Bli först med att fråga något!');
@@ -6033,6 +6051,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.110', 'Nu', ['Community har flikarna Frågor, Visa upp, Byt växter och Nära dig. Detektiver, Forum och Vänner ligger under Mer', 'Visa upp visar frågor med bild', 'Nära dig visar annonser i din ort']],
   ['1.109', 'Nu', ['Ny logga', 'Bakåt på mobilen stänger en öppen ruta, till exempel Lägg till växt, i stället för att lämna appen', 'Meddelanden har en egen ikon uppe på Hem', 'Din egen fråga visar inte knappen Jag har samma problem, bara hur många som har det', 'Sidan hoppar inte längre när tangentbordet stängs']],
   ['1.108', 'Nu', ['Nytt rapportskäl: Handlar inte om växter', 'Moderatorer: filtrera Community på bild, ort, typ, rapporterade och dolda, och se inlägg som kanske inte handlar om växter. Markera flera och dölj dem på en gång, eller dölj allt från en person. SQL-steg 043 behövs']],
   ['1.107', 'Nu', ['Påminnelserna tar hänsyn till vädret på din ort: varning när det blir varmt (vattna extra), frostvarning för trädgårdsväxter och inget extra vatten ute när det regnar mycket. Välj din ort på Hem']],
@@ -6675,7 +6694,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.109';
+const APP_VERSION = '1.110';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
