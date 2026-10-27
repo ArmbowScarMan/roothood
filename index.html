@@ -719,6 +719,11 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 .devgrid button span{font-size:24px}
 
 /* Växtdoktorn */
+.tools .tool.qs{flex-direction:row;align-items:center;gap:10px;padding:12px;border-radius:16px;background:var(--surf);box-shadow:var(--sh);text-align:left}
+.tools .tool.qs .tic{width:auto;height:auto;background:none;color:var(--pri);border-radius:0;display:block}
+.tools .tool.qs .tic.doc{color:#A04A2C}
+.tools .tool.qs b{margin:0;font-size:14px;line-height:1.2;flex:1}
+.tools .tool.qs .protag,.tools .tool.qs .dbcount{position:static;margin-left:auto}
 .tool.docb{grid-column:1/-1;flex-direction:row;align-items:center;gap:12px;background:linear-gradient(120deg,var(--surf),#F7E9E2)}
 .tool.docb .grow{display:flex;flex-direction:column;gap:2px}
 .tic.doc{background:#F6DED4;color:#A04A2C}
@@ -4759,9 +4764,9 @@ function toolTile(k, size) {
   const lock = S.pro ? '' : '<span class="protag">PRO</span>';
   const T = { db: [I.search, 'db', 'openDb()', `<span class="dbcount">${S.plants.length} växter</span>`], id: [CAM, '', "openTool('id')", lock], light: [I.sun, 'sun', "openTool('light')", lock], doc: [DOCI, 'doc', 'openDoc()', ''], house: [DOORI, 'house', 'openHouse()', lock], expert: [XPI, 'xp', 'openExperts()', lock], inspo: [INSPI, 'inspo', 'openInspo()', ''], pets: [I.paw, 'pets', 'openPets()', ''], smart: [HOMEI, 'smart', 'openSmart()', ''] }[k];
   const b = HB_M[k];
-  if (size === 's') return `<button class="tool compact t-${k}" onclick="${T[2]}"><span class="tic ${T[1]}">${ic(T[0], 'currentColor', 20)}</span><b>${b[1]}</b></button>`;
-  return size === 'l' ? `<button class="tool wide t-${k}" onclick="${T[2]}"><span class="tic ${T[1]}">${ic(T[0], 'currentColor', 24)}</span><span class="grow"><b>${b[1]}</b><span>${b[2]}</span></span>${T[3]}</button>`
-    : `<button class="tool t-${k}" onclick="${T[2]}"><span class="tic ${T[1]}">${ic(T[0], 'currentColor', 24)}</span><b>${b[1]}</b><span>${b[2]}</span>${T[3]}</button>`;
+  if (size === 's') return `<button class="tool qs compact t-${k}" onclick="${T[2]}"><span class="tic ${T[1]}">${ic(T[0], 'currentColor', 22)}</span><b>${b[1]}</b>${T[3]}</button>`;
+  return size === 'l' ? `<button class="tool qs wide t-${k}" onclick="${T[2]}"><span class="tic ${T[1]}">${ic(T[0], 'currentColor', 22)}</span><span class="grow"><b>${b[1]}</b></span>${T[3]}</button>`
+    : `<button class="tool qs t-${k}" onclick="${T[2]}"><span class="tic ${T[1]}">${ic(T[0], 'currentColor', 22)}</span><b>${b[1]}</b>${T[3]}</button>`;
 }
 function homeBlocks(intro) {
   const L = homeLayout().filter(x => x.on), out = []; let tiles = [];
@@ -5822,6 +5827,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.99.4', 'Nu', ['Verktygskorten på Hem har samma stil som snabbknapparna']],
   ['1.99.2', 'Nu', ['Ortsknappen är en glob när du valt en ort, så det tar mindre plats i rubriken']],
   ['1.99.1', 'Nu', ['Fler ikoner i Phosphor: planeringsknappar, Mitt hem och tomma sidor']],
   ['1.99', 'Nu', ['Samma ikoner i hela appen: Phosphor. Ikonerna laddas från nätet, så de syns inte när telefonen är offline']],
@@ -6453,7 +6459,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.99.2';
+const APP_VERSION = '1.99.4';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
