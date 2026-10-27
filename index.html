@@ -2185,7 +2185,7 @@ function build3dInner(first) {
       if (WH > 2.1) doors.forEach(([d0, d1]) => { const q = wallSeg(r, { s, p: d0, l: d1 - d0 }); box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6', { noext: 1 }); });
     });
     (r.bays || []).forEach(by => baySegs(r, by).forEach(([q]) => { box(q[0], q[1], q[2], q[3], 0, Math.min(0.9, WH), TH, '#F4EFE6'); if (WH > 0.9) { box(q[0], q[1], q[2], q[3], 0.9, Math.min(WH, 2.1) - 0.9, 0.03, '#9FD3EF', { noext: 1, mat: { transparent: true, opacity: 0.35, roughness: 0.1 } }); if (WH > 2.1) box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6'); } }));
-    (r.wins || []).forEach(w => { const q = wallSeg(r, w); if (!w.k) { const sl = sill3d(q, r); if (sl) { const sm = new THREE.Mesh(new THREE.BoxGeometry(sl.L + 0.08, 0.04, 0.3), M('#F2EEE6')); sm.position.set(sl.mx + sl.nx * 0.17, SILL_Y - 0.02, sl.mz + sl.nz * 0.17); sm.rotation.y = -Math.atan2(sl.uz, sl.ux); sm.castShadow = true; sm.receiveShadow = true; add(sm); } }
+    (r.wins || []).forEach(w => { const q = wallSeg(r, w); if (!w.k) { const sl = sill3d(q, r); if (sl) { const sm = new THREE.Mesh(new THREE.BoxGeometry(sl.L + 0.08, 0.04, 0.3), M('#C49A6C')); sm.position.set(sl.mx + sl.nx * 0.17, SILL_Y - 0.02, sl.mz + sl.nz * 0.17); sm.rotation.y = -Math.atan2(sl.uz, sl.ux); sm.castShadow = true; sm.receiveShadow = true; add(sm); } }
       if (!w.k) winDetail(q, WH, TH, box); else if (w.k === 'door') doorDetail(q, WH, TH, box); });
     const lab = label3d(r.name); if (lab) { const c0 = roomPoly(r).reduce((s2, q) => [s2[0] + q[0], s2[1] + q[1]], [0, 0]).map(v2 => v2 / roomPoly(r).length); lab.position.set(c0[0], WH + 0.6, c0[1]); (cur || sc).add(lab); }
   });
@@ -2671,7 +2671,7 @@ const OUT3 = {
 function label3d(txt) {
   if (!T3) return null; const THREE = T3.THREE, c = document.createElement('canvas'), x = c.getContext('2d'); x.font = '700 44px system-ui, sans-serif'; const w = Math.ceil(x.measureText(txt).width) + 40;
   c.width = w; c.height = 72; x.font = '700 44px system-ui, sans-serif'; x.fillStyle = 'rgba(255,255,255,.85)'; x.beginPath(); x.roundRect ? x.roundRect(0, 0, w, 72, 36) : x.rect(0, 0, w, 72); x.fill(); x.fillStyle = '#1F4D3A'; x.textBaseline = 'middle'; x.fillText(txt, 20, 38);
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); sp.scale.set(w / 72 * 0.55, 0.55, 1); sp.renderOrder = 10; return sp;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, sizeAttenuation: false, transparent: true })); sp.scale.set(w / 72 * 0.045, 0.045, 1); sp.renderOrder = 10; return sp;
 }
 // ===== Planlösning: rita rum, fönster, växter och smarta saker =====
 const WKI = {"win": "<rect x=\"5\" y=\"4\" width=\"14\" height=\"16\" rx=\"1.5\"/><path d=\"M12 4v16M5 12h14\"/>", "bay": "<path d=\"M2 17h4l3-6h6l3 6h4\"/>", "door": "<path d=\"M4 20h16\"/><path d=\"M6 20V5h6v15\"/><path d=\"M12 5a9 9 0 0 1 7 9\"/>", "open": "<path d=\"M3 12h5M16 12h5\"/><path d=\"M8 9v6M16 9v6\" opacity=\".5\"/>", "rad": "<rect x=\"3\" y=\"8\" width=\"18\" height=\"10\" rx=\"2\"/><path d=\"M7.5 8v10M12 8v10M16.5 8v10\"/>", "vent": "<rect x=\"5\" y=\"5\" width=\"14\" height=\"14\" rx=\"3\"/><path d=\"M8 9.5h8M8 12h8M8 14.5h8\"/>", "wall": "<path d=\"M4 20L20 4\"/>", "half": "<path d=\"M4 20L20 4\" stroke-dasharray=\"2 3.5\"/>"};
@@ -6245,6 +6245,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.151', 'Nu', ['3D: rumsnamnen är små och lika stora oavsett hur nära du zoomar. Fönsterbrädorna är i ljust trä så att de syns mot väggen']],
   ['1.150', 'Nu', ['3D: bord och skrivbord har bordsskiva och ben, runda bord har en fot. Altanen, gångar och rabatter sticker inte längre upp genom golvet i huset. Fönster har fönsterbrädor på insidan, och växter som står i fönstret ställs på brädan']],
   ['1.149', 'Nu', ['3D: en växt som står på ett bord, skrivbord, en byrå, hylla, bänkskiva eller TV-bänk hamnar ovanpå möbeln. Välj platsen Ampel så hänger växten från taket']],
   ['1.148', 'Nu', ['3D: stora bladväxter inomhus som monstera och calathea har fler och större blad på kortare skaft, så plantan blir tätare']],
@@ -6928,7 +6929,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.150';
+const APP_VERSION = '1.151';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
