@@ -2328,7 +2328,7 @@ function veg3d(THREE, M, kind, h, w, seed, hue, opt) {
     if (!EG && sk === 'h' && (DEC || PER) && !(o.leaf && o.leaf[0] > 300)) { hh = 22 + Math.round(R() * 28); ss = 68; ll = Math.max(ll, 40) + 6; }
     else if (!EG && sk === 'v' && !o.leaf) { hh = 88 + Math.round(R() * 18); ss = 52; ll += 8; }
     else if (!EG && sk === 'w' && PER) { hh = 40; ss = 22; ll = 40; }
-    return `hsl(${hh},${ss}%,${Math.round(ll)}%)`; }, green = (l, s) => M(gcol(l, s)), fcol = o.flower || `hsl(${hue},62%,64%)`, bark = M(kind === 'bjork' ? '#E8E4DA' : kind === 'tall' ? '#9A5B34' : '#6B4A2A');
+    return `hsl(${hh},${ss}%,${Math.round(ll)}%)`; }, green = (l, s) => M(gcol(l, s)), fcol = o.flower || ['#E8508C', '#F2C230', '#F5F2EA', '#9B6FD0', '#E8452B', '#F28BB0', '#7A8CE0'][Math.abs(Math.round(hue)) % 7], bark = M(kind === 'bjork' ? '#E8E4DA' : kind === 'tall' ? '#9A5B34' : '#6B4A2A');
   const blob = (r, x, y, z, sy, m) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, seg[0], seg[1]), m); b.position.set(x, y, z); b.scale.y = sy || 1; b.castShadow = true; b.receiveShadow = true; gr.add(b); return b; };
   const cyl = (r0, r1, len, x, y, z, m, rz, ry) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, len, lo ? 6 : 10), m); c.position.set(x, y, z); if (rz) c.rotation.z = rz; if (ry) c.rotation.y = ry; c.castShadow = true; gr.add(c); return c; };
   const cone = (r, len, x, y, z, m, rz, ry) => { const c = new THREE.Mesh(new THREE.ConeGeometry(r, len, lo ? 8 : 16), m); c.position.set(x, y, z); if (rz) c.rotation.z = rz; if (ry != null) c.rotation.y = ry; c.castShadow = true; gr.add(c); return c; };
@@ -2363,7 +2363,7 @@ function veg3d(THREE, M, kind, h, w, seed, hue, opt) {
   else if (kind === 'blad') { if (bare) { blob(w * 0.25, 0, 0.03, 0, 0.12, green(34)); return gr; }
     if (!lo) { const L = Math.max(0.08, Math.min(w * 0.42, h * 1.1)); leaves3d(THREE, gr, 13, 0, 0.01, 0, w * 0.06, L, L * 0.72, [gcol(34), gcol(28)], R, { broad: true, tilt: 0.55, tilt1: 1.25 }); }
     else for (let i = 0; i < 5; i++) { const a = i / 10 * 6.283 + R() * 0.4, d = w * 0.22, b = blob(Math.max(0.05, w * 0.22), Math.cos(a) * d, h * 0.25 + (i % 3) * h * 0.08, Math.sin(a) * d, 0.22, green(30 + (i % 3) * 6)); b.rotation.z = Math.cos(a) * 0.3; b.rotation.x = Math.sin(a) * 0.3; }
-    if (showFl && h > 0.25) { cyl(0.008, 0.01, h, 0, h * 0.6, 0, green(40)); flowers(lo ? 3 : 6, Math.max(0.02, w * 0.03), h * 1.0, w * 0.06); } }
+    if (showFl && h > 0.25) { cyl(0.008, 0.01, h, 0, h * 0.6, 0, green(40)); const fs = o.fshape; o.fshape = fs || 'spike'; flowers(lo ? 3 : 4, Math.max(0.025, w * 0.035), h * 1.0, w * 0.06, o.flower || '#C9B6E8'); o.fshape = fs; } }
   else if (kind === 'svard') { if (bare) { cone(w * 0.12, h * 0.25, 0, h * 0.12, 0, M('#8A7B5A')); return gr; } const gm = green(34); for (let i = 0; i < (lo ? 4 : 9); i++) { const a = (i - 4) * 0.22 + R() * 0.1, c = cone(Math.max(0.02, w * 0.05), h * 0.85, Math.sin(a) * w * 0.3, h * 0.42, 0, gm); c.rotation.z = -a * 0.9; c.scale.z = 0.25; }
     if (showFl) for (let i = 0; i < (lo ? 2 : 4); i++) { const x = (R() - 0.5) * w * 0.5; cyl(0.01, 0.012, h * 1.2, x, h * 0.6, 0, green(40)); blob(Math.max(0.03, w * 0.07), x, h * 1.22, 0, 1, M(fcol)); } }
   else if (kind === 'solros') { cyl(0.025, 0.035, h, 0, h / 2, 0, green(36)); if (!lo) [1, -1].forEach(sd => blob(Math.max(0.08, w * 0.25), sd * w * 0.22, h * 0.45, 0, 0.18, green(34))); if (showFl) { const hd = Math.max(0.08, Math.min(0.3, w * 0.4)), d = new THREE.Mesh(new THREE.CylinderGeometry(hd, hd, 0.03, lo ? 8 : 18), M(o.flower || '#F5C400')); d.position.set(0, h, 0); d.rotation.x = 1.25; gr.add(d); const c = new THREE.Mesh(new THREE.CylinderGeometry(hd * 0.55, hd * 0.55, 0.05, lo ? 8 : 14), M('#4A2F18')); c.position.set(0, h - 0.01, hd * 0.04); c.rotation.x = 1.25; gr.add(c); } }
@@ -2377,13 +2377,13 @@ function veg3d(THREE, M, kind, h, w, seed, hue, opt) {
     if (lo) for (let i = 0; i < 2; i++) { const a = i * 1.6 + R(), d = w * 0.15; blob(rb, Math.cos(a) * d, base * 0.5, Math.sin(a) * d, Math.max(0.4, base / (rb * 2)), green(34 + Math.round(R() * 8))); }
     else {
       const len = Math.max(0.06, Math.min(base * 1.05, w * 0.55)), wid = len * (kind === 'rot' ? 0.18 : kind === 'krydda' ? 0.45 : 0.38);
-      leaves3d(THREE, gr, kind === 'rot' ? 14 : veg ? 18 : 22, 0, 0.01, 0, w * 0.12, len, wid, [gcol(36), gcol(30)], R, { tilt: 0.25, tilt1: 1.05, rise: base * 0.25 }); }
+      leaves3d(THREE, gr, kind === 'rot' ? 14 : veg ? 18 : h > 0.7 ? 28 : 22, 0, 0.01, 0, w * 0.12, len, wid, [gcol(36), gcol(30)], R, { tilt: 0.25, tilt1: 1.05, rise: base * (h > 0.7 ? 0.55 : 0.25) }); }
     if (h > 0.7 && !veg && !showFl) { /* utan blommor */ }
-    else if (h > 0.7 && !veg && !lo) { const G = g3(THREE), r = Math.max(0.04, Math.min(0.09, w * 0.13)), sp = o.fshape === 'spike', n = 4 + Math.round(R() * 2), stems = [], heads = [], sl = [];
+    else if (h > 0.7 && !veg && !lo) { const G = g3(THREE), r = Math.max(0.05, Math.min(0.12, w * 0.16)), sp = o.fshape === 'spike', n = 4 + Math.round(R() * 2), stems = [], heads = [], sl = [];
       for (let i = 0; i < n; i++) { const a = R() * 6.283, d = w * 0.16 * Math.sqrt(R()), x = Math.sin(a) * d, z = Math.cos(a) * d, y0 = base * 0.3, L = Math.max(0.1, h * (0.8 + R() * 0.2) - (sp ? r * 5 : 0) - y0), lean = 0.06 + R() * 0.2;
         const ux = Math.sin(lean) * Math.sin(a), uy = Math.cos(lean), uz = Math.sin(lean) * Math.cos(a);
-        stems.push([x, y0, z, lean, a, 0, 0.007, L, 0.007]); heads.push([x + ux * L, y0 + uy * L, z + uz * L]);
-        [0.3, 0.55].forEach((t, j) => { const la = a + (j ? 2.4 : -0.8) + R() * 0.5, ll = Math.min(0.16, base * 0.45) * (1 - t * 0.5); sl.push([x + ux * L * t, y0 + uy * L * t, z + uz * L * t, 0.95 + R() * 0.3, la, 0, ll * 0.38, ll, ll]); }); }
+        stems.push([x, y0, z, lean, a, 0, 0.009, L, 0.009]); heads.push([x + ux * L, y0 + uy * L, z + uz * L]);
+        [0.22, 0.4, 0.58, 0.72].forEach((t, j) => { const la = a + j * 2.4 + R() * 0.5, ll = Math.min(0.22, base * 0.6) * (1 - t * 0.45); sl.push([x + ux * L * t, y0 + uy * L * t, z + uz * L * t, 0.95 + R() * 0.3, la, 0, ll * 0.38, ll, ll]); }); }
       gr.add(inst3d(THREE, G.stemGeo, G.mat('plain', gcol(36)), stems)); gr.add(inst3d(THREE, G.leafGeo, G.mat('leaf', gcol(34)), sl));
       bloom3d(THREE, gr, heads, r, fcol, o.fshape || 'simple', o.fcenter, R, lo); }
     else if (h > 0.7 && !veg) { const sm = M(fcol), st = green(38); for (let i = 0; i < 2; i++) { const a = R() * 6.283, d = w * 0.18 * R(), x = Math.cos(a) * d, z = Math.sin(a) * d; cyl(0.008, 0.012, h - base * 0.4, x, base * 0.4 + (h - base * 0.4) / 2, z, st); cone(Math.max(0.025, w * 0.06), h * 0.3, x, h - h * 0.12, z, sm); } }
@@ -6199,6 +6199,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.147', 'Nu', ['3D: höga perenner har fler blad längs stjälken och större blommor. Funkior får lavendelfärgade blomax, och okända växter får riktiga blomfärger']],
   ['1.146', 'Nu', ['3D: inomhusväxterna har riktiga blad. Orkidéer med blomstjälk, svärmors tunga, palmer och ormbunkar med fjäderblad, hängväxter med rankor, monstera och fredskalla med bladskaft, rumsträd med bladkrona och blommande krukväxter med kronblad']],
   ['1.145', 'Nu', ['3D: höga perenner lutar lite, har blad längs stjälken och större blommor. De mörka formerna mitt i plantorna är borta']],
   ['1.144', 'Nu', ['3D: växterna i rabatter och trädgård har riktiga blad med nerver och blommor med kronblad. Formen följer växten: tusenskönor, rosor och pioner, lavendel och riddarsporre, röllika och hortensia']],
@@ -6878,7 +6879,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.146';
+const APP_VERSION = '1.147';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
