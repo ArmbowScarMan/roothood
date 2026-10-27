@@ -3332,6 +3332,7 @@ function smResult(sec) {
   return '';
 }
 function smartV() {
+  if (!S.sm) S.sm = { ppfd: '', dli: '', start: '07:00', flow: '', ml: '', rh: '' };
   const s = S.sm, mine = S.mine, withSensor = mine.filter(m => m.details && (m.details.sensor || m.details.climate));
   const plantOpts = sel => `<option value="">Välj växt…</option>` + S.plants.slice().sort((a, b) => a.swedish_name.localeCompare(b.swedish_name, 'sv')).map(p => `<option value="${p.id}" ${+sel === p.id ? 'selected' : ''}>${esc(p.swedish_name)}</option>`).join('');
   const mineOpts = sel => `<option value="">Välj växt i samlingen…</option>` + mine.map(m => `<option value="${m.id}" ${+sel === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('');
@@ -3854,7 +3855,7 @@ function peopleSearchBtn() { return `<button class="circ" onclick="openPeople()"
 // ===== Vyer =====
 function otherHome() { const h = S.uhome; return S.tool === 'user' && !S.sel && S.ucard && h && h.uid === S.uid && S.ucard.id !== (S.user && S.user.id) && h.visible && h.data && Array.isArray(h.data.rooms) ? { rooms: h.data.rooms, plan: h.data.plan || {} } : null; }
 
-const EMO = { '📚': 'ph-books', '💻': 'ph-laptop', '🍖': 'ph-cooking-pot', '🏖': 'ph-umbrella', '🤸': 'ph-person', '🏊': 'ph-waves', '⛱': 'ph-umbrella', '🅿': 'ph-car', '🚗': 'ph-car', '🪜': 'ph-stairs', '🚰': 'ph-drop', '🚽': 'ph-toilet', '🚿': 'ph-shower', '🛁': 'ph-bathtub', '🍳': 'ph-cooking-pot', '🔪': 'ph-knife', '📺': 'ph-television', '🚪': 'ph-door', '🗄': 'ph-archive', '🟣': 'ph-plant', '🟪': '#8E6BB8', '⚠': 'ph-warning', '✅': 'ph-check-circle', '💧': 'ph-drop', '💨': 'ph-wind', '⛔': 'ph-prohibit', '💡': 'ph-lightbulb', '🌱': 'ph-plant', '🌳': 'ph-tree', '🌿': 'ph-leaf', '🌷': 'ph-flower-tulip', '🌸': 'ph-flower', '🍎': 'ph-apple-logo', '🍂': 'ph-leaf', '🌡': 'ph-thermometer', '🧊': 'ph-snowflake', '❄': 'ph-snowflake', '🥶': 'ph-snowflake', '☀': 'ph-sun', '🌤': 'ph-cloud-sun', '☁': 'ph-cloud', '🌦': 'ph-cloud-rain', '🌧': 'ph-cloud-rain', '🌨': 'ph-cloud-snow', '⛈': 'ph-cloud-lightning', '🌫': 'ph-cloud-fog', '🏜': 'ph-cactus', '🔥': 'ph-fire', '🥬': 'ph-carrot', '📍': 'ph-map-pin', '🏠': 'ph-house', '🏡': 'ph-house-line', '🌍': 'ph-globe-hemisphere-west', '🌐': 'ph-globe', '🧭': 'ph-compass', '🤝': 'ph-handshake', '👋': 'ph-hand-waving', '🎓': 'ph-graduation-cap', '🛡': 'ph-shield-check', '🔎': 'ph-magnifying-glass', '🔁': 'ph-arrows-clockwise', '💬': 'ph-chat-circle', '📏': 'ph-ruler', '📐': 'ph-ruler', '✏': 'ph-pencil-simple', '✍': 'ph-pencil-line', '💾': 'ph-floppy-disk', '🏆': 'ph-trophy', '🎉': 'ph-confetti', '⚡': 'ph-lightning', '🔍': 'ph-magnifying-glass', '🔆': 'ph-sun-dim', '🛋': 'ph-armchair', '🪑': 'ph-chair', '💺': 'ph-armchair', '🛏': 'ph-bed', '🍽': 'ph-fork-knife', '♻': 'ph-recycle', '🛖': 'ph-house', '🧱': 'ph-cube', '🟡': '#E6C23A', '🟫': '#8B5A2B', '🟤': '#8B5A2B', '⚪': '#EFEDE6', '🫠': 'ph-smiley-sad', '🤢': 'ph-smiley-sad', '🌺': 'ph-flower', '🌬': 'ph-wind', '🏞': 'ph-mountains', '🌵': 'ph-cactus', '🪴': 'ph-plant', '🌰': 'ph-plant', '🧪': 'ph-flask', '🌊': 'ph-waves' };
+const EMO = { '🕳': 'ph-circle-dashed', '🖤': 'ph-circle', '🪩': 'ph-sparkle', '🎯': 'ph-crosshair', '💦': 'ph-drop', '🧂': 'ph-grains', '🍃': 'ph-leaf', '🥀': 'ph-plant', '🍯': 'ph-drop', '📚': 'ph-books', '💻': 'ph-laptop', '🍖': 'ph-cooking-pot', '🏖': 'ph-umbrella', '🤸': 'ph-person', '🏊': 'ph-waves', '⛱': 'ph-umbrella', '🅿': 'ph-car', '🚗': 'ph-car', '🪜': 'ph-stairs', '🚰': 'ph-drop', '🚽': 'ph-toilet', '🚿': 'ph-shower', '🛁': 'ph-bathtub', '🍳': 'ph-cooking-pot', '🔪': 'ph-knife', '📺': 'ph-television', '🚪': 'ph-door', '🗄': 'ph-archive', '🟣': 'ph-plant', '🟪': '#8E6BB8', '⚠': 'ph-warning', '✅': 'ph-check-circle', '💧': 'ph-drop', '💨': 'ph-wind', '⛔': 'ph-prohibit', '💡': 'ph-lightbulb', '🌱': 'ph-plant', '🌳': 'ph-tree', '🌿': 'ph-leaf', '🌷': 'ph-flower-tulip', '🌸': 'ph-flower', '🍎': 'ph-apple-logo', '🍂': 'ph-leaf', '🌡': 'ph-thermometer', '🧊': 'ph-snowflake', '❄': 'ph-snowflake', '🥶': 'ph-snowflake', '☀': 'ph-sun', '🌤': 'ph-cloud-sun', '☁': 'ph-cloud', '🌦': 'ph-cloud-rain', '🌧': 'ph-cloud-rain', '🌨': 'ph-cloud-snow', '⛈': 'ph-cloud-lightning', '🌫': 'ph-cloud-fog', '🏜': 'ph-cactus', '🔥': 'ph-fire', '🥬': 'ph-carrot', '📍': 'ph-map-pin', '🏠': 'ph-house', '🏡': 'ph-house-line', '🌍': 'ph-globe-hemisphere-west', '🌐': 'ph-globe', '🧭': 'ph-compass', '🤝': 'ph-handshake', '👋': 'ph-hand-waving', '🎓': 'ph-graduation-cap', '🛡': 'ph-shield-check', '🔎': 'ph-magnifying-glass', '🔁': 'ph-arrows-clockwise', '💬': 'ph-chat-circle', '📏': 'ph-ruler', '📐': 'ph-ruler', '✏': 'ph-pencil-simple', '✍': 'ph-pencil-line', '💾': 'ph-floppy-disk', '🏆': 'ph-trophy', '🎉': 'ph-confetti', '⚡': 'ph-lightning', '🔍': 'ph-magnifying-glass', '🔆': 'ph-sun-dim', '🛋': 'ph-armchair', '🪑': 'ph-chair', '💺': 'ph-armchair', '🛏': 'ph-bed', '🍽': 'ph-fork-knife', '♻': 'ph-recycle', '🛖': 'ph-house', '🧱': 'ph-cube', '🟡': '#E6C23A', '🟫': '#8B5A2B', '🟤': '#8B5A2B', '⚪': '#EFEDE6', '🫠': 'ph-smiley-sad', '🤢': 'ph-smiley-sad', '🌺': 'ph-flower', '🌬': 'ph-wind', '🏞': 'ph-mountains', '🌵': 'ph-cactus', '🪴': 'ph-plant', '🌰': 'ph-plant', '🧪': 'ph-flask', '🌊': 'ph-waves' };
 const EMO_RE = new RegExp('(' + Object.keys(EMO).sort((a, b) => b.length - a.length).join('|') + ')️?', 'gu');
 // Byter emojier i textnoder mot Phosphor-ikoner (SVG och okända emojier lämnas orörda)
 function iconize(root) {
@@ -6174,6 +6175,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.128', 'Nu', ['Smarta hemmet öppnas nu även via länk utan krasch. Växtdoktorns symptom med honung, blad och droppar är ikoner i stället för emojier']],
   ['1.127', 'Nu', ['Färgprickarna i växtdoktorns symptomlistor är färgade cirklar i stället för ikoner']],
   ['1.126', 'Nu', ['Möblerna i planeraren och på rumslistan är ikoner i stället för emojier']],
   ['1.125', 'Nu', ['Mitt hem i 3D har gräs och en himmel runt huset. Vänner i profilen visas direkt, och växtikonerna i snabbknapparna syns igen. Blockera ligger under en … meny på profilen, och ortens pinne är borttagen']],
@@ -6834,7 +6836,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.127';
+const APP_VERSION = '1.128';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
