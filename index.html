@@ -4215,7 +4215,7 @@ function followBtn(p) {
   const on = (S.pfol || []).includes(key);
   return `<div class="pad" style="padding-top:10px"><button class="btn sm line" style="width:100%" onclick="togPlantFollow(${jsArg(key)})">${ic(on ? 'ph-bell-slash' : 'ph-bell', 'currentColor', 16)} ${on ? 'Sluta följa' : 'Följ'} ${esc(p.swedish_name)} i Community</button></div>`;
 }
-async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); } catch (e) { S.notifs = S.notifs || []; } try { S.notifs = (S.notifs || []).filter(n => n.t !== 'follow').concat(await followHits()); } catch (e) { console.warn('Roothood:', e); } if (isMod()) { try { S.modOpen = await api.modOpen(); } catch (e) { console.warn('Roothood:', e); } } await loadInbox(); if (!S.tool && !S.modal) render(); }
+async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); S.notifErr = false; } catch (e) { S.notifs = S.notifs || []; S.notifErr = true; } try { S.notifs = (S.notifs || []).filter(n => n.t !== 'follow').concat(await followHits()); } catch (e) { console.warn('Roothood:', e); } if (isMod()) { try { S.modOpen = await api.modOpen(); } catch (e) { console.warn('Roothood:', e); } } await loadInbox(); if (!S.tool && !S.modal) render(); }
 function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due + (isMod() ? (S.modOpen || 0) : 0); return `<button class="circ bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
 let inboxAsked = false;
 function msgBtn() {
@@ -4235,13 +4235,13 @@ function goPost(kind, id, cat) { S.tool = null; S.sel = null; S.tab = 'comm'; S.
   if (window.visualViewport) { let vh = visualViewport.height; visualViewport.addEventListener('resize', () => { if (visualViewport.height > vh + 60) setTimeout(reset, 50); vh = visualViewport.height; }); }
 })();
 const msgUnread = () => (S.inbox || []).reduce((a, c) => a + (c.unread || 0), 0);
-async function loadInbox() { if (!S.user) return; try { S.inbox = await api.inbox(); S.msgErr = null; } catch (e) { S.inbox = S.inbox || []; S.msgErr = e.message === 'MSG_NOT_READY' ? 'Meddelanden går inte att använda just nu.' : null; } }
+async function loadInbox() { if (!S.user) return; try { S.inbox = await api.inbox(); S.msgErr = null; S.inboxErr = false; } catch (e) { S.inbox = S.inbox || []; S.inboxErr = e.message !== 'MSG_NOT_READY'; S.msgErr = e.message === 'MSG_NOT_READY' ? 'Meddelanden går inte att använda just nu.' : null; } }
 function openMsgs() { if (!S.user) return openModal('login'); stopLight(); S.sel = null; S.modal = null; S.tool = 'msgs'; render(); $('#main').scrollTop = 0; if (S.friends == null) api.myFriends().then(l => { S.friends = l; if (S.tool === 'msgs') keepMain(); }).catch(() => { S.friends = []; }); loadInbox().then(() => { if (S.tool === 'msgs') keepMain(); }); }
 function msgsV() {
   const I = S.inbox, F = S.friends || [];
   return `${topbar('Meddelanden', 'S.tool=null;render()')}
   ${S.msgErr ? `<p class="formmsg" style="margin:16px 18px">${esc(S.msgErr)}</p>` : ''}
-  <div class="pad nlist" style="padding-top:8px">${I == null ? '<p class="mut">Hämtar…</p>' : I.length ? I.map(c => `<button class="nrow ${c.unread ? 'new' : ''}" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">${avBig(c.name || '?')}</span><span class="grow"><b>${esc(c.name || 'Okänd')}</b><span>${c.last_mine ? 'Du: ' : ''}${esc((c.last_body || '').slice(0, 70))}</span></span><small>${c.unread ? c.unread + ' nya · ' : ''}${ago(c.last_at)}</small></button>`).join('') : '<p class="mut" style="margin:8px 0">Inga meddelanden än. Välj en vän nedan för att skriva.</p>'}</div>
+  <div class="pad nlist" style="padding-top:8px">${S.inboxErr ? retryBox('loadInbox().then(render)') : I == null ? '<p class="mut">Hämtar…</p>' : I.length ? I.map(c => `<button class="nrow ${c.unread ? 'new' : ''}" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">${avBig(c.name || '?')}</span><span class="grow"><b>${esc(c.name || 'Okänd')}</b><span>${c.last_mine ? 'Du: ' : ''}${esc((c.last_body || '').slice(0, 70))}</span></span><small>${c.unread ? c.unread + ' nya · ' : ''}${ago(c.last_at)}</small></button>`).join('') : '<p class="mut" style="margin:8px 0">Inga meddelanden än. Välj en vän nedan för att skriva.</p>'}</div>
   <div class="sec"><h2>Skriv till en vän</h2></div><div class="pad">${F.length ? `<div class="chips2">${F.map(f => `<button onclick="openChat(${jsArg(f.id)},${jsArg(f.display_name)})">${esc(f.display_name)}</button>`).join('')}</div>` : '<p class="mut">Du kan skriva till dem som har accepterat din vänförfrågan.</p>'}</div>`;
 }
 async function openChat(id, name) {
@@ -4369,6 +4369,7 @@ function notifV() {
   const act = (N || []).filter(n => n.t !== 'friend').map(n => n.t === 'follow' ? row('🌿', `Ny fråga om ${esc(n.species)}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `goPost('question',${n.post_id},${jsArg(n.cat || '')})`, Date.parse(n.at) > seen) : n.t === 'friend_ok' ? row('🤝', `${esc(n.who || 'Någon')} accepterade din vänförfrågan`, 'Ni är nu vänner', n.at, `openUser(${jsArg(n.from)})`, Date.parse(n.at) > seen) : n.t === 'expert' ? row('🎓', `${esc(n.who || 'En expert')} har svarat på din expertfråga`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `openExperts()`, Date.parse(n.at) > seen)
     : row(n.kind === 'mystery' ? '🔎' : n.kind === 'listing' ? '🔁' : '💬', `${esc(n.who || 'Någon')} svarade på ${what[n.kind] || 'ditt inlägg'}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”${n.ptitle ? ` · ${esc(n.ptitle.slice(0, 40))}` : ''}`, n.at, `goPost('${n.kind}',${n.post_id},${jsArg(n.cat || '')})`, Date.parse(n.at) > seen));
   return `${topbar('Notiser', 'S.tool=null;render()')}
+  ${S.notifErr ? retryBox('loadNotifs().then(render)') : ''}
   ${frq.length ? `<div class="sec"><h2>Vänförfrågningar</h2></div><div class="pad nlist">${frq.join('')}</div>` : ''}
   ${(S.inbox || []).some(c => c.unread) ? `<div class="sec"><h2>Meddelanden</h2></div><div class="pad nlist">${S.inbox.filter(c => c.unread).slice(0, 5).map(c => `<button class="nrow new" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">💬</span><span class="grow"><b>${esc(c.name || 'Någon')}</b><span>${esc((c.last_body || '').slice(0, 70))}</span></span><small>${c.unread} nya</small></button>`).join('')}</div>` : ''}
   ${isMod() && S.modOpen ? `<div class="sec"><h2>Moderering</h2></div><div class="pad nlist"><button class="nrow new" onclick="openMod('open')"><span class="nic">🛡️</span><span class="grow"><b>${S.modOpen} ${S.modOpen === 1 ? 'rapport väntar' : 'rapporter väntar'}</b><span>Tryck för att granska</span></span></button></div>` : ''}
@@ -4705,6 +4706,7 @@ function peopleV() {
   const sec = (t, l) => l.length ? `<div class="sec"><h2>${t}</h2></div><div class="pad"><div class="norm">${l.map(personRow).join('')}</div></div>` : '';
   return `${topbar('Hitta användare', 'closeTool()')}
   <div class="searchrow"><div class="search">${ic(I.search, null, 20)}<input id="pq" type="search" placeholder="Sök på namn eller ort" value="${esc(S.pq || '')}" oninput="pqInput(this.value)" aria-label="Sök användare" autocomplete="off"></div></div>
+  ${S.pplErr && S.pplErr !== 'USERS_NOT_READY' ? retryBox('loadPeople()') : ''}
   ${S.pplErr === 'USERS_NOT_READY' ? '<div class="instc" style="margin:12px 18px 0"><div><b>Användarsökningen går inte att använda just nu</b><span>Försök igen senare.</span></div></div>' : ''}
   ${S.ppl == null ? '<p class="mut" style="margin:16px 18px">Letar…</p>' : !list.length ? `<p class="mut" style="margin:16px 18px">${q ? 'Ingen användare matchar "' + esc(q) + '".' : 'Inga andra användare än.'}</p>`
     : q ? sec(list.length + (list.length === 1 ? ' träff' : ' träffar'), list) : sec('Du följer', following) + sec('Nära dig i ' + esc(S.city || ''), near) + sec('Fler växtvänner', rest)}
@@ -5431,6 +5433,8 @@ function segBar() {
   <p class="mut" style="margin:10px 18px 0;font-size:13px">${CTAB_HELP[S.ctab] || ''}</p>
   <div class="pad cbtns" style="padding-top:10px"><button class="peopleb xb" style="grid-column:1/-1" onclick="openExperts()"><span>${ic('ph-graduation-cap', 'currentColor', 20)}</span><span class="grow">Fråga en expert</span>${S.pro ? '' : proBadge()}</button></div>`;
 }
+// Visas när en lista inte gick att hämta (till exempel offline). Inte samma som en tom lista.
+function retryBox(fn) { return `<div class="empty"><p>Det går inte att hämta just nu. Kontrollera internetanslutningen och försök igen.</p><button class="btn sm" onclick="${fn}">Försök igen</button></div>`; }
 function listState(list, emptyText) {
   if (S.feedErr) return `<div class="empty"><p>${esc(S.feedErr)}</p><button class="btn sm" onclick="loadFeed()">Försök igen</button></div>`;
   if (!list) return '<p class="mut" style="text-align:center">Hämtar…</p>';
@@ -6020,6 +6024,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.141', 'Nu', ['Meddelanden, notiser och personsökning visar nu ett felmeddelande med knappen Försök igen när nätet svarar fel, i stället för en tom lista']],
   ['1.140', 'Nu', ['Startsidan för nya användare har en tydligare rubrik']],
   ['1.139', 'Nu', ['Rummet tas bort först när växterna är uppdaterade, så inga växter pekar på ett rum som inte finns']],
   ['1.138', 'Nu', ['Fler rättningar: gilla-knappen går tillbaka om det inte gick att spara. Okänd senaste vattning visas som okänd. Snooze och veckodagar i väder är rättade']],
@@ -6693,7 +6698,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.140';
+const APP_VERSION = '1.141';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
