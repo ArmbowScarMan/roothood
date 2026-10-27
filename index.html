@@ -2185,7 +2185,8 @@ function build3dInner(first) {
       if (WH > 2.1) doors.forEach(([d0, d1]) => { const q = wallSeg(r, { s, p: d0, l: d1 - d0 }); box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6', { noext: 1 }); });
     });
     (r.bays || []).forEach(by => baySegs(r, by).forEach(([q]) => { box(q[0], q[1], q[2], q[3], 0, Math.min(0.9, WH), TH, '#F4EFE6'); if (WH > 0.9) { box(q[0], q[1], q[2], q[3], 0.9, Math.min(WH, 2.1) - 0.9, 0.03, '#9FD3EF', { noext: 1, mat: { transparent: true, opacity: 0.35, roughness: 0.1 } }); if (WH > 2.1) box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6'); } }));
-    (r.wins || []).forEach(w => { const q = wallSeg(r, w); if (!w.k) winDetail(q, WH, TH, box); else if (w.k === 'door') doorDetail(q, WH, TH, box); });
+    (r.wins || []).forEach(w => { const q = wallSeg(r, w); if (!w.k) { const sl = sill3d(q, r); if (sl) { const sm = new THREE.Mesh(new THREE.BoxGeometry(sl.L + 0.08, 0.04, 0.3), M('#F2EEE6')); sm.position.set(sl.mx + sl.nx * 0.17, SILL_Y - 0.02, sl.mz + sl.nz * 0.17); sm.rotation.y = -Math.atan2(sl.uz, sl.ux); sm.castShadow = true; sm.receiveShadow = true; add(sm); } }
+      if (!w.k) winDetail(q, WH, TH, box); else if (w.k === 'door') doorDetail(q, WH, TH, box); });
     const lab = label3d(r.name); if (lab) { const c0 = roomPoly(r).reduce((s2, q) => [s2[0] + q[0], s2[1] + q[1]], [0, 0]).map(v2 => v2 / roomPoly(r).length); lab.position.set(c0[0], WH + 0.6, c0[1]); (cur || sc).add(lab); }
   });
   planWalls().filter(wl => wl.h === 'hedge' || floorVis(flOf(wl))).forEach(wl => { if (wl.h === 'hedge') { cur = null; hedge3d(wl, THREE, M, sc, box); } else { cur = grp(flOf(wl)); const hh = wl.h === 'half' ? Math.min(1.1, WH) : WH;
@@ -2200,7 +2201,7 @@ function build3dInner(first) {
   cur = null;
   // möbler
   planFurn().filter(f => OUT3[f.t]).forEach(f => OUT3[f.t](f, THREE, M, sc));
-  planFurn().filter(f => !OUT3[f.t] && (OUTF.has(f.t) || floorVis(flOf(f)))).forEach(f => { cur = OUTF.has(f.t) ? null : grp(flOf(f)); if (f.t === 'stairs') { stairs3d(f, THREE, M, add, FLH); return; } const h = FH[f.t] || 0.8, m = new THREE.Mesh(ROUNDS.has(f.t) ? new THREE.CylinderGeometry(f.w / 2, f.w / 2, h, 28) : new THREE.BoxGeometry(f.w, h, f.h), M(FC[f.t] || '#C9A57D', GLASS.has(f.t) ? { transparent: true, opacity: f.t === 'pcab' ? 0.7 : 0.55 } : null));
+  planFurn().filter(f => !OUT3[f.t] && (OUTF.has(f.t) || floorVis(flOf(f)))).forEach(f => { cur = OUTF.has(f.t) ? null : grp(flOf(f)); if (f.t === 'stairs') { stairs3d(f, THREE, M, add, FLH); return; } if (furn3d(f, THREE, M, add)) return; const h = FH[f.t] || 0.8, m = new THREE.Mesh(ROUNDS.has(f.t) ? new THREE.CylinderGeometry(f.w / 2, f.w / 2, h, 28) : new THREE.BoxGeometry(f.w, h, f.h), M(FC[f.t] || '#C9A57D', GLASS.has(f.t) ? { transparent: true, opacity: f.t === 'pcab' ? 0.7 : 0.55 } : null));
     m.position.set(f.x, h / 2 + 0.01, f.y); m.rotation.y = -(f.rot || 0) * Math.PI / 180; add(m); });
   cur = null;
   // växter i samlingen
@@ -2215,15 +2216,19 @@ function build3dInner(first) {
     const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.28, 18), M('#C2643F')); pot.position.y = 0.14; pot.castShadow = true; gr.add(pot);
     gr.add(indoor3d(THREE, M, pp || { swedish_name: m.name, latin_name: m.latin || '', category: m.category }, ok, seed3(m.id)));
     // Ampel: hänger från taket i tre linor. Annars: står växten på en möbel hamnar den ovanpå i stället för inuti.
-    let lift = 0;
-    if (m.details.place === 'Ampel') { lift = 1.7; const top = 2.4 - lift, wm = M('#3A3A3A'), up = new THREE.Vector3(0, 1, 0);
+    let lift = 0, sx = x, sy = y;
+    if (m.details.place !== 'Ampel' && m.details.win === 'I fönstret' && pRoom) { let best = null;
+      (pRoom.wins || []).filter(w => !w.k).forEach(w => { const sl = sill3d(wallSeg(pRoom, w), pRoom); if (!sl) return; const t = Math.max(0.2, Math.min(sl.L - 0.2, (x - sl.q[0]) * sl.ux + (y - sl.q[1]) * sl.uz)), px = sl.q[0] + sl.ux * t, pz = sl.q[1] + sl.uz * t, d = Math.hypot(x - px, y - pz); if (!best || d < best.d) best = { d, px: px + sl.nx * 0.19, pz: pz + sl.nz * 0.19 }; });
+      if (best && best.d < 1.2) { sx = best.px; sy = best.pz; lift = SILL_Y; } }
+    if (lift) { /* står redan på fönsterbrädan */ }
+    else if (m.details.place === 'Ampel') { lift = 1.7; const top = 2.4 - lift, wm = M('#3A3A3A'), up = new THREE.Vector3(0, 1, 0);
       [0, 2.094, 4.189].forEach(an => { const a = new THREE.Vector3(Math.sin(an) * 0.15, 0.28, Math.cos(an) * 0.15), b = new THREE.Vector3(0, top, 0), d = b.clone().sub(a), L = d.length(), wire = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, L, 4), wm);
         wire.position.copy(a).add(b).multiplyScalar(0.5); wire.quaternion.setFromUnitVectors(up, d.normalize()); gr.add(wire); });
       const hook = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.02, 10), wm); hook.position.y = top; gr.add(hook); }
     else { const SURF = ['table', 'dtable', 'desk', 'dresser', 'tv', 'counter', 'round', 'shelf', 'pshelf', 'otable'];
-      planFurnAll().forEach(f => { if (!SURF.includes(f.t) || flOf(f) !== pfl) return; const dx = x - f.x, dz = y - f.y, r = (f.rot || 0) * Math.PI / 180, lx = dx * Math.cos(r) + dz * Math.sin(r), lz = -dx * Math.sin(r) + dz * Math.cos(r);
+      planFurnAll().forEach(f => { if (!SURF.includes(f.t) || flOf(f) !== pfl) return; const dx = sx - f.x, dz = sy - f.y, r = (f.rot || 0) * Math.PI / 180, lx = dx * Math.cos(r) + dz * Math.sin(r), lz = -dx * Math.sin(r) + dz * Math.cos(r);
         const inside = ROUNDS.has(f.t) ? Math.hypot(dx, dz) <= f.w / 2 + 0.05 : Math.abs(lx) <= f.w / 2 + 0.05 && Math.abs(lz) <= f.h / 2 + 0.05; if (inside) lift = Math.max(lift, (FH[f.t] || 0.8) + 0.01); }); }
-    gr.position.set(x, fyOf(pfl) + lift, y); sc.add(gr); });
+    gr.position.set(sx, fyOf(pfl) + lift, sy); sc.add(gr); });
   // smarta saker
   planItems().forEach(it => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), M('#7D6CB3', { emissive: '#3a2f66' })); m.position.set(it.x, 0.95, it.y); add(m); });
   // träd och buskar
@@ -2572,19 +2577,51 @@ function stripBox(THREE, M, sc, u, c, a0, a1, y0, h, wd, col, o) { const L = a1 
 function edgeRun(THREE, M, sc, pts, y0, h, wd, col) { pts.forEach((a, i) => { const b = pts[(i + 1) % pts.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 0.02) return; const m = new THREE.Mesh(new THREE.BoxGeometry(L + wd, h, wd), M(col)); m.position.set((a[0] + b[0]) / 2, y0 + h / 2, (a[1] + b[1]) / 2); m.rotation.y = -Math.atan2(b[1] - a[1], b[0] - a[0]); m.castShadow = true; m.receiveShadow = true; sc.add(m); }); }
 function area3d(a, THREE, M, sc, slab, shape, y) {
   const lo = S.low3d, R = rng3(a.pts.length * 977 + Math.round(a.pts[0][0] * 31 + a.pts[0][1] * 17)), u = axisOf(a.pts);
-  if (a.t === 'lawn') { shape(a.pts, y, '#7FB35B'); if (!lo) scanStrips(a.pts, u, 0.9, (c, a0, a1, k) => { if (k % 2) stripBox(THREE, M, sc, u, c, a0, a1, y + 0.001, 0.003, 0.9, '#8BBE66'); }); return; }
-  if (a.t === 'patio') { slab(a.pts, 0, 0.1, '#5C4632'); const tones = ['#B98E62', '#B08457', '#C29A6C', '#A97C50']; scanStrips(a.pts, u, lo ? 0.3 : 0.145, (c, a0, a1) => stripBox(THREE, M, sc, u, c, a0 + 0.01, a1 - 0.01, 0.1, 0.035, lo ? 0.28 : 0.13, tones[Math.floor(R() * tones.length)])); if (!lo) edgeRun(THREE, M, sc, a.pts, 0, 0.14, 0.03, '#8E6A45'); return; }
-  if (a.t === 'path') { slab(a.pts, 0, 0.02, '#CFC6B3'); if (lo) return; const v = [-u[1], u[0]], tones = ['#A9A49A', '#B5AFA3', '#9E998F']; scanStrips(a.pts, u, 0.46, (c, a0, a1) => { for (let t = a0 + 0.23; t + 0.2 <= a1; t += 0.46) { const x = u[0] * t + v[0] * c, z = u[1] * t + v[1] * c; if (edgeDist(x, z, a.pts) < 0.19) continue; stripBox(THREE, M, sc, u, c, t - 0.2, t + 0.2, 0.02, 0.04, 0.4, tones[Math.floor(R() * 3)]); } }); return; }
+  // Klipp bort det som ligger under ett rum, så att altan, gångar och rabatter inte sticker upp genom golvet
+  const RP0 = planRooms().filter(r => flOf(r) === 0).map(roomPoly), inR = (x, z) => RP0.some(pg => inPoly3(x, z, pg)); let ov = false;
+  if (RP0.length) scanStrips(a.pts, u, 0.25, (c, a0, a1) => { const v = [-u[1], u[0]]; for (let t = a0; t <= a1 && !ov; t += 0.25) if (inR(u[0] * t + v[0] * c, u[1] * t + v[1] * c)) ov = true; });
+  const sBox = (uu, c, a0, a1, y0, h, wd, col, o) => { if (!ov) return stripBox(THREE, M, sc, uu, c, a0, a1, y0, h, wd, col, o); const v = [-uu[1], uu[0]]; let s0 = null;
+    for (let t = a0; ; t = Math.min(a1, t + 0.05)) { const out = !inR(uu[0] * t + v[0] * c, uu[1] * t + v[1] * c); if (out && s0 == null) s0 = t; if (s0 != null && (!out || t >= a1)) { stripBox(THREE, M, sc, uu, c, s0, t, y0, h, wd, col, o); s0 = null; } if (t >= a1) break; } };
+  const slabC = (pts, y0, h, col) => ov ? scanStrips(pts, u, 0.25, (c, a0, a1) => sBox(u, c, a0, a1, y0, h, 0.252, col)) : slab(pts, y0, h, col);
+  const edgeC = (pts, y0, h, wd, col) => { if (!ov) return edgeRun(THREE, M, sc, pts, y0, h, wd, col); pts.forEach((p0, i) => { const p1 = pts[(i + 1) % pts.length], L = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]); if (L < 0.02) return; const uu = [(p1[0] - p0[0]) / L, (p1[1] - p0[1]) / L], v = [-uu[1], uu[0]], c = p0[0] * v[0] + p0[1] * v[1], t0 = p0[0] * uu[0] + p0[1] * uu[1]; sBox(uu, c, t0 - wd / 2, t0 + L + wd / 2, y0, h, wd, col); }); };
+  if (a.t === 'lawn') { shape(a.pts, y, '#7FB35B'); if (!lo) scanStrips(a.pts, u, 0.9, (c, a0, a1, k) => { if (k % 2) sBox(u, c, a0, a1, y + 0.001, 0.003, 0.9, '#8BBE66'); }); return; }
+  if (a.t === 'patio') { slabC(a.pts, 0, 0.1, '#5C4632'); const tones = ['#B98E62', '#B08457', '#C29A6C', '#A97C50']; scanStrips(a.pts, u, lo ? 0.3 : 0.145, (c, a0, a1) => sBox(u, c, a0 + 0.01, a1 - 0.01, 0.1, 0.035, lo ? 0.28 : 0.13, tones[Math.floor(R() * tones.length)])); if (!lo) edgeC(a.pts, 0, 0.14, 0.03, '#8E6A45'); return; }
+  if (a.t === 'path') { slabC(a.pts, 0, 0.02, '#CFC6B3'); if (lo) return; const v = [-u[1], u[0]], tones = ['#A9A49A', '#B5AFA3', '#9E998F']; scanStrips(a.pts, u, 0.46, (c, a0, a1) => { for (let t = a0 + 0.23; t + 0.2 <= a1; t += 0.46) { const x = u[0] * t + v[0] * c, z = u[1] * t + v[1] * c; if (edgeDist(x, z, a.pts) < 0.19) continue; sBox(u, c, t - 0.2, t + 0.2, 0.02, 0.04, 0.4, tones[Math.floor(R() * 3)]); } }); return; }
   if (a.t === 'pond') { shape(a.pts, y, '#2F5A73'); shape(a.pts, y + 0.03, '#5CA6D6', { transparent: true, opacity: 0.75, roughness: 0.05, metalness: 0.2 });
     if (!lo) { a.pts.forEach((p0, i) => { const p1 = a.pts[(i + 1) % a.pts.length], L = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]); for (let t = 0; t < L; t += 0.28) { const s = new THREE.Mesh(new THREE.SphereGeometry(0.11 + R() * 0.07, 8, 6), M(['#8C8A84', '#A19E96', '#77756F'][Math.floor(R() * 3)])); s.position.set(p0[0] + (p1[0] - p0[0]) * t / L, 0.05, p0[1] + (p1[1] - p0[1]) * t / L); s.scale.y = 0.55; s.castShadow = true; sc.add(s); } });
       const bb = bbox(a.pts); for (let i = 0; i < 4; i++) { const x = bb[0] + (bb[2] - bb[0]) * (0.25 + R() * 0.5), z = bb[1] + (bb[3] - bb[1]) * (0.25 + R() * 0.5); if (!inPoly(x, z, a.pts)) continue; const l = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.01, 14), M('#3F7F3A')); l.position.set(x, y + 0.04, z); sc.add(l); if (i % 2 === 0) { const f = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), M('#F3B8CF')); f.position.set(x + 0.05, y + 0.08, z); sc.add(f); } } } return; }
-  if (a.t === 'bed') { slab(a.pts, 0, 0.12, '#4E3524'); if (!lo) { edgeRun(THREE, M, sc, a.pts, 0, 0.16, 0.07, '#A39E91'); for (let i = 0; i < Math.min(60, polyArea(a.pts) * 6); i++) { const bb = bbox(a.pts), x = bb[0] + (bb[2] - bb[0]) * R(), z = bb[1] + (bb[3] - bb[1]) * R(); if (!inPoly(x, z, a.pts)) continue; const s = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.012, 0.03), M('#6B4A2E')); s.position.set(x, 0.126, z); s.rotation.y = R() * 3; sc.add(s); } } garden3d(a, THREE, M, sc); return; }
-  if (a.t === 'veg') { slab(a.pts, 0, 0.08, '#5A3E25'); if (!lo) { scanStrips(a.pts, u, 0.4, (c, a0, a1) => stripBox(THREE, M, sc, u, c, a0 + 0.05, a1 - 0.05, 0.08, 0.04, 0.16, '#6E4C2E')); edgeRun(THREE, M, sc, a.pts, 0, 0.2, 0.05, '#A47B52'); } garden3d(a, THREE, M, sc); return; }
-  slab(a.pts, 0, 0.05, AREA3[a.t] || '#7FB35B');
+  if (a.t === 'bed') { slabC(a.pts, 0, 0.12, '#4E3524'); if (!lo) { edgeC(a.pts, 0, 0.16, 0.07, '#A39E91'); for (let i = 0; i < Math.min(60, polyArea(a.pts) * 6); i++) { const bb = bbox(a.pts), x = bb[0] + (bb[2] - bb[0]) * R(), z = bb[1] + (bb[3] - bb[1]) * R(); if (!inPoly(x, z, a.pts) || (ov && inR(x, z))) continue; const s = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.012, 0.03), M('#6B4A2E')); s.position.set(x, 0.126, z); s.rotation.y = R() * 3; sc.add(s); } } garden3d(a, THREE, M, sc); return; }
+  if (a.t === 'veg') { slabC(a.pts, 0, 0.08, '#5A3E25'); if (!lo) { scanStrips(a.pts, u, 0.4, (c, a0, a1) => sBox(u, c, a0 + 0.05, a1 - 0.05, 0.08, 0.04, 0.16, '#6E4C2E')); edgeC(a.pts, 0, 0.2, 0.05, '#A47B52'); } garden3d(a, THREE, M, sc); return; }
+  slabC(a.pts, 0, 0.05, AREA3[a.t] || '#7FB35B');
 }
 function hedge3d(wl, THREE, M, sc, box) { const L = Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1), H = 1.3, col = '#3F7A35'; box(wl.x1, wl.y1, wl.x2, wl.y2, 0, H - 0.2, 0.6, col); if (S.low3d || L < 0.1) return; const R = rng3(Math.round(wl.x1 * 97 + wl.y1 * 31));
   for (let t = 0; t <= L; t += 0.35) { const s = new THREE.Mesh(new THREE.SphereGeometry(0.34, 10, 8), M(['#3F7A35', '#4A8840', '#37702F'][Math.floor(R() * 3)])); s.position.set(wl.x1 + (wl.x2 - wl.x1) * t / L, H - 0.25 + R() * 0.08, wl.y1 + (wl.y2 - wl.y1) * t / L); s.scale.set(1, 0.7, 1); s.castShadow = true; sc.add(s); } }
 // Fönster- och dörrdetaljer på huset
+// Punkt i polygon (för att se om något ligger inne i ett rum)
+function inPoly3(x, z, pg) { let c = false; for (let i = 0, j = pg.length - 1; i < pg.length; j = i++) { const [xi, zi] = pg[i], [xj, zj] = pg[j]; if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) c = !c; } return c; }
+// Möbler med egen form i 3D: bord med ben, runt bord med fot, och altan som inte sticker upp i huset. Returnerar true om möbeln ritades här.
+function furn3d(f, THREE, M, add) {
+  const h = FH[f.t] || 0.8, col = FC[f.t] || '#C9A57D', rot = -(f.rot || 0) * Math.PI / 180;
+  if (['table', 'dtable', 'desk', 'otable', 'round'].includes(f.t)) {
+    const g = new THREE.Group(), T = 0.04, put = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; g.add(o); }, top = M(col), leg = M(f.t === 'otable' ? '#7A5B3A' : '#8A6A47');
+    if (f.t === 'round') { put(new THREE.CylinderGeometry(f.w / 2, f.w / 2, T, 32), top, 0, h - T / 2, 0); put(new THREE.CylinderGeometry(0.04, 0.05, h - T, 12), leg, 0, (h - T) / 2, 0); put(new THREE.CylinderGeometry(Math.min(0.3, f.w * 0.3), Math.min(0.32, f.w * 0.32), 0.03, 24), leg, 0, 0.015, 0); }
+    else { put(new THREE.BoxGeometry(f.w, T, f.h), top, 0, h - T / 2, 0); const lw = 0.05, ix = f.w / 2 - 0.07, iz = f.h / 2 - 0.07;
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => put(new THREE.BoxGeometry(lw, h - T, lw), leg, a * ix, (h - T) / 2, b * iz));
+      if (f.t === 'desk') put(new THREE.BoxGeometry(Math.min(0.45, f.w * 0.35), 0.5, f.h - 0.1), top, ix - Math.min(0.45, f.w * 0.35) / 2 + 0.03, h - T - 0.25, 0); }
+    g.position.set(f.x, 0.01, f.y); g.rotation.y = rot; add(g); return true; }
+  if (f.t === 'deck' || f.t === 'sandpit' || f.t === 'pool') {
+    const rooms = planRooms().filter(r => flOf(r) === 0).map(roomPoly); if (!rooms.length) return false;
+    const c = Math.max(0.1, Math.sqrt(f.w * f.h / 2500)), nx = Math.ceil(f.w / c), nz = Math.ceil(f.h / c), cw = f.w / nx, cz = f.h / nz, cos = Math.cos(rot), sin = Math.sin(rot), keep = []; let cut = 0;
+    for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) { const lx = -f.w / 2 + (i + 0.5) * cw, lz = -f.h / 2 + (j + 0.5) * cz, x = f.x + lx * cos + lz * sin, z = f.y - lx * sin + lz * cos; if (rooms.some(pg => inPoly3(x, z, pg))) cut++; else keep.push([x, z]); }
+    if (!cut) return false; if (!keep.length) return true;
+    const im = new THREE.InstancedMesh(new THREE.BoxGeometry(cw + 0.002, h, cz + 0.002), M(col), keep.length), o = new THREE.Object3D();
+    keep.forEach(([x, z], i) => { o.position.set(x, h / 2 + 0.01, z); o.rotation.set(0, rot, 0); o.updateMatrix(); im.setMatrixAt(i, o.matrix); }); im.instanceMatrix.needsUpdate = true; im.receiveShadow = true; im.castShadow = true; add(im); return true; }
+  return false;
+}
+// Fönsterbräda på insidan av ett fönster. Returnerar mitten och riktningen in i rummet, så att växter kan ställas på den.
+function sill3d(q, r) { const L = Math.hypot(q[2] - q[0], q[3] - q[1]); if (L < 0.2) return null; const ux = (q[2] - q[0]) / L, uz = (q[3] - q[1]) / L, pg = roomPoly(r), cx = pg.reduce((a, p) => a + p[0], 0) / pg.length, cz = pg.reduce((a, p) => a + p[1], 0) / pg.length, mx = (q[0] + q[2]) / 2, mz = (q[1] + q[3]) / 2;
+  let nx = -uz, nz = ux; if ((cx - mx) * nx + (cz - mz) * nz < 0) { nx = -nx; nz = -nz; } return { L, ux, uz, nx, nz, mx, mz, q }; }
+const SILL_Y = 0.915;
 function winDetail(q, WH, TH, box) { if (WH <= 2.1) return; const L = Math.hypot(q[2] - q[0], q[3] - q[1]); if (L < 0.2) return; const ux = (q[2] - q[0]) / L, uz = (q[3] - q[1]) / L, W = '#FFFFFF', f = 0.06;
   box(q[0], q[1], q[2], q[3], 2.1 - f, f, TH + 0.04, W, { noext: 1 }); box(q[0], q[1], q[2], q[3], 0.86, 0.05, TH + 0.14, W, { noext: 1 }); box(q[0], q[1], q[2], q[3], 0.9, f * 0.7, TH + 0.04, W, { noext: 1 });
   [[0, f], [L - f, L]].forEach(([a0, a1]) => box(q[0] + ux * a0, q[1] + uz * a0, q[0] + ux * a1, q[1] + uz * a1, 0.9, 1.2, TH + 0.04, W, { noext: 1 }));
@@ -6208,6 +6245,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.150', 'Nu', ['3D: bord och skrivbord har bordsskiva och ben, runda bord har en fot. Altanen, gångar och rabatter sticker inte längre upp genom golvet i huset. Fönster har fönsterbrädor på insidan, och växter som står i fönstret ställs på brädan']],
   ['1.149', 'Nu', ['3D: en växt som står på ett bord, skrivbord, en byrå, hylla, bänkskiva eller TV-bänk hamnar ovanpå möbeln. Välj platsen Ampel så hänger växten från taket']],
   ['1.148', 'Nu', ['3D: stora bladväxter inomhus som monstera och calathea har fler och större blad på kortare skaft, så plantan blir tätare']],
   ['1.147', 'Nu', ['3D: höga perenner har fler blad längs stjälken och större blommor. Funkior får lavendelfärgade blomax, och okända växter får riktiga blomfärger']],
@@ -6890,7 +6928,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.149';
+const APP_VERSION = '1.150';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];

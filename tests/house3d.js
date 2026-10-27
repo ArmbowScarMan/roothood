@@ -1,0 +1,44 @@
+// Testar 3D-delar i Mitt hem utan riktig grafik: bord med ben, altan/gång som klipps bort under rum, och fönsterbrädor.
+// Kör: node tests/house3d.js <sökväg till demo-index.html>
+const { chromium } = require('playwright');
+const http = require('http'), fs = require('fs'), path = require('path');
+const dir = path.dirname(path.resolve(process.argv[2] || 'index.html'));
+const srv = http.createServer((q, r) => { const p = path.join(dir, q.url.split('?')[0].replace(/^\/+/, '') || 'index.html'); fs.readFile(p, (e, d) => { if (e) { r.writeHead(404); return r.end(); } r.writeHead(200, { 'content-type': p.endsWith('.html') ? 'text/html' : 'text/javascript' }); r.end(d); }); });
+(async () => {
+  await new Promise(r => srv.listen(0, r));
+  const b = await chromium.launch(), pg = await b.newPage(); const errs = []; pg.on('pageerror', e => errs.push(e.message));
+  await pg.goto(`http://localhost:${srv.address().port}/index.html`); await pg.waitForTimeout(1500);
+  const res = await pg.evaluate(() => {
+    class V3 { constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; } set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; } }
+    class Obj { constructor() { this.position = new V3(); this.rotation = { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; } }; this.scale = new V3(1, 1, 1); this.children = []; this.matrix = {}; } add(c) { this.children.push(c); } updateMatrix() { if (![this.position.x, this.position.y, this.position.z].every(isFinite)) throw new Error('NaN'); } }
+    class Geo { constructor(...a) { this.args = a; } }
+    const THREE = { Group: Obj, Object3D: Obj, Mesh: class extends Obj { constructor(g, m) { super(); this.geometry = g; this.material = m; } },
+      InstancedMesh: class extends Obj { constructor(g, m, n) { super(); this.geometry = g; this.n = n; this.pos = []; this.instanceMatrix = {}; } setMatrixAt(i, m) { this.pos.push(i); } },
+      BoxGeometry: Geo, CylinderGeometry: Geo, MeshStandardMaterial: class { constructor(o) { Object.assign(this, o); } } };
+    const M = c => new THREE.MeshStandardMaterial({ color: c }), out = {};
+    // Ett rum 4 x 3 m med ett fönster på nedre väggen
+    const room = { id: 'rt', name: 'Testrum', rect: { x: 0, y: 0, w: 4, h: 3 }, dirs: ['S'], wins: [{ s: 'b', p: 1, l: 1.5 }] };
+    const oldHome = S.home; S.home = [room];
+    try {
+      // Bord med ben
+      const added = []; furn3d({ t: 'dtable', x: 2, y: 1.5, w: 1.6, h: 0.9 }, THREE, M, o => added.push(o));
+      out.bord = added.length === 1 && added[0].children.length === 5;   // skiva + 4 ben
+      const rnd = []; furn3d({ t: 'round', x: 1, y: 1, w: 1 }, THREE, M, o => rnd.push(o)); out.runtBord = rnd.length === 1 && rnd[0].children.length === 3;
+      // Altan som möbel, halvt in i rummet: bara delen utanför ritas
+      const dk = []; const drew = furn3d({ t: 'deck', x: 4, y: 1.5, w: 4, h: 3 }, THREE, M, o => dk.push(o)); out.altanMobelKlipps = drew && dk.length === 1 && dk[0].n > 0 && dk[0].n < 2500;
+      // Altan som yta (patio), delvis under rummet: inga plankor med mitten inne i rummet
+      const sc = new Obj(), slab = () => { throw new Error('slab ska inte användas när ytan klipps'); }, shape = () => {};
+      area3d({ t: 'patio', pts: [[2, 0.5], [7, 0.5], [7, 2.5], [2, 2.5]] }, THREE, M, sc, slab, shape, 0.005);
+      const inside = sc.children.filter(m => m.position && m.position.x > 0.2 && m.position.x < 3.8 && m.position.z > 0.2 && m.position.z < 2.8 && m.position.y > 0.02);
+      out.altanYtaKlipps = sc.children.length > 10 && inside.length === 0; out.altanDelar = sc.children.length;
+      // Altan helt utanför: vanlig grund används
+      let slabUsed = false; area3d({ t: 'patio', pts: [[6, 5], [8, 5], [8, 7], [6, 7]] }, THREE, M, new Obj(), () => { slabUsed = true; }, shape, 0.005); out.altanUtanforOrort = slabUsed;
+      // Fönsterbräda: riktningen ska peka in i rummet
+      const sl = sill3d(wallSeg(room, room.wins[0]), room); const ix = sl.mx + sl.nx * 0.3, iz = sl.mz + sl.nz * 0.3; out.brada = !!sl && inPoly3(ix, iz, roomPoly(room));
+    } finally { S.home = oldHome; }
+    return out;
+  });
+  const ok = Object.entries(res).filter(([k]) => k !== 'altanDelar').every(([, v]) => v === true) && !errs.length;
+  console.log(JSON.stringify(res)); console.log(ok ? 'OK: bord, altan och fönsterbrädor' : 'FAIL: ' + errs.join(' | '));
+  await b.close(); srv.close(); process.exitCode = ok ? 0 : 1;
+})();
