@@ -1,0 +1,54 @@
+-- 044: Bästa svar godkänns av moderator.
+-- Författaren markerar ett svar, det hamnar som väntande. Först när en moderator godkänner blir det bästa svar.
+alter table public.posts add column if not exists pending_best_answer_id bigint;
+
+-- Vanliga användare kan inte sätta best_answer_id direkt. Bara moderatorer (via RPC nedan) gör det.
+create or replace function public.guard_best_answer() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.best_answer_id is distinct from old.best_answer_id and not public.is_mod() then
+    new.best_answer_id := old.best_answer_id;
+  end if;
+  return new;
+end $$;
+drop trigger if exists guard_best_answer on public.posts;
+create trigger guard_best_answer before update on public.posts
+  for each row execute function public.guard_best_answer();
+
+-- Kö för moderatorn
+create or replace function public.mod_best_queue()
+returns table (post_id bigint, question text, answer_id bigint, answer_text text, answer_author text, asked_by text, asked_at timestamptz)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query
+  select p.id::bigint, left(coalesce(p.body, ''), 300), a.id::bigint, left(coalesce(a.body, ''), 500),
+         pa.display_name, pq.display_name, p.created_at
+  from posts p
+  join answers a on a.id = p.pending_best_answer_id and a.post_id = p.id
+  left join profiles pa on pa.id = a.user_id
+  left join profiles pq on pq.id = p.user_id
+  where p.pending_best_answer_id is not null
+  order by p.created_at desc
+  limit 200;
+end $$;
+grant execute on function public.mod_best_queue() to authenticated;
+
+create or replace function public.mod_best_count()
+returns int language sql stable security definer set search_path = public as $$
+  select case when public.is_mod() then (select count(*)::int from posts where pending_best_answer_id is not null) else 0 end;
+$$;
+grant execute on function public.mod_best_count() to authenticated;
+
+-- Godkänn (sätt som bästa svar) eller avslå (rensa väntan)
+create or replace function public.mod_best_decide(p_post bigint, p_approve boolean)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  if p_approve then
+    update posts set best_answer_id = pending_best_answer_id, pending_best_answer_id = null where id = p_post;
+  else
+    update posts set pending_best_answer_id = null where id = p_post;
+  end if;
+end $$;
+grant execute on function public.mod_best_decide(bigint, boolean) to authenticated;
