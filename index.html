@@ -874,14 +874,22 @@ button.pw{cursor:pointer}
 .cph button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:var(--ink);color:var(--bg);font-size:13px;line-height:1;cursor:pointer}
 .pimg{display:block;width:100%;max-height:320px;object-fit:cover;border-radius:14px;margin:8px 0 4px;cursor:zoom-in}
 .pimg.big{max-height:none;object-fit:contain;cursor:zoom-out}
-.qhome{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 18px 0}
-.qc{all:unset;box-sizing:border-box;position:relative;display:flex;align-items:center;gap:10px;padding:12px;border-radius:16px;background:var(--surf);box-shadow:var(--sh);cursor:pointer;color:var(--ink);font-weight:700;font-size:14px;line-height:1.2}
-.qc>i.ph{font-size:22px;color:var(--pri);flex:none}
-.qc.big{grid-row:span 2;flex-direction:column;align-items:flex-start;justify-content:center;gap:14px;padding:18px 16px;font-size:18px}
-.qc.big>i.ph{font-size:44px}
-.qc.warn>i.ph{color:#B5543A}
-.qc .pro{position:absolute;top:6px;right:8px;font-style:normal;font-size:9px;font-weight:800;color:var(--acc)}
-.qbanner{all:unset;box-sizing:border-box;grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:16px;background:var(--pri);color:var(--onpri);font-weight:800;font-size:15px;cursor:pointer}
+.qhome{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 18px 0}
+.qc{all:unset;box-sizing:border-box;position:relative;display:flex;flex-direction:column;gap:2px;padding:14px;border-radius:22px;background:var(--surf);box-shadow:var(--sh);cursor:pointer;color:var(--ink);text-align:left}
+.qc b{font-size:15px;margin-top:8px}
+.qc>span:not(.qtic){font-size:12.5px;color:var(--mut);line-height:1.35}
+.qtic{width:44px;height:44px;border-radius:14px;background:var(--soft);color:var(--pri);display:grid;place-items:center}
+.qtic i.ph{font-size:22px}
+.qc.warn .qtic{background:#F6DED4;color:#A04A2C}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .qc.warn .qtic{background:#3A241B;color:#EDA88B}}
+:root[data-theme="dark"] .qc.warn .qtic{background:#3A241B;color:#EDA88B}
+.qc.big{grid-column:1/-1;flex-direction:row;align-items:center;gap:14px}
+.qc.big .qtic{width:56px;height:56px;border-radius:18px}
+.qc.big .qtic i.ph{font-size:28px}
+.qc.big b{margin-top:0;font-size:17px}
+.qc.big>span:not(.qtic){font-size:13.5px}
+.qc .pro{position:absolute;top:10px;right:12px;font-style:normal;font-size:9px;font-weight:800;color:var(--acc)}
+.qbanner{all:unset;box-sizing:border-box;grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:22px;background:var(--pri);color:var(--onpri);font-weight:800;font-size:15px;cursor:pointer}
 .qbanner>i.ph:first-child{font-size:22px}
 .qbanner>i.ph:last-child{margin-left:auto;font-size:18px}
 .qgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:4px 18px 0}
@@ -4798,11 +4806,11 @@ const QUICK = () => [
 const QGROUPS = [['Växter', ['db', 'id', 'care', 'season', 'sow']], ['Verktyg', ['light', 'compass', 'nearby']], ['Lär dig', ['perma']], ['Hjälp med växterna', ['doc', 'expert']], ['Hem och trädgård', ['house', 'bed', 'smart']], ['Djur', ['pets']], ['Community', ['comm', 'forum', 'swap', 'detect', 'people', 'inspo']], ['Mitt', ['mine', 'care', 'notif', 'cfg']]];
 const favs = () => { const f = store.get('favQuick', null); if (Array.isArray(f)) { if (!store.get('careFavAdded', false)) { store.set('careFavAdded', true); if (!f.includes('care') && f.length < 7) { f.push('care'); store.set('favQuick', f); } } return f; } return ['db', 'id', 'care', 'doc']; };
 function qBtn(q, edit) { const [k, n, icon, cls, act, pro] = q, on = favs().includes(k); return `<button class="qbtn q-${cls || 'cam'} ${edit ? 'editing' : ''}" onclick="${edit ? `togFav('${k}')` : act}"><span class="tic ${cls}">${ic(icon, 'currentColor', 22)}${pro && !S.pro ? '<em>PRO</em>' : ''}${edit ? `<i class="fav ${on ? 'on' : ''}">${on ? '★' : '☆'}</i>` : ''}</span><span>${n}</span></button>`; }
-const QPH = { db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-calendar-check', 'Dagbok'], doc: ['ph-first-aid-kit', 'Doktorn'], expert: ['ph-chats-circle', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: ['ph-plant', 'Såkalender'], perma: ['ph-tree', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Detektiver'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
+const QPH = { db: ['ph-magnifying-glass', 'Sök växter', 'Hitta i växtdatabasen'], id: ['ph-camera', 'Identifiera', 'Fota en växt och få svar'], care: ['ph-calendar-check', 'Dagbok', 'Att göra och historik per växt'], doc: ['ph-first-aid-kit', 'Doktorn', 'Skador, sjukdomar och ohyra'], expert: ['ph-chats-circle', 'Experter', 'Fråga en riktig expert'], house: ['ph-house-line', 'Mitt hem', 'Rum, väderstreck och ritning'], light: ['ph-sun', 'Ljus', 'Mät ljuset hemma'], nearby: ['ph-map-pin', 'Nära dig', 'Handelsträdgårdar och parker'], compass: ['ph-compass', 'Kompass', 'Vilket väderstreck du pekar mot'], pets: ['ph-paw-print', 'Djur', 'Husdjur, akvarium och giftvarningar'], smart: ['ph-lightbulb', 'Smart', 'Sensorer, lampa och bevattning'], season: ['ph-leaf', 'Säsong', 'Vad du kan göra just nu'], sow: ['ph-plant', 'Såkalender', 'När du sår och planterar ut'], perma: ['ph-tree', 'Permakultur', 'Odla med naturen'], inspo: ['ph-video', 'Odlare', 'YouTube och Instagram'], comm: ['ph-chats', 'Frågor', 'Fråga andra odlare'], forum: ['ph-chat-text', 'Forum', 'Diskutera i grupper'], swap: ['ph-arrows-left-right', 'Byten', 'Byt och ge bort växter'], detect: ['ph-binoculars', 'Detektiver', 'Hjälp att bestämma växter'], people: ['ph-users', 'Vänner', 'Hitta och följ odlare'], mine: ['ph-plant', 'Min samling', 'Dina växter och vattning'], notif: ['ph-bell', 'Notiser', 'Meddelanden och förfrågningar'], cfg: ['ph-pencil-simple', 'Anpassa', 'Ändra startsidan'] };
 function qcard(q) {
-  const [k, n, , cls, act, pro] = q, [icn, lbl] = QPH[k] || ['ph-star', n];
+  const [k, n, , cls, act, pro] = q, [icn, lbl, desc] = QPH[k] || ['ph-star', n, ''];
   const big = k === 'id';
-  return `<button class="qc${big ? ' big' : ''}${k === 'doc' ? ' warn' : ''}" onclick="${act}"><i class="ph ${icn}" aria-hidden="true"></i><span>${lbl}</span>${pro && !S.pro ? '<em class="pro">PRO</em>' : ''}</button>`;
+  return `<button class="qc${big ? ' big' : ''}${k === 'doc' ? ' warn' : ''}" onclick="${act}"><span class="qtic"><i class="ph ${icn}" aria-hidden="true"></i></span><b>${lbl}</b>${desc ? `<span>${desc}</span>` : ''}${pro && !S.pro ? '<em class="pro">PRO</em>' : ''}</button>`;
 }
 function quickV() {
   const Q = QUICK(), f = favs().map(k => Q.find(q => q[0] === k)).filter(Boolean).slice(0, 7);
@@ -5822,6 +5830,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.99.3', 'Nu', ['Snabbknapparna på Hem ser ut som verktygskorten: ikon, namn och en kort rad text. Identifiera är bred och överst']],
   ['1.99.2', 'Nu', ['Ortsknappen är en glob när du valt en ort, så det tar mindre plats i rubriken']],
   ['1.99.1', 'Nu', ['Fler ikoner i Phosphor: planeringsknappar, Mitt hem och tomma sidor']],
   ['1.99', 'Nu', ['Samma ikoner i hela appen: Phosphor. Ikonerna laddas från nätet, så de syns inte när telefonen är offline']],
@@ -6453,7 +6462,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.99.2';
+const APP_VERSION = '1.99.3';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
