@@ -1362,6 +1362,63 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem('gronska_' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('gronska_' + k, JSON.stringify(v)); } catch (e) { console.warn('Roothood:', e); } }
 };
+// ===== Språk: svenska eller engelska. Texterna översätts när de visas, sparade värden stannar på svenska. =====
+let LANG = store.get('lang', 'sv') === 'en' ? 'en' : 'sv';
+const LOC = () => LANG === 'en' ? 'en-GB' : 'sv-SE';
+const TR = { map: null, idx: new Map(), gen: [] };
+function trInit(dict) {
+  TR.map = new Map(); TR.idx = new Map(); TR.gen = [];
+  const rx = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), lead = /^[^\p{L}\p{N}"'(‹+✓·]+/u;
+  for (const k in dict) { const v = dict[k]; if (!v) continue;
+    if (!k.includes('{}')) { TR.map.set(k, v); const k2 = k.replace(lead, ''); if (k2 !== k && k2 && !TR.map.has(k2)) TR.map.set(k2, v.replace(lead, '')); continue; }
+    const parts = k.split('{}'), lit = parts.join('').replace(/[^\p{L}]/gu, '').length;
+    if (lit < 3 || (!parts[0] && !parts[parts.length - 1] && lit < 10)) continue;
+    const p = { re: new RegExp('^' + parts.map(rx).join('(.{1,80}?)') + '$', 'su'), en: v, n: k.length };
+    const a = parts[0], b = parts[parts.length - 1], key = a.includes(' ') ? '^' + a.split(' ')[0] : b.includes(' ') ? '$' + b.split(' ').pop() : null;
+    if (key) { if (!TR.idx.has(key)) TR.idx.set(key, []); TR.idx.get(key).push(p); } else TR.gen.push(p); }
+  for (const l of TR.idx.values()) l.sort((x, y) => y.n - x.n); TR.gen.sort((x, y) => y.n - x.n);
+}
+function trCore(core, depth) {
+  const hit = TR.map.get(core); if (hit != null) return hit;
+  if (depth > 3 || core.length > 600) return null;
+  const sub = t => { const r = trCore(t, depth + 1); return r == null ? t : r; };
+  const w = core.split(' '), c = (TR.idx.get('^' + w[0]) || []).concat(TR.idx.get('$' + w[w.length - 1]) || [], TR.gen);
+  for (const p of c) { const m = core.match(p.re); if (!m) continue;
+    return p.en.replace(/\{(\d)\}/g, (_, i) => { const g = m[+i]; if (g == null) return ''; const t = g.trim(); if (!t || /^[\d\s.,:%+\-–/]+$/.test(t)) return g; return g.replace(t, sub(t)); }); }
+  // Delar: "3 växter · 0 inlägg", "🦜 Fågel", "Utländska (15)", "2 rapporter väntar"
+  if (core.includes(' · ')) { const ps = core.split(' · '), out = ps.map(sub); if (out.some((x, i) => x !== ps[i])) return out.join(' · '); }
+  let m = core.match(/^([^\p{L}\p{N}]+)(.+)$/su); if (m) { const r = trCore(m[2], depth + 1); if (r != null) return m[1] + r; }
+  m = core.match(/^(.+?)(\s*\(\d+\)|[\s:·,.!?…]+)$/su); if (m) { const r = trCore(m[1], depth + 1); if (r != null) return r + m[2]; }
+  m = core.match(/^([\d.,]+\s+)(.+)$/su); if (m) { const r = trCore(m[2], depth + 1); if (r != null) return m[1] + r; }
+  return null;
+}
+function tr(t) {
+  if (LANG !== 'en' || !TR.map || !t || typeof t !== 'string') return t;
+  const m = t.match(/^(\s*)([\s\S]*?)(\s*)$/), core = m[2].replace(/\s+/g, ' '); if (!core || !/[A-Za-zÅÄÖåäöÉé]/.test(core)) return t;
+  const r = trCore(core, 0); return r == null ? t : m[1] + r + m[3];
+}
+const TR_ATTR = ['placeholder', 'aria-label', 'title', 'alt'];
+function trEl(el) { for (const a of TR_ATTR) { const v = el.getAttribute(a); if (v) { const n = tr(v); if (n !== v) el.setAttribute(a, n); } }
+  if (el.tagName === 'INPUT' && /^(button|submit)$/i.test(el.type) && el.value) { const n = tr(el.value); if (n !== el.value) el.value = n; } }
+function trNode(root) {
+  if (LANG !== 'en' || !TR.map || !root) return;
+  if (root.nodeType === 3) { const p = root.parentNode; if (p && /^(STYLE|SCRIPT|TEXTAREA)$/.test(p.nodeName)) return; const n = tr(root.data); if (n !== root.data) root.data = n; return; }
+  if (root.nodeType !== 1 || /^(STYLE|SCRIPT)$/.test(root.nodeName) || root.closest('[data-notr]')) return;
+  if (root.nodeName === 'TEXTAREA') return trEl(root);
+  trEl(root);
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, { acceptNode: n => { if (n.nodeType !== 1) return NodeFilter.FILTER_ACCEPT; if (n.nodeName === 'TEXTAREA') { trEl(n); return NodeFilter.FILTER_REJECT; } return /^(STYLE|SCRIPT|svg)$/.test(n.nodeName) || n.hasAttribute('data-notr') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; } });
+  let n; while ((n = w.nextNode())) { if (n.nodeType === 3) { const v = tr(n.data); if (v !== n.data) n.data = v; } else trEl(n); }
+}
+function trStart() {
+  document.documentElement.lang = LANG;
+  if (LANG !== 'en') return;
+  ['confirm', 'alert', 'prompt'].forEach(k => { const o = window[k]; if (o && !o.__tr) { const f = (m, d) => o.call(window, tr(m), d); f.__tr = 1; window[k] = f; } });
+  trNode(document.body);
+  new MutationObserver(ms => { for (const m of ms) { if (m.type === 'characterData') trNode(m.target); else if (m.type === 'attributes') trEl(m.target); else m.addedNodes.forEach(trNode); } })
+    .observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: TR_ATTR });
+}
+function setLang(v) { if (v === LANG) return; store.set('lang', v); location.reload(); }
+const langPick = () => seg3([['sv', 'Svenska'], ['en', 'English']], LANG, 'setLang');
 function errMsg(e) {
   const m = (e && e.message) || '';
   if (/Invalid login/i.test(m)) return 'Fel e-post eller lösenord.';
@@ -1622,7 +1679,7 @@ const isMod = () => S.role === 'mod' || S.role === 'admin', isAdmin = () => S.ro
 
 // ===== Åtgärder =====
 let toastT;
-function toast(t) { const el = $('#toast'); el.textContent = t; iconize(el); el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, 2800); }
+function toast(t) { const el = $('#toast'); el.textContent = tr(t); iconize(el); el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, 2800); }
 async function run(fn, ok) {
   try { await fn(); S.mine = await api.mine(); if (ok) toast(ok); }
   catch (e) { toast(errMsg(e)); }
@@ -3255,7 +3312,7 @@ const OUT3 = {
     g.position.set(f.x, 0, f.y); g.rotation.y = -(f.rot || 0) * Math.PI / 180; sc.add(g); },
 };
 function label3d(txt) {
-  if (!T3) return null; const THREE = T3.THREE, c = document.createElement('canvas'), x = c.getContext('2d'); x.font = '700 44px system-ui, sans-serif'; const w = Math.ceil(x.measureText(txt).width) + 40;
+  if (!T3) return null; const THREE = T3.THREE, c = document.createElement('canvas'), x = c.getContext('2d'); txt = tr(txt); x.font = '700 44px system-ui, sans-serif'; const w = Math.ceil(x.measureText(txt).width) + 40;
   c.width = w; c.height = 72; x.font = '700 44px system-ui, sans-serif'; x.fillStyle = 'rgba(255,255,255,.85)'; x.beginPath(); x.roundRect ? x.roundRect(0, 0, w, 72, 36) : x.rect(0, 0, w, 72); x.fill(); x.fillStyle = '#1F4D3A'; x.textBaseline = 'middle'; x.fillText(txt, 20, 38);
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, sizeAttenuation: false, transparent: true })); sp.scale.set(w / 72 * 0.034, 0.034, 1); sp.renderOrder = 10; return sp;
 }
@@ -4728,7 +4785,7 @@ function weatherV(sz) {
       <div class="wxmeta"><span>${wxIco('💨', 14)} ${Math.round(c.wind_speed_10m)} m/s</span><span>${wxIco('💧', 14)} ${c.relative_humidity_2m} % ute</span></div></div>
     ${showDays ? `<div class="wxdays">${d.time.slice(0, 5).map((t, i) => `<div><small>${i === 0 ? 'Idag' : DAYS[new Date(String(t).length === 10 ? t + 'T12:00' : t).getDay()]}</small><span>${(WX[d.weather_code[i]] || ['', '·'])[1]}</span><b>${Math.round(d.temperature_2m_max[i])}°</b><small>${Math.round(d.temperature_2m_min[i])}°</small></div>`).join('')}</div>` : ''}
     ${warn.length ? `<button class="wxrow" onclick="S.wxOpen=!S.wxOpen;render()" aria-expanded="${!!S.wxOpen}"><span>${wxIco(warn[0][1], 14)} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span><span>${S.wxOpen ? 'Dölj' : 'Visa'}</span></button>${S.wxOpen ? `<div class="wxwarn">${warn.map(x => `<div class="wxw w-${x[0]}"><span class="wwi">${x[1]}</span><div><b>${x[2]}</b><span>${x[3]}</span></div></div>`).join('')}</div>` : ''}` : `<p class="wxok">Inga vädervarningar just nu.</p>`}
-    <div class="wxfoot"><span class="wxsrc">Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}</span><button class="link3" onclick="S.wxAll=!S.wxAll;render()">${S.wxAll ? 'Dölj dagar' : '5 dagar'}</button></div></div>`;
+    <div class="wxfoot"><span class="wxsrc">Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString(LOC(), { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}</span><button class="link3" onclick="S.wxAll=!S.wxAll;render()">${S.wxAll ? 'Dölj dagar' : '5 dagar'}</button></div></div>`;
 }
 function openDb(focus) { stopLight(); S.sel = null; S.modal = null; S.tool = 'db'; render(); $('#main').scrollTop = 0; if (focus) setTimeout(() => { const i = $('.search input'); if (i) i.focus(); }, 50); }
 function dbV() {
@@ -5503,7 +5560,7 @@ function inflCard(x) {
   if (l.yt) a.push(`<a class="yt" href="https://www.youtube.com/results?search_query=${encodeURIComponent(l.yt)}" target="_blank" rel="noopener">▶ YouTube</a>`);
   if (l.ig) a.push(`<a class="ig" href="https://www.instagram.com/${encodeURIComponent(l.ig)}/" target="_blank" rel="noopener">◎ @${esc(l.ig)}</a>`);
   if (l.web) a.push(`<a href="${esc(l.web)}" target="_blank" rel="noopener">🌐 Hemsida</a>`);
-  return `<div class="icard">${avBig(n)}<div class="grow"><b>${esc(n)}</b><div class="itag">${land === 'se' ? '🇸🇪 Svensk' : '🌍 Utländsk'} · ${cat}</div><p>${esc(d)}</p><div class="ilinks">${a.join('')}</div></div></div>`;
+  return `<div class="icard">${avBig(n)}<div class="grow"><b data-notr>${esc(n)}</b><div class="itag">${land === 'se' ? '🇸🇪 Svensk' : '🌍 Utländsk'} · ${cat}</div><p>${esc(d)}</p><div class="ilinks">${a.join('')}</div></div></div>`;
 }
 function inspoV() {
   const land = S.iland || 'all', cat = S.icat || 'Alla';
@@ -5759,7 +5816,7 @@ function exploreV() { const Q = QUICK(), by = k => Q.find(q => q[0] === k), e = 
   ${e ? '<p class="mut" style="margin:0 18px 8px;font-size:13px">Tryck på en rad för att lägga till eller ta bort en genväg. Högst 7 visas på Hem.</p>' : ''}
   ${QGROUPS.map(([g, ks]) => `<div class="sec cap2"><h2>${g}</h2></div><div class="xlist">${ks.map(by).filter(Boolean).map(q => xRow(q, e)).join('')}</div>`).join('')}
   <div style="height:24px"></div>`; }
-function welcomeV() { return `<div class="welc"><div class="wh"><b>Välkommen till Roothood 🌱</b><button class="x" onclick="store.set('welcomeDone',true);render()" aria-label="Stäng">×</button></div>
+function welcomeV() { return `<div class="welc"><div class="wh"><b>Välkommen till Roothood 🌱</b><button class="x" onclick="store.set('welcomeDone',true);render()" aria-label="Stäng">×</button></div><div data-notr style="margin:4px 0 10px">${langPick()}</div>
   <p>Så kommer du igång på tre steg:</p>
   <button class="wstep" onclick="openDb()"><span>1</span><div><b>Lägg till dina växter</b><small>Sök i växtdatabasen och tryck Lägg till i min samling</small></div></button>
   <button class="wstep" onclick="go('mine')"><span>2</span><div><b>Få koll på vattningen</b><small>Samling visar vad som behöver vatten idag</small></div></button>
@@ -6129,7 +6186,7 @@ function ago(t) {
   const d = Math.floor(s / 86400);
   if (d === 1) return 'igår';
   if (d < 7) return d + ' dagar sedan';
-  return new Date(t).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
+  return new Date(t).toLocaleDateString(LOC(), { day: 'numeric', month: 'short' });
 }
 function needLogin() { if (!S.user) { openModal('login'); return true; } return false; }
 const isForum = () => S.ctab === 'forum';
@@ -6863,6 +6920,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.164', '27 okt 19:30', ['Appen finns på engelska. Välj Språk / Language under Inställningar, Utseende, eller i välkomstrutan. Menyer, knappar, guider, råd, varningar och notiser översätts. Uppdateringsloggen är kvar på svenska']],
   ['1.163', '27 okt 18:40', ['3D: växten i en upp och ner-kruka hänger nu rakt ner ur öppningen med rankor och blad, i stället för att peka uppåt']],
   ['1.162', '27 okt 18:20', ['Ny plats: Upp och ner i taket. Krukan hänger med öppningen nedåt och växten växer ner mot golvet, både i 3D och i ritningen', '3D: krukan och jorden följer växtens uppgifter. Terrakotta, plast, keramik eller ytterkruka, storleken du skrivit in, självvattnande kruka med vattenmätare, semi-hydro med leca eller pon och vatten i botten, vas med vatten och ampel. Jordytan visar krukjord, leca, pon, orkidébark, perlit, pimpsten, kokosfiber eller vitmossa']],
   ['1.161', '27 okt 18:00', ['3D: smarta saker är riktiga apparater. Växtsensorn sitter i krukan, termometern och uttaget på väggen, växtlampan hänger över växten, golvlampan står på golvet, och luftfuktare och högtalare står på bordet']],
@@ -6975,7 +7033,7 @@ const NEWS = [
   ['1.5x', 'Tidigare', ['Rabattläge med växtavstånd och djup', 'Utomhus i 3D med höjd på träd och buskar', 'Reptiler, akvarium och giftvarningar', 'Äppelsorter och bärbuskar för zon 4 och uppåt', 'Vetenskapliga namn först, svenska under']],
 ];
 function openNews() { stopLight(); S.sel = null; S.modal = null; S.tool = 'news'; render(); $('#main').scrollTop = 0; }
-function newsV() { return `${topbar('Uppdateringar', 'closeTool()')}<div class="pad">${NEWS.map(n => `<div class="setcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b>Version ${n[0]}</b><span class="mut" style="font-size:13px">${n[1]}</span></div><ul style="margin:8px 0 0;padding-left:18px;font-size:14.5px;line-height:1.5">${n[2].map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div><div style="height:24px"></div>`; }
+function newsV() { return `${topbar('Uppdateringar', 'closeTool()')}<div class="pad">${LANG === 'en' ? '<p class="mut" style="margin:0 0 12px">Uppdateringarna nedan är på svenska.</p>' : ''}<div data-notr>${NEWS.map(n => `<div class="setcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b>Version ${n[0]}</b><span class="mut" style="font-size:13px">${n[1]}</span></div><ul style="margin:8px 0 0;padding-left:18px;font-size:14.5px;line-height:1.5">${n[2].map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div></div><div style="height:24px"></div>`; }
 // ===== Såkalender =====
 const FROST = { 1: [6, 10], 2: [6, 1], 3: [5, 25], 4: [5, 18], 5: [5, 12], 6: [5, 5], 7: [4, 25], 8: [4, 15] };
 const SOWL = { inne: 'Förså inomhus', ute: 'Så direkt ute', plant: 'Plantera ut', sat: 'Sätt', forgro: 'Förgro' };
@@ -7342,7 +7400,7 @@ const lfac = () => (LSRC.find(s => s[0] === S.lsrc) || LSRC[0])[2];
 const ppfd = () => S.light && S.light.lux != null ? S.light.lux * lfac() : 0;
 const dli = () => ppfd() * S.lhours * 0.0036;
 const pclass = () => S.light && S.light.lux != null ? PCLASS.find(c => ppfd() < c.max) : null;
-const fmt = (n, d) => Number(n).toLocaleString('sv-SE', { maximumFractionDigits: d || 0, minimumFractionDigits: d || 0 });
+const fmt = (n, d) => Number(n).toLocaleString(LOC(), { maximumFractionDigits: d || 0, minimumFractionDigits: d || 0 });
 function gauge() {
   const v = ppfd(), f = S.light && S.light.lux != null ? Math.min(1, Math.log10(1 + v) / Math.log10(1 + 1500)) : 0, C = Math.PI * 80;
   return `<svg viewBox="0 0 200 112" class="gauge" aria-hidden="true"><defs><linearGradient id="gg" x1="0" x2="1"><stop offset="0" stop-color="#4C6B2E"/><stop offset=".55" stop-color="#7CB342"/><stop offset="1" stop-color="#F0A92B"/></linearGradient></defs>
@@ -7559,7 +7617,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.163';
+const APP_VERSION = '1.164';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -7655,7 +7713,8 @@ function settingsV() {
   return `${topbar('Inställningar', 'closeTool()')}
   <div class="sec" style="padding-top:8px"><h2>Profil</h2></div><div class="pad">${profile}</div>
   <div class="sec"><h2>Utseende</h2></div><div class="pad"><div class="setcard">
-    <label class="fl">Tema</label>${seg3([['system', 'Auto'], ['light', 'Ljust'], ['dark', 'Mörkt']], th, "(v=>setPref('theme',v))")}
+    <label class="fl">Språk / Language</label><div data-notr>${langPick()}</div>
+    <label class="fl" style="margin-top:14px">Tema</label>${seg3([['system', 'Auto'], ['light', 'Ljust'], ['dark', 'Mörkt']], th, "(v=>setPref('theme',v))")}
     <label class="fl" style="margin-top:14px">Färgtema</label>
     <div class="palrow">${[['', 'Roothood', '#1F4D3A']].concat(PALS).map(([k, n, c]) => `<button class="pal ${store.get('pal', '') === k ? 'on' : ''}" aria-pressed="${store.get('pal', '') === k}" onclick="setPref('pal','${k}')"><i style="background:${c}"></i><span>${n}</span></button>`).join('')}</div>
     <label class="fl" style="margin-top:14px">Textstorlek</label>${seg3([[1, 'Normal'], [1.1, 'Större'], [1.2, 'Störst']], ts, "(v=>setPref('textsize',v))")}
@@ -7736,7 +7795,7 @@ async function testPush() {
     if (DEMO) {
       const names = S.mine.filter(m => left(m) === 0).map(m => m.name);
       const reg = await swReady();
-      await reg.showNotification('Notiserna fungerar! 🌱', { body: names.length ? 'Just nu behöver ' + names.join(', ') + ' vattnas.' : 'Inga växter behöver vattnas just nu.', icon: 'icon-192.png', tag: 'roothood-water', data: { url: './?tab=mine' } });
+      await reg.showNotification(tr('Notiserna fungerar! 🌱'), { body: tr(names.length ? 'Just nu behöver ' + names.join(', ') + ' vattnas.' : 'Inga växter behöver vattnas just nu.'), icon: 'icon-192.png', tag: 'roothood-water', data: { url: './?tab=mine' } });
       toast('Testnotis visad (demoläge)');
       return;
     }
@@ -7819,6 +7878,8 @@ window.addEventListener('online', showOffline); window.addEventListener('offline
 function loadScript(src) { return new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fail(new Error('Kunde inte ladda ' + src)); document.head.appendChild(s); }); }
 async function init() {
   applyPrefs();
+  if (LANG === 'en') { try { await loadScript('en.js?v=' + APP_VERSION); trInit(window.EN_DICT || {}); } catch (e) { console.warn('Roothood:', e); } }
+  trStart();
   render();
   try {
     if (!DEMO) {
