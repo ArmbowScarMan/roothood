@@ -5802,7 +5802,7 @@ function plantsSec(c, self) {
     ${items}</div>`;
 }
 // ===== Alla växter med filter =====
-function openAllPl() { S.apq = ''; S.apf = {}; S.aps = S.plSort || 'new'; openModal('allpl'); }
+function openAllPl() { S.apq = ''; S.apf = {}; S.apOpen = false; S.aps = S.plSort || 'new'; openModal('allpl'); }
 function aplDb(pl) { return pl.plant_id ? S.plants.find(x => x.id === pl.plant_id) : S.plants.find(x => x.swedish_name === pl.name); }
 const APL_F = [['cat', 'Kategori', (pl, db) => [(db && db.category) || null]], ['place', 'Planterad', pl => [(pl.d || {}).place]], ['soil', 'Jord', pl => (pl.d || {}).soil || []], ['light', 'Plats', pl => [(pl.d || {}).light]]];
 function aplItems() {
@@ -5843,9 +5843,11 @@ function allPlV() {
   const active = Object.values(f).some(v => v != null && v !== false) || S.apq;
   return `<div class="mh"><h2>Alla växter</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div class="search" style="margin:0"><input type="search" placeholder="Sök namn eller sort" value="${esc(S.apq || '')}" oninput="S.apq=this.value;aplRefresh()" aria-label="Sök bland växterna" autocomplete="off"></div>
-  ${grp('Sortera', sorts.map(([k, t]) => chip(S.aps === k, t, `aplSort('${k}')`)).join(''))}
+  ${(() => { const n = Object.values(f).filter(v => v != null && v !== false).length + (S.aps !== 'new' ? 1 : 0);
+    return `<button class="btn wide line" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center" aria-expanded="${!!S.apOpen}" onclick="S.apOpen=!S.apOpen;keepScroll()"><span>${ic('ph-sliders-horizontal', 'currentColor', 18)} Filter och sortering${n ? ` (${n})` : ''}</span>${ic(S.apOpen ? 'ph-caret-up' : 'ph-caret-down', 'currentColor', 18)}</button>`; })()}
+  ${S.apOpen ? `<div>${grp('Sortera', sorts.map(([k, t]) => chip(S.aps === k, t, `aplSort('${k}')`)).join(''))}
   ${APL_F.map(([k, t]) => o[k].length > 1 ? grp(t, o[k].map((v, i) => chip(f[k] === i, v, `aplSet('${k}',${i})`)).join('')) : '').join('')}
-  ${grp('Mer', chip(!!f.safe, 'Giftfri för djur', `S.apf.safe=!S.apf.safe;keepScroll()`) + (own ? chip(!!f.water, 'Vattnas minst varje vecka', `S.apf.water=!S.apf.water;keepScroll()`) + chip(!!f.miss, 'Saknar uppgifter', `S.apf.miss=!S.apf.miss;keepScroll()`) : ''))}
+  ${grp('Mer', chip(!!f.safe, 'Giftfri för djur', `S.apf.safe=!S.apf.safe;keepScroll()`) + (own ? chip(!!f.water, 'Vattnas minst varje vecka', `S.apf.water=!S.apf.water;keepScroll()`) + chip(!!f.miss, 'Saknar uppgifter', `S.apf.miss=!S.apf.miss;keepScroll()`) : ''))}</div>` : ''}
   <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0 8px"><small class="mut" id="apl-n">${aplItems().length} av ${all.length}</small>${active ? '<button class="link3" onclick="aplClear()">Rensa filter</button>' : ''}</div>
   <div id="apl-list">${aplListHtml()}</div>`;
 }
@@ -7084,6 +7086,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.186', '27 okt 23:25', ['Alla växter: filter och sortering ligger under en knapp som du fäller ut och in']],
   ['1.185', '27 okt 23:20', ['Profil: knapparna för sortering och visning är borttagna. Växterna visas alltid med den senast tillagda först']],
   ['1.184', '27 okt 23:30', ['Profil: tre växter visas, sedan knappen Se alla växter. Där kan du söka, sortera och filtrera på kategori, planterad, jord, plats, giftfri för djur och mer']],
   ['1.183', '27 okt 23:15', ['Profil: listan över din samling är mycket smalare, en rad per växt']],
@@ -7802,7 +7805,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.185';
+const APP_VERSION = '1.186';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
