@@ -449,14 +449,13 @@ details.tech p b{color:var(--ink)}
 .setcard>.fl:first-child{margin-top:0}
 .seg2.inset{margin:0;box-shadow:none;background:var(--bg)}
 .seg2.inset button{font-size:13.5px}
-.prow{all:unset;box-sizing:border-box;cursor:pointer;display:flex;gap:12px;align-items:flex-start;width:100%;background:var(--surf);border-radius:18px;padding:10px 12px 12px 10px;box-shadow:var(--sh)}
-.prow .ph{width:64px;height:64px;border-radius:14px;flex:none}.prow img{width:100%;height:100%;object-fit:cover}
-.prow .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-.prow .grow>b{font-size:15px;font-weight:800}.prow .grow>i{font-size:12.5px;color:var(--mut)}
-.pfacts{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;margin-top:8px}
-.pfacts span{font-size:13px;font-weight:600;min-width:0;overflow-wrap:anywhere}
-.pfacts small{display:block;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
-.pmiss{font-size:12.5px;color:var(--pri);font-weight:700;margin-top:6px}
+.prow{all:unset;box-sizing:border-box;cursor:pointer;display:flex;gap:10px;align-items:center;width:100%;padding:6px 2px;border-bottom:1px solid var(--line)}
+.prow:last-child{border-bottom:0}
+.prow .ph{width:36px;height:36px;border-radius:10px;flex:none}.prow img{width:100%;height:100%;object-fit:cover}
+.prow .grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.prow .grow>b{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .grow>span{font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plist{display:flex;flex-direction:column;background:var(--surf);border-radius:16px;padding:4px 12px;box-shadow:var(--sh)}
 .seg2.pl-view{flex:none;width:auto}.seg2.pl-view button{flex:none;padding:7px 11px;font-size:13px;white-space:nowrap}
 .setrow{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;width:100%;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh);cursor:pointer}
 .setrow:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
@@ -5794,7 +5793,7 @@ function plantsSec(c, self) {
   if (sort === 'h') list.sort((a, b) => ((b.d || {}).h || 0) - ((a.d || {}).h || 0));
   const own = list.some(pl => pl.mid);
   const items = view === 'list'
-    ? `<div class="norm">${list.map(pl => { const db = dbOf(pl); if (pl.mid) return plRow(pl, db, thumb(pl, db)); return `<button class="nrow" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${thumb(pl, db)}<span class="grow"><b>${esc(name(pl))}</b>${db && db.latin ? `<small>${esc(db.latin)}</small>` : ''}</span></button>`; }).join('')}</div>`
+    ? `<div class="${own ? 'plist' : 'norm'}">${list.map(pl => { const db = dbOf(pl); if (pl.mid) return plRow(pl, db, thumb(pl, db)); return `<button class="nrow" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${thumb(pl, db)}<span class="grow"><b>${esc(name(pl))}</b>${db && db.latin ? `<small>${esc(db.latin)}</small>` : ''}</span></button>`; }).join('')}</div>`
     : `<div class="uplants">${list.map(pl => { const db = dbOf(pl); return `<button class="upl" ${db ? `onclick="openPlant(${db.id})"` : 'disabled'}>${thumb(pl, db)}<span>${esc(name(pl))}</span></button>`; }).join('')}</div>`;
   const tog = (k, t, cur, setter) => `<button role="tab" aria-selected="${cur === k}" class="${cur === k ? 'on' : ''}" onclick="${setter}('${k}')">${t}</button>`;
   return `${head}<div class="pad">
@@ -5805,17 +5804,13 @@ function plantsSec(c, self) {
     ${items}</div>`;
 }
 function plRow(pl, db, th) {
-  const d = pl.d || {}, f = [], lat = pl.latin || (db && db.latin);
-  if (d.place) f.push(['Planterad', d.place]);
-  if (d.cm || d.mat) f.push(['Kruka', [d.cm ? d.cm + ' cm' : '', d.mat || ''].filter(Boolean).join(', ')]);
-  if (d.soil && d.soil.length) f.push(['Jord', d.soil.join(', ')]);
-  if (d.h) f.push(['Höjd', d.h + ' cm']);
-  if (d.w) f.push(['Bredd', d.w + ' cm']);
-  if (d.light) f.push(['Plats', d.light]);
-  if (pl.interval) f.push(['Vattning', pl.interval === 1 ? 'Varje dag' : pl.interval === 2 ? 'Varannan dag' : 'Var ' + pl.interval + ':e dag']);
-  return `<button class="prow" onclick="openMine(${pl.mid})">${th}<span class="grow"><b>${esc(pl.name || 'Växt')}</b>${lat ? `<i>${esc(lat)}</i>` : ''}
-    ${f.length ? `<span class="pfacts">${f.map(([k, v]) => `<span><small>${k}</small>${esc(v)}</span>`).join('')}</span>` : ''}
-    ${f.length < 3 ? '<span class="pmiss">+ Lägg till kruka, jord och höjd</span>' : ''}</span></button>`;
+  const d = pl.d || {}, f = [];
+  if (d.cm || d.mat) f.push([d.cm ? 'Ø' + d.cm + ' cm' : '', d.mat || ''].filter(Boolean).join(' '));
+  if (d.soil && d.soil.length) f.push(d.soil.join(', '));
+  if (d.h) f.push(d.h + ' cm hög');
+  if (d.light) f.push(d.light);
+  if (pl.interval) f.push('vattnas var ' + pl.interval + ' d');
+  return `<button class="prow" onclick="openMine(${pl.mid})">${th}<span class="grow"><b>${esc(pl.name || 'Växt')}</b><span>${esc(f.join(' · ')) || '–'}</span></span></button>`;
 }
 function setPlSort(v) { S.plSort = v; keepMain(); }
 function setPlView(v) { S.plView = v; keepMain(); }
@@ -7043,6 +7038,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.183', '27 okt 23:15', ['Profil: listan över din samling är mycket smalare, en rad per växt']],
   ['1.182', '27 okt 23:20', ['Profil: listan över din samling visar kruka, jord, höjd, plats och vattning för varje växt. Ny sortering på höjd']],
   ['1.181', '27 okt 23:10', ['Profil: din samling visas som lista, sorterad på senast tillagd eller A–Ö. Du kan växla till rutnät']],
   ['1.180', '27 okt 22:40', ['Profil: Roothood Pro-rutan visas för inloggade under testperioden, så att du kan prova och avsluta Pro']],
@@ -7758,7 +7754,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.182';
+const APP_VERSION = '1.183';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
