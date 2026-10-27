@@ -14,12 +14,14 @@ const srv = http.createServer((q, r) => { const p = path.join(dir, q.url.split('
     class Geo { constructor(...a) { this.args = a; } }
     const THREE = { Group: Obj, Object3D: Obj, Mesh: class extends Obj { constructor(g, m) { super(); this.geometry = g; this.material = m; } },
       InstancedMesh: class extends Obj { constructor(g, m, n) { super(); this.geometry = g; this.n = n; this.pos = []; this.instanceMatrix = {}; } setMatrixAt(i, m) { this.pos.push(i); } },
-      BoxGeometry: Geo, CylinderGeometry: Geo, MeshStandardMaterial: class { constructor(o) { Object.assign(this, o); } } };
+      BoxGeometry: Geo, CylinderGeometry: Geo, SphereGeometry: Geo, TorusGeometry: Geo, MeshStandardMaterial: class { constructor(o) { Object.assign(this, o); } } };
     const M = c => new THREE.MeshStandardMaterial({ color: c }), out = {};
     // Ett rum 4 x 3 m med ett fönster på nedre väggen
     const room = { id: 'rt', name: 'Testrum', rect: { x: 0, y: 0, w: 4, h: 3 }, dirs: ['S'], wins: [{ s: 'b', p: 1, l: 1.5 }] };
     const oldHome = S.home; S.home = [room];
     try {
+      // Alla detaljerade möbler byggs utan fel och består av flera delar
+      out.mobler = Object.keys(FURN3).every(t => { const g = new Obj(), F = FURN_M[t]; FURN3[t](kit3(THREE, M, g, 3), F[2], F[3], FH[t] || 0.8, { t }); return g.children.length >= 2; });
       // Bord med ben
       const added = []; furn3d({ t: 'dtable', x: 2, y: 1.5, w: 1.6, h: 0.9 }, THREE, M, o => added.push(o));
       out.bord = added.length === 1 && added[0].children.length === 5;   // skiva + 4 ben

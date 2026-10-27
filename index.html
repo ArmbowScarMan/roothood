@@ -2910,6 +2910,77 @@ function area3d(a, THREE, M, sc, slab, shape, y) {
 function hedge3d(wl, THREE, M, sc, box) { const L = Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1), H = 1.3, col = '#3F7A35'; box(wl.x1, wl.y1, wl.x2, wl.y2, 0, H - 0.2, 0.6, col); if (S.low3d || L < 0.1) return; const R = rng3(Math.round(wl.x1 * 97 + wl.y1 * 31));
   for (let t = 0; t <= L; t += 0.35) { const s = new THREE.Mesh(new THREE.SphereGeometry(0.34, 10, 8), M(['#3F7A35', '#4A8840', '#37702F'][Math.floor(R() * 3)])); s.position.set(wl.x1 + (wl.x2 - wl.x1) * t / L, H - 0.25 + R() * 0.08, wl.y1 + (wl.y2 - wl.y1) * t / L); s.scale.set(1, 0.7, 1); s.castShadow = true; sc.add(s); } }
 // Fönster- och dörrdetaljer på huset
+// ===== Detaljerade möbler i 3D. Lokala mått: bredd W längs x, djup D längs z (framsidan mot +z), höjd H. =====
+function kit3(THREE, M, g, seed) {
+  const put = (geo, col, x, y, z, o) => { const m = new THREE.Mesh(geo, M(col, o)); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
+  return { THREE, M, g, R: rng3(seed || 7),
+    box: (w, h, d, col, x, y, z, o) => put(new THREE.BoxGeometry(Math.max(0.005, w), Math.max(0.005, h), Math.max(0.005, d)), col, x, y, z, o),
+    cyl: (r0, r1, h, col, x, y, z, seg, o) => put(new THREE.CylinderGeometry(r0, r1, h, seg || 16), col, x, y, z, o),
+    sph: (r, col, x, y, z, o) => put(new THREE.SphereGeometry(r, 14, 10), col, x, y, z, o),
+    tor: (r, t, col, x, y, z) => { const m = put(new THREE.TorusGeometry(r, t, 8, 28), col, x, y, z); m.rotation.x = Math.PI / 2; return m; } };
+}
+const GLASS3 = { transparent: true, opacity: 0.28, roughness: 0.05 };
+const legs4 = (K, W, D, h, r, col, inset) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => K.cyl(r, r * 0.8, h, col, a * (W / 2 - inset), h / 2, b * (D / 2 - inset), 10));
+const roof3 = (K, W, D, y0, col, a) => { const half = D / 2 / Math.cos(a) + 0.15; [-1, 1].forEach(s => { const m = K.box(W + 0.3, 0.06, half, col, 0, y0 + Math.tan(a) * D / 4, s * D / 4); m.rotation.x = s * a; }); };
+const FURN3 = {
+  sofa: (K, W, D) => { const fab = '#8FA9B8', cu = '#A9C0CC'; K.box(W, 0.34, D, fab, 0, 0.25, 0); legs4(K, W, D, 0.08, 0.025, '#4A3A2A', 0.08);
+    const n = Math.max(1, Math.round((W - 0.3) / 0.65)), cw = (W - 0.32) / n;
+    for (let i = 0; i < n; i++) { const x = -W / 2 + 0.16 + cw * (i + 0.5); K.box(cw - 0.02, 0.14, D - 0.3, cu, x, 0.49, 0.07); const b = K.box(cw - 0.03, 0.4, 0.18, cu, x, 0.68, -D / 2 + 0.24); b.rotation.x = -0.12; }
+    K.box(W, 0.5, 0.14, fab, 0, 0.58, -D / 2 + 0.07); [-1, 1].forEach(s => K.box(0.16, 0.6, D, fab, s * (W / 2 - 0.08), 0.38, 0)); },
+  chair2: (K, W, D) => FURN3.sofa(K, W, D),
+  bed2: (K, W, D, H, f) => { const two = f.t === 'bed2'; K.box(W, 0.26, D, '#B08A62', 0, 0.15, 0); K.box(W - 0.06, 0.2, D - 0.08, '#F4F1EA', 0, 0.38, 0.02);
+    K.box(W - 0.02, 0.07, D * 0.62, two ? '#8FB3C9' : '#C9A0B8', 0, 0.51, D / 2 - D * 0.31); K.box(W - 0.02, 0.05, 0.14, '#F4F1EA', 0, 0.55, D / 2 - D * 0.62);
+    const n = two ? 2 : 1, pw = (W - 0.16) / n; for (let i = 0; i < n; i++) { const p = K.box(pw - 0.06, 0.11, 0.36, '#FFFFFF', -W / 2 + 0.08 + pw * (i + 0.5), 0.54, -D / 2 + 0.3); p.rotation.x = -0.15; }
+    K.box(W + 0.02, 0.95, 0.07, '#9A7550', 0, 0.48, -D / 2 + 0.035); },
+  bed1: (K, W, D, H, f) => FURN3.bed2(K, W, D, H, f),
+  chair: (K, W, D) => { const c = '#A47B52'; K.box(W, 0.04, D, c, 0, 0.45, 0); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => K.box(0.035, 0.45, 0.035, c, a * (W / 2 - 0.03), 0.225, b * (D / 2 - 0.03)));
+    [-1, 1].forEach(s => K.box(0.035, 0.45, 0.035, c, s * (W / 2 - 0.03), 0.68, -D / 2 + 0.02)); K.box(W, 0.14, 0.03, c, 0, 0.82, -D / 2 + 0.02); },
+  shelf: (K, W, D, H) => { const c = '#C9A57D'; [-1, 1].forEach(s => K.box(0.025, H, D, c, s * (W / 2 - 0.0125), H / 2, 0)); K.box(W, 0.025, D, c, 0, H - 0.0125, 0); K.box(W, 0.06, D, c, 0, 0.03, 0); K.box(W, H, 0.01, '#B8946A', 0, H / 2, -D / 2 + 0.005);
+    const n = 5, gap = (H - 0.08) / n, cols = ['#7B3F3F', '#3F5F7B', '#D9C08A', '#4E6B3F', '#5A4A6B', '#C9A0B8'], lists = cols.map(() => []);
+    for (let i = 0; i < n; i++) { const y = 0.06 + i * gap; if (i) K.box(W - 0.05, 0.02, D - 0.02, c, 0, y, 0.005); let x = -W / 2 + 0.04;
+      while (x < W / 2 - 0.08) { if (K.R() < 0.08) { x += 0.08; continue; } const bw = 0.02 + K.R() * 0.03, bh = Math.min(gap - 0.06, 0.18 + K.R() * 0.12); lists[Math.floor(K.R() * cols.length)].push([x + bw / 2, y + 0.01 + bh / 2, 0.02, 0, 0, 0, bw, bh, D * 0.7]); x += bw + 0.003; } }
+    const unit = new K.THREE.BoxGeometry(1, 1, 1); lists.forEach((l, i) => { if (l.length) K.g.add(inst3d(K.THREE, unit, K.M(cols[i]), l)); }); },
+  pshelf: (K, W, D) => { [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => K.cyl(0.012, 0.012, 1.5, '#3A3A3A', a * (W / 2 - 0.02), 0.75, b * (D / 2 - 0.02), 8)); [0.4, 0.9, 1.48].forEach(y => K.box(W, 0.025, D, '#A47B52', 0, y, 0)); },
+  dresser: (K, W, D, H) => { const c = '#D9C3A5'; K.box(W, H - 0.06, D, c, 0, (H - 0.06) / 2 + 0.06, 0); legs4(K, W, D, 0.06, 0.02, '#8A6A47', 0.05);
+    const dh = (H - 0.12) / 3; for (let i = 0; i < 3; i++) { const y = 0.1 + dh * (i + 0.5); K.box(W - 0.05, dh - 0.03, 0.02, '#E6D4BA', 0, y, D / 2 + 0.01); [-1, 1].forEach(s => K.sph(0.015, '#8A6A47', s * W * 0.22, y, D / 2 + 0.03)); } },
+  ward: (K, W, D, H) => { K.box(W, H, D, '#E8E2D8', 0, H / 2, 0); [-1, 1].forEach(s => { K.box(W / 2 - 0.02, H - 0.08, 0.02, '#F4F0E8', s * W / 4, H / 2, D / 2 + 0.01); K.box(0.015, 0.28, 0.02, '#8A8A8A', s * 0.05, H * 0.55, D / 2 + 0.03); }); },
+  tv: (K, W, D) => { K.box(W, 0.4, D, '#4A4A4A', 0, 0.28, 0); legs4(K, W, D, 0.08, 0.02, '#2A2A2A', 0.06); [-1, 1].forEach(s => K.box(W / 2 - 0.03, 0.34, 0.015, '#5A5A5A', s * W / 4, 0.28, D / 2 + 0.008));
+    const sw = Math.min(1.6, W * 0.78), sh = sw * 0.56; K.box(0.3, 0.02, 0.18, '#1A1A1A', 0, 0.49, 0); K.box(0.05, 0.1, 0.04, '#1A1A1A', 0, 0.55, 0); K.box(sw, sh, 0.04, '#111111', 0, 0.6 + sh / 2, 0); K.box(sw - 0.04, sh - 0.04, 0.005, '#1F3344', 0, 0.6 + sh / 2, 0.022, { roughness: 0.15 }); },
+  counter: (K, W, D) => { K.box(W, 0.08, D - 0.08, '#6A6A6A', 0, 0.04, -0.04); K.box(W, 0.78, D - 0.04, '#E8E2D8', 0, 0.47, -0.02); K.box(W + 0.02, 0.04, D + 0.02, '#5A5048', 0, 0.88, 0);
+    const n = Math.max(1, Math.round(W / 0.6)), dw = W / n; for (let i = 0; i < n; i++) { const x = -W / 2 + dw * (i + 0.5); K.box(dw - 0.01, 0.72, 0.02, '#F4F0E8', x, 0.47, D / 2 - 0.01); K.box(0.14, 0.012, 0.02, '#9A9A9A', x, 0.78, D / 2 + 0.01); } },
+  stove: (K, W, D) => { K.box(W, 0.86, D, '#F2F2F2', 0, 0.43, 0); K.box(W, 0.02, D, '#1E1E1E', 0, 0.87, 0); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => K.cyl(0.08, 0.08, 0.006, '#4A4A4A', a * W / 4, 0.883, b * D / 4, 20));
+    K.box(W - 0.08, 0.45, 0.02, '#2A2A2A', 0, 0.36, D / 2 + 0.01); K.box(W - 0.16, 0.02, 0.03, '#BBBBBB', 0, 0.63, D / 2 + 0.03); for (let i = 0; i < 4; i++) K.sph(0.018, '#333333', -W / 2 + 0.1 + i * (W - 0.2) / 3, 0.78, D / 2 + 0.02); },
+  fridge: (K, W, D, H) => { K.box(W, H, D, '#F4F4F2', 0, H / 2, 0); K.box(W, 0.012, 0.006, '#BDBDBD', 0, H * 0.62, D / 2 + 0.004); [H * 0.82, H * 0.45].forEach(y => K.box(0.02, 0.3, 0.03, '#AAAAAA', W / 2 - 0.07, y, D / 2 + 0.02)); },
+  bath: (K, W, D, H) => { K.box(W, H, D, '#F4F4F2', 0, H / 2, 0); K.box(W - 0.14, 0.02, D - 0.14, '#BFDCE8', 0, H - 0.005, 0); K.cyl(0.018, 0.018, 0.16, '#C0C0C0', W / 2 - 0.1, H + 0.08, 0); K.box(0.1, 0.02, 0.02, '#C0C0C0', W / 2 - 0.15, H + 0.16, 0); },
+  shower: (K, W, D) => { K.box(W, 0.06, D, '#F4F4F2', 0, 0.03, 0); K.box(W, 1.9, 0.01, '#CFE8F2', 0, 1.0, D / 2, GLASS3); K.box(0.01, 1.9, D, '#CFE8F2', W / 2, 1.0, 0, GLASS3);
+    K.cyl(0.012, 0.012, 1.9, '#C0C0C0', -W / 2 + 0.08, 1.0, -D / 2 + 0.08, 8); K.cyl(0.1, 0.1, 0.02, '#C0C0C0', -W / 2 + 0.2, 1.95, -D / 2 + 0.2, 20); },
+  wc: (K, W, D) => { K.cyl(0.17, 0.12, 0.38, '#FAFAFA', 0, 0.19, D * 0.1, 20); K.tor(0.15, 0.025, '#EFEFEF', 0, 0.4, D * 0.1); K.box(W, 0.38, 0.17, '#FAFAFA', 0, 0.6, -D / 2 + 0.09); K.cyl(0.03, 0.03, 0.01, '#C0C0C0', 0, 0.8, -D / 2 + 0.09, 12); },
+  sink: (K, W, D) => { K.box(W, 0.5, D - 0.05, '#D9CBB5', 0, 0.52, -0.02); K.box(W, 0.12, D, '#FAFAFA', 0, 0.83, 0); K.box(W - 0.1, 0.01, D - 0.14, '#BFDCE8', 0, 0.892, 0.02); K.cyl(0.012, 0.012, 0.12, '#C0C0C0', 0, 0.95, -D / 2 + 0.06, 8); K.box(0.02, 0.02, 0.09, '#C0C0C0', 0, 1.01, -D / 2 + 0.1); },
+  rug: (K, W, D) => { K.box(W, 0.012, D, '#8A5A6E', 0, 0.006, 0); K.box(W - 0.16, 0.014, D - 0.16, '#C9A0B0', 0, 0.007, 0); K.box(W - 0.36, 0.016, D - 0.36, '#9A6A80', 0, 0.008, 0); },
+  pcab: (K, W, D, H) => { [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => K.box(0.03, H, 0.03, '#2A2A2A', a * (W / 2 - 0.015), H / 2, b * (D / 2 - 0.015))); K.box(W, 0.03, D, '#2A2A2A', 0, H - 0.015, 0); K.box(W, 0.03, D, '#2A2A2A', 0, 0.015, 0);
+    [0.55, 1.1].forEach(y => K.box(W - 0.04, 0.015, D - 0.04, '#DDDDDD', 0, y, 0)); K.box(W - 0.1, 0.02, 0.05, '#C9A0F0', 0, H - 0.05, 0, { emissive: '#7A40C0' }); K.box(W, H - 0.06, D, '#CFE8F2', 0, H / 2, 0, GLASS3); },
+  garage: (K, W, D) => { K.box(W, 2.3, D, '#D9D4CA', 0, 1.15, 0); roof3(K, W, D, 2.3, '#4A4A4A', 0.42); K.box(W * 0.72, 2.0, 0.03, '#EFEFEF', 0, 1.0, D / 2 + 0.015); for (let i = 1; i < 5; i++) K.box(W * 0.72, 0.015, 0.035, '#C9C9C9', 0, i * 0.4, D / 2 + 0.02); },
+  carport: (K, W, D) => { [[-1, -1], [1, -1], [-1, 1], [1, 1], [-1, 0], [1, 0]].forEach(([a, b]) => K.box(0.1, 2.3, 0.1, '#8A6A47', a * (W / 2 - 0.08), 1.15, b * (D / 2 - 0.08))); [-1, 1].forEach(s => K.box(0.12, 0.2, D, '#7A5B3A', s * (W / 2 - 0.08), 2.3, 0)); K.box(W + 0.2, 0.08, D + 0.2, '#6E6E6E', 0, 2.44, 0); },
+  pergola: (K, W, D) => { [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => K.box(0.12, 2.3, 0.12, '#9A7550', a * (W / 2 - 0.06), 1.15, b * (D / 2 - 0.06))); [-1, 1].forEach(s => K.box(W + 0.3, 0.16, 0.08, '#8A6847', 0, 2.3, s * (D / 2 - 0.06)));
+    const n = Math.max(3, Math.round(W / 0.3)); for (let i = 0; i < n; i++) K.box(0.05, 0.12, D + 0.3, '#A07A52', -W / 2 + (i + 0.5) * W / n, 2.44, 0); },
+  pool: (K, W, D, H) => { const c = '#E8E2D6'; [-1, 1].forEach(s => { K.box(W, H, 0.25, c, 0, H / 2, s * (D / 2 - 0.125)); K.box(0.25, H, D, c, s * (W / 2 - 0.125), H / 2, 0); }); K.box(W - 0.5, H - 0.05, D - 0.5, '#5FB4D9', 0, (H - 0.05) / 2, 0); K.box(W - 0.5, 0.02, D - 0.5, '#7FD0EE', 0, H - 0.04, 0, { transparent: true, opacity: 0.8, roughness: 0.05 });
+    [-0.2, 0.2].forEach(dx => { K.cyl(0.02, 0.02, 0.7, '#C0C0C0', W / 2 - 0.35 + dx, 0.5, D / 2 - 0.2, 8); }); },
+  pond: (K, W) => { const r = W / 2; K.cyl(r - 0.12, r - 0.12, 0.03, '#3F7FA6', 0, 0.02, 0, 32, { roughness: 0.1 }); for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283, s = K.sph(0.12 + K.R() * 0.06, ['#8C8A84', '#A19E96', '#77756F'][i % 3], Math.cos(a) * r, 0.05, Math.sin(a) * r); s.scale.y = 0.55; }
+    for (let i = 0; i < 3; i++) K.cyl(0.13, 0.13, 0.01, '#3F7F3A', (K.R() - 0.5) * r, 0.045, (K.R() - 0.5) * r, 14); },
+  tramp: (K, W) => { const r = W / 2; for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283; K.cyl(0.03, 0.03, 0.85, '#3A3A3A', Math.cos(a) * (r - 0.05), 0.42, Math.sin(a) * (r - 0.05), 8); K.cyl(0.02, 0.02, 1.6, '#3A3A3A', Math.cos(a) * (r - 0.05), 1.65, Math.sin(a) * (r - 0.05), 8); }
+    K.tor(r - 0.05, 0.08, '#3A6A9A', 0, 0.88, 0); K.cyl(r - 0.18, r - 0.18, 0.01, '#1A1A1A', 0, 0.86, 0, 32); const net = K.cyl(r - 0.05, r - 0.05, 1.5, '#222222', 0, 1.65, 0, 32, { transparent: true, opacity: 0.15 }); net.geometry = new K.THREE.CylinderGeometry(r - 0.05, r - 0.05, 1.5, 32, 1, true); net.castShadow = false; },
+  sandpit: (K, W, D, H) => { [-1, 1].forEach(s => { K.box(W, H, 0.08, '#A47B52', 0, H / 2, s * (D / 2 - 0.04)); K.box(0.08, H, D, '#A47B52', s * (W / 2 - 0.04), H / 2, 0); }); K.box(W - 0.16, H - 0.06, D - 0.16, '#E8D7A8', 0, (H - 0.06) / 2, 0); K.cyl(0.07, 0.05, 0.12, '#D9342B', W * 0.15, H, D * 0.1, 14); },
+  playhouse: (K, W, D) => { K.box(W, 1.4, D, '#A33A2C', 0, 0.7, 0); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => K.box(0.06, 1.4, 0.06, '#F4F0E8', a * W / 2, 0.7, b * D / 2)); roof3(K, W, D, 1.4, '#3A3A3A', 0.6);
+    K.box(0.55, 1.0, 0.03, '#F4F0E8', -W * 0.15, 0.5, D / 2 + 0.015); K.box(0.4, 0.35, 0.03, '#F4F0E8', W * 0.22, 0.85, D / 2 + 0.015); K.box(0.32, 0.27, 0.035, '#BFE3F2', W * 0.22, 0.85, D / 2 + 0.02); },
+  firepit: (K, W) => { const r = W / 2; for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283, s = K.sph(0.11, ['#8C8A84', '#77756F', '#A19E96'][i % 3], Math.cos(a) * (r - 0.1), 0.1, Math.sin(a) * (r - 0.1)); s.scale.y = 0.75; }
+    K.cyl(r - 0.18, r - 0.18, 0.03, '#2A2420', 0, 0.03, 0, 24); [0, 1.05, 2.1].forEach(a => { const l = K.cyl(0.04, 0.04, r * 1.1, '#6B4A2A', 0, 0.1, 0, 10); l.rotation.z = Math.PI / 2; l.rotation.y = a; }); K.sph(0.08, '#F28A1E', 0, 0.12, 0, { emissive: '#C04010' }); },
+  grill: (K, W, D) => { [0, 2.1, 4.2].forEach(a => { const l = K.cyl(0.015, 0.015, 0.7, '#2A2A2A', Math.cos(a) * 0.18, 0.35, Math.sin(a) * 0.18, 8); l.rotation.z = Math.cos(a) * 0.12; l.rotation.x = -Math.sin(a) * 0.12; });
+    const bowl = K.sph(0.28, '#1A1A1A', 0, 0.78, 0); bowl.scale.y = 0.6; K.cyl(0.02, 0.02, 0.05, '#AAAAAA', 0, 0.98, 0, 8); K.box(0.16, 0.02, 0.02, '#6B4A2A', 0, 1.01, 0); },
+  obench: (K, W, D) => { [0, 1, 2].forEach(i => K.box(W, 0.03, 0.1, '#A07A52', 0, 0.45, -D / 2 + 0.12 + i * 0.12)); [0.65, 0.8].forEach(y => { const b = K.box(W, 0.08, 0.025, '#A07A52', 0, y, -D / 2 + 0.04); b.rotation.x = -0.12; });
+    [-1, 1].forEach(s => { K.box(0.05, 0.45, D - 0.08, '#3A3A3A', s * (W / 2 - 0.1), 0.225, 0); K.box(0.05, 0.45, 0.05, '#3A3A3A', s * (W / 2 - 0.1), 0.68, -D / 2 + 0.05); }); },
+  hive: (K, W, D) => { legs4(K, W, D, 0.3, 0.025, '#6B4A2A', 0.05); K.box(W, 0.04, D, '#6B4A2A', 0, 0.3, 0); ['#F2D46B', '#F4E3A8', '#E8C860'].forEach((c, i) => K.box(W - 0.04, 0.2, D - 0.04, c, 0, 0.43 + i * 0.205, 0));
+    K.box(W + 0.04, 0.06, D + 0.04, '#8A8A8A', 0, 1.06, 0); K.box(W * 0.5, 0.02, 0.01, '#222222', 0, 0.36, D / 2 - 0.015); },
+};
 // Punkt i polygon (för att se om något ligger inne i ett rum)
 function inPoly3(x, z, pg) { let c = false; for (let i = 0, j = pg.length - 1; i < pg.length; j = i++) { const [xi, zi] = pg[i], [xj, zj] = pg[j]; if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) c = !c; } return c; }
 // Möbler med egen form i 3D: bord med ben, runt bord med fot, och altan som inte sticker upp i huset. Returnerar true om möbeln ritades här.
@@ -2922,7 +2993,8 @@ function furn3d(f, THREE, M, add) {
       [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => put(new THREE.BoxGeometry(lw, h - T, lw), leg, a * ix, (h - T) / 2, b * iz));
       if (f.t === 'desk') put(new THREE.BoxGeometry(Math.min(0.45, f.w * 0.35), 0.5, f.h - 0.1), top, ix - Math.min(0.45, f.w * 0.35) / 2 + 0.03, h - T - 0.25, 0); }
     g.position.set(f.x, 0.01, f.y); g.rotation.y = rot; add(g); return true; }
-  if (f.t === 'deck' || f.t === 'sandpit' || f.t === 'pool') {
+  if (FURN3[f.t]) { const g = new THREE.Group(), K = kit3(THREE, M, g, Math.round(f.x * 97 + f.y * 31)); FURN3[f.t](K, f.w, f.h || f.w, h, f); g.position.set(f.x, 0.01, f.y); g.rotation.y = rot; add(g); return true; }
+  if (f.t === 'deck') {
     const rooms = planRooms().filter(r => flOf(r) === 0).map(roomPoly); if (!rooms.length) return false;
     const c = Math.max(0.1, Math.sqrt(f.w * f.h / 2500)), nx = Math.ceil(f.w / c), nz = Math.ceil(f.h / c), cw = f.w / nx, cz = f.h / nz, cos = Math.cos(rot), sin = Math.sin(rot), keep = []; let cut = 0;
     for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) { const lx = -f.w / 2 + (i + 0.5) * cw, lz = -f.h / 2 + (j + 0.5) * cz, x = f.x + lx * cos + lz * sin, z = f.y - lx * sin + lz * cos; if (rooms.some(pg => inPoly3(x, z, pg))) cut++; else keep.push([x, z]); }
@@ -6592,6 +6664,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.156', '27 okt 16:30', ['3D: alla möbler är detaljerade så att man ser vad de är. Soffor med dynor, sängar med kuddar och täcke, bokhyllor med böcker, köksbänk med luckor, spis med plattor, tv på tv-bänken, badkar, dusch, toalett och handfat. Ute: garage med port, carport, pergola, pool, damm, studsmatta med nät, sandlåda, lekstuga, eldstad, grill, utebänk och bikupa']],
   ['1.155', '27 okt 16:10', ['Planritningen går att använda med bara tryck: välj något och tryck där det ska stå, rita väggar och häckar genom att trycka på start och slut, och ändra storlek på ytor och flytta burspråk med knappar. Att dra fungerar fortfarande']],
   ['1.154', '27 okt 15:50', ['Mitt hem har ett enkelt läge: en guide med en fråga i taget. Vilka rum, åt vilket håll fönstret vetter (eller telefonens kompass), hur ljust det är och vilka växter som står där. Huset ritas automatiskt', 'Mallar att börja från: Lägenhet 1 rok, 2 rok och Villa', 'Planritningen finns kvar som avancerat läge, i en egen skärm utan bottenmeny. Fyra huvudverktyg (Rum, Fönster, Växt, Flytta) och resten under Mer. Våningar visas först när du har fler än en', 'Fönstren i ritningen är färgade efter hur mycket ljus de ger, och rumsnamnen ligger överst', 'Häng en växt i taket: välj Ampel i taket i växtens uppgifter, i guiden eller i ritningen', '35 cm mellan plantorna i stället för cc 35 cm', 'Uppdateringsloggen visar när varje version kom']],
   ['1.153', '27 okt 15:19', ['3D: burspråk har fönsterbrädor på alla tre fönsterdelarna, och växter i burspråket ställs på brädan']],
@@ -7280,7 +7353,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.155';
+const APP_VERSION = '1.156';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
