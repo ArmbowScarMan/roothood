@@ -41,3 +41,14 @@ end $$;
 drop trigger if exists guard_expert_q_t on public.expert_questions;
 create trigger guard_expert_q_t before update on public.expert_questions
   for each row execute function public.guard_expert_q();
+
+-- ===== Granskning: funktioner med SECURITY DEFINER (resultat från Supabase, fråga 3) =====
+-- Alla har search_path satt. Ingen behöver ändras.
+-- Funktioner: are_friends, can_see, delete_my_account (public, auth), find_users, guard_best_answer,
+-- handle_new_user, inbox, is_mod, list_experts, list_staff, mark_read, mod_act, mod_best_count,
+-- mod_best_decide, mod_best_queue, mod_feed, mod_feed2, mod_hide, mod_hide_user, mod_open_count,
+-- mod_reports, my_friends, my_role, no_blocked_messages, no_blocked_requests, on_block, plant_photos,
+-- protect_role, push_event (public, extensions), reports_auto, rh_delete_rows (public, auth),
+-- save_push, set_role, trg_push_friend, trg_push_message, user_badges, user_card, user_home.
+-- Saknas i listan: guard_hidden, guard_friend_req, guard_expert_q. De kommer från den här filen,
+-- så listan är från innan 046 kördes.
