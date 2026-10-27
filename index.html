@@ -1308,7 +1308,7 @@ const ord = n => (n % 10 === 1 || n % 10 === 2) && n % 100 !== 11 && n % 100 !==
 const hueOf = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
 const store = {
   get(k, d) { try { const v = localStorage.getItem('gronska_' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem('gronska_' + k, JSON.stringify(v)); } catch (e) {} }
+  set(k, v) { try { localStorage.setItem('gronska_' + k, JSON.stringify(v)); } catch (e) { console.warn('Roothood:', e); } }
 };
 function errMsg(e) {
   const m = (e && e.message) || '';
@@ -1418,7 +1418,7 @@ const sbApi = {
     }
     const { error } = await sb.rpc('delete_my_account');
     if (error) { if (/delete_my_account|function/i.test(error.message || '')) throw new Error('DEL_NOT_READY'); throw error; }
-    try { await sb.auth.signOut(); } catch (e) {}
+    try { await sb.auth.signOut(); } catch (e) { console.warn('Roothood:', e); }
   },
   async mine() {
     const cols = 'id,plant_id,last_watered,custom_name,custom_latin,custom_category,custom_water_interval_days,notes,plants(swedish_name,latin_name,category,water_interval_days)';
@@ -1495,7 +1495,7 @@ const sbApi = {
     const profs = pr.data;
     const isPro = id => !!(profs.find(p => p.id === id) || {}).is_pro;
     const name = id => (profs.find(p => p.id === id) || {}).display_name || 'Okänd';
-    const bd = {}; try { const r = await sb.rpc('user_badges', { p_ids: uids }); if (!r.error) (r.data || []).forEach(x => { bd[x.user_id] = x; }); } catch (e) {}
+    const bd = {}; try { const r = await sb.rpc('user_badges', { p_ids: uids }); if (!r.error) (r.data || []).forEach(x => { bd[x.user_id] = x; }); } catch (e) { console.warn('Roothood:', e); }
     const bOf = id => badgeOf(bd[id]);
     return posts.map(p => ({ ...p, author: name(p.user_id), author_pro: isPro(p.user_id), author_badge: bOf(p.user_id),
       answers: a.data.filter(x => x.post_id === p.id).map(x => ({ ...x, author: name(x.user_id), author_pro: isPro(x.user_id), author_badge: bOf(x.user_id) })),
@@ -1521,7 +1521,7 @@ const sbApi = {
         an.data.forEach(a => { const p = byId[a.post_id]; out.push({ t: 'reply', at: a.created_at, who: nm[a.user_id], body: a.body, post_id: a.post_id, kind: p.kind || 'question', cat: p.category, ptitle: p.title || p.body }); }); } }
     try { const fr = await sb.from('friend_requests').select('*').or(`to_user.eq.${me},from_user.eq.${me}`).order('created_at', { ascending: false }).limit(40);
       if (!fr.error && fr.data.length) { const ids = [...new Set(fr.data.map(f => f.from_user === me ? f.to_user : f.from_user))], pr = await sb.rpc('profile_names', { p_ids: ids }), nm = Object.fromEntries(((pr.data) || []).map(x => [x.id, x.display_name]));
-        fr.data.forEach(f => { if (f.status === 'pending' && f.to_user === me) out.push({ t: 'friend', pending: true, at: f.created_at, who: nm[f.from_user], req: f.id, from: f.from_user, msg: f.message || '' }); else if (f.status === 'accepted' && f.from_user === me) out.push({ t: 'friend_ok', at: f.responded_at || f.created_at, who: nm[f.to_user], from: f.to_user }); }); } } catch (e) {}
+        fr.data.forEach(f => { if (f.status === 'pending' && f.to_user === me) out.push({ t: 'friend', pending: true, at: f.created_at, who: nm[f.from_user], req: f.id, from: f.from_user, msg: f.message || '' }); else if (f.status === 'accepted' && f.from_user === me) out.push({ t: 'friend_ok', at: f.responded_at || f.created_at, who: nm[f.to_user], from: f.to_user }); }); } } catch (e) { console.warn('Roothood:', e); }
     const xq = await sb.from('expert_questions').select('id,answer,answered_at').eq('asker', me).not('answer', 'is', null).order('answered_at', { ascending: false }).limit(20);
     if (!xq.error) xq.data.forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer }));
     return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 60);
@@ -1826,7 +1826,7 @@ async function saveDetails() {
   S.busy = true; render();
   try {
     await api.saveDetails(m.id, d);
-    if (hChanged) { try { await api.addLog(m.id, 'note', today(), 'Mätt höjd: ' + d.h + ' cm'); delete S.log[m.id]; } catch (e) {} }
+    if (hChanged) { try { await api.addLog(m.id, 'note', today(), 'Mätt höjd: ' + d.h + ' cm'); delete S.log[m.id]; } catch (e) { console.warn('Roothood:', e); } }
     S.mine = await api.mine();
     toast('Uppgifterna är sparade');
     S.busy = false; closeDetails(); return;
@@ -1855,12 +1855,12 @@ async function readFlowerCare() {
   try {
     const svc = await gatt.getPrimaryService(uuid16(0x1204));
     let battery = null;
-    try { const b = await (await svc.getCharacteristic(uuid16(0x1a02))).readValue(); battery = b.getUint8(0); } catch (e) {}
+    try { const b = await (await svc.getCharacteristic(uuid16(0x1a02))).readValue(); battery = b.getUint8(0); } catch (e) { console.warn('Roothood:', e); }
     await (await svc.getCharacteristic(uuid16(0x1a00))).writeValue(new Uint8Array([0xa0, 0x1f]));
     await new Promise(r => setTimeout(r, 300));
     const v = await (await svc.getCharacteristic(uuid16(0x1a01))).readValue();
     return { kind: 'flower', name: dev.name || 'Flower Care', temp: v.getInt16(0, true) / 10, lux: v.getUint32(3, true), moist: v.getUint8(7), ec: v.getUint16(8, true), battery, at: new Date().toISOString() };
-  } finally { try { gatt.disconnect(); } catch (e) {} }
+  } finally { try { gatt.disconnect(); } catch (e) { console.warn('Roothood:', e); } }
 }
 // Xiaomi termometer/hygrometer LYWSD03MMC
 async function readThermo() {
@@ -1875,7 +1875,7 @@ async function readThermo() {
       ch.startNotifications().catch(fail);
     });
     return { kind: 'thermo', name: dev.name || 'Termometer', temp: v.getInt16(0, true) / 100, hum: v.getUint8(2), at: new Date().toISOString() };
-  } finally { try { gatt.disconnect(); } catch (e) {} }
+  } finally { try { gatt.disconnect(); } catch (e) { console.warn('Roothood:', e); } }
 }
 function demoReading(kind) {
   const r = (a, b) => Math.round(a + Math.random() * (b - a));
@@ -1965,7 +1965,7 @@ function roomHints(p, r, win) {
   if (r.temp === 'Svalt' && p.category !== 'Kaktus' && p.light_level >= 2 && /tropi|monstera|filodendron|philodendron|alokasia|alocasia|calathea/i.test((p.swedish_name || '') + (p.latin_name || ''))) h.push(['warn', `${nm} kommer från tropikerna och vill inte ha det kallare än cirka 16 °C.`]);
   return h;
 }
-async function loadRole() { if (!S.user) return; try { S.role = await api.myRole(); S.blocks = await api.myBlocks(); if (isMod()) S.modOpen = await api.modOpen(); } catch (e) {} try { S.pfol = await api.myPlantFollows(); } catch (e) { S.pfol = S.pfol || []; } }
+async function loadRole() { if (!S.user) return; try { S.role = await api.myRole(); S.blocks = await api.myBlocks(); if (isMod()) S.modOpen = await api.modOpen(); } catch (e) { console.warn('Roothood:', e); } try { S.pfol = await api.myPlantFollows(); } catch (e) { S.pfol = S.pfol || []; } }
 async function loadHome() { if (!S.user) return; loadFavs(); loadWishes(); loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
 function openHouse(id) { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'house'; S.room = id || null; if (S.pl) { S.pl.sel = null; S.pl.mode = 'move'; S.pl.fit = true; } render(); $('#main').scrollTop = 0; }
 function compassSvg(dirs, size) {
@@ -2069,8 +2069,9 @@ async function delRoom() {
   if (!S.delRoom) { S.delRoom = true; return keepScroll(); }
   const id = S.rf.id, rooms = S.home.filter(r => r.id !== id);
   try {
+    // Först växterna (så att inget pekar på ett borttaget rum), sedan rummet
+    for (const m of plantsIn(id)) { const d = JSON.parse(JSON.stringify(m.details)); delete d.room; delete d.win; await api.saveDetails(m.id, d); }
     await api.saveHome(rooms); S.home = rooms;
-    for (const m of plantsIn(id)) { const d = JSON.parse(JSON.stringify(m.details)); delete d.room; delete d.win; try { await api.saveDetails(m.id, d); } catch (e) {} }
     S.mine = await api.mine(); S.delRoom = false; S.modal = null; S.room = null; render(); toast('Rummet är borttaget');
   } catch (e) { toast(errMsg(e)); }
 }
@@ -3322,7 +3323,7 @@ function addpV() {
   <div class="cta" style="padding:16px 0 0"><button class="btn formbtn" onclick="confirmAddp()">Lägg till i min samling</button></div>`;
 }
 function addCustomStart() { if (!S.user) return openModal('login'); if (overLimit()) { S.limitHit = true; return openModal('pro'); } S.prefillTax = null; openModal('add', S.q); }
-function water(id) { const m = S.mine.find(x => x.id === id); run(async () => { await api.water(id); try { await api.addLog(id, 'water', today(), ''); } catch (e) {} delete S.log[id]; }, m.name + ' är vattnad'); }
+function water(id) { const m = S.mine.find(x => x.id === id); run(async () => { await api.water(id); try { await api.addLog(id, 'water', today(), ''); } catch (e) { console.warn('Roothood:', e); } delete S.log[id]; }, m.name + ' är vattnad'); }
 function removeMine(id) {
   if (S.del !== id) { S.del = id; render(); return; }
   S.del = null; const m = S.mine.find(x => x.id === id);
@@ -3763,10 +3764,10 @@ function trackView() {
   const h = viewHash();
   // En öppen ruta får en egen plats i historiken, så att bakåt stänger rutan i stället för att lämna appen.
   let replace = false;
-  if (S.modal && !modalPushed && curHash !== null) { try { history.pushState({ m: 1 }, '', curHash); modalPushed = true; } catch (e) {} }
+  if (S.modal && !modalPushed && curHash !== null) { try { history.pushState({ m: 1 }, '', curHash); modalPushed = true; } catch (e) { console.warn('Roothood:', e); } }
   else if (!S.modal && modalPushed) { modalPushed = false; if (h === curHash) { skipPop = true; try { history.back(); } catch (e) { skipPop = false; } return; } replace = true; }
   if (h !== curHash) {
-    try { if (navFromPop || curHash === null || replace) history.replaceState(null, '', h); else history.pushState(null, '', h); } catch (e) {}
+    try { if (navFromPop || curHash === null || replace) history.replaceState(null, '', h); else history.pushState(null, '', h); } catch (e) { console.warn('Roothood:', e); }
     curHash = h; navFromPop = false; saveView();
   }
 }
@@ -3801,7 +3802,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 function restoreView() {
   // Appen startar alltid på Hem. Gammal vy och gammal adress återställs inte.
   const h = location.hash;
-  if (h && !/access_token|error=|type=/.test(h)) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
+  if (h && !/access_token|error=|type=/.test(h)) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { console.warn('Roothood:', e); } }
   return null;
 }
 const INDOOR = ['Krukväxt', 'Orkidé', 'Kaktus', 'Akvarieväxt'], OUTDOOR = ['Köksträdgård', 'Trädgård'];
@@ -4214,7 +4215,7 @@ function followBtn(p) {
   const on = (S.pfol || []).includes(key);
   return `<div class="pad" style="padding-top:10px"><button class="btn sm line" style="width:100%" onclick="togPlantFollow(${jsArg(key)})">${ic(on ? 'ph-bell-slash' : 'ph-bell', 'currentColor', 16)} ${on ? 'Sluta följa' : 'Följ'} ${esc(p.swedish_name)} i Community</button></div>`;
 }
-async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); } catch (e) { S.notifs = S.notifs || []; } try { S.notifs = (S.notifs || []).filter(n => n.t !== 'follow').concat(await followHits()); } catch (e) {} if (isMod()) { try { S.modOpen = await api.modOpen(); } catch (e) {} } await loadInbox(); if (!S.tool && !S.modal) render(); }
+async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); } catch (e) { S.notifs = S.notifs || []; } try { S.notifs = (S.notifs || []).filter(n => n.t !== 'follow').concat(await followHits()); } catch (e) { console.warn('Roothood:', e); } if (isMod()) { try { S.modOpen = await api.modOpen(); } catch (e) { console.warn('Roothood:', e); } } await loadInbox(); if (!S.tool && !S.modal) render(); }
 function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due + (isMod() ? (S.modOpen || 0) : 0); return `<button class="circ bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
 let inboxAsked = false;
 function msgBtn() {
@@ -4293,7 +4294,7 @@ function notPlanty(t) {
 function modSel(k) { const s = new Set(S.modSel || []); s.has(k) ? s.delete(k) : s.add(k); S.modSel = [...s]; keepMain(); }
 async function modHideSel() {
   const L = S.modSel || []; if (!L.length) return;
-  let ok = 0; for (const k of L) { const [kind, id] = k.split(':'); try { await api.modHide(kind, +id, true); ok++; } catch (e) {} }
+  let ok = 0; for (const k of L) { const [kind, id] = k.split(':'); try { await api.modHide(kind, +id, true); ok++; } catch (e) { console.warn('Roothood:', e); } }
   S.modSel = []; toast(ok + (ok === 1 ? ' dold' : ' dolda')); loadMod();
 }
 async function modHideUser(uid, name) {
@@ -4751,7 +4752,7 @@ async function toggleFollow(id) {
 function meCardNow() { const r = S.meCard || {}, c = r.card || {}, pr = r.prof || {};
   return { id: S.user.id, avatar_url: pr.avatar_url || null, display_name: S.user.name + (S.pro ? '' : ''), city: pr.city || S.city || c.city || '', interests: pr.interests || c.interests || [], plants: S.mine.length, posts: r.posts ? r.posts.length : (c.posts || 0), followers: c.followers || 0, following: c.following || (S.follows || []).length,
     plant_list: S.mine.map(m => ({ name: m.name, plant_id: m.plant_id, photo: m.photo || null })) }; }
-async function loadMe() { if (!S.user) return; const out = {}; try { out.prof = await api.getProfile(); } catch (e) {} try { out.card = await api.userCard(S.user.id); } catch (e) {} try { out.posts = await api.userPosts(S.user.id); } catch (e) { out.posts = []; } try { S.friends = await api.myFriends(); } catch (e) { S.friends = S.friends || []; } S.meCard = out; if (S.tab === 'me' && !S.tool && !S.sel) render(); }
+async function loadMe() { if (!S.user) return; const out = {}; try { out.prof = await api.getProfile(); } catch (e) { console.warn('Roothood:', e); } try { out.card = await api.userCard(S.user.id); } catch (e) { console.warn('Roothood:', e); } try { out.posts = await api.userPosts(S.user.id); } catch (e) { out.posts = []; } try { S.friends = await api.myFriends(); } catch (e) { S.friends = S.friends || []; } S.meCard = out; if (S.tab === 'me' && !S.tool && !S.sel) render(); }
 async function openUser(id, fromHash) {
   if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.uBack = fromHash ? null : (S.tool === 'people' ? 'people' : S.tab === 'comm' ? 'comm' : null);
   S.tool = 'user'; S.uid = id; S.ucard = null; S.uposts = null; S.uhome = null; render(); $('#main').scrollTop = 0;
@@ -4981,13 +4982,13 @@ const favList = () => (S.favpK === favKey() && S.favp) || store.get(favKey(), []
 const isFav = id => favList().includes(id);
 async function loadFavs() {
   let l = store.get(favKey(), []);
-  if (S.user && !DEMO && typeof sb !== 'undefined' && sb) { try { const r = await sb.from('plant_favs').select('plant_id'); if (!r.error && r.data) l = [...new Set(l.concat(r.data.map(x => x.plant_id)))]; } catch (e) {} }
+  if (S.user && !DEMO && typeof sb !== 'undefined' && sb) { try { const r = await sb.from('plant_favs').select('plant_id'); if (!r.error && r.data) l = [...new Set(l.concat(r.data.map(x => x.plant_id)))]; } catch (e) { console.warn('Roothood:', e); } }
   S.favp = l; S.favpK = favKey();
 }
 async function heart(id) {
   const cur = favList(), on = !cur.includes(id);
   S.favp = on ? cur.concat(id) : cur.filter(x => x !== id); S.favpK = favKey(); store.set(favKey(), S.favp);
-  if (S.user && !DEMO && sb) { try { if (on) await sb.from('plant_favs').insert({ plant_id: id }); else await sb.from('plant_favs').delete().eq('user_id', S.user.id).eq('plant_id', id); } catch (e) {} }
+  if (S.user && !DEMO && sb) { try { if (on) await sb.from('plant_favs').insert({ plant_id: id }); else await sb.from('plant_favs').delete().eq('user_id', S.user.id).eq('plant_id', id); } catch (e) { console.warn('Roothood:', e); } }
   toast(on ? 'Sparad i Favoriter' : 'Borttagen från Favoriter');
   if (S.tool === 'db') renderList(); else keepMain();
 }
@@ -4997,7 +4998,7 @@ const wishList = () => (S.wishK === wishKey() && S.wish) || store.get(wishKey(),
 const isWish = id => wishList().some(w => w.id === id);
 async function loadWishes() {
   let l = store.get(wishKey(), []);
-  if (S.user && !DEMO && typeof sb !== 'undefined' && sb) { try { const r = await sb.from('plant_wishes').select('plant_id,note,created_at'); if (!r.error && r.data) { const have = new Set(l.map(x => x.id)); r.data.forEach(x => { if (!have.has(x.plant_id)) l.push({ id: x.plant_id, note: x.note || '' }); }); } } catch (e) {} }
+  if (S.user && !DEMO && typeof sb !== 'undefined' && sb) { try { const r = await sb.from('plant_wishes').select('plant_id,note,created_at'); if (!r.error && r.data) { const have = new Set(l.map(x => x.id)); r.data.forEach(x => { if (!have.has(x.plant_id)) l.push({ id: x.plant_id, note: x.note || '' }); }); } } catch (e) { console.warn('Roothood:', e); } }
   S.wish = l; S.wishK = wishKey();
 }
 function wishSet(l) { S.wish = l; S.wishK = wishKey(); store.set(wishKey(), l); }
@@ -5005,13 +5006,13 @@ async function toggleWish(id) {
   if (!S.user) return openModal('login');
   const cur = wishList(), on = !cur.some(w => w.id === id);
   wishSet(on ? cur.concat({ id, note: '' }) : cur.filter(w => w.id !== id));
-  if (!DEMO && sb) { try { if (on) await sb.from('plant_wishes').insert({ plant_id: id }); else await sb.from('plant_wishes').delete().eq('user_id', S.user.id).eq('plant_id', id); } catch (e) {} }
+  if (!DEMO && sb) { try { if (on) await sb.from('plant_wishes').insert({ plant_id: id }); else await sb.from('plant_wishes').delete().eq('user_id', S.user.id).eq('plant_id', id); } catch (e) { console.warn('Roothood:', e); } }
   toast(on ? 'Tillagd på önskelistan' : 'Borttagen från önskelistan');
   keepMain();
 }
 async function wishNote(id, v) {
   v = (v || '').trim().slice(0, 200); const l = wishList().map(w => w.id === id ? { ...w, note: v } : w); wishSet(l);
-  if (!DEMO && sb && S.user) { try { await sb.from('plant_wishes').update({ note: v || null }).eq('user_id', S.user.id).eq('plant_id', id); } catch (e) {} }
+  if (!DEMO && sb && S.user) { try { await sb.from('plant_wishes').update({ note: v || null }).eq('user_id', S.user.id).eq('plant_id', id); } catch (e) { console.warn('Roothood:', e); } }
 }
 async function wishBought(id) {
   if (!S.user) return openModal('login');
@@ -5019,7 +5020,7 @@ async function wishBought(id) {
   const p = S.plants.find(x => x.id === id); if (!p) return;
   try { await api.addMine(p); S.mine = await api.mine(); } catch (e) { return toast(errMsg(e)); }
   wishSet(wishList().filter(w => w.id !== id));
-  if (!DEMO && sb) { try { await sb.from('plant_wishes').delete().eq('user_id', S.user.id).eq('plant_id', id); } catch (e) {} }
+  if (!DEMO && sb) { try { await sb.from('plant_wishes').delete().eq('user_id', S.user.id).eq('plant_id', id); } catch (e) { console.warn('Roothood:', e); } }
   toast(p.swedish_name + ' finns nu i din samling'); await afterAdd();
 }
 function wishV() {
@@ -5320,7 +5321,7 @@ function plantBrief(m) {
   const out = [m.name + (m.latin ? ' (' + m.latin + ')' : '')];
   if (m.interval) out.push('Vattnas ungefär var ' + m.interval + ord(m.interval) + ' dag, senast ' + lo(agoTxt(m.last_watered)));
   const f = last('feed'), r = last('repot'); if (f || r) out.push([f ? 'Gödslad ' + lo(agoTxt(f)) : '', r ? 'omplanterad ' + lo(agoTxt(r)) : ''].filter(Boolean).join(', '));
-  let rm = null; try { rm = roomOf(m); } catch (e) {}
+  let rm = null; try { rm = roomOf(m); } catch (e) { console.warn('Roothood:', e); }
   if (rm) out.push('Står i ' + rm.name + ([dirTxt(rm), d.win].filter(Boolean).length ? ' (' + [dirTxt(rm), d.win].filter(Boolean).join(', ') + ')' : '')); else if (d.light) out.push('Plats: ' + d.light);
   if (d.cm || (d.soil && d.soil.length)) out.push([d.cm ? 'Kruka ' + d.cm + ' cm' : '', d.soil && d.soil.length ? 'jord: ' + d.soil.join(', ') : ''].filter(Boolean).join(', '));
   const notes = L.filter(x => x.note && !/^Gjort: /.test(x.note)).slice(0, 2).map(x => whenTxt(x.done_on) + ': ' + x.note);
@@ -6019,6 +6020,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.139', 'Nu', ['Rummet tas bort först när växterna är uppdaterade, så inga växter pekar på ett rum som inte finns']],
   ['1.138', 'Nu', ['Fler rättningar: gilla-knappen går tillbaka om det inte gick att spara. Okänd senaste vattning visas som okänd. Snooze och veckodagar i väder är rättade']],
   ['1.137', 'Nu', ['Inloggning och utloggning rensar förra kontots data. Den som loggar in efter dig ser inte dina vänner, meddelanden eller notiser']],
   ['1.136', 'Nu', ['Inga utvecklingsmeddelanden visas längre för användare. Funktioner som inte är tillgängliga visar en vanlig text']],
@@ -6569,7 +6571,7 @@ async function startLight() {
   } catch (e) { lightStream = null; return toast('Appen fick inte använda kameran. Tillåt kameran i Chrome och försök igen.'); }
   lightTrack = lightStream.getVideoTracks()[0];
   render();
-  let caps = {}; try { caps = lightTrack.getCapabilities ? lightTrack.getCapabilities() : {}; } catch (e) {}
+  let caps = {}; try { caps = lightTrack.getCapabilities ? lightTrack.getCapabilities() : {}; } catch (e) { console.warn('Roothood:', e); }
   const capTxt = [caps.exposureMode ? 'exponering: ' + caps.exposureMode.join('/') : 'ingen exponeringsstyrning', caps.exposureTime ? 'tid ' + caps.exposureTime.min + '–' + caps.exposureTime.max : '', caps.iso ? 'ISO ' + caps.iso.min + '–' + caps.iso.max : ''].filter(Boolean).join(', ');
   let manual = false, t = null, iso = null, isoGuess = false;
   const setExp = () => lightTrack.applyConstraints({ advanced: [Object.assign({ exposureMode: 'manual', exposureTime: t }, caps.iso ? { iso } : {})] });
@@ -6593,14 +6595,14 @@ async function startLight() {
     showLight({ lux: null, rel: 0, method: 'Testar kameran…', raw: { caps: capTxt } });
     const clampT = x => Math.max(caps.exposureTime.min, Math.min(caps.exposureTime.max, x));
     let tA = clampT(20), yA = null, yB = null;
-    for (let k = 0; k < 3; k++) { t = tA; try { await setExp(); } catch (e) {} await sleep(900); yA = await readY(); if (yA != null && yA >= 225 && tA > caps.exposureTime.min) tA = clampT(tA / 6); else break; }
+    for (let k = 0; k < 3; k++) { t = tA; try { await setExp(); } catch (e) { console.warn('Roothood:', e); } await sleep(900); yA = await readY(); if (yA != null && yA >= 225 && tA > caps.exposureTime.min) tA = clampT(tA / 6); else break; }
     let tB = clampT(tA * 4); if (tB === tA) tB = clampT(tA / 4);
-    t = tB; try { await setExp(); } catch (e) {} await sleep(900); yB = await readY();
+    t = tB; try { await setExp(); } catch (e) { console.warn('Roothood:', e); } await sleep(900); yB = await readY();
     const lo = tB > tA ? yA : yB, hi = tB > tA ? yB : yA;
     const works = lo != null && hi != null && (hi > lo * 1.5 || (hi >= 220 && hi - lo > 25));
     probe = `prov ${Math.round(yA || 0)} → ${Math.round(yB || 0)} (${works ? 'låsning fungerar' : 'låsning fungerar inte'})`;
-    if (!works) { manual = false; try { await lightTrack.applyConstraints({ advanced: [{ exposureMode: 'continuous' }] }); } catch (e) {} }
-    else { t = tA; try { await setExp(); } catch (e) {} }
+    if (!works) { manual = false; try { await lightTrack.applyConstraints({ advanced: [{ exposureMode: 'continuous' }] }); } catch (e) { console.warn('Roothood:', e); } }
+    else { t = tA; try { await setExp(); } catch (e) { console.warn('Roothood:', e); } }
     if (!lightStream) return;
   }
   let settle = 2, avg = null;
@@ -6615,7 +6617,7 @@ async function startLight() {
       if (settle > 0) { settle--; return; }
       const nt = y > 225 ? t / 3 : y < 30 ? t * 3 : t;
       const ct = Math.max(caps.exposureTime.min, Math.min(caps.exposureTime.max, nt));
-      if (ct !== t) { t = ct; avg = null; settle = 2; try { await setExp(); } catch (e) {} return; }
+      if (ct !== t) { t = ct; avg = null; settle = 2; try { await setExp(); } catch (e) { console.warn('Roothood:', e); } return; }
       let useIso = iso;
       if (!caps.iso) { const st = lightTrack.getSettings ? lightTrack.getSettings() : {}; useIso = st.iso || 100; isoGuess = !st.iso; }
       lux = luxFrom(y, t, useIso) * (lmode() === 'paper' ? 1.09 : 1) * lcal(); method = 'Kameran med låst exponering' + (lmode() === 'paper' ? ', vitt papper' : '') + (lcal() !== 1 ? ', kalibrerad' : '') + (isoGuess ? ' (ISO uppskattad)' : ''); raw.t = t; raw.iso = useIso;
@@ -6646,7 +6648,7 @@ const idTrack = () => idStream && idStream.getVideoTracks()[0];
 async function idApply(adv) { const t = idTrack(); if (!t) return false; try { await t.applyConstraints({ advanced: [adv] }); return true; } catch (e) { return false; } }
 function idCtlInit() {
   const box = $('#idctl'), t = idTrack(); if (!box || !t || !t.getCapabilities) return;
-  let c = {}; try { c = t.getCapabilities() || {}; } catch (e) {}
+  let c = {}; try { c = t.getCapabilities() || {}; } catch (e) { console.warn('Roothood:', e); }
   const h = [];
   if (c.torch) h.push(`<button class="${idCam.torch ? 'on' : ''}" onclick="idTorch()">⚡ Blixt ${idCam.torch ? 'på' : 'av'}</button>`);
   if (c.focusDistance || (c.focusMode || []).includes('manual')) h.push(`<button class="${idCam.macro ? 'on' : ''}" onclick="idMacro()">🌸 Närläge ${idCam.macro ? 'på' : 'av'}</button>`);
@@ -6655,7 +6657,7 @@ function idCtlInit() {
 }
 async function idTorch() { idCam.torch = !idCam.torch; if (!(await idApply({ torch: idCam.torch }))) { idCam.torch = false; toast('Blixten fungerar inte på den här kameran'); } idCtlInit(); }
 async function idMacro() {
-  const t = idTrack(); let c = {}; try { c = t.getCapabilities() || {}; } catch (e) {}
+  const t = idTrack(); let c = {}; try { c = t.getCapabilities() || {}; } catch (e) { console.warn('Roothood:', e); }
   idCam.macro = !idCam.macro; let ok;
   if (idCam.macro) ok = await idApply({ focusMode: 'manual', focusDistance: c.focusDistance ? c.focusDistance.min : undefined });
   else ok = await idApply({ focusMode: (c.focusMode || []).includes('continuous') ? 'continuous' : 'single-shot' });
@@ -6690,7 +6692,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.138';
+const APP_VERSION = '1.139';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -6744,7 +6746,7 @@ async function changePw() {
 function setPref(k, v) { store.set(k, v); applyPrefs(); render(); }
 function resetDemo() {
   if (S.del !== 'reset') { S.del = 'reset'; return render(); }
-  ['mine', 'feed', 'forumSeeded', 'pro', 'profile', 'suggestions', 'zone', 'theme', 'textsize', 'myPlants'].forEach(k => { try { localStorage.removeItem('gronska_' + k); } catch (e) {} });
+  ['mine', 'feed', 'forumSeeded', 'pro', 'profile', 'suggestions', 'zone', 'theme', 'textsize', 'myPlants'].forEach(k => { try { localStorage.removeItem('gronska_' + k); } catch (e) { console.warn('Roothood:', e); } });
   location.reload();
 }
 function zoneOf(p) {
@@ -6839,7 +6841,7 @@ async function enablePush() {
     let sub = await reg.pushManager.getSubscription();
     if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUBLIC_KEY) });
     await api.savePush(sub);
-    try { await api.setPushHour(sub.endpoint, store.get('pushHour', 8)); } catch (e) {}
+    try { await api.setPushHour(sub.endpoint, store.get('pushHour', 8)); } catch (e) { console.warn('Roothood:', e); }
     toast('Påminnelser är på! 🌱');
   } catch (e) { toast('Kunde inte slå på notiser: ' + (e.message || e)); }
   finally { S.pushBusy = false; await refreshPush(); render(); }
@@ -6856,7 +6858,7 @@ async function disablePush() {
   try {
     if (DEMO) { store.set('pushDemo', false); toast('Påminnelser är avstängda'); return; }
     const reg = await swReady(), sub = await reg.pushManager.getSubscription();
-    if (sub) { const ep = sub.endpoint; await sub.unsubscribe(); try { await api.deletePush(ep); } catch (e) {} }
+    if (sub) { const ep = sub.endpoint; await sub.unsubscribe(); try { await api.deletePush(ep); } catch (e) { console.warn('Roothood:', e); } }
     toast('Påminnelser är avstängda');
   } catch (e) { toast('Något gick fel: ' + (e.message || e)); }
   finally { S.pushBusy = false; await refreshPush(); render(); }
@@ -6933,7 +6935,7 @@ window.addEventListener('appinstalled', () => { installEvt = null; toast('Rootho
 async function installApp() {
   if (!installEvt) return;
   installEvt.prompt();
-  try { await installEvt.userChoice; } catch (e) {}
+  try { await installEvt.userChoice; } catch (e) { console.warn('Roothood:', e); }
   installEvt = null; render();
 }
 function installCard() {
@@ -6969,17 +6971,17 @@ async function init() {
     S.user = await api.user();
     S.mine = S.user ? await api.mine() : [];
     S.pro = PRO_FREE || (S.user ? await api.getPro() : false);
-    if (S.user) { try { const pr = await api.getProfile(); S.city = pr.city || ''; applyInterests(pr.interests); } catch (e) {} }
+    if (S.user) { try { const pr = await api.getProfile(); S.city = pr.city || ''; applyInterests(pr.interests); } catch (e) { console.warn('Roothood:', e); } }
     if (S.user) loadHome();
   } catch (e) { S.err = e; }
   S.loading = false;
   let restoreY = null;
-  try { restoreY = restoreView(); } catch (e) {}
+  try { restoreY = restoreView(); } catch (e) { console.warn('Roothood:', e); }
   const startTab = new URLSearchParams(location.search).get('tab');
-  if (startTab === 'mine') { S.tab = 'mine'; try { history.replaceState(null, '', location.pathname); } catch (e) {} }
+  if (startTab === 'mine') { S.tab = 'mine'; try { history.replaceState(null, '', location.pathname); } catch (e) { console.warn('Roothood:', e); } }
   const startTool = new URLSearchParams(location.search).get('tool');
-  if (startTool === 'msgs' || startTool === 'notif') { try { history.replaceState(null, '', location.pathname); } catch (e) {} setTimeout(() => { if (S.user) startTool === 'msgs' ? openMsgs() : openNotif(); }, 600); }
-  if (startTool === 'id') { try { history.replaceState(null, '', location.pathname); } catch (e) {} setTimeout(() => { openTool('id'); if (S.tool === 'id') startIdCam(); }); }
+  if (startTool === 'msgs' || startTool === 'notif') { try { history.replaceState(null, '', location.pathname); } catch (e) { console.warn('Roothood:', e); } setTimeout(() => { if (S.user) startTool === 'msgs' ? openMsgs() : openNotif(); }, 600); }
+  if (startTool === 'id') { try { history.replaceState(null, '', location.pathname); } catch (e) { console.warn('Roothood:', e); } setTimeout(() => { openTool('id'); if (S.tool === 'id') startIdCam(); }); }
   render();
   if (restoreY) setTimeout(() => { const m = $('#main'); if (m) m.scrollTop = restoreY; }, 350);
   $('#main').addEventListener('scroll', () => { clearTimeout(scrollT); scrollT = setTimeout(saveView, 400); }, { passive: true });
