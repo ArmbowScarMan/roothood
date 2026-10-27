@@ -39,6 +39,8 @@ const srv = http.createServer((q, r) => { const p = path.join(dir, q.url.split('
       // Burspråk: alla tre delarna får en bräda som pekar in i rummet
       const bayRoom = { id: 'rb', name: 'Burspråk', rect: { x: 0, y: 0, w: 4, h: 3 }, dirs: ['S'], wins: [], bays: [{ s: 'b', p: 1, l: 2, d: 0.6 }] };
       out.burspråk = baySegs(bayRoom, bayRoom.bays[0]).every(([q]) => { const b2 = sill3d(q, bayRoom), m3 = sillMesh3(THREE, M, q, bayRoom); return b2 && m3 && inPoly3(b2.mx + b2.nx * 0.3, b2.mz + b2.nz * 0.3, roomPoly(bayRoom)); });
+      // En tv-bänk framför fönstret: ingen bräda. Utan möbel: bräda.
+      { const oldPlan = S.hplan; const q = wallSeg(room, room.wins[0]); S.hplan = { furn: [{ id: 'tv1', t: 'tv', x: 1.75, y: 2.6, w: 1.6, h: 0.4, rot: 0 }] }; out.bradaBlockeras = sillMesh3(THREE, M, q, room) === null; S.hplan = {}; out.bradaUtanMobel = !!sillMesh3(THREE, M, q, room); S.hplan = oldPlan; }
       const sl = sill3d(wallSeg(room, room.wins[0]), room); const ix = sl.mx + sl.nx * 0.3, iz = sl.mz + sl.nz * 0.3; out.brada = !!sl && inPoly3(ix, iz, roomPoly(room));
     } finally { S.home = oldHome; }
     return out;

@@ -3008,7 +3008,10 @@ function sill3d(q, r) { const L = Math.hypot(q[2] - q[0], q[3] - q[1]); if (L < 
   let nx = -uz, nz = ux; if ((cx - mx) * nx + (cz - mz) * nz < 0) { nx = -nx; nz = -nz; } return { L, ux, uz, nx, nz, mx, mz, q }; }
 const SILL_Y = 0.915;
 // Fönsterbräda som 3D-del (används för vanliga fönster och burspråkens tre delar)
-function sillMesh3(THREE, M, q, r) { const sl = sill3d(q, r); if (!sl) return null; const sm = new THREE.Mesh(new THREE.BoxGeometry(sl.L + 0.08, 0.04, 0.3), M('#C49A6C')); sm.position.set(sl.mx + sl.nx * 0.17, SILL_Y - 0.02, sl.mz + sl.nz * 0.17); sm.rotation.y = -Math.atan2(sl.uz, sl.ux); sm.castShadow = true; sm.receiveShadow = true; return sm; }
+// Står en hög möbel (eller en tv) framför fönstret ritas ingen fönsterbräda där
+function sillBlocked(sl, r) { const cx = sl.mx + sl.nx * 0.17, cz = sl.mz + sl.nz * 0.17;
+  return planFurnAll().some(f => { if (flOf(f) !== flOf(r) || !((FH[f.t] || 0.8) > 0.88 || f.t === 'tv')) return false; const ext = Math.max(f.w, f.h || f.w) / 2, dx = f.x - cx, dz = f.y - cz, a = Math.abs(dx * sl.ux + dz * sl.uz), b = Math.abs(dx * sl.nx + dz * sl.nz); return a < sl.L / 2 + ext - 0.05 && b < 0.15 + ext - 0.05; }); }
+function sillMesh3(THREE, M, q, r) { const sl = sill3d(q, r); if (!sl || sillBlocked(sl, r)) return null; const sm = new THREE.Mesh(new THREE.BoxGeometry(sl.L + 0.08, 0.04, 0.3), M('#C49A6C')); sm.position.set(sl.mx + sl.nx * 0.17, SILL_Y - 0.02, sl.mz + sl.nz * 0.17); sm.rotation.y = -Math.atan2(sl.uz, sl.ux); sm.castShadow = true; sm.receiveShadow = true; return sm; }
 function winDetail(q, WH, TH, box) { if (WH <= 2.1) return; const L = Math.hypot(q[2] - q[0], q[3] - q[1]); if (L < 0.2) return; const ux = (q[2] - q[0]) / L, uz = (q[3] - q[1]) / L, W = '#FFFFFF', f = 0.06;
   box(q[0], q[1], q[2], q[3], 2.1 - f, f, TH + 0.04, W, { noext: 1 }); box(q[0], q[1], q[2], q[3], 0.86, 0.05, TH + 0.14, W, { noext: 1 }); box(q[0], q[1], q[2], q[3], 0.9, f * 0.7, TH + 0.04, W, { noext: 1 });
   [[0, f], [L - f, L]].forEach(([a0, a1]) => box(q[0] + ux * a0, q[1] + uz * a0, q[0] + ux * a1, q[1] + uz * a1, 0.9, 1.2, TH + 0.04, W, { noext: 1 }));
@@ -6664,6 +6667,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.157', '27 okt 16:40', ['3D: ingen fönsterbräda ritas där en tv, garderob, bokhylla eller annan hög möbel står framför fönstret']],
   ['1.156', '27 okt 16:30', ['3D: alla möbler är detaljerade så att man ser vad de är. Soffor med dynor, sängar med kuddar och täcke, bokhyllor med böcker, köksbänk med luckor, spis med plattor, tv på tv-bänken, badkar, dusch, toalett och handfat. Ute: garage med port, carport, pergola, pool, damm, studsmatta med nät, sandlåda, lekstuga, eldstad, grill, utebänk och bikupa']],
   ['1.155', '27 okt 16:10', ['Planritningen går att använda med bara tryck: välj något och tryck där det ska stå, rita väggar och häckar genom att trycka på start och slut, och ändra storlek på ytor och flytta burspråk med knappar. Att dra fungerar fortfarande']],
   ['1.154', '27 okt 15:50', ['Mitt hem har ett enkelt läge: en guide med en fråga i taget. Vilka rum, åt vilket håll fönstret vetter (eller telefonens kompass), hur ljust det är och vilka växter som står där. Huset ritas automatiskt', 'Mallar att börja från: Lägenhet 1 rok, 2 rok och Villa', 'Planritningen finns kvar som avancerat läge, i en egen skärm utan bottenmeny. Fyra huvudverktyg (Rum, Fönster, Växt, Flytta) och resten under Mer. Våningar visas först när du har fler än en', 'Fönstren i ritningen är färgade efter hur mycket ljus de ger, och rumsnamnen ligger överst', 'Häng en växt i taket: välj Ampel i taket i växtens uppgifter, i guiden eller i ritningen', '35 cm mellan plantorna i stället för cc 35 cm', 'Uppdateringsloggen visar när varje version kom']],
@@ -7353,7 +7357,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.156';
+const APP_VERSION = '1.157';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
