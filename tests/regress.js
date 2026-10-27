@@ -75,7 +75,24 @@ const server = http.createServer((req, res) => {
   }
   ok('Inga JavaScript-fel under körningen', errors.length === 0, errors.slice(0, 3).join(' | '));
 
-  // 3. Ingen nyckel i demo-buildet ska exponeras
+  // 3. Offline: appen ska starta från sparad kopia och visa bannern
+  const octx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const op = await octx.newPage();
+  await op.goto(url); await op.waitForTimeout(2500);
+  const swOk = await op.evaluate(() => navigator.serviceWorker.ready.then(() => true).catch(() => false));
+  ok('Service worker är aktiv', swOk);
+  await octx.setOffline(true);
+  await op.reload().catch(() => {}); await op.waitForTimeout(1500);
+  const off = await op.evaluate(() => ({ kids: document.querySelector('#app') ? document.querySelector('#app').children.length : 0, banner: !document.getElementById('offline').hidden }));
+  ok('Offline: appen startar från sparad kopia', off.kids > 0, `${off.kids} element`);
+  ok('Offline: banner visas', off.banner);
+  await octx.setOffline(false);
+  await op.waitForTimeout(800);
+  const back = await op.evaluate(() => document.getElementById('offline').hidden);
+  ok('Online igen: banner döljs', back === true);
+  await octx.close();
+
+  // 4. Ingen nyckel i demo-buildet ska exponeras
   ok('Demo-build innehåller ingen projektnyckel', !html.includes('lboomcqxksqahkugpxew'));
 
   await browser.close();
