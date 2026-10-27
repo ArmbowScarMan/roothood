@@ -1477,6 +1477,8 @@ const demoApi = {
   async answer(pid, body, photo, parent) { const f = this._feed(), url = photo ? await fileShrink(photo, 900, true) : null; f.find(p => p.id === pid).answers.push({ id: Date.now(), user_id: 'demo', author: 'Du', body, photo_url: url, parent_id: parent || null, created_at: new Date().toISOString() }); this._save(f); },
   async like(pid, on) { const f = this._feed(), p = f.find(x => x.id === pid); p.likers = p.likers.filter(x => x !== 'demo'); if (on) p.likers.push('demo'); this._save(f); },
   async best(pid, aid) { const f = this._feed(); f.find(p => p.id === pid).pending_best_answer_id = aid; this._save(f); },
+  async myPlantFollows() { return store.get('pfol', []); },
+  async followPlant(sp, on) { const f = store.get('pfol', []).filter(x => x !== sp); if (on) f.push(sp); store.set('pfol', f); },
   async modBest() { const out = []; this._feed().forEach(p => { const a = p.pending_best_answer_id && (p.answers || []).find(x => x.id === p.pending_best_answer_id); if (a) out.push({ post_id: p.id, question: p.body, answer_id: a.id, answer_text: a.body, answer_author: a.author, asked_by: p.author, asked_at: p.created_at }); }); return out; },
   async modBestCount() { return (await this.modBest()).length; },
   async modBestDecide(pid, ok) { const f = this._feed(), p = f.find(x => x.id === pid); if (p) { if (ok) p.best_answer_id = p.pending_best_answer_id; p.pending_best_answer_id = null; } this._save(f); },
@@ -1698,6 +1700,8 @@ const sbApi = {
     if (error) throw error;
   },
   async best(pid, aid) { const { error } = await sb.from('posts').update({ pending_best_answer_id: aid }).eq('id', pid); if (error) throw error; },
+  async myPlantFollows() { const { data, error } = await sb.from('plant_follows').select('species').eq('user_id', S.user.id); if (error) throw error; return (data || []).map(x => x.species); },
+  async followPlant(sp, on) { const r = on ? await sb.from('plant_follows').upsert({ user_id: S.user.id, species: sp }) : await sb.from('plant_follows').delete().eq('user_id', S.user.id).eq('species', sp); if (r.error) throw r.error; },
   async modBest() { const { data, error } = await sb.rpc('mod_best_queue'); if (error) throw /mod_best/.test(error.message || '') ? new Error('MOD_NOT_READY') : error; return (data || []).map(r => ({ post_id: r.post_id, question: r.question, answer_id: r.answer_id, answer_text: r.answer_text, answer_author: r.answer_author, asked_by: r.asked_by, asked_at: r.asked_at })); },
   async modBestCount() { const { data, error } = await sb.rpc('mod_best_count'); return error ? 0 : (data || 0); },
   async modBestDecide(pid, ok) { const { error } = await sb.rpc('mod_best_decide', { p_post: pid, p_approve: ok }); if (error) throw error; },
@@ -2128,7 +2132,7 @@ function roomHints(p, r, win) {
   if (r.temp === 'Svalt' && p.category !== 'Kaktus' && p.light_level >= 2 && /tropi|monstera|filodendron|philodendron|alokasia|alocasia|calathea/i.test((p.swedish_name || '') + (p.latin_name || ''))) h.push(['warn', `${nm} kommer från tropikerna och vill inte ha det kallare än cirka 16 °C.`]);
   return h;
 }
-async function loadRole() { if (!S.user) return; try { S.role = await api.myRole(); S.blocks = await api.myBlocks(); if (isMod()) S.modOpen = await api.modOpen(); } catch (e) {} }
+async function loadRole() { if (!S.user) return; try { S.role = await api.myRole(); S.blocks = await api.myBlocks(); if (isMod()) S.modOpen = await api.modOpen(); } catch (e) {} try { S.pfol = await api.myPlantFollows(); } catch (e) { S.pfol = S.pfol || []; } }
 async function loadHome() { if (!S.user) return; loadFavs(); loadWishes(); loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
 function openHouse(id) { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'house'; S.room = id || null; if (S.pl) { S.pl.sel = null; S.pl.mode = 'move'; S.pl.fit = true; } render(); $('#main').scrollTop = 0; }
 function compassSvg(dirs, size) {
@@ -4339,7 +4343,23 @@ function openAqDb() { S.env = 'in'; S.cat = 'Akvarieväxt'; S.q = ''; openDb(); 
 // ===== Notiser: svar på mina inlägg, expertsvar, vattning =====
 function notifSeen() { return store.get('notifSeen', 0); }
 function notifUnseen() { return (S.notifs || []).filter(n => n.pending || Date.parse(n.at) > notifSeen()).length; }
-async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); } catch (e) { S.notifs = S.notifs || []; } if (isMod()) { try { S.modOpen = await api.modOpen(); } catch (e) {} } await loadInbox(); if (!S.tool && !S.modal) render(); }
+async function followHits() {
+  const sp = S.pfol || []; if (!sp.length || !S.user) return [];
+  const since = Date.now() - 30 * 864e5, list = await api.feed('question') || [];
+  return list.filter(p => p.user_id !== S.user.id && Date.parse(p.created_at) > since).map(p => { const b = String(p.body || '').toLowerCase(), hit = sp.find(x => b.includes(x)); return hit ? { t: 'follow', at: p.created_at, who: p.author, body: p.body, post_id: p.id, cat: p.category, species: hit } : null; }).filter(Boolean).slice(0, 20);
+}
+async function togPlantFollow(key) {
+  if (needLogin()) return; const on = !(S.pfol || []).includes(key);
+  S.pfol = on ? (S.pfol || []).concat(key) : (S.pfol || []).filter(x => x !== key); render();
+  try { await api.followPlant(key, on); toast(on ? 'Du får notis när någon frågar om arten' : 'Du följer inte längre arten'); loadNotifs(); }
+  catch (e) { S.pfol = on ? S.pfol.filter(x => x !== key) : S.pfol.concat(key); render(); toast(errMsg(e)); }
+}
+function followBtn(p) {
+  const key = String(p.swedish_name || '').toLowerCase().trim(); if (key.length < 2) return '';
+  const on = (S.pfol || []).includes(key);
+  return `<div class="pad" style="padding-top:10px"><button class="btn sm line" style="width:100%" onclick="togPlantFollow('${esc(key)}')">${ic(on ? 'ph-bell-slash' : 'ph-bell', 'currentColor', 16)} ${on ? 'Sluta följa' : 'Följ'} ${esc(p.swedish_name)} i Community</button></div>`;
+}
+async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); } catch (e) { S.notifs = S.notifs || []; } try { S.notifs = (S.notifs || []).filter(n => n.t !== 'follow').concat(await followHits()); } catch (e) {} if (isMod()) { try { S.modOpen = await api.modOpen(); } catch (e) {} } await loadInbox(); if (!S.tool && !S.modal) render(); }
 function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due + (isMod() ? (S.modOpen || 0) : 0); return `<button class="circ bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
 let inboxAsked = false;
 function msgBtn() {
@@ -4490,7 +4510,7 @@ function notifV() {
   const row = (icon, title, sub, at, act, isNew) => `<button class="nrow ${isNew ? 'new' : ''}" onclick="${act}"><span class="nic">${icon}</span><span class="grow"><b>${title}</b>${sub ? `<span>${sub}</span>` : ''}</span>${at ? `<small>${ago(at)}</small>` : ''}</button>`;
   const todo = due.map(m => row('💧', `${esc(m.name)} behöver vatten idag`, '', null, `S.tool=null;go('mine')`, false)).concat(out.map(([m, t]) => row('🌦️', esc(m.name), esc(t.split('.')[0]), null, `S.tool=null;openMine(${m.id})`, false)));
   const frq = (N || []).filter(n => n.t === 'friend').map(n => `<div class="nrow new frow"><span class="nic">👋</span><span class="grow"><b>${esc(n.who || 'Någon')} vill bli din vän</b>${n.msg ? `<span>”${esc(n.msg)}”</span>` : ''}<span class="fbtns"><button class="btn sm" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',true)">Acceptera</button><button class="btn sm line" onclick="friendAnswer('${esc(String(n.req))}','${esc(n.from)}',false)">Neka</button><button class="link3" onclick="openUser('${esc(n.from)}')">Visa profil</button></span></span><small>${ago(n.at)}</small></div>`);
-  const act = (N || []).filter(n => n.t !== 'friend').map(n => n.t === 'friend_ok' ? row('🤝', `${esc(n.who || 'Någon')} accepterade din vänförfrågan`, 'Ni är nu vänner', n.at, `openUser('${esc(n.from)}')`, Date.parse(n.at) > seen) : n.t === 'expert' ? row('🎓', `${esc(n.who || 'En expert')} har svarat på din expertfråga`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `openExperts()`, Date.parse(n.at) > seen)
+  const act = (N || []).filter(n => n.t !== 'friend').map(n => n.t === 'follow' ? row('🌿', `Ny fråga om ${esc(n.species)}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `goPost('question',${n.post_id},'${esc(n.cat || '')}')`, Date.parse(n.at) > seen) : n.t === 'friend_ok' ? row('🤝', `${esc(n.who || 'Någon')} accepterade din vänförfrågan`, 'Ni är nu vänner', n.at, `openUser('${esc(n.from)}')`, Date.parse(n.at) > seen) : n.t === 'expert' ? row('🎓', `${esc(n.who || 'En expert')} har svarat på din expertfråga`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `openExperts()`, Date.parse(n.at) > seen)
     : row(n.kind === 'mystery' ? '🔎' : n.kind === 'listing' ? '🔁' : '💬', `${esc(n.who || 'Någon')} svarade på ${what[n.kind] || 'ditt inlägg'}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”${n.ptitle ? ` · ${esc(n.ptitle.slice(0, 40))}` : ''}`, n.at, `goPost('${n.kind}',${n.post_id},'${esc(n.cat || '')}')`, Date.parse(n.at) > seen));
   return `${topbar('Notiser', 'S.tool=null;render()')}
   ${frq.length ? `<div class="sec"><h2>Vänförfrågningar</h2></div><div class="pad nlist">${frq.join('')}</div>` : ''}
@@ -5212,6 +5232,7 @@ function detail() {
   ${similar.length ? `<div class="sec"><h2>Liknande växter</h2></div><div class="similar">${similar.map(s => `<button onclick="openPlant(${s.id})">${plantPh(s)}<span>${esc(s.swedish_name)}</span></button>`).join('')}</div>` : ''}
   ${my ? `<div class="pad" style="padding-top:14px"><button class="setrow" onclick="openDoc(${my.id})"><span class="tic doc">${ic(DOCI, 'currentColor', 20)}</span><span class="grow"><b>Något som inte ser friskt ut?</b><span>Fråga Växtdoktorn om skador och ohyra</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>` : ''}
   ${othersV(p)}
+  ${followBtn(p)}
   ${cta ? `<div class="cta ctastack">${cta}</div>` : '<div style="height:16px"></div>'}
   </div>`;
 }
@@ -6133,6 +6154,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.122', 'Nu', ['Följ en växtart i Community. Du får en notis när någon ställer en fråga om arten, även om du inte har växten']],
   ['1.121', 'Nu', ['Bästa svar godkänns av en moderator innan det visas. Moderatorer hittar väntande svar under Moderering, fliken Bästa svar']],
   ['1.120', 'Nu', ['Ställ en fråga: frågeformuläret öppnas i eget fönster från en knapp. Kategori väljs själv (Välj kategori) eller från din växt. Flikarna och filtren i Community går att skrolla sida vid sida, och långa namn förkortas automatiskt']],
   ['1.119', 'Nu', ['Samling: Ta bort finns bara på växtsidan, vattenkannan visar dagar till nästa vattning, uppmaning att lägga till växt när man har få. Växtsidan: luft mellan knapparna och röd Ta bort med bekräftelse. Utforska: listrader, en knapp för Hem och unika ikoner. Community: Hitta användare är en sökikon i rubriken']],
@@ -6787,7 +6809,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.121';
+const APP_VERSION = '1.122';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
