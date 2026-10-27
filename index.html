@@ -5205,8 +5205,8 @@ function mineV() {
   return `${topbar('Min samling')}${mtabBar()}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
   ${S.mine.length && S.push === 'off' && !store.get('pushNudgeHidden', false) ? `<div class="instc pushnudge"><span class="tic">${ic(BELL, 'currentColor', 22)}</span><div><b>Få påminnelser i mobilen</b><span>En notis när något behöver vattnas, på tiden du väljer.</span></div><button class="btn sm" onclick="enablePush()">Slå på</button><button class="x" aria-label="Dölj" onclick="store.set('pushNudgeHidden', true); render()">✕</button></div>` : ''}
-  <div class="sec"><h2>Dina växter</h2><span style="display:flex;gap:8px">${S.pro ? `<button class="btn sm line" onclick="openHouse()">${ic(DOORI, 'currentColor', 15)} Mitt hem</button>` : ''}<button class="btn sm line" onclick="addCustomStart()">+ Egen växt</button></span></div>
-  ${S.pro && rooms.length && S.mine.length ? `<div class="roomchips">${[[null, 'Alla']].concat(rooms.map(r => [r.id, r.name]), [['-', 'Utan rum']]).map(([id, n]) => `<button class="${S.mroom === id ? 'on' : ''}" onclick="S.mroom=${id ? `'${id}'` : 'null'};render()">${esc(n)}<small>${id === null ? S.mine.length : S.mine.filter(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id).length}</small></button>`).join('')}</div>` : ''}
+  <div class="sec"><h2>Dina växter</h2><span style="display:flex;gap:8px">${S.pro ? `<button class="btn sm line" onclick="addCustomStart()">+ Egen växt</button></span></div>
+  ${S.pro && rooms.length && S.mine.length ? `<div class="roomchips">${[[null, 'Alla']].concat(rooms.map(r => [r.id, r.name]), [['-', 'Utan rum']]).filter(([id]) => id === null || S.mroom === id || S.mine.some(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id)).map(([id, n]) => `<button class="${S.mroom === id ? 'on' : ''}" onclick="S.mroom=${id ? `'${id}'` : 'null'};render()">${esc(n)}<small>${id === null ? S.mine.length : S.mine.filter(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id).length}</small></button>`).join('')}</div>` : ''}
   <div class="list" style="padding-top:0">${S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p>Öppna en växt under Växter och tryck Lägg till i min samling, så hamnar den här med vattningspåminnelser. Hjärtat sparar växter du gillar under Favoriter.</p><button class="btn sm" onclick="go('home')">Hitta växter</button></div>`}</div>`;
 }
 function meV() {
@@ -6092,6 +6092,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.117', 'Nu', ['Samling: knappen Mitt hem är borta bredvid Dina växter (finns kvar på Hem). Rum utan växter visas inte i filtret']],
   ['1.116', 'Nu', ['Väderkortet är kompaktare. Varningarna fälls ut som en rad, och dagarna visas med knappen 5 dagar. Hälsningen säger inte längre samma sak som Inget att göra just nu. Inomhusfuktigheten är borttagen tills vi har riktiga sensordata']],
   ['1.115', 'Nu', ['Chatten har ingen bottenmeny, så skrivfältet ligger längst ner. Välj ort finns i väderkortet som en ikon. Dagbok och Växtdoktorn har samma namn överallt. Pastellfärger är bytta mot gröna toner, varm färg bara för varningar. Emojier är bytta mot ikoner, och lövmönstret är en svag papperstextur']],
   ['1.114', 'Nu', ['Välj ort ligger under hälsningen, inte i rubriken. Skrivfältet i chatten sitter längst ner. Egna meddelanden har krämvit text. Ikonerna på växtkorten överlappar inte längre texten']],
@@ -6741,7 +6742,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.116';
+const APP_VERSION = '1.117';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
