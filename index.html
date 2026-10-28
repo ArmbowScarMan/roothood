@@ -2288,7 +2288,7 @@ function simpleHomeV() {
     <button class="btn wide wznext" onclick="wzStart()">Kom igång</button>
     <p class="wzlbl">Eller börja från en mall</p><div class="wzlist">${WZ_TPL.map((t, i) => `<button class="wzl" onclick="wzStart(WZ_TPL[${i}][1])"><span class="grow"><b>${t[0]}</b><span>${t[1].join(', ')}</span></span></button>`).join('')}</div>
     <button class="btn wide line" onclick="setHMode('adv','plan')">${ic(PEN, 'currentColor', 18)} Rita planritning (avancerat)</button></div>`;
-  return `${topbar('Mitt hem', 'closeTool()', helpBtn())}<div class="wz"><h1>Ditt hem</h1><p class="mut">${rooms.length} rum · ${placed} ${placed === 1 ? 'växt' : 'växter'} placerade. Tryck på ett rum för att ändra.</p>
+  return `${topbar('Mitt hem', 'closeTool()')}<div class="wz"><h1>Ditt hem</h1><p class="mut">${rooms.length} rum · ${placed} ${placed === 1 ? 'växt' : 'växter'} placerade. Tryck på ett rum för att ändra.</p>
     <div class="wzlist">${rooms.map(r => { const n = plantsIn(r.id).length, l = lightOf(r); return `<button class="wzroom" onclick="wzStart(null,'${r.id}')">${ic(lightIc(l), l === 'Mycket ljust' ? '#E0A11B' : l === 'Halvljust' ? '#D99A2B' : 'var(--mut)', 28)}<span class="grow"><b>${esc(r.name)}</b><span>${[(r.dirs || []).map(dirName).join(' och '), l].filter(Boolean).join(' · ')}</span></span><span class="wzbadge ${n ? 'on' : ''}">${n ? n + (n === 1 ? ' växt' : ' växter') : 'Tomt'}</span></button>`; }).join('')}
     <button class="wzc add" onclick="wzStart()">+ Lägg till rum</button></div>
     ${noRoom.length ? `<p class="wzlbl">${noRoom.length} ${noRoom.length === 1 ? 'växt' : 'växter'} utan rum</p><div class="wzlist">${noRoom.slice(0, 6).map(m => `<button class="wzl" onclick="pickRoomFor(${m.id})">${myPh(m)}<span class="grow"><b>${esc(m.name)}</b><span>Tryck för att välja rum</span></span></button>`).join('')}</div>` : ''}
@@ -2302,7 +2302,7 @@ function houseV() {
   const noRoom = S.mine.filter(m => !roomOf(m));
   const hv = S.hview === '3d' ? '3d' : 'plan'; if (hv !== '3d' && S.walk) { S.walk = false; if (T3) T3.walk = null; }
   const seg = `<div class="seg2 hseg">${[['plan', 'Ritning'], ['3d', '3D']].map(([k, n]) => `<button class="${hv === k ? 'on' : ''}" onclick="S.hview='${k}';render()">${n}</button>`).join('')}</div>`;
-  const advTop = topbar(hv === '3d' ? 'Huset i 3D' : 'Planritning', "setHMode('simple')", `${helpBtn()}<button class="btn sm" onclick="setHMode('simple')">Klar</button>`);
+  const advTop = topbar(hv === '3d' ? 'Huset i 3D' : 'Planritning', "setHMode('simple')", `<button class="btn sm" onclick="setHMode('simple')">Klar</button>`);
   if (hv === 'plan') return `${advTop}${seg}${planV()}`;
   if (hv === '3d') return `${advTop}${seg}${view3dV()}`;
   return `${topbar('Mitt hem', 'closeTool()')}${seg}
@@ -4871,8 +4871,8 @@ function topbar(title, backFn, extra) {
   const left_ = backFn
     ? `<button class="circ" onclick="${backFn}" aria-label="Tillbaka">${ic(I.back, null, 22)}</button>`
     : `<img class="logoimg" src="${LOGO}" alt="Roothood" width="40" height="40">`;
-  const right = bellBtn();
-  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1>${esc(title)}</h1>${extra || (title === 'Gemenskap' ? communityBtns() : '')}${right}</div>`;
+  const right = bellBtn(), help = S.tool === 'house' ? helpBtn() : (title === 'Min samling' && !backFn ? `<button class="circ" onclick="openQAdd()" aria-label="Lägg till växt">${ic('ph-plus', null, 22)}</button>` : '');
+  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1>${esc(title)}</h1>${extra || (title === 'Gemenskap' ? communityBtns() : '')}${help}${right}</div>`;
 }
 function communityBtns() { return `<button class="circ" onclick="openExperts()" aria-label="Fråga en expert">${ic('ph-graduation-cap', null, 22)}</button><button class="circ" onclick="openAskQ()" aria-label="Ställ en fråga">${ic('ph-question', null, 22)}</button>${peopleSearchBtn()}`; }
 function peopleSearchBtn() { return `<button class="circ" onclick="openPeople()" aria-label="Hitta användare">${ic('ph-magnifying-glass', null, 22)}</button>`;
@@ -4911,7 +4911,7 @@ function iconize(root) {
 }
 function render() {
   HV = otherHome();
-  { const fb = $('#fab'); if (fb) fb.hidden = !!(S.sel || S.tool || S.modal || S.tab !== 'mine'); }
+  { const fb = $('#fab'); if (fb) fb.hidden = true; }
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tab));
   document.getElementById('app').classList.toggle('nochat', S.tool === 'chat');
   document.body.classList.toggle('hadv', S.tool === 'house' && !S.room && !S.wz && hMode() === 'adv');
@@ -7320,6 +7320,8 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.209', '28 okt 17:45', ['Plusknappen för att lägga till växt ligger nu uppe till höger i Min samling, i stället för nere i hörnet']],
+  ['1.208', '28 okt 17:35', ['?-knappen för Mitt hem ligger nu uppe till höger, bredvid Klar och notisknappen']],
   ['1.207', '28 okt 17:40', ['Ritningen och 3D-vyn zoomar så att hela huset syns, även när det är stort', 'Nya ?-knappen i Mitt hem förklarar hur man ritar, placerar och använder 3D']],
   ['1.206', '28 okt 17:25', ['Knappen som hette Redigera Mitt hem heter nu bara Mitt hem']],
   ['1.205', '28 okt 17:30', ['Ditt hem: nytt steg "Vad finns i rummet". Tryck på det du har, så ställs möblerna ut längs väggarna åt dig', 'Mallarna Lägenhet och Villa har nu vanliga möbler redan på plats. Ta bort det du inte har']],
@@ -8064,7 +8066,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.207';
+const APP_VERSION = '1.209';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
