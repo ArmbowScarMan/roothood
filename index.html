@@ -2259,6 +2259,7 @@ function wzStart(tpl, editId) {
   let sel = ex.map(r => r.name); if (tpl) sel = [...new Set(sel.concat(tpl))];
   S.wz = { step: editId ? 2 : 1, sel, cur: 0, data, other: null, only: null };
   if (editId) { const r = ex.find(x => x.id === editId); S.wz.only = r ? r.name : null; S.wz.sel = r ? [r.name] : sel; }
+  if (S.wz.only && /^Trädgård( |$)/.test(S.wz.only)) S.wz.step = 3;
   render(); $('#main').scrollTop = 0;
 }
 const wzD = n => (S.wz.data[n] = S.wz.data[n] || { id: null, dir: null, light: null, plants: [], hang: [], furn: [...(FURN_PRESET[roomKind(n)] || [])], skipF: false });
@@ -2299,7 +2300,7 @@ function wzNext() { const W = S.wz; if (W.step === 1) { if (!W.sel.length) retur
   else if (W.cur < W.sel.length - 1) { W.cur++; W.step = isGarden() ? 3 : 2; }
   else return wzSave();
   render(); $('#main').scrollTop = 0; }
-function wzBack() { const W = S.wz; if (W.step === 1 || (W.only && W.step === 2)) { S.wz = null; return render(); } if (W.step === 2 && W.cur > 0) { W.cur--; W.step = 5; } else W.step--; if (W.step === 2 && isGarden()) W.step = 1; if (W.step === 4 && WZ_OUT.includes(roomKind(wzName()))) W.step = 3; render(); $('#main').scrollTop = 0; }
+function wzBack() { const W = S.wz; if (W.step === 1 || (W.only && (W.step === 2 || (W.step === 3 && isGarden())))) { S.wz = null; return render(); } if (W.step === 2 && W.cur > 0) { W.cur--; W.step = 5; } else W.step--; if (W.step === 2 && isGarden()) W.step = 1; if (W.step === 4 && WZ_OUT.includes(roomKind(wzName()))) W.step = 3; render(); $('#main').scrollTop = 0; }
 function wzSet(k, v) { wzD(wzName())[k] = wzD(wzName())[k] === v ? null : v; keepScroll(); }
 function wzPlant(id) { const d = wzD(wzName()); d.plants = d.plants.includes(id) ? d.plants.filter(x => x !== id) : d.plants.concat(id); if (!d.plants.includes(id)) d.hang = d.hang.filter(x => x !== id); keepScroll(); }
 function wzHang(id) { const d = wzD(wzName()); d.hang = d.hang.includes(id) ? d.hang.filter(x => x !== id) : d.hang.concat(id); keepScroll(); }
@@ -7659,6 +7660,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.232', '28 okt 23:21', ['Redigera en trädgård hoppar över väderstreck och går direkt till solen']],
   ['Beta 0.231', '28 okt 23:17', ['Solen i 3D följer kartans väderstreck rätt']],
   ['Beta 0.230', '28 okt 23:12', ['Reglaget för tiden på dygnet ligger under 3D-bilden, så den inte döljs']],
   ['Beta 0.229', '28 okt 23:09', ['Trädgården utgår från solen i stället för väderstreck, och 3D visar solen och skuggor efter månad och tid på dygnet']],
@@ -8433,7 +8435,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.231';
+const APP_VERSION = 'Beta 0.232';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
