@@ -3287,12 +3287,16 @@ function pet3d(K, p, x, y, z, ry) {
       [[0.07, 1], [0.07, -1], [-0.07, 1], [-0.07, -1]].forEach(([lx, s2]) => { const l = Q.cyl(0.01, 0.01, 0.05, c, lx, 0.015, s2 * 0.075, 6); l.rotation.x = s2 * 1.1; }); eye(0.18, 0.06, 0.025);
       if (/skägg|agam|pogona/.test(txt)) for (let i = 0; i < 5; i++) Q.cyl(0, 0.006, 0.02, '#A07A4A', 0.13, 0.03, -0.035 + i * 0.018, 4); } }
   else if (k === 'skoldpadda') { sc(Q.sph(0.08, '#6B5A3A', 0, 0.035, 0), 1.2, 0.6, 1); sc(Q.sph(0.025, '#8A8A5A', 0.11, 0.03, 0), 1.3, 1, 1); [[0.06, 1], [0.06, -1], [-0.06, 1], [-0.06, -1]].forEach(([lx, s2]) => Q.sph(0.018, '#8A8A5A', lx, 0.012, s2 * 0.07)); }
-  else if (k === 'katt' || k === 'hund') { const dog = k === 'hund', s = petS(p), chi = /chihuahua|papillon/.test(txt), c = dog ? pick(['#C9A06A', '#E8D9C0', '#3A2A1A', '#8A5A3A', '#F2EEE6']) : pick(['#8A8A8A', '#2A2A2A', '#E09A4A', '#F2EEE6']);
-    sc(Q.sph(0.14 * s, c, 0, 0.085 * s, 0), 1.6, 0.62, 0.85); const hx = 0.21 * s, hy = 0.17 * s; sc(Q.sph(0.075 * s, c, hx, hy, 0), 1.05, 0.95, 0.95);
+  else if (k === 'katt' || k === 'hund') { const dog = k === 'hund', s = petS(p), chi = /chihuahua|papillon/.test(txt), c = dog ? pick(['#C9A06A', '#E8D9C0', '#3A2A1A', '#8A5A3A', '#F2EEE6']) : pick(['#8A8A8A', '#2A2A2A', '#E09A4A', '#F2EEE6']), white = '#F2EEE6', pawC = dog && c !== white ? white : c;
+    const legH = 0.05 * s, bY = legH + 0.087 * s, hx = 0.21 * s, hy = 0.2 * s;
+    sc(Q.sph(0.14 * s, c, 0, bY, 0), 1.6, 0.62, 0.85);
+    [[0.1, 0.07], [0.1, -0.07], [-0.1, 0.07], [-0.1, -0.07]].forEach(([lx, lz]) => { Q.cyl(0.02 * s, 0.018 * s, legH + 0.02 * s, c, lx * s, (legH + 0.02 * s) / 2, lz * s, 8); sc(Q.sph(0.026 * s, pawC, lx * s + 0.012 * s, 0.012 * s, lz * s), 1.3, 0.6, 1.1); });
+    if (dog && c !== white) sc(Q.sph(0.06 * s, white, 0.19 * s, bY - 0.03 * s, 0), 0.7, 1.1, 1.1);
+    sc(Q.sph(0.075 * s, c, hx, hy, 0), 1.05, 0.95, 0.95);
     if (dog) { sc(Q.sph(0.035 * s, c, hx + 0.07 * s, hy - 0.025 * s, 0), 1.6, 0.8, 0.9); Q.sph(0.014 * s, '#1A1A1A', hx + 0.125 * s, hy - 0.02 * s, 0); } else Q.sph(0.01 * s, '#D98A8A', hx + 0.075 * s, hy - 0.01 * s, 0);
     const up = !dog || chi || /husky|schäfer|spets|corgi/.test(txt); [-1, 1].forEach(s2 => { if (up) { const e = Q.cyl(0, (chi ? 0.045 : 0.03) * s, (chi ? 0.11 : 0.065) * s, c, hx - 0.01 * s, hy + (chi ? 0.09 : 0.07) * s, s2 * 0.045 * s, 8); e.rotation.x = s2 * (chi ? 0.55 : 0.25); } else sc(Q.sph(0.032 * s, c, hx - 0.01 * s, hy + 0.01 * s, s2 * 0.07 * s), 0.6, 1.7, 0.5); });
-    [-1, 1].forEach(s2 => { Q.sph(0.013 * s, '#1A1A1A', hx + 0.06 * s, hy + 0.025 * s, s2 * 0.032 * s); sc(Q.sph(0.028 * s, c, 0.2 * s, 0.022 * s, s2 * 0.05 * s), 1.9, 0.6, 0.7); sc(Q.sph(0.05 * s, c, -0.12 * s, 0.05 * s, s2 * 0.075 * s), 1.3, 0.9, 0.6); });
-    const t = Q.cyl(0.01 * s, 0.016 * s, 0.2 * s, c, -0.25 * s, 0.05 * s, 0.05 * s, 8); t.rotation.z = Math.PI / 2; t.rotation.y = 0.6; }
+    [-1, 1].forEach(s2 => { Q.sph(0.013 * s, '#1A1A1A', hx + 0.06 * s, hy + 0.025 * s, s2 * 0.032 * s); Q.sph(0.004 * s, '#FFFFFF', hx + 0.066 * s, hy + 0.032 * s, s2 * 0.036 * s); sc(Q.sph(0.028 * s, c, 0.2 * s, bY + 0.02 * s, s2 * 0.05 * s), 1.9, 0.6, 0.7); sc(Q.sph(0.05 * s, c, -0.12 * s, bY + 0.05 * s, s2 * 0.075 * s), 1.3, 0.9, 0.6); });
+    const t = Q.cyl(0.01 * s, 0.016 * s, 0.2 * s, c, -0.25 * s, bY + 0.03 * s, 0.05 * s, 8); t.rotation.z = Math.PI / 2; t.rotation.y = 0.6; }
   else if (k === 'kanin' || k === 'marsvin' || k === 'gnagare') { const s = k === 'kanin' ? 1 : k === 'marsvin' ? 0.8 : 0.45, c = pick(k === 'kanin' ? ['#D9CFC2', '#F2EEE6', '#7A5A3A', '#9A9A9A'] : ['#C98A4A', '#F2EEE6', '#5A4A3A', '#E8D9C0']);
     sc(Q.sph(0.09 * s, c, 0, 0.07 * s, 0), 1.3, 0.85, 1); sc(Q.sph(0.055 * s, c, 0.1 * s, 0.1 * s, 0), 1.1, 1, 1); eye(0.14 * s, 0.11 * s, 0.03 * s);
     if (k === 'kanin') { [-1, 1].forEach(s2 => sc(Q.sph(0.022, c, 0.09, 0.19, s2 * 0.02), 0.6, 2.6, 0.8)); Q.sph(0.022, '#FFFFFF', -0.11, 0.08, 0); } else [-1, 1].forEach(s2 => Q.sph(0.015 * s, '#D99A9A', 0.09 * s, 0.15 * s, s2 * 0.035 * s)); }
@@ -3378,7 +3382,25 @@ const FURN3 = {
     for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283; K.box(0.008, 0.02, 0.004, '#333333', Math.sin(a) * r * 0.82, y + Math.cos(a) * r * 0.82, 0.02); } K.box(0.008, r * 0.55, 0.004, '#222222', 0, y + r * 0.25, 0.022); const mh = K.box(0.006, r * 0.8, 0.004, '#222222', r * 0.3, y + 0.06, 0.023); mh.rotation.z = -1.1; },
   pstand: (K, W, D, H, f) => { const c = FR(f, '#F4F0E8'), top = 1.75, px = -W / 2 + 0.03; K.box(0.3, 0.02, 0.3, c, px + 0.12, 0.01, 0); K.cyl(0.015, 0.015, top, c, px, top / 2, 0, 8); K.box(W, 0.025, 0.025, c, 0, top, 0);
     const hx = W * 0.15; K.cyl(0.003, 0.003, 0.45, '#1A1A1A', hx, top - 0.23, 0, 4); K.cyl(0.09, 0.07, 0.12, '#EDEDED', hx, top - 0.5, 0, 14); K.sph(0.11, '#7DB04A', hx, top - 0.4, 0); for (let i = 0; i < 5; i++) K.sph(0.04, '#6A9A3A', hx + (K.R() - 0.5) * 0.18, top - 0.6 - i * 0.08, (K.R() - 0.5) * 0.12); },
-  petbed: (K, W, D, H, f) => { const c = FR(f, '#D99A9A'), d = K.sph(W / 2, c, 0, 0.02, 0); d.scale.y = 0.8; const o = K.cyl(W * 0.2, W * 0.2, 0.03, '#4A2E2E', 0, W * 0.2, W * 0.42, 24); o.rotation.x = Math.PI / 2; [-1, 1].forEach(s2 => { K.sph(0.035, '#FFFFFF', s2 * W * 0.15, W * 0.36, W * 0.33); K.sph(0.018, '#1A1A1A', s2 * W * 0.15, W * 0.36, W * 0.36); });
+  petbed: (K, W, D, H, f) => { const c = FR(f, '#EFE6E0'), pink = '#EE9F98', tuft = '#CDB0A6', R = W / 2, oy = 0.02;
+    const body = K.sph(R, c, 0, oy, 0); body.scale.y = 0.8;
+    // Plysch: små tofsar på ryggen och ovansidan
+    [[0.7, 0], [0.7, 1.1], [0.7, 2.2], [0.7, 3.3], [0.7, 4.4], [0.7, 5.5], [1.1, 0.5], [1.1, 1.6], [1.1, 2.7], [1.1, 3.8], [1.1, 4.9], [1.45, 0.9], [1.45, 2.4], [1.45, 3.9]].forEach(([ph, th]) => {
+      const x = R * Math.sin(ph) * Math.cos(th), z = R * Math.sin(ph) * Math.sin(th), y = oy + 0.8 * R * Math.cos(ph);
+      if (z > 0.08) return; const t = K.sph(0.03, tuft, x, y, z); t.scale.set(1, 0.45, 1); });
+    // Öppningen med rosa kant och mörkare insida
+    const oR = W * 0.2, oyc = W * 0.2, oz = W * 0.45;
+    const inner = K.cyl(oR * 0.92, oR * 0.92, 0.04, '#D8C4B8', 0, oyc, oz - 0.03, 24); inner.rotation.x = Math.PI / 2;
+    const deep = K.cyl(oR * 0.7, oR * 0.7, 0.12, '#7A5A52', 0, oyc, oz - 0.09, 20); deep.rotation.x = Math.PI / 2;
+    K.tor(oR, 0.024, pink, 0, oyc, oz).rotation.x = 0;
+    // Stora vita ögon med svart kors
+    [-1, 1].forEach(s2 => { const ex = s2 * W * 0.24, ey = W * 0.24, ez = W * 0.38;
+      K.sph(0.045, '#FFFFFF', ex, ey, ez); K.box(0.05, 0.005, 0.005, '#1A1A1A', ex, ey, ez + 0.04); K.box(0.005, 0.05, 0.005, '#1A1A1A', ex, ey, ez + 0.04); });
+    // Rosa fenor: rygg, svans och sidor
+    const fin = (x, y, z, a, b, cc, r) => { const m = K.sph(r, pink, x, y, z); m.scale.set(a, b, cc); return m; };
+    fin(0, 0.21, -0.06, 0.4, 1.3, 0.55, 0.05); fin(0, 0.19, -0.16, 0.4, 1.2, 0.55, 0.05);
+    fin(0, 0.06, -R - 0.03, 0.35, 1.0, 0.45, 0.05); fin(0, -0.03, -R - 0.03, 0.35, 0.8, 0.45, 0.05);
+    [-1, 1].forEach(s2 => fin(s2 * 0.25, -0.02, 0.03, 0.5, 0.9, 1.3, 0.05));
     const ps = petsOf(f); ps.forEach((p, i) => { const len = ['hund', 'katt'].includes(p.kind) ? 0.45 * petS(p) : 0.2, inside = ps.length === 1 && len < W * 0.85; pet3d(K, p, inside ? 0 : (i - (ps.length - 1) / 2) * 0.35, 0.005, inside ? W * 0.16 : W * 0.5 + 0.2, -Math.PI / 2); }); },
   aqua: (K, W, D, H, f) => { const bench = !(f && f.bn === '0'), y0 = bench ? 0.5 : 0, th = 0.45; if (bench) FURN3.sbench(K, W + 0.1, D + 0.05, 0.5, { c: (f && f.c) || '#F4F0E8' });
     K.box(W, th, D, '#CFE8F2', 0, y0 + th / 2, 0, GLASS3); K.box(W - 0.02, th - 0.07, D - 0.02, '#5FB0D6', 0, y0 + (th - 0.07) / 2 + 0.01, 0, { transparent: true, opacity: 0.35, roughness: 0.05 });
@@ -7983,7 +8005,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.202';
+const APP_VERSION = '1.203';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
