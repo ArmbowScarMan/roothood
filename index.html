@@ -1523,8 +1523,10 @@ const sbApi = {
   async user() {
     const { data } = await sb.auth.getSession();
     const u = data.session && data.session.user;
-    return u ? { id: u.id, name: (u.user_metadata && u.user_metadata.display_name) || u.email, email: u.email } : null;
+    const md = (u && u.user_metadata) || {}, gname = (md.full_name || md.name || '').trim().slice(0, 40) || null;
+    return u ? { id: u.id, name: md.display_name || gname || u.email, gname, email: u.email } : null;
   },
+  async fixName(n) { const { error } = await sb.from('profiles').update({ display_name: n }).eq('id', S.user.id); if (error) throw error; },
   async saveAvatar(url) { const { error } = await sb.from('profiles').update({ avatar_url: url }).eq('id', S.user.id); if (error) throw /avatar/.test(error.message || '') ? new Error('AVATAR_NOT_READY') : error; },
   async getProfile() {
     let { data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos,vis,avatar_url').eq('id', S.user.id);
@@ -7173,6 +7175,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.195', '28 okt 16:30', ['Inloggning med Google: namnet från Google-kontot används i stället för e-postadressen. Konton som redan fått e-postadressen som namn rättas vid nästa start']],
   ['1.194', '28 okt 16:15', ['Mitt hem: gardiner och persienner per rum', 'Nya saker: öppen hylla, förvaringsbänk med korgar, terrarium med värmelampa, tavla eller bonad (djungel, regnbåge, natthimmel), väggklocka, växtställning med hängande kruka och djursäng', 'Taklampa med glödlampor och korallfärgad lamellampa. Mönstrad matta', 'Ingen blå ruta längre när man trycker på knappar']],
   ['1.193', '28 okt 15:30', ['Mitt hem: nya köksmöbler: diskbänk, bänk med häll, överskåp, högskåp, högskåp med ugn och mikro, köksfläkt, frys, diskmaskin, taklampa och gångmatta', 'Välj färg på luckor, vitvaror, möbler och mattor, bänkskiva och kakel bakom bänken', 'Rum: välj golv och väggfärg', 'Möbellistan är uppdelad i kök, vardagsrum, sovrum och badrum']],
   ['1.192', '28 okt 14:40', ['Identifiera växt: Lägg till i samling visas alltid, även om du redan har växten']],
@@ -7901,7 +7904,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.194';
+const APP_VERSION = '1.195';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -8233,7 +8236,8 @@ async function init() {
     S.user = await api.user();
     S.mine = S.user ? await api.mine() : [];
     S.pro = PRO_FREE || (S.user ? await api.getPro() : false);
-    if (S.user) { try { const pr = await api.getProfile(); S.city = pr.city || ''; applyInterests(pr.interests); } catch (e) { console.warn('Roothood:', e); } }
+    if (S.user) { try { const pr = await api.getProfile(); S.city = pr.city || ''; applyInterests(pr.interests);
+      if (!DEMO && S.user.gname && (!pr.display_name || pr.display_name.includes('@'))) { await api.fixName(S.user.gname); S.meCard = undefined; } } catch (e) { console.warn('Roothood:', e); } }
     if (S.user) loadHome();
   } catch (e) { S.err = e; }
   S.loading = false;
