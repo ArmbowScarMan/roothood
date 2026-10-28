@@ -1338,6 +1338,20 @@ body.hadv nav{display:none}
 .wx3{position:absolute;left:10px;bottom:10px;z-index:4;background:var(--surf);border-radius:14px;padding:7px 11px;font-size:13px;font-weight:600;box-shadow:var(--sh);pointer-events:none}
 .cemo{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;vertical-align:middle;margin:0 1px}.cemo svg{width:26px;height:26px;display:block}
 .emop{background:var(--surf);border-radius:16px;box-shadow:var(--sh);padding:8px;margin:0 12px 8px;max-height:200px;overflow:auto}.emog{display:flex;flex-wrap:wrap;gap:4px}.emog button{border:0;background:none;padding:4px;border-radius:10px;cursor:pointer}.emog button:active{background:var(--soft)}
+/* Min samling: kompakta rader, en fast kolumn till höger för vattning */
+.mrow{overflow:hidden;align-items:center;gap:10px;padding:8px 10px;border-radius:18px}
+.mrow .ph{width:56px;height:56px;border-radius:14px}
+.mrow .mopen{gap:10px}
+.mrow .grow{min-width:0;font-size:12px;line-height:1.3}
+.mrow .mname{font-size:15px;line-height:1.2}
+.mrow .mini{font-size:11px;padding:2px 7px}
+.mrow .bar{margin:4px 0 3px}
+.mrow .note{font-size:11.5px}
+.mrow .side{width:70px;flex:none;align-items:center;justify-content:center;gap:2px;text-align:center}
+.mrow .side .wbtn{width:40px;height:40px;margin:0}
+.mrow .side .wnext{display:block;font-size:10.5px;line-height:1.2;text-align:center;white-space:normal;max-width:70px;color:var(--mut)}
+.mrow .side .x{font-size:11.5px;line-height:1.2;padding:2px 4px;white-space:normal;text-align:center;max-width:70px}
+.mopen .mini.rtag i{font-size:11px;line-height:1}
 </style></head><body>
 <div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas inte förrän nätet är tillbaka.</div>
 <div id="app"><div id="main"></div>
@@ -6478,7 +6492,7 @@ function mineV() {
     const d = left(m), pct = m.interval ? Math.round((m.interval - d) / m.interval * 100) : 0;
     const status = d === null ? `<span class="mut">${m.remind === false ? 'Ingen påminnelse, du sköter vattningen' : 'Växer ute, vattna vid torka'}</span>` : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
     return `<div class="mrow"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${nameHtml(m)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${m.details && +m.details.count > 1 ? `<span class="mini">× ${+m.details.count} samplanterade i samma kruka</span>` : ''}${roomOf(m) && !S.mroom ? `<span class="mini rtag">${ic(DOORI, 'currentColor', 11)} ${esc(roomOf(m).name)}</span>` : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
-      <div class="side"><label onclick="photoPick(event,this)" class="pbtn" title="Ta eller välj ett foto" aria-label="Lägg till foto för ${esc(m.name)}">${ic(CAM, 'currentColor', 17)}<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label><small class="wnext">Foto</small>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(WATER_CAN, 'currentColor', 22)}</button>` : ''}${d !== null ? `<small class="wnext">${d === 0 ? 'Vattna idag' : 'Vattna om ' + d + ' d'}</small>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
+      <div class="side">${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(WATER_CAN, 'currentColor', 22)}</button>` : ''}${d !== null ? `<small class="wnext">${d === 0 ? 'Vattna idag' : 'Vattna om ' + d + ' d'}</small>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
   }).join('');
   return `${topbar('Min samling')}${mtabBar()}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
@@ -7390,6 +7404,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.218', '28 okt 18:40', ['Min samling: kompaktare rader, mindre text och knappar. Fotoknappen i listan är borttagen: lägg till foto under växten, så ändras bilden i listan']],
   ['1.217', '28 okt 18:30', ['Annonser: knappen Skicka meddelande öppnar en chatt med säljaren eller den som vill byta', 'Chatten visar vilken annons det gäller']],
   ['1.216', '28 okt 18:20', ['Meddelanden: egna emojis för dina växter och djur. Tryck på 🌿 bredvid skrivfältet', 'Det går att skicka fler meddelanden direkt utan att gå ur chatten']],
   ['1.215', '28 okt 18:10', ['Gemenskap: ?-knappen visar hur man använder Gemenskap', 'Ställ en fråga finns nu som knapp överst i Frågor']],
@@ -8144,7 +8159,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.217';
+const APP_VERSION = '1.218';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
