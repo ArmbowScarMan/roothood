@@ -1463,6 +1463,7 @@ function art(cat, name) {
 let sb;
 const sbApi = {
   async setPushHour(endpoint, h) { const { error } = await sb.from('push_subscriptions').update({ notify_hour: h }).eq('endpoint', endpoint); if (error) throw /notify_hour/.test(error.message || '') ? new Error('HOUR_NOT_READY') : error; },
+  async plantPopularity() { const { data, error } = await sb.rpc('plant_popularity'); if (error) throw error; const o = {}; (data || []).forEach(r => { o[String(r.plant_id)] = r.users; }); return o; },
   async setRemind(id, on) { const { error } = await sb.from('user_plants').update({ remind: on }).eq('id', id); if (error) throw /remind/.test(error.message || '') ? new Error('REMIND_NOT_READY') : error; },
   async saveDetails(id, d) { const { error } = await sb.from('user_plants').update({ details: d }).eq('id', id); if (error) throw /details/.test(error.message || '') ? new Error('DETAILS_NOT_READY') : error; },
   async experts() { const { data, error } = await sb.rpc('list_experts'); if (error) throw /list_experts/.test(error.message || '') ? new Error('EXPERTS_NOT_READY') : error; return data || []; },
@@ -5802,7 +5803,8 @@ function plantsSec(c, self) {
     ${items}</div>`;
 }
 // ===== Alla växter med filter =====
-function openAllPl() { S.apq = ''; S.apf = {}; S.apOpen = false; S.aps = S.plSort || 'new'; openModal('allpl'); }
+function openAllPl() { S.apq = ''; S.apf = {}; S.apOpen = false; S.aps = S.plSort || 'new'; openModal('allpl'); loadPop(); }
+async function loadPop() { try { S.popMap = await api.plantPopularity(); } catch (e) { S.popMap = S.popMap || {}; } if (S.modal === 'allpl') keepScroll(); }
 function aplDb(pl) { return pl.plant_id ? S.plants.find(x => x.id === pl.plant_id) : S.plants.find(x => x.swedish_name === pl.name); }
 const APL_F = [['cat', 'Kategori', (pl, db) => [(db && db.category) || null]], ['place', 'Planterad', pl => [(pl.d || {}).place]], ['soil', 'Jord', pl => (pl.d || {}).soil || []], ['light', 'Plats', pl => [(pl.d || {}).light]]];
 function aplItems() {
@@ -5815,7 +5817,8 @@ function aplItems() {
     if (f.water && !(pl.interval && pl.interval <= 7)) return false;
     if (f.miss && (d.cm || d.mat) && d.soil && d.soil.length && d.h) return false;
     return true; });
-  const nm = pl => pl.name || 'Växt';
+  const nm = pl => pl.name || 'Växt', pop = S.popMap || {};
+  if (S.aps === 'pop') L.sort((a, b) => (pop[String(b.plant_id)] || 0) - (pop[String(a.plant_id)] || 0));
   if (S.aps === 'az') L.sort((a, b) => nm(a).localeCompare(nm(b), 'sv'));
   if (S.aps === 'za') L.sort((a, b) => nm(b).localeCompare(nm(a), 'sv'));
   if (S.aps === 'h') L.sort((a, b) => ((b.d || {}).h || 0) - ((a.d || {}).h || 0));
@@ -5839,7 +5842,7 @@ function allPlV() {
   S.aplOpts = o;
   const chip = (on, t, js) => `<button class="${on ? 'on' : ''}" aria-pressed="${on}" onclick="${js}">${esc(t)}</button>`;
   const grp = (t, html) => `<label class="fl" style="margin:12px 0 6px">${t}</label><div class="chips2 qfilt">${html}</div>`;
-  const sorts = [['new', 'Senast tillagd'], ['old', 'Äldst först'], ['az', 'A–Ö'], ['za', 'Ö–A']].concat(own ? [['h', 'Högst först'], ['w', 'Törstigast först']] : []);
+  const sorts = [['new', 'Senast tillagd'], ['old', 'Äldst först'], ['pop', 'Populära'], ['az', 'A–Ö'], ['za', 'Ö–A']].concat(own ? [['h', 'Högst först'], ['w', 'Törstigast först']] : []);
   const active = Object.values(f).some(v => v != null && v !== false) || S.apq;
   return `<div class="mh"><h2>Alla växter</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div class="search" style="margin:0"><input type="search" placeholder="Sök namn eller sort" value="${esc(S.apq || '')}" oninput="S.apq=this.value;aplRefresh()" aria-label="Sök bland växterna" autocomplete="off"></div>
@@ -7086,6 +7089,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.187', '28 okt 08:20', ['Alla växter: ny sortering Populära, som visar de växter flest användare har i sin samling']],
   ['1.186', '27 okt 23:25', ['Alla växter: filter och sortering ligger under en knapp som du fäller ut och in']],
   ['1.185', '27 okt 23:20', ['Profil: knapparna för sortering och visning är borttagna. Växterna visas alltid med den senast tillagda först']],
   ['1.184', '27 okt 23:30', ['Profil: tre växter visas, sedan knappen Se alla växter. Där kan du söka, sortera och filtrera på kategori, planterad, jord, plats, giftfri för djur och mer']],
@@ -7805,7 +7809,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.186';
+const APP_VERSION = '1.187';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];

@@ -1,0 +1,11 @@
+-- Populära: antal användare som har en växt i sin samling. Bara sammanräknat, inga användare visas.
+create or replace function public.plant_popularity()
+returns table (plant_id text, users int)
+language sql stable security definer set search_path = public as $$
+  select up.plant_id::text, count(distinct up.user_id)::int
+  from user_plants up
+  where up.plant_id is not null
+  group by up.plant_id;
+$$;
+revoke all on function public.plant_popularity() from public;
+grant execute on function public.plant_popularity() to authenticated;
