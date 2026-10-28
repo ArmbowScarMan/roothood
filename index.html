@@ -3277,6 +3277,7 @@ const legs4 = (K, W, D, h, r, col, inset) => [[-1, -1], [1, -1], [-1, 1], [1, 1]
 const roof3 = (K, W, D, y0, col, a) => { const half = D / 2 / Math.cos(a) + 0.15; [-1, 1].forEach(s => { const m = K.box(W + 0.3, 0.06, half, col, 0, y0 + Math.tan(a) * D / 4, s * D / 4); m.rotation.x = s * a; }); };
 const FR = (f, d) => (f && f.c) || d;
 // Enkla djur i 3D. Modellen tittar åt +x och står på y = 0.
+function petS(p) { const t = ((p.sp || '') + ' ' + (p.name || '')).toLowerCase(); return p.kind === 'hund' ? (/chihuahua|tax|pom|yorkie|mops|papillon|malteser|bichon/.test(t) ? 0.6 : /schäfer|labrador|golden|retriever|husky|dobermann|rottweiler/.test(t) ? 1.25 : 0.9) : p.kind === 'katt' ? 0.75 : 1; }
 function pet3d(K, p, x, y, z, ry) {
   const THREE = K.THREE, sub = new THREE.Group(), id = Math.abs(+p.id || 7), Q = kit3(THREE, K.M, sub, id % 9973), pick = a => a[id % a.length], txt = ((p.sp || '') + ' ' + (p.name || '')).toLowerCase(), sc = (m, a, b, c) => { m.scale.set(a, b, c); return m; }, eye = (ex, ey, ez) => [-1, 1].forEach(s2 => Q.sph(0.006, '#111111', ex, ey, s2 * ez));
   const k = p.kind;
@@ -3286,12 +3287,12 @@ function pet3d(K, p, x, y, z, ry) {
       [[0.07, 1], [0.07, -1], [-0.07, 1], [-0.07, -1]].forEach(([lx, s2]) => { const l = Q.cyl(0.01, 0.01, 0.05, c, lx, 0.015, s2 * 0.075, 6); l.rotation.x = s2 * 1.1; }); eye(0.18, 0.06, 0.025);
       if (/skägg|agam|pogona/.test(txt)) for (let i = 0; i < 5; i++) Q.cyl(0, 0.006, 0.02, '#A07A4A', 0.13, 0.03, -0.035 + i * 0.018, 4); } }
   else if (k === 'skoldpadda') { sc(Q.sph(0.08, '#6B5A3A', 0, 0.035, 0), 1.2, 0.6, 1); sc(Q.sph(0.025, '#8A8A5A', 0.11, 0.03, 0), 1.3, 1, 1); [[0.06, 1], [0.06, -1], [-0.06, 1], [-0.06, -1]].forEach(([lx, s2]) => Q.sph(0.018, '#8A8A5A', lx, 0.012, s2 * 0.07)); }
-  else if (k === 'katt' || k === 'hund') { const dog = k === 'hund', s = dog ? (/chihuahua|tax|pom|yorkie|mops|papillon|malteser|bichon/.test(txt) ? 0.55 : /schäfer|labrador|golden|retriever|husky|dobermann|rottweiler/.test(txt) ? 1.25 : 0.9) : 0.75, c = dog ? pick(['#C9A06A', '#E8D9C0', '#3A2A1A', '#8A5A3A', '#F2EEE6']) : pick(['#8A8A8A', '#2A2A2A', '#E09A4A', '#F2EEE6']);
-    sc(Q.sph(0.14 * s, c, 0, 0.09 * s, 0), 1.6, 0.7, 0.9); sc(Q.sph(0.08 * s, c, 0.2 * s, 0.14 * s, 0), 1, 0.95, 1);
-    if (dog) Q.sph(0.04 * s, c, 0.28 * s, 0.12 * s, 0); Q.sph(0.012 * s, '#1A1A1A', (dog ? 0.32 : 0.27) * s, 0.13 * s, 0);
-    const big = !dog || /chihuahua|husky|schäfer/.test(txt); [-1, 1].forEach(s2 => { if (big) Q.cyl(0, 0.03 * s, 0.07 * s, c, 0.19 * s, 0.22 * s, s2 * 0.045 * s, 8); else sc(Q.sph(0.03 * s, c, 0.18 * s, 0.17 * s, s2 * 0.075 * s), 0.6, 1.6, 0.6); });
-    eye(0.26 * s, 0.16 * s, 0.03 * s); const t = Q.cyl(0.012 * s, 0.018 * s, 0.22 * s, c, -0.22 * s, 0.05 * s, 0.05 * s, 8); t.rotation.z = Math.PI / 2; t.rotation.y = 0.5;
-    [-1, 1].forEach(s2 => sc(Q.sph(0.03 * s, c, 0.13 * s, 0.02 * s, s2 * 0.06 * s), 1.6, 0.6, 0.8)); }
+  else if (k === 'katt' || k === 'hund') { const dog = k === 'hund', s = petS(p), chi = /chihuahua|papillon/.test(txt), c = dog ? pick(['#C9A06A', '#E8D9C0', '#3A2A1A', '#8A5A3A', '#F2EEE6']) : pick(['#8A8A8A', '#2A2A2A', '#E09A4A', '#F2EEE6']);
+    sc(Q.sph(0.14 * s, c, 0, 0.085 * s, 0), 1.6, 0.62, 0.85); const hx = 0.21 * s, hy = 0.17 * s; sc(Q.sph(0.075 * s, c, hx, hy, 0), 1.05, 0.95, 0.95);
+    if (dog) { sc(Q.sph(0.035 * s, c, hx + 0.07 * s, hy - 0.025 * s, 0), 1.6, 0.8, 0.9); Q.sph(0.014 * s, '#1A1A1A', hx + 0.125 * s, hy - 0.02 * s, 0); } else Q.sph(0.01 * s, '#D98A8A', hx + 0.075 * s, hy - 0.01 * s, 0);
+    const up = !dog || chi || /husky|schäfer|spets|corgi/.test(txt); [-1, 1].forEach(s2 => { if (up) { const e = Q.cyl(0, (chi ? 0.045 : 0.03) * s, (chi ? 0.11 : 0.065) * s, c, hx - 0.01 * s, hy + (chi ? 0.09 : 0.07) * s, s2 * 0.045 * s, 8); e.rotation.x = s2 * (chi ? 0.55 : 0.25); } else sc(Q.sph(0.032 * s, c, hx - 0.01 * s, hy + 0.01 * s, s2 * 0.07 * s), 0.6, 1.7, 0.5); });
+    [-1, 1].forEach(s2 => { Q.sph(0.013 * s, '#1A1A1A', hx + 0.06 * s, hy + 0.025 * s, s2 * 0.032 * s); sc(Q.sph(0.028 * s, c, 0.2 * s, 0.022 * s, s2 * 0.05 * s), 1.9, 0.6, 0.7); sc(Q.sph(0.05 * s, c, -0.12 * s, 0.05 * s, s2 * 0.075 * s), 1.3, 0.9, 0.6); });
+    const t = Q.cyl(0.01 * s, 0.016 * s, 0.2 * s, c, -0.25 * s, 0.05 * s, 0.05 * s, 8); t.rotation.z = Math.PI / 2; t.rotation.y = 0.6; }
   else if (k === 'kanin' || k === 'marsvin' || k === 'gnagare') { const s = k === 'kanin' ? 1 : k === 'marsvin' ? 0.8 : 0.45, c = pick(k === 'kanin' ? ['#D9CFC2', '#F2EEE6', '#7A5A3A', '#9A9A9A'] : ['#C98A4A', '#F2EEE6', '#5A4A3A', '#E8D9C0']);
     sc(Q.sph(0.09 * s, c, 0, 0.07 * s, 0), 1.3, 0.85, 1); sc(Q.sph(0.055 * s, c, 0.1 * s, 0.1 * s, 0), 1.1, 1, 1); eye(0.14 * s, 0.11 * s, 0.03 * s);
     if (k === 'kanin') { [-1, 1].forEach(s2 => sc(Q.sph(0.022, c, 0.09, 0.19, s2 * 0.02), 0.6, 2.6, 0.8)); Q.sph(0.022, '#FFFFFF', -0.11, 0.08, 0); } else [-1, 1].forEach(s2 => Q.sph(0.015 * s, '#D99A9A', 0.09 * s, 0.15 * s, s2 * 0.035 * s)); }
@@ -3378,7 +3379,7 @@ const FURN3 = {
   pstand: (K, W, D, H, f) => { const c = FR(f, '#F4F0E8'), top = 1.75, px = -W / 2 + 0.03; K.box(0.3, 0.02, 0.3, c, px + 0.12, 0.01, 0); K.cyl(0.015, 0.015, top, c, px, top / 2, 0, 8); K.box(W, 0.025, 0.025, c, 0, top, 0);
     const hx = W * 0.15; K.cyl(0.003, 0.003, 0.45, '#1A1A1A', hx, top - 0.23, 0, 4); K.cyl(0.09, 0.07, 0.12, '#EDEDED', hx, top - 0.5, 0, 14); K.sph(0.11, '#7DB04A', hx, top - 0.4, 0); for (let i = 0; i < 5; i++) K.sph(0.04, '#6A9A3A', hx + (K.R() - 0.5) * 0.18, top - 0.6 - i * 0.08, (K.R() - 0.5) * 0.12); },
   petbed: (K, W, D, H, f) => { const c = FR(f, '#D99A9A'), d = K.sph(W / 2, c, 0, 0.02, 0); d.scale.y = 0.8; const o = K.cyl(W * 0.2, W * 0.2, 0.03, '#4A2E2E', 0, W * 0.2, W * 0.42, 24); o.rotation.x = Math.PI / 2; [-1, 1].forEach(s2 => { K.sph(0.035, '#FFFFFF', s2 * W * 0.15, W * 0.36, W * 0.33); K.sph(0.018, '#1A1A1A', s2 * W * 0.15, W * 0.36, W * 0.36); });
-    const ps = petsOf(f); ps.forEach((p, i) => pet3d(K, p, (i - (ps.length - 1) / 2) * 0.35, 0.005, W * 0.5 + 0.18, -Math.PI / 2)); },
+    const ps = petsOf(f); ps.forEach((p, i) => { const len = ['hund', 'katt'].includes(p.kind) ? 0.45 * petS(p) : 0.2, inside = ps.length === 1 && len < W * 0.85; pet3d(K, p, inside ? 0 : (i - (ps.length - 1) / 2) * 0.35, 0.005, inside ? W * 0.16 : W * 0.5 + 0.2, -Math.PI / 2); }); },
   aqua: (K, W, D, H, f) => { const bench = !(f && f.bn === '0'), y0 = bench ? 0.5 : 0, th = 0.45; if (bench) FURN3.sbench(K, W + 0.1, D + 0.05, 0.5, { c: (f && f.c) || '#F4F0E8' });
     K.box(W, th, D, '#CFE8F2', 0, y0 + th / 2, 0, GLASS3); K.box(W - 0.02, th - 0.07, D - 0.02, '#5FB0D6', 0, y0 + (th - 0.07) / 2 + 0.01, 0, { transparent: true, opacity: 0.35, roughness: 0.05 });
     K.box(W - 0.03, 0.04, D - 0.03, '#D9C9A0', 0, y0 + 0.02, 0); K.box(W, 0.03, D, '#151515', 0, y0 + th + 0.015, 0); K.box(W, 0.02, D, '#151515', 0, y0 + 0.01, 0); K.box(W * 0.8, 0.01, 0.03, '#EFF6FF', 0, y0 + th - 0.005, 0, { emissive: '#B8D8FF' });
@@ -7246,6 +7247,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.202', '28 okt 18:35', ['3D: hundar och katter ser mer ut som djur, med nos, öron, tassar och bakben. Chihuahua får stora upprätta öron', 'Små djur ligger inne i djursängen med huvudet i öppningen']],
   ['1.201', '28 okt 18:20', ['Mitt hem: lägg in dina djur i terrarium, djursäng, akvarium och bur. Välj djuren under Djur här när du trycker på möbeln', 'Djuren syns i 3D: reptiler på sanden, hundar och katter vid sängen, fiskar i akvariet och fåglar på pinnen. Namnet syns i ritningen', 'Nya möbler: Akvarium och Bur']],
   ['1.200', '28 okt 17:50', ['Om min växt: det står tydligt Växtens höjd eller längd, med tips om hur du mäter', 'Nytt fält: Krukans höjd. Den syns i uppgifterna, i listan på profilen och i 3D']],
   ['1.199', '28 okt 17:35', ['3D: när du trycker på en fönsterbräda, ett bord eller en vägg hamnar växten eller möbeln där du tryckte, inte utanför rummet']],
@@ -7981,7 +7983,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.201';
+const APP_VERSION = '1.202';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
