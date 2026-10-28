@@ -2274,13 +2274,21 @@ function wizardV() {
     <button class="wzc add" onclick="openModal('add')">+ Lägg till en ny växt</button></div>
     <button class="btn wide wznext" ${S.busy ? 'disabled' : ''} onclick="wzNext()">${S.busy ? 'Sparar…' : last ? 'Klar' : 'Klar med ' + esc(n.toLowerCase())}</button><button class="btn wide line" onclick="wzNext()">Hoppa över</button></div>`;
 }
+const helpBtn = () => `<button class="btn sm line" onclick="openModal('hhelp')" aria-label="Hjälp om Mitt hem" style="min-width:36px;font-weight:800">?</button>`;
+function helpHouseV() { const sec = (t, items) => `<h3 style="margin:16px 0 6px;font-size:16px">${t}</h3><ul style="margin:0;padding-left:18px;font-size:15px;line-height:1.5">${items.map(x => `<li>${x}</li>`).join('')}</ul>`;
+  return `<div class="mh"><h2>Så använder du Mitt hem</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div><div style="max-height:62vh;overflow:auto;padding-right:4px">
+  ${sec('Enkelt läge', ['Tryck på ett rum för att ändra det: väderstreck, ljus, möbler och växter.', 'Tryck på + Lägg till rum för att göra ett nytt rum.', 'Vill du rita själv? Tryck på Rita planritning (avancerat) längst ner.'])}
+  ${sec('Ritningen', ['Välj ett verktyg längst ner: Rum, Fönster, Möbler, Växt eller Byggnader.', 'Tryck på en plats i ritningen för att lägga ut det du valt. Vill du ha en till av samma möbel väljer du Möbler igen.', 'Välj Flytta och tryck på något i ritningen för att dra det dit du vill ha det.', 'När något är valt visas en ruta nedtill där du kan vrida, ändra storlek och ta bort det.', 'Tryck på Ångra om något blev fel.', 'Nyp med två fingrar för att zooma. Dra med ett finger för att flytta ritningen.'])}
+  ${sec('3D', ['Dra med ett finger för att snurra runt huset. Nyp för att zooma.', 'Tryck på en möbel eller växt för att välja den.', 'Tryck på + Möbel eller + Växt och sedan på golvet för att ställa ut något i 3D.', 'Gå runt visar huset som om du gick i det.', 'Uppifrån och Snett byter kameravinkel. Låga väggar gör det lättare att se in i rummen.'])}
+  ${sec('Tips', ['Det du ritar i ritningen syns också i 3D, och tvärtom.', 'Allt du lagt ut sparas automatiskt.'])}
+  </div><div class="cta" style="padding:12px 0 0"><button class="btn" onclick="closeModal()">Stäng</button></div>`; }
 function simpleHomeV() {
   const rooms = S.home || [], noRoom = S.mine.filter(m => !(m.details || {}).room), placed = S.mine.filter(m => (m.details || {}).room).length;
   if (!rooms.length) return `${topbar('Mitt hem', 'closeTool()')}<div class="wz"><h1>Ditt hem</h1><p class="mut">Berätta vilka rum du har och hur ljust det är. Då vet Roothood var dina växter trivs. Det tar ett par minuter.</p>
     <button class="btn wide wznext" onclick="wzStart()">Kom igång</button>
     <p class="wzlbl">Eller börja från en mall</p><div class="wzlist">${WZ_TPL.map((t, i) => `<button class="wzl" onclick="wzStart(WZ_TPL[${i}][1])"><span class="grow"><b>${t[0]}</b><span>${t[1].join(', ')}</span></span></button>`).join('')}</div>
     <button class="btn wide line" onclick="setHMode('adv','plan')">${ic(PEN, 'currentColor', 18)} Rita planritning (avancerat)</button></div>`;
-  return `${topbar('Mitt hem', 'closeTool()')}<div class="wz"><h1>Ditt hem</h1><p class="mut">${rooms.length} rum · ${placed} ${placed === 1 ? 'växt' : 'växter'} placerade. Tryck på ett rum för att ändra.</p>
+  return `${topbar('Mitt hem', 'closeTool()', helpBtn())}<div class="wz"><h1>Ditt hem</h1><p class="mut">${rooms.length} rum · ${placed} ${placed === 1 ? 'växt' : 'växter'} placerade. Tryck på ett rum för att ändra.</p>
     <div class="wzlist">${rooms.map(r => { const n = plantsIn(r.id).length, l = lightOf(r); return `<button class="wzroom" onclick="wzStart(null,'${r.id}')">${ic(lightIc(l), l === 'Mycket ljust' ? '#E0A11B' : l === 'Halvljust' ? '#D99A2B' : 'var(--mut)', 28)}<span class="grow"><b>${esc(r.name)}</b><span>${[(r.dirs || []).map(dirName).join(' och '), l].filter(Boolean).join(' · ')}</span></span><span class="wzbadge ${n ? 'on' : ''}">${n ? n + (n === 1 ? ' växt' : ' växter') : 'Tomt'}</span></button>`; }).join('')}
     <button class="wzc add" onclick="wzStart()">+ Lägg till rum</button></div>
     ${noRoom.length ? `<p class="wzlbl">${noRoom.length} ${noRoom.length === 1 ? 'växt' : 'växter'} utan rum</p><div class="wzlist">${noRoom.slice(0, 6).map(m => `<button class="wzl" onclick="pickRoomFor(${m.id})">${myPh(m)}<span class="grow"><b>${esc(m.name)}</b><span>Tryck för att välja rum</span></span></button>`).join('')}</div>` : ''}
@@ -2294,7 +2302,7 @@ function houseV() {
   const noRoom = S.mine.filter(m => !roomOf(m));
   const hv = S.hview === '3d' ? '3d' : 'plan'; if (hv !== '3d' && S.walk) { S.walk = false; if (T3) T3.walk = null; }
   const seg = `<div class="seg2 hseg">${[['plan', 'Ritning'], ['3d', '3D']].map(([k, n]) => `<button class="${hv === k ? 'on' : ''}" onclick="S.hview='${k}';render()">${n}</button>`).join('')}</div>`;
-  const advTop = topbar(hv === '3d' ? 'Huset i 3D' : 'Planritning', "setHMode('simple')", `<button class="btn sm" onclick="setHMode('simple')">Klar</button>`);
+  const advTop = topbar(hv === '3d' ? 'Huset i 3D' : 'Planritning', "setHMode('simple')", `${helpBtn()}<button class="btn sm" onclick="setHMode('simple')">Klar</button>`);
   if (hv === 'plan') return `${advTop}${seg}${planV()}`;
   if (hv === '3d') return `${advTop}${seg}${view3dV()}`;
   return `${topbar('Mitt hem', 'closeTool()')}${seg}
@@ -2581,7 +2589,9 @@ function place3dCam() { const st = T3.st, c = T3.camera, ty = T3.ty || 0;
   if (T3.walk && !S.walk) T3.walk = null; const fov = T3.walk ? 70 : 45; if (c.fov !== fov) { c.fov = fov; c.updateProjectionMatrix(); }
   if (T3.walk) { const w = T3.walk, ey = (T3.fyOf ? T3.fyOf(w.fl) : w.fl * 2.75) + 1.6; c.position.set(w.x, ey, w.z); c.lookAt(w.x + Math.sin(w.yaw) * Math.cos(w.pitch), ey + Math.sin(w.pitch), w.z + Math.cos(w.yaw) * Math.cos(w.pitch)); return; } c.position.set(st.tx + st.dist * Math.cos(st.el) * Math.sin(st.az), ty + st.dist * Math.sin(st.el), st.tz + st.dist * Math.cos(st.el) * Math.cos(st.az)); c.lookAt(st.tx, 0.6 + ty, st.tz); }
 function cam3(k) { if (!T3) return; const st = T3.st; if (k === 'top') { st.el = 1.52; st.az = 0; } else { st.el = 0.85; st.az = 0.75; } fit3d(); T3.dirty = true; }
-function fit3d() { const b = T3.bounds; if (!b) return; T3.st.tx = (b[0] + b[2]) / 2; T3.st.tz = (b[1] + b[3]) / 2; T3.st.dist = Math.max(6, Math.hypot(b[2] - b[0], b[3] - b[1]) * 1.15 + (T3.ty || 0) * 1.6); }
+function fit3d() { const b = T3.bounds; if (!b) return; T3.st.tx = (b[0] + b[2]) / 2; T3.st.tz = (b[1] + b[3]) / 2;
+  const t = Math.tan(22.5 * Math.PI / 180), asp = (T3.camera && T3.camera.aspect) || 1, cw = (b[2] - b[0]) + 2, cd = (b[3] - b[1]) + 2;
+  const dv = (cd / 2) / t, dh = (cw / 2) / (t * asp); T3.st.dist = Math.max(6, Math.max(dv, dh) * 1.2 + (T3.ty || 0) * 1.6); }
 function canvasTex3d(THREE, w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); return new THREE.CanvasTexture(c); }
 function skyTex3d(THREE, dark) { return canvasTex3d(THREE, 4, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, dark ? '#0E1D16' : '#CFE4EC'); g.addColorStop(0.6, dark ? '#16281E' : '#EAF2EE'); g.addColorStop(1, dark ? '#1F3427' : '#F3F1E6'); x.fillStyle = g; x.fillRect(0, 0, w, h); }); }
 function groundMat3d(THREE, span, dark, o) {
@@ -3776,8 +3786,9 @@ function planFit() {
   const P = PL(), rs = planRooms().length ? planRooms() : planRoomsAll(), box = $('#planbox'); if (!box) return;
   const W = box.clientWidth, H = box.clientHeight;
   let x0 = 0, y0 = 0, x1 = 10, y1 = 8;
-  if (rs.length) { const pts = [].concat(...rs.map(roomPoly)); x0 = Math.min(...pts.map(q => q[0])) - 0.3; y0 = Math.min(...pts.map(q => q[1])) - 0.3; x1 = Math.max(...pts.map(q => q[0])) + 0.3; y1 = Math.max(...pts.map(q => q[1])) + 0.3; }
-  P.z = Math.max(12, Math.min(90, Math.min((W - 40) / (x1 - x0 || 1), (H - 40) / (y1 - y0 || 1))));
+  const pts = [].concat(...rs.map(roomPoly), ...planAreas().map(a => a.pts), ...planGarden().map(t => [[t.x - (t.r || 1), t.y - (t.r || 1)], [t.x + (t.r || 1), t.y + (t.r || 1)]]), ...planFurn().map(f => { const m = Math.max(f.w, f.h) / 2; return [[f.x - m, f.y - m], [f.x + m, f.y + m]]; }), ...planWalls().map(wl => [[wl.x1, wl.y1], [wl.x2, wl.y2]]));
+  if (pts.length) { x0 = Math.min(...pts.map(q => q[0])) - 0.3; y0 = Math.min(...pts.map(q => q[1])) - 0.3; x1 = Math.max(...pts.map(q => q[0])) + 0.3; y1 = Math.max(...pts.map(q => q[1])) + 0.3; }
+  P.z = Math.max(3, Math.min(90, Math.min((W - 40) / (x1 - x0 || 1), (H - 40) / (y1 - y0 || 1))));
   P.ox = (W - (x1 - x0) * P.z) / 2 - x0 * P.z; P.oy = (H - (y1 - y0) * P.z) / 2 - y0 * P.z; P.fit = false;
 }
 function posHints(m) { const d = m.details || {}; if (!d.pos) return []; const r = roomAt(d.pos.x, d.pos.y); if (!r) return []; const h = [];
@@ -3981,7 +3992,7 @@ function renderPlan() {
   svg.innerHTML = planInner();
 }
 function planMode(k) { const P = PL(); if (P.mode === 'ute' && (P.upoly || []).length >= 3) finishPoly(); P.wstart = null; P.mode = k; P.pick = null; P.draft = null; P.msg = null; P.upoly = []; P.roomDraw = false; if (k === 'ute') P.ukind = null; if (k === 'win') P.wkind = null; if (k === 'bed') bedModeStart(); if (k !== 'move' && !(k === 'room' && P.sel && P.sel.k === 'room')) P.sel = null; render(); }
-function zMin() { return mapOn() ? 0.35 : 8; }
+function zMin() { return mapOn() ? 0.35 : 3; }
 function planZoom(f) { const P = PL(), box = $('#planbox'), cx = box.clientWidth / 2, cy = box.clientHeight / 2, nz = Math.max(zMin(), Math.min(zMax(), P.z * f)); P.ox = cx - (cx - P.ox) * nz / P.z; P.oy = cy - (cy - P.oy) * nz / P.z; P.z = nz; renderPlan(); }
 function planWheel(e) { e.preventDefault(); planZoom(e.deltaY < 0 ? 1.1 : 0.9); }
 function rotNorth() { pushUndo(); S.hplan = S.hplan || {}; S.hplan.north = (Math.floor(northDeg() / 45 + 1e-6) * 45 + 45) % 360; planRooms().forEach(syncDirs); saveHomeSoon(); render(); toast(mapOn() ? 'Ritningen är vriden ' + northDeg() + '°. Finjustera under kartknappen.' : 'Norr pekar nu ' + ['uppåt', 'snett upp åt höger', 'åt höger', 'snett ner åt höger', 'nedåt', 'snett ner åt vänster', 'åt vänster', 'snett upp åt vänster'][Math.round(northDeg() / 45) % 8]); }
@@ -4914,7 +4925,7 @@ function render() {
     iconize(m);
     if (!S.sel && (S.tool === 'db' || (!S.tool && S.tab === 'home'))) renderList();
   }
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov'));
   $('#ov').insertAdjacentHTML('beforeend', instBanner());
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); idCtlInit(); }
@@ -7309,6 +7320,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.207', '28 okt 17:40', ['Ritningen och 3D-vyn zoomar så att hela huset syns, även när det är stort', 'Nya ?-knappen i Mitt hem förklarar hur man ritar, placerar och använder 3D']],
   ['1.206', '28 okt 17:25', ['Knappen som hette Redigera Mitt hem heter nu bara Mitt hem']],
   ['1.205', '28 okt 17:30', ['Ditt hem: nytt steg "Vad finns i rummet". Tryck på det du har, så ställs möblerna ut längs väggarna åt dig', 'Mallarna Lägenhet och Villa har nu vanliga möbler redan på plats. Ta bort det du inte har']],
   ['1.204', '28 okt 16:30', ['Uppdateringsloggen visas automatiskt första gången du öppnar appen efter en uppdatering']],
@@ -8052,7 +8064,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.206';
+const APP_VERSION = '1.207';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
