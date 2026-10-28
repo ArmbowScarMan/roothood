@@ -1334,6 +1334,10 @@ body.hadv nav{display:none}
 .pbtn{width:44px;height:44px}
 .like,.link2,.plink{min-height:44px;display:inline-flex;align-items:center}
 .fcat,.thr,.chips2 button{min-height:44px;display:inline-flex;align-items:center}
+.mapsug{display:flex;flex-direction:column;background:var(--surf);border-radius:14px;box-shadow:var(--sh);overflow:hidden;margin-top:6px}.mapsugi{text-align:left;padding:10px 12px;border:0;border-top:1px solid var(--line);background:none;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}.mapsugi:first-child{border-top:0}
+.wx3{position:absolute;left:10px;bottom:10px;z-index:4;background:var(--surf);border-radius:14px;padding:7px 11px;font-size:13px;font-weight:600;box-shadow:var(--sh);pointer-events:none}
+.cemo{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;vertical-align:middle;margin:0 1px}.cemo svg{width:26px;height:26px;display:block}
+.emop{background:var(--surf);border-radius:16px;box-shadow:var(--sh);padding:8px;margin:0 12px 8px;max-height:200px;overflow:auto}.emog{display:flex;flex-wrap:wrap;gap:4px}.emog button{border:0;background:none;padding:4px;border-radius:10px;cursor:pointer}.emog button:active{background:var(--soft)}
 </style></head><body>
 <div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas inte förrän nätet är tillbaka.</div>
 <div id="app"><div id="main"></div>
@@ -1696,7 +1700,7 @@ const sbApi = {
   },
   async inbox() { const { data, error } = await sb.rpc('inbox'); if (error) throw /inbox/.test(error.message || '') ? new Error('MSG_NOT_READY') : error; return data || []; },
   async thread(id) { const me = S.user.id, { data, error } = await sb.from('messages').select('*').or(`and(from_user.eq.${me},to_user.eq.${id}),and(from_user.eq.${id},to_user.eq.${me})`).order('created_at', { ascending: false }).limit(100); if (error) throw error; return (data || []).reverse().map(m => ({ id: m.id, mine: m.from_user === me, body: m.body, created_at: m.created_at })); },
-  async sendMsg(id, body) { const { error } = await sb.from('messages').insert({ to_user: id, body }); if (error) throw /BLOCKED/.test(error.message || '') ? new Error('BLOCKED') : /row-level|messages/.test(error.message || '') ? new Error('MSG_DENIED') : error; },
+  async sendMsg(id, body, adId) { const row = { to_user: id, body }; if (adId) row.post_id = adId; const { error } = await sb.from('messages').insert(row); if (error) throw /BLOCKED/.test(error.message || '') ? new Error('BLOCKED') : /row-level|messages/.test(error.message || '') ? new Error('MSG_DENIED') : error; },
   async markRead(id) { await sb.rpc('mark_read', { p_other: id }); },
   async userHome(id) { const { data, error } = await sb.rpc('user_home', { p_id: id }); if (error) throw error; return (data && data[0]) || { visible: false }; },
   async myRole() { const { data, error } = await sb.rpc('my_role'); return error ? 'user' : (data || 'user'); },
@@ -2550,7 +2554,7 @@ function view3dV() {
   const has = planRoomsAll().length || planAreas().length;
   const P = PL(), placing = P.mode === 'place' && P.pick, selF = !placing && P.sel && P.sel.k === 'furn' && planFurnAll().some(x => x.id === P.sel.id);
   return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}${has && !S.walk && placing ? `<div class="p3hint"><span>Tryck på golvet där ${esc(place3Name())} ska stå</span><button class="btn sm line" onclick="PL().mode='move';PL().pick=null;render()">Avbryt</button></div>` : ''}${has && !S.walk && selF ? `<div class="p3sel">${planSelV()}</div>` : ''}
-    ${has && S.walk ? walkUiV() : has ? `<div class="v3btns"><button onclick="planPick('furn')">+ Möbel</button><button onclick="planPick('plant')">+ Växt</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="cam3('top')">Uppifrån</button><button onclick="cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button><button onclick="cycleSea3()">Säsong: ${seas3()}</button>${floors().length > 1 ? `<button onclick="cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}</div>` : ''}</div>
+    ${has && S.walk ? walkUiV() : has ? `<div class="wx3" id="wx3">${wx3Text()}</div><div class="v3btns"><button onclick="planPick('furn')">+ Möbel</button><button onclick="planPick('plant')">+ Växt</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="cam3('top')">Uppifrån</button><button onclick="cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button><button onclick="cycleSea3()">Säsong: ${seas3()}</button>${floors().length > 1 ? `<button onclick="cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}</div>` : ''}</div>
   <p class="mut" style="margin:10px 18px 24px;font-size:13px">Dra med ett finger för att snurra. Nyp med två fingrar för att zooma, och dra med två fingrar för att flytta. Tryck på + Möbel eller + Växt och sedan på golvet för att ställa ut. Tryck på en möbel för att välja den, och sedan på golvet för att flytta den dit. Solen lyser från söder enligt norrpilen i ritningen.</p>`;
 }
 async function mount3d() {
@@ -2581,9 +2585,11 @@ async function mount3d() {
   const onHome = box.classList.contains('home3d'); T3.renderer.domElement.style.touchAction = onHome ? 'pan-y' : 'none'; if (onHome && T3.autoBox !== box) { T3.auto = true; T3.st.el = 0.75; } T3.autoBox = box; if (!onHome) T3.auto = false;
   if (T3.renderer.domElement.parentNode !== box) { box.insertBefore(T3.renderer.domElement, box.firstChild); if (!T3.justBuilt) build3d(); }
   T3.justBuilt = false;
+  if (!S.wxBusy && (!S.wx || !S.wx.cur && !S.wx.none || Date.now() - (S.wx.t || 0) > 30 * 60e3)) loadWeather();
+  fitPlanBox(); requestAnimationFrame(() => { if ($('#box3d') === box) { fitPlanBox(); if (T3 && T3.renderer) { const w = box.clientWidth, h = box.clientHeight; if (w && h) { T3.renderer.setSize(w, h, false); T3.camera.aspect = w / h; T3.camera.updateProjectionMatrix(); T3.dirty = true; } } } });
   const W = box.clientWidth, H = box.clientHeight; if (!W || !H) { setTimeout(() => { if ($('#box3d') === box) mount3d(); }, 200); return; } T3.renderer.setSize(W, H, false); T3.renderer.domElement.style.width = '100%'; T3.renderer.domElement.style.height = '100%';
   T3.camera.aspect = W / H; T3.camera.updateProjectionMatrix(); T3.dirty = true;
-  if (!T3.loop) { const tick = () => { if (!document.body.contains(T3.renderer.domElement)) { T3.loop = null; return; } if (T3.auto) { T3.st.az += 0.0035; T3.dirty = true; } walkTick(); if (T3.dirty) { place3dCam(); T3.renderer.render(T3.scene, T3.camera); T3.dirty = false; } T3.loop = requestAnimationFrame(tick); }; T3.loop = requestAnimationFrame(tick); }
+  if (!T3.loop) { const tick = () => { if (!document.body.contains(T3.renderer.domElement)) { T3.loop = null; return; } if (T3.auto) { T3.st.az += 0.0035; T3.dirty = true; } walkTick(); envTick(); if (T3.dirty) { place3dCam(); T3.renderer.render(T3.scene, T3.camera); T3.dirty = false; } T3.loop = requestAnimationFrame(tick); }; T3.loop = requestAnimationFrame(tick); }
 }
 function place3dCam() { const st = T3.st, c = T3.camera, ty = T3.ty || 0;
   if (T3.walk && !S.walk) T3.walk = null; const fov = T3.walk ? 70 : 45; if (c.fov !== fov) { c.fov = fov; c.updateProjectionMatrix(); }
@@ -2603,7 +2609,7 @@ function groundMat3d(THREE, span, dark, o) {
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(span * 3, span * 3);
   return new THREE.MeshStandardMaterial(Object.assign({ color: '#ffffff', map: tex, roughness: 0.95 }, o || {}));
 }
-function build3d(first) { ALLFL = true; try { build3dInner(first); } finally { ALLFL = false; } }
+function build3d(first) { ALLFL = true; try { build3dInner(first); } finally { ALLFL = false; } env3d(); }
 function build3dInner(first) {
   if (!T3) return; const THREE = T3.THREE, sc = T3.scene, dark = document.documentElement.getAttribute('data-theme') === 'dark' || (document.documentElement.getAttribute('data-theme') !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
   sc.children.slice().forEach(o => o.traverse(x => { if (x.geometry) x.geometry.dispose(); if (x.material) { (Array.isArray(x.material) ? x.material : [x.material]).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); }); } })); sc.clear();
@@ -2701,7 +2707,39 @@ function garden3d(a, THREE, M, sc) { const y0 = a.t === 'bed' ? 0.12 : 0.08; (a.
 // Detaljerade växter i 3D. Storlek i meter, seed ger variation som är samma varje gång.
 function rng3(seed) { let s = (Math.abs(Math.round(seed)) % 2147483646) + 1; return () => (s = s * 16807 % 2147483647) / 2147483647; }
 const SEAS3 = ['Sommar', 'Höst', 'Vinter', 'Vår'];
-const seas3 = () => S.sea3 || 'Sommar';
+const SEAS_NOW = () => { const m = new Date().getMonth(); return m === 11 || m <= 1 ? 'Vinter' : m <= 4 ? 'Vår' : m <= 7 ? 'Sommar' : 'Höst'; };
+const seas3 = () => S.sea3 || SEAS_NOW();
+// Väder och säsong i 3D: himmel, sol, snö på marken, regn, snö, löv och dimma
+const SKY3 = { Sommar: ['#7EC8E8', '#BFE6F5', '#E8F6F2'], Höst: ['#A9B8C4', '#D8CFC0', '#EFE6D2'], Vinter: ['#B8CBDA', '#DCE7EF', '#F2F6F8'], Vår: ['#9ED6E8', '#CFEBDD', '#F1F7EA'] };
+const SUNF3 = { Sommar: 1.15, Vår: 1.0, Höst: 0.8, Vinter: 0.7 };
+function mixHex(a, b, t) { const p = h => [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16)), A = p(a), B = p(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
+function wxKind3d() { const c = S.wx && S.wx.cur; if (!c || S.wx.none) return null; const k = c.weather_code, frozen = c.temperature_2m <= 0;
+  if ((k >= 71 && k <= 77) || k === 85 || k === 86 || (frozen && ((k >= 51 && k <= 67) || (k >= 80 && k <= 82)))) return 'snow';
+  if ((k >= 51 && k <= 67) || (k >= 80 && k <= 82) || k >= 95) return 'rain'; if (k === 45 || k === 48) return 'fog'; if (k >= 2) return 'cloud'; return 'clear'; }
+function wx3Text() { if (!S.wx) return 'Hämtar väder…'; const c = S.wx.cur; if (!c || S.wx.none) return seas3() + ' · lägg in din plats under Mitt hem för vädret just nu'; return `${esc(S.wx.name || '')} · ${esc((WX[c.weather_code] || ['Väder'])[0])} ${Math.round(c.temperature_2m)}°`; }
+function envTick() { const E = T3 && T3.envK, pts = T3 && T3.envPts; if (!E || !pts) return; const a = pts.geometry.attributes.position.array, t = performance.now() / 1000;
+  for (let i = 0; i < E.cnt; i++) { a[i * 3 + 1] -= E.speed * 0.016; if (E.kind === 'snow') a[i * 3] += Math.sin(t + i) * 0.003; if (E.kind === 'leaf') a[i * 3] += Math.sin(t * 1.3 + i) * 0.01;
+    if (a[i * 3 + 1] < 0) { a[i * 3 + 1] += E.box[4]; } }
+  pts.geometry.attributes.position.needsUpdate = true; T3.dirty = true; }
+function env3d() { try { if (!T3 || !T3.scene) return; const THREE = T3.THREE, sc = T3.scene, dark = document.documentElement.getAttribute('data-theme') === 'dark' || (document.documentElement.getAttribute('data-theme') !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+  const season = seas3(), wk = wxKind3d() || 'clear', snowing = season === 'Vinter' || wk === 'snow', rainy = wk === 'rain', foggy = wk === 'fog', leaves = season === 'Höst' && !rainy && !snowing;
+  const wf = { cloud: 0.6, rain: 0.45, snow: 0.55, fog: 0.45, clear: 1 }[wk];
+  let mid = dark ? '#16281E' : '#D8E8EE';
+  if (!dark) { let cols = SKY3[season]; const mix = { cloud: ['#AEB6BE', 0.3], rain: ['#7F8C98', 0.5], snow: ['#DCE3E8', 0.35], fog: ['#D9DDE0', 0.8] }[wk]; if (mix) cols = cols.map(h => mixHex(h, mix[0], mix[1]));
+    sc.background = canvasTex3d(THREE, 4, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, cols[0]); g.addColorStop(0.6, cols[1]); g.addColorStop(1, cols[2]); x.fillStyle = g; x.fillRect(0, 0, w, h); }); mid = cols[1]; }
+  else sc.background = skyTex3d(THREE, true);
+  sc.fog = (rainy || foggy) ? new THREE.Fog(mid, foggy ? 6 : 25, foggy ? 55 : 140) : null;
+  sc.children.forEach(o => { if (o.isDirectionalLight) o.intensity = (dark ? 1.0 : 1.6) * (SUNF3[season] || 1) * wf; });
+  if (T3.snowG) { sc.remove(T3.snowG); T3.snowG.geometry.dispose(); T3.snowG = null; }
+  if (snowing && T3.bounds) { const b = T3.bounds, span = Math.max(12, b[2] - b[0], b[3] - b[1]) + 12, g = new THREE.Mesh(new THREE.PlaneGeometry(span * 3, span * 3), new THREE.MeshStandardMaterial({ color: '#F4F8FB', roughness: 0.95 })); g.rotation.x = -Math.PI / 2; g.position.set((b[0] + b[2]) / 2, 0.035, (b[1] + b[3]) / 2); g.receiveShadow = true; sc.add(g); T3.snowG = g; }
+  if (T3.envPts) { sc.remove(T3.envPts); T3.envPts.geometry.dispose(); T3.envPts.material.dispose(); T3.envPts = null; T3.envK = null; }
+  const pk = rainy ? 'rain' : snowing ? 'snow' : leaves ? 'leaf' : null;
+  if (pk) { const k = S.low3d ? 0.4 : 1, cnt = Math.round(k * { rain: 900, snow: 700, leaf: 80 }[pk]), b = T3.bounds || [-10, -10, 10, 10], X0 = b[0] - 6, X1 = b[2] + 6, Z0 = b[1] - 6, Z1 = b[3] + 6, H = 14;
+    const pos = new Float32Array(cnt * 3); for (let i = 0; i < cnt; i++) { pos[i * 3] = X0 + Math.random() * (X1 - X0); pos[i * 3 + 1] = Math.random() * H; pos[i * 3 + 2] = Z0 + Math.random() * (Z1 - Z0); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.PointsMaterial({ color: { rain: '#9CCBE8', snow: '#FFFFFF', leaf: '#D9822B' }[pk], size: { rain: 0.05, snow: 0.1, leaf: 0.22 }[pk], transparent: true, opacity: pk === 'rain' ? 0.6 : 0.9, depthWrite: false });
+    const p = new THREE.Points(geo, mat); sc.add(p); T3.envPts = p; T3.envK = { kind: pk, box: [X0, X1, Z0, Z1, H], speed: { rain: 9, snow: 0.8, leaf: 1.2 }[pk], cnt }; }
+  T3.dirty = true; const el = $('#wx3'); if (el) el.textContent = wx3Text(); } catch (e) { console.warn('Roothood 3D-miljö:', e); } }
 function cycleFl3() { const F = floors().map(x => x.l), i = S.f3 == null ? -1 : F.indexOf(S.f3); const nx = i + 1 >= F.length ? null : F[i + 1]; S.f3 = (nx === F[F.length - 1]) ? null : nx; build3d(); keepMain(); }
 function cycleSea3() { S.sea3 = SEAS3[(SEAS3.indexOf(seas3()) + 1) % 4]; build3d(); keepMain(); }
 function kind3d(p) {
@@ -3676,7 +3714,7 @@ function mapTiles() {
 function mapPanelV() {
   const M = (S.hplan && S.hplan.map) || {};
   if (M.lat == null) return `<div class="mapp"><b>Karta under ritningen</b><span class="mut" style="font-size:13px">Sök på din adress så visas ditt hus från ovan.</span>
-    <form class="mrow2" onsubmit="event.preventDefault();mapSearch(this.q.value)"><input name="q" placeholder="Gatuadress och ort" value="${esc(S.mapQ || '')}" autocomplete="street-address" enterkeyhint="search"><button class="btn sm">Sök</button></form>
+    <form class="mrow2" onsubmit="event.preventDefault();mapSearch(this.q.value)"><input id="mapq" name="q" placeholder="Gatuadress och ort" value="${esc(S.mapQ || '')}" autocomplete="off" oninput="mapSuggest(this.value)" enterkeyhint="search"><button class="btn sm">Sök</button></form><div id="mapsug" class="mapsug"></div>
     <button class="btn sm line" onclick="mapHere()">📍 Använd min position</button></div>`;
   return `<div class="mapp"><div class="mrow2"><div class="wk2">${[['sat', 'Satellit'], ['map', 'Karta']].map(([k, n]) => `<button class="${(M.layer || 'sat') === k ? 'on' : ''}" onclick="mapSet('layer','${k}')">${n}</button>`).join('')}</div><button class="btn sm line" onclick="mapSet('on',${!M.on})">${M.on ? 'Dölj' : 'Visa'}</button></div>
     <label class="msl"><span>Synlighet</span><input type="range" min="20" max="100" value="${Math.round((M.op || 0.85) * 100)}" oninput="S.hplan.map.op=this.value/100;renderPlan()" onchange="saveHomeSoon()"></label>
@@ -3689,6 +3727,13 @@ function mapSet(k, v) { S.hplan.map[k] = v; saveHomeSoon(); render(); }
 function mapClear() { pushUndo(); S.hplan.map = { on: true }; saveHomeSoon(); render(); }
 function mapCenter() { const rs = planRooms(); if (!rs.length) { const P = PL(), b = $('#planbox'); return [(b.clientWidth / 2 - P.ox) / P.z, (b.clientHeight / 2 - P.oy) / P.z]; } const pts = [].concat(...rs.map(roomPoly)); return [(Math.min(...pts.map(q => q[0])) + Math.max(...pts.map(q => q[0]))) / 2, (Math.min(...pts.map(q => q[1])) + Math.max(...pts.map(q => q[1]))) / 2]; }
 function mapPut(lat, lon) { pushUndo(); S.hplan = S.hplan || {}; const [cx, cy] = mapCenter(); S.hplan.map = Object.assign({ layer: 'sat', op: 0.85 }, S.hplan.map || {}, { lat, lon, on: true, ox: cx, oy: cy }); const P = PL(); if (!planRooms().length) { const b = $('#planbox'); P.z = 30; P.ox = b.clientWidth / 2 - cx * 30; P.oy = b.clientHeight / 2 - cy * 30; } saveHomeSoon(); render(); toast('Dra i kartan så att huset hamnar rätt'); }
+let mapSugT = null;
+// Förslag medan man skriver adress eller ort (Sverige). Listan uppdateras utan att hela vyn ritas om, så att skrivfältet behåller fokus.
+function mapSuggest(v) { clearTimeout(mapSugT); S.mapQ = v; const q = (v || '').trim(), box = $('#mapsug'); if (!box) return; if (q.length < 2) { box.innerHTML = ''; return; }
+  mapSugT = setTimeout(async () => { try { const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=se&addressdetails=1&accept-language=sv&q=' + encodeURIComponent(q)); const a = await r.json(); const cur = $('#mapq'), b = $('#mapsug');
+      if (!b || !cur || cur.value.trim() !== q) return; S.mapSug = a; b.innerHTML = a.length ? a.map((x, i) => `<button type="button" class="mapsugi" onclick="mapPick(${i})">${esc(x.display_name)}</button>`).join('') : '<span class="mut" style="font-size:13px;padding:10px 12px;display:block">Inga förslag</span>'; }
+    catch (e) { box.innerHTML = ''; } }, 350); }
+function mapPick(i) { const x = (S.mapSug || [])[i]; if (!x) return; S.mapSug = null; S.mapQ = x.display_name; mapPut(+x.lat, +x.lon); }
 async function mapSearch(q) {
   q = (q || '').trim(); S.mapQ = q; if (!q) return;
   try { const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=se&accept-language=sv&q=' + encodeURIComponent(q)); const a = await r.json();
@@ -4874,7 +4919,7 @@ function topbar(title, backFn, extra) {
   const right = bellBtn(), help = S.tool === 'house' ? helpBtn() : (title === 'Min samling' && !backFn ? `<button class="circ" onclick="openQAdd()" aria-label="Lägg till växt">${ic('ph-plus', null, 22)}</button>` : '');
   return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1>${esc(title)}</h1>${extra || (title === 'Gemenskap' ? communityBtns() : '')}${help}${right}</div>`;
 }
-function communityBtns() { return `<button class="circ" onclick="openExperts()" aria-label="Fråga en expert">${ic('ph-graduation-cap', null, 22)}</button><button class="circ" onclick="openAskQ()" aria-label="Ställ en fråga">${ic('ph-question', null, 22)}</button>${peopleSearchBtn()}`; }
+function communityBtns() { return `<button class="circ" onclick="openExperts()" aria-label="Fråga en expert">${ic('ph-graduation-cap', null, 22)}</button><button class="circ" onclick="openModal('chelp')" aria-label="Hjälp om Gemenskap" style="font-weight:800;font-size:18px">?</button>${peopleSearchBtn()}`; }
 function peopleSearchBtn() { return `<button class="circ" onclick="openPeople()" aria-label="Hitta användare">${ic('ph-magnifying-glass', null, 22)}</button>`;
 }
 
@@ -4925,7 +4970,7 @@ function render() {
     iconize(m);
     if (!S.sel && (S.tool === 'db' || (!S.tool && S.tab === 'home'))) renderList();
   }
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov'));
   $('#ov').insertAdjacentHTML('beforeend', instBanner());
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); idCtlInit(); }
@@ -5028,7 +5073,7 @@ const DAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
 function wxPlace() { const M = S.hplan && S.hplan.map; if (M && M.lat != null) return { lat: M.lat, lon: M.lon, name: S.city || 'ditt hem' }; const g = store.get('wxGeo', null); if (g && g.q === (S.city || '').trim().toLowerCase() && g.lat != null) return g; return null; }
 async function loadWeather(force) {
   if (S.wxBusy) { S.wxAgain = true; return; } const c = store.get('wx', null), pl = wxPlace();
-  if (!force && c && Date.now() - c.t < 30 * 60e3 && pl && Math.abs(c.lat - pl.lat) < 0.01 && Math.abs(c.lon - pl.lon) < 0.01) { S.wx = c; if (!S.tool && !S.sel && S.tab === 'home') render(); return; }
+  if (!force && c && Date.now() - c.t < 30 * 60e3 && pl && Math.abs(c.lat - pl.lat) < 0.01 && Math.abs(c.lon - pl.lon) < 0.01) { S.wx = c; if (T3 && T3.scene) env3d(); if (!S.tool && !S.sel && S.tab === 'home') render(); return; }
   S.wxBusy = true;
   try {
     let place = pl;
@@ -5039,7 +5084,7 @@ async function loadWeather(force) {
     if (!place) { S.wx = { none: true }; return; }
     const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,wind_gusts_10m_max&wind_speed_unit=ms&timezone=Europe%2FStockholm&forecast_days=5`;
     const r = await fetch(u); if (!r.ok) throw new Error('wx ' + r.status); const j = await r.json();
-    S.wx = { t: Date.now(), lat: place.lat, lon: place.lon, name: place.name, cur: j.current, d: j.daily }; store.set('wx', S.wx);
+    S.wx = { t: Date.now(), lat: place.lat, lon: place.lon, name: place.name, cur: j.current, d: j.daily }; store.set('wx', S.wx); if (T3 && T3.scene) env3d();
   } catch (e) { S.wx = Object.assign({}, store.get('wx', {}), { err: 1 }); }
   finally { S.wxBusy = false; if (S.wxAgain) { S.wxAgain = false; return loadWeather(true); } if (!S.tool && !S.sel && S.tab === 'home') render(); }
 }
@@ -5448,11 +5493,11 @@ function msgsV() {
   const I = S.inbox, F = S.friends || [];
   return `${topbar('Meddelanden', 'S.tool=null;render()')}
   ${S.msgErr ? `<p class="formmsg" style="margin:16px 18px">${esc(S.msgErr)}</p>` : ''}
-  <div class="pad nlist" style="padding-top:8px">${S.inboxErr ? retryBox('loadInbox().then(render)') : I == null ? '<p class="mut">Hämtar…</p>' : I.length ? I.map(c => `<button class="nrow ${c.unread ? 'new' : ''}" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">${avBig(c.name || '?')}</span><span class="grow"><b>${esc(c.name || 'Okänd')}</b><span>${c.last_mine ? 'Du: ' : ''}${esc((c.last_body || '').slice(0, 70))}</span></span><small>${c.unread ? c.unread + ' nya · ' : ''}${ago(c.last_at)}</small></button>`).join('') : '<p class="mut" style="margin:8px 0">Inga meddelanden än. Välj en vän nedan för att skriva.</p>'}</div>
+  <div class="pad nlist" style="padding-top:8px">${S.inboxErr ? retryBox('loadInbox().then(render)') : I == null ? '<p class="mut">Hämtar…</p>' : I.length ? I.map(c => `<button class="nrow ${c.unread ? 'new' : ''}" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">${avBig(c.name || '?')}</span><span class="grow"><b>${esc(c.name || 'Okänd')}</b><span>${c.last_mine ? 'Du: ' : ''}${esc(chatPlain(c.last_body || '').slice(0, 70))}</span></span><small>${c.unread ? c.unread + ' nya · ' : ''}${ago(c.last_at)}</small></button>`).join('') : '<p class="mut" style="margin:8px 0">Inga meddelanden än. Välj en vän nedan för att skriva.</p>'}</div>
   <div class="sec"><h2>Skriv till en vän</h2></div><div class="pad">${F.length ? `<div class="chips2">${F.map(f => `<button onclick="openChat(${jsArg(f.id)},${jsArg(f.display_name)})">${esc(f.display_name)}</button>`).join('')}</div>` : '<p class="mut">Du kan skriva till dem som har accepterat din vänförfrågan.</p>'}</div>`;
 }
-async function openChat(id, name) {
-  if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'chat'; S.chatId = id; S.chatName = name || ''; S.chatMsgs = null; S.dmDraft = ''; render();
+async function openChat(id, name, ad) {
+  if (needLogin()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'chat'; S.chatId = id; S.chatName = name || ''; S.chatMsgs = null; S.dmDraft = ''; S.chatAd = ad || null; render();
   await loadChat(true); clearInterval(S.chatT); S.chatT = setInterval(() => { if (S.tool !== 'chat' || document.visibilityState !== 'visible') { if (S.tool !== 'chat') clearInterval(S.chatT); return; } loadChat(false); }, 7000);
 }
 async function loadChat(force) {
@@ -5462,15 +5507,33 @@ async function loadChat(force) {
 }
 async function sendChat() {
   const body = (S.dmDraft || '').trim(); if (!body || S.chatBusy) return; S.chatBusy = true;
-  try { await api.sendMsg(S.chatId, body); S.dmDraft = ''; await loadChat(true); }
+  let ok = false;
+  try { await api.sendMsg(S.chatId, body, S.chatAd ? S.chatAd.id : null); S.dmDraft = ''; ok = true; }
   catch (e) { toast(e.message === 'BLOCKED' ? 'Du kan inte skriva till den här personen.' : e.message === 'MSG_DENIED' ? 'Ni måste vara vänner för att skriva till varandra. Meddelanden går inte att använda just nu.' : errMsg(e)); }
   S.chatBusy = false;
+  if (ok) await loadChat(true); else if (S.tool === 'chat') render();
 }
+// Egna emojis: [[v:Namn|kategori]] för växter och [[d:Namn|art]] för djur, ritas som små bilder i chatten
+const CHAT_EMO_RE = /\[\[(v|d):([^|\]]*)\|([^\]]*)\]\]/g;
+const PET_ICON = { katt: 'ph-cat', hund: 'ph-dog', fagel: 'ph-bird', fisk: 'ph-fish', kanin: 'ph-rabbit', marsvin: 'ph-paw-print', gnagare: 'ph-paw-print', hons: 'ph-bird', hast: 'ph-horse', reptil: 'ph-lizard', skoldpadda: 'ph-turtle' };
+const dec3 = v => { try { return decodeURIComponent(v); } catch (e) { return v; } };
+function chatBody(b) { let out = '', last = 0, m; const re = new RegExp(CHAT_EMO_RE.source, 'g');
+  while ((m = re.exec(b || '')) !== null) { out += esc(b.slice(last, m.index)); const name = dec3(m[2]), cat = dec3(m[3]);
+    out += m[1] === 'v' ? `<span class="cemo" title="${esc(name)}">${art(cat, name)}</span>` : `<span class="cemo" title="${esc(name)}">${ic(PET_ICON[cat] || 'ph-paw-print', 'var(--pri)', 24)}</span>`; last = re.lastIndex; }
+  return out + esc((b || '').slice(last)); }
+function chatPlain(b) { return (b || '').replace(new RegExp(CHAT_EMO_RE.source, 'g'), (_, t, n) => ':' + dec3(n) + ':'); }
+function emoAdd(kind, name, cat) { S.dmDraft = (S.dmDraft || '') + (S.dmDraft && !/\s$/.test(S.dmDraft) ? ' ' : '') + `[[${kind}:${encodeURIComponent(name)}|${encodeURIComponent(cat)}]] `; S.emoOpen = false; render(); const t = $('#dmt'); if (t) t.focus(); }
+function emoPickerV() { const M = S.mine || [], P = petsList();
+  if (!S.emoOpen) return '';
+  return `<div class="emop">${M.length || P.length ? '' : '<p class="mut" style="margin:0;font-size:13px">Lägg till växter eller djur så kan du använda dem som emojis.</p>'}
+  <div class="emog">${M.map(m => `<button type="button" title="${esc(m.name)}" onclick="emoAdd('v',${jsArg(m.name)},${jsArg(m.category || '')})"><span class="cemo">${art(m.category || '', m.name)}</span></button>`).join('')}${P.map(p => `<button type="button" title="${esc(p.name || p.kind)}" onclick="emoAdd('d',${jsArg(p.name || p.kind)},${jsArg(p.kind)})"><span class="cemo">${ic(PET_ICON[p.kind] || 'ph-paw-print', 'var(--pri)', 24)}</span></button>`).join('')}</div></div>`; }
+function emoToggle() { S.emoOpen = !S.emoOpen; render(); }
 function chatV() {
   const M = S.chatMsgs;
-  return `<div class="chatpg">${topbar(esc(S.chatName || 'Meddelanden'), "openMsgs()")}
-  <div class="pad chatl">${S.chatErr ? `<p class="formmsg">${esc(S.chatErr)}</p>` : M == null ? '<p class="mut">Hämtar…</p>' : M.length ? M.map(m => `<div class="bub ${m.mine ? 'me' : ''}"><span>${esc(m.body)}</span><small>${ago(m.created_at)}</small></div>`).join('') : '<p class="mut" style="text-align:center;margin:24px 0">Skriv det första meddelandet.</p>'}</div>
-  <form class="chatf" onsubmit="event.preventDefault();sendChat()"><textarea id="dmt" rows="1" maxlength="1000" placeholder="Skriv ett meddelande" oninput="S.dmDraft=this.value">${esc(S.dmDraft || '')}</textarea><button class="btn sm" ${S.chatBusy ? 'disabled' : ''}>Skicka</button></form></div>`;
+  return `<div class="chatpg">${topbar(esc(S.chatName || 'Meddelanden'), "openMsgs()")}${S.chatAd ? `<div class="pad" style="padding-bottom:0"><div class="setcard" style="padding:10px 12px;font-size:14px">Om annonsen: <b>${esc(S.chatAd.title || '')}</b></div></div>` : ''}
+  <div class="pad chatl">${S.chatErr ? `<p class="formmsg">${esc(S.chatErr)}</p>` : M == null ? '<p class="mut">Hämtar…</p>' : M.length ? M.map(m => `<div class="bub ${m.mine ? 'me' : ''}"><span>${chatBody(m.body)}</span><small>${ago(m.created_at)}</small></div>`).join('') : '<p class="mut" style="text-align:center;margin:24px 0">Skriv det första meddelandet.</p>'}</div>
+  ${emoPickerV()}
+  <form class="chatf" onsubmit="event.preventDefault();sendChat()"><button type="button" class="circ" style="width:40px;height:40px;font-size:18px" onclick="emoToggle()" aria-label="Egna emojis">🌿</button><textarea id="dmt" rows="1" maxlength="1000" placeholder="Skriv ett meddelande" oninput="S.dmDraft=this.value">${esc(S.dmDraft || '')}</textarea><button class="btn sm" ${S.chatBusy ? 'disabled' : ''}>Skicka</button></form></div>`;
 }
 // ===== Moderering =====
 function openMod(tab) { if (!isMod()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'mod'; S.modTab = tab || 'open'; S.modData = null; S.modErr = null; render(); $('#main').scrollTop = 0; loadMod(); }
@@ -6610,6 +6673,12 @@ async function commRun(fn, ok) {
   try { await fn(); await refreshComm(); if (ok) toast(ok); } catch (e) { toast(errMsg(e)); }
   render();
 }
+function helpCommV() { const sec = (t, items) => `<h3 style="margin:16px 0 6px;font-size:16px">${t}</h3><ul style="margin:0;padding-left:18px;font-size:15px;line-height:1.5">${items.map(x => `<li>${x}</li>`).join('')}</ul>`;
+  return `<div class="mh"><h2>Så använder du Gemenskap</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div><div style="max-height:62vh;overflow:auto;padding-right:4px">
+  ${sec('Flikarna', ['Frågor: ställ frågor om växter och få svar från andra. Tryck på + Ställ en fråga överst.', 'Visa upp: bilder på växter som andra har visat upp.', 'Byt & ge bort: annonser för växter du vill ge bort, byta eller önska.', 'Händer nära dig: annonser från andra i din ort. Lägg in din ort i Profil så visas de nära dig.', 'Detektiver: hjälp varandra att räkna ut vilka okända växter det är.', 'Forum: diskussioner om odling och växtvård.', 'Mina vänner: dina vänner och meddelanden till dem.'])}
+  ${sec('Knapparna uppe till höger', ['Examensmössan: fråga en expert.', '?: den här guiden.', 'Förstoringsglaset: hitta användare.', 'Klockan: notiser.'])}
+  ${sec('Tips', ['Skriv aldrig adress eller telefonnummer i en annons eller ett svar. Bestäm hellre en plats att ses på.', 'Svaren syns för alla.'])}
+  </div><div class="cta" style="padding:12px 0 0"><button class="btn" onclick="closeModal()">Stäng</button></div>`; }
 function setCtab(t) { S.ctab = t; S.cmore = false; if (t === 'near') S.lcity = (S.prof && S.prof.city) || ''; S.newCase = false; S.newL = false; S.post = null; S.forum = null; S.del = null; S.feedErr = null; if (t === 'friends') { S.friends = null; S.inbox = null; render(); return; } render(); loadFeed(); }
 function openPost(id) { S.post = id; S.adraft = ''; S.del = null; render(); $('#main').scrollTop = 0; }
 function openForum(id) { S.forum = id; S.post = null; S.newThread = false; render(); $('#main').scrollTop = 0; }
@@ -6722,12 +6791,10 @@ function delBtn(key, fn, id) {
   const sure = S.del === key + id;
   return `<button class="x ${sure ? 'sure' : ''}" onclick="${fn}(${id})">${sure ? 'Bekräfta' : 'Ta bort'}</button>`;
 }
-const CTABS = [['q', 'Frågor'], ['show', 'Visa upp'], ['swap', 'Byt & ge bort'], ['near', 'Händer nära dig']];
-const MORE_TABS = [['detect', 'Detektiver'], ['forum', 'Forum'], ['friends', 'Vänner']];
+const CTABS = [['q', 'Frågor'], ['show', 'Visa upp'], ['swap', 'Byt & ge bort'], ['near', 'Händer nära dig'], ['detect', 'Detektiver'], ['forum', 'Forum'], ['friends', 'Mina vänner']];
 const CTAB_HELP = { q: 'Ställ frågor om växter och få svar från andra odlare.', show: 'Bilder på växter som andra har visat upp.', swap: 'Ge bort, byt eller önska växter i din ort.', near: 'Annonser från andra i din ort.', detect: 'Hjälp varandra att räkna ut vilka okända växter det är.', forum: 'Diskussioner om odling och växtvård.', friends: 'Dina vänner och meddelanden till dem.' };
 function segBar() {
-  const moreOn = !!S.cmore || MORE_TABS.some(([k]) => k === S.ctab);
-  return `<div class="seg2 ctabs" role="tablist">${CTABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}<button class="${moreOn ? 'on' : ''}" role="tab" aria-selected="${moreOn}" onclick="S.cmore=!S.cmore;render()">Mer</button></div>${moreOn ? `<div class="seg2 ctabs more2" role="tablist">${MORE_TABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>` : ''}
+  return `<div class="seg2 ctabs" role="tablist">${CTABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>
   <p class="mut" style="margin:10px 18px 0;font-size:13px">${CTAB_HELP[S.ctab] || ''}</p>
   `;
 }
@@ -6818,6 +6885,7 @@ function comm() {
   if (S.post) return postV();
   const st = listState(S.feed, 'Inga frågor än. <button class="btn sm" onclick="openAskQ()">Ställ den första frågan</button>');
   return `${topbar('Gemenskap')}${segBar()}
+  ${(S.ctab || 'q') === 'q' ? `<div class="pad" style="padding-bottom:4px"><button class="btn wide" onclick="openAskQ()">+ Ställ en fråga</button></div>` : ''}
   ${!st ? (() => { const f = S.qf || 'all', cnt = k => S.feed.filter(p => qStat(p) === k).length;
     return `<div class="chips2 qfilt" role="tablist">${[['all', 'Alla', S.feed.length]].concat(S.user && S.mine.length ? [['mine', 'Mina växter', S.feed.filter(aboutMine).length]] : [], [['open', 'Obesvarade', cnt('open')], ['solved', 'Lösta', cnt('solved')]]).map(([k, n, c]) => `<button role="tab" aria-selected="${f === k}" class="${f === k ? 'on' : ''}" onclick="S.qf='${k}';keepMain()">${n} <small>${c}</small></button>`).join('')}</div>`; })() : ''}
   <div class="pad">${st || (() => { const f = S.qf || 'all', L = f === 'all' ? S.feed : f === 'mine' ? S.feed.filter(aboutMine) : S.feed.filter(p => qStat(p) === f); return L.length ? L.map(postCard).join('') : `<p class="mut" style="text-align:center">${f === 'open' ? 'Alla frågor har fått svar. Snyggt jobbat!' : f === 'mine' ? 'Inga frågor om dina växter än.' : 'Inga lösta frågor än.'}</p>`; })()}</div>`;
@@ -6894,6 +6962,8 @@ async function sendListing() {
   S.busy = false; render();
 }
 function setTaken(id, on) { commRun(() => api.setTaken(id, on), on ? 'Markerad som bortlovad' : 'Annonsen är öppen igen'); }
+// Meddelande till annonsens ägare. Själva annonsen är kopplad till meddelandet.
+function contactAd(id) { if (needLogin()) return; const p = (S.listings || []).find(x => x.id === id); if (!p) return; openChat(p.user_id, p.author || 'Annonsen', { id: p.id, title: p.title || p.category || 'Annons' }); }
 function listingV() {
   const p = (S.listings || []).find(x => x.id === S.post);
   if (!p) { S.post = null; return swapV(); }
@@ -6902,7 +6972,7 @@ function listingV() {
   <div class="post" style="margin-top:10px">${whoP(p, (p.city ? p.city + ' · ' : '') + ago(p.created_at), ltPill(p))}
   ${p.photo_url ? `<img class="lbig" src="${esc(p.photo_url)}" alt="${esc(p.title || '')}">` : ''}
   <h2 style="font-size:21px;margin:8px 0">${esc(p.title || '')}${p.taken ? ' <span class="pill">Bortlovad</span>' : ''}</h2><p style="margin:0;white-space:pre-line">${esc(p.body)}</p>
-  <div class="prow">${mine ? `<button class="btn sm line" onclick="setTaken(${p.id},${!p.taken})">${p.taken ? 'Öppna igen' : 'Markera som bortlovad'}</button>` : ''}<span class="grow"></span>${moreBtn('p', p.id, mine)}</div></div>
+  <div class="prow">${mine ? `<button class="btn sm line" onclick="setTaken(${p.id},${!p.taken})">${p.taken ? 'Öppna igen' : 'Markera som bortlovad'}</button>` : (p.taken ? '' : `<button class="btn sm" onclick="contactAd(${p.id})">Skicka meddelande</button>`)}<span class="grow"></span>${moreBtn('p', p.id, mine)}</div></div>
   <p class="lnote">Svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
   ${answersV(p, false)}${mine ? replyBox(p.id, 'Svara på frågor om din annons') : replyBox(p.id, p.category === 'Önskas' ? 'Har du växten? Skriv till ' + p.author : 'Intresserad? Skriv till ' + p.author)}</div>`;
@@ -7320,6 +7390,14 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.217', '28 okt 18:30', ['Annonser: knappen Skicka meddelande öppnar en chatt med säljaren eller den som vill byta', 'Chatten visar vilken annons det gäller']],
+  ['1.216', '28 okt 18:20', ['Meddelanden: egna emojis för dina växter och djur. Tryck på 🌿 bredvid skrivfältet', 'Det går att skicka fler meddelanden direkt utan att gå ur chatten']],
+  ['1.215', '28 okt 18:10', ['Gemenskap: ?-knappen visar hur man använder Gemenskap', 'Ställ en fråga finns nu som knapp överst i Frågor']],
+  ['1.214', '28 okt 18:05', ['Gemenskap: alla flikar syns i en rad, och knappen Mer är borta']],
+  ['1.213', '28 okt 18:00', ['Gemenskap: Mina vänner har fått en egen flik i den översta raden']],
+  ['1.212', '28 okt 17:58', ['3D-vyn i Mitt hem får rätt höjd direkt när man öppnar den, så att man inte behöver scrolla första gången']],
+  ['1.211', '28 okt 17:55', ['3D-vyn visar vädret just nu där du bor, med regn, snö, dimma eller sol', 'Säsongen följer månaden, och på vintern ligger det snö på marken. Hösten har fallande löv och sommaren mer sol']],
+  ['1.210', '28 okt 17:50', ['Adressfältet föreslår orter och adresser medan du skriver, till exempel Piteå när du skriver Pit']],
   ['1.209', '28 okt 17:45', ['Plusknappen för att lägga till växt ligger nu uppe till höger i Min samling, i stället för nere i hörnet']],
   ['1.208', '28 okt 17:35', ['?-knappen för Mitt hem ligger nu uppe till höger, bredvid Klar och notisknappen']],
   ['1.207', '28 okt 17:40', ['Ritningen och 3D-vyn zoomar så att hela huset syns, även när det är stort', 'Nya ?-knappen i Mitt hem förklarar hur man ritar, placerar och använder 3D']],
@@ -8066,7 +8144,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.209';
+const APP_VERSION = '1.217';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
