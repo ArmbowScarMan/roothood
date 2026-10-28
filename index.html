@@ -2840,7 +2840,7 @@ function env3d() { try { if (!T3 || !T3.scene) return; const THREE = T3.THREE, s
   if (snowing && T3.bounds) { const b = T3.bounds, span = Math.max(12, b[2] - b[0], b[3] - b[1]) + 12, g = new THREE.Mesh(new THREE.PlaneGeometry(span * 3, span * 3), new THREE.MeshStandardMaterial({ color: '#F4F8FB', roughness: 0.95 })); g.rotation.x = -Math.PI / 2; g.position.set((b[0] + b[2]) / 2, 0.035, (b[1] + b[3]) / 2); g.receiveShadow = true; sc.add(g); T3.snowG = g; }
   if (T3.envPts) { sc.remove(T3.envPts); T3.envPts.geometry.dispose(); T3.envPts.material.dispose(); T3.envPts = null; T3.envK = null; }
   const pk = rainy ? 'rain' : snowing ? 'snow' : leaves ? 'leaf' : null;
-  if (pk) { const k = S.low3d ? 0.4 : 1, cnt = Math.round(k * { rain: 900, snow: 700, leaf: 80 }[pk]), b = T3.bounds || [-10, -10, 10, 10], X0 = b[0] - 6, X1 = b[2] + 6, Z0 = b[1] - 6, Z1 = b[3] + 6, H = 14;
+  if (pk) { const k = 1, cnt = Math.round(k * { rain: 900, snow: 700, leaf: 80 }[pk]), b = T3.bounds || [-10, -10, 10, 10], X0 = b[0] - 6, X1 = b[2] + 6, Z0 = b[1] - 6, Z1 = b[3] + 6, H = 14;
     const pos = new Float32Array(cnt * 3); for (let i = 0; i < cnt; i++) { pos[i * 3] = X0 + Math.random() * (X1 - X0); pos[i * 3 + 1] = Math.random() * H; pos[i * 3 + 2] = Z0 + Math.random() * (Z1 - Z0); }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     const mat = new THREE.PointsMaterial({ color: { rain: '#9CCBE8', snow: '#FFFFFF', leaf: '#D9822B' }[pk], size: { rain: 0.05, snow: 0.1, leaf: 0.22 }[pk], transparent: true, opacity: pk === 'rain' ? 0.6 : 0.9, depthWrite: false });
@@ -2963,7 +2963,7 @@ function folAdd3(THREE, gr, geo, mat, list) { if (!list.length) return; const im
 function flatGeo3(THREE) { const G = g3(THREE); return G.flatGeo || (G.flatGeo = new THREE.PlaneGeometry(1, 1)); }
 function branchGeo3(THREE) { const G = g3(THREE); if (G.branchGeo) return G.branchGeo; const geo = new THREE.PlaneGeometry(1, 1, 2, 6), q = geo.attributes.position; for (let i = 0; i < q.count; i++) { const x = q.getX(i), v = q.getY(i) + 0.5; q.setXYZ(i, x, v, 0.12 * v * v); } q.needsUpdate = true; geo.computeVertexNormals(); return G.branchGeo = geo; }
 function veg3d(THREE, M, kind, h, w, seed, hue, opt) {
-  const gr = new THREE.Group(), R = rng3(seed), lo = S.low3d, seg = lo ? [8, 6] : [14, 10], o = opt || {};
+  const gr = new THREE.Group(), R = rng3(seed), lo = false, seg = [14, 10], o = opt || {};
   const sn = seas3(), mo = mo3(), sk = plantSk3(mo);
   const EG = ['gran', 'tall', 'pelare', 'krypbarr', 'marktack'].includes(kind) || o.everg, DEC = ['lov', 'frukt', 'bjork', 'pelarlov', 'buske', 'bar', 'ros', 'klatter'].includes(kind) && !o.everg;
   const PER = ['perenn', 'sommar', 'lok', 'blad', 'svard', 'ormbunke', 'krydda', 'gron', 'rot', 'solros', 'gras'].includes(kind) && !o.everg;
@@ -3335,7 +3335,7 @@ let HANG3 = false;
 function hangDown3(THREE, nm, seed, sick) {
   const g = new THREE.Group(), R = rng3(seed), G = g3(THREE), Y0 = 0.3, st = [], lf = [];
   const seg = (a, b, r) => { const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L = Math.hypot(dx, dy, dz) || 0.001; st.push([a[0], a[1], a[2], Math.acos(Math.max(-1, Math.min(1, dy / L))), Math.atan2(dx, dz), 0, r, L, r]); };
-  const narrow = /Hoya linearis|Senecio|Ceropegia|Rhipsalis|Tradescantia|Pilea/i.test(nm), lw = narrow ? 0.03 : 0.06, ll = narrow ? 0.07 : 0.08, lo = S.low3d;
+  const narrow = /Hoya linearis|Senecio|Ceropegia|Rhipsalis|Tradescantia|Pilea/i.test(nm), lw = narrow ? 0.03 : 0.06, ll = narrow ? 0.07 : 0.08, lo = false;
   // liten tuva runt öppningen, bladen pekar ner och ut
   for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283 + R(); lf.push([Math.sin(a) * 0.03, Y0 - 0.01, Math.cos(a) * 0.03, 2.1 + R() * 0.6, a, 0, lw * 1.2, ll * 1.2, ll * 1.2]); }
   // rankor rakt ner, med lite sväng
@@ -3348,7 +3348,7 @@ function hangDown3(THREE, nm, seed, sick) {
   return g;
 }
 function indoor3d(THREE, M, p, ok, seed) {
-  const g = new THREE.Group(), R = rng3(seed), lo = S.low3d, nm = ((p.latin_name || '') + ' ' + (p.swedish_name || '')), lc = ok === false ? '#B9A23F' : null;
+  const g = new THREE.Group(), R = rng3(seed), lo = false, nm = ((p.latin_name || '') + ' ' + (p.swedish_name || '')), lc = ok === false ? '#B9A23F' : null;
   const col = (h, sat, l) => M(lc || `hsl(${h + Math.round(R() * 12)},${sat}%,${l + Math.round(R() * 6)}%)`);
   const add = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; g.add(o); return o; };
   let leafH = 128; if (/Tradescantia|Oxalis|Calathea|Coleus|Iresine|Maranta|Stromanthe/.test(nm)) leafH = 330;
@@ -3442,7 +3442,7 @@ function astrantia3d(THREE, M, h, w, seed, sk, mo) {
 function deadPer3d(THREE, M, h, w, seed) {
   const g = new THREE.Group(), R = rng3(seed), r = Math.max(0.06, Math.min(0.3, w * 0.3));
   const base = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 5), M('#6B5236')); base.scale.y = 0.22; base.position.y = 0.015; base.receiveShadow = true; g.add(base);
-  for (let i = 0; i < (S.low3d ? 3 : 7); i++) { const L = Math.max(0.05, Math.min(0.25, h * 0.3)) * (0.5 + R() * 0.5), a = R() * 6.283, d = R() * r * 0.6;
+  for (let i = 0; i < 7; i++) { const L = Math.max(0.05, Math.min(0.25, h * 0.3)) * (0.5 + R() * 0.5), a = R() * 6.283, d = R() * r * 0.6;
     const c = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.006, L, 4), M(i % 2 ? '#8A7150' : '#9C8560')); c.position.set(Math.cos(a) * d, L / 2, Math.sin(a) * d); c.rotation.z = (R() - 0.5) * 0.6; c.rotation.x = (R() - 0.5) * 0.6; c.castShadow = true; g.add(c); }
   return g;
 }
@@ -3467,7 +3467,7 @@ function scanStrips(pts, u, step, fn) { const v = [-u[1], u[0]], dv = q => q[0] 
 function stripBox(THREE, M, sc, u, c, a0, a1, y0, h, wd, col, o) { const L = a1 - a0; if (L < 0.02) return; const v = [-u[1], u[0]], m = (a0 + a1) / 2, mesh = new THREE.Mesh(new THREE.BoxGeometry(L, h, wd), M(col, o)); mesh.position.set(u[0] * m + v[0] * c, y0 + h / 2, u[1] * m + v[1] * c); mesh.rotation.y = -Math.atan2(u[1], u[0]); mesh.castShadow = h > 0.02; mesh.receiveShadow = true; sc.add(mesh); return mesh; }
 function edgeRun(THREE, M, sc, pts, y0, h, wd, col) { pts.forEach((a, i) => { const b = pts[(i + 1) % pts.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 0.02) return; const m = new THREE.Mesh(new THREE.BoxGeometry(L + wd, h, wd), M(col)); m.position.set((a[0] + b[0]) / 2, y0 + h / 2, (a[1] + b[1]) / 2); m.rotation.y = -Math.atan2(b[1] - a[1], b[0] - a[0]); m.castShadow = true; m.receiveShadow = true; sc.add(m); }); }
 function area3d(a, THREE, M, sc, slab, shape, y) {
-  const lo = S.low3d, R = rng3(a.pts.length * 977 + Math.round(a.pts[0][0] * 31 + a.pts[0][1] * 17)), u = axisOf(a.pts);
+  const lo = false, R = rng3(a.pts.length * 977 + Math.round(a.pts[0][0] * 31 + a.pts[0][1] * 17)), u = axisOf(a.pts);
   // Klipp bort det som ligger under ett rum, så att altan, gångar och rabatter inte sticker upp genom golvet
   const RP0 = planRooms().filter(r => flOf(r) === 0).map(roomPoly), inR = (x, z) => RP0.some(pg => inPoly3(x, z, pg)); let ov = false;
   if (RP0.length) scanStrips(a.pts, u, 0.25, (c, a0, a1) => { const v = [-u[1], u[0]]; for (let t = a0; t <= a1 && !ov; t += 0.25) if (inR(u[0] * t + v[0] * c, u[1] * t + v[1] * c)) ov = true; });
@@ -3486,7 +3486,7 @@ function area3d(a, THREE, M, sc, slab, shape, y) {
   if (a.t === 'veg') { slabC(a.pts, 0, 0.08, '#5A3E25'); if (snowB) slabC(a.pts, 0.08, 0.05, '#F4F8FB'); if (!lo) { scanStrips(a.pts, u, 0.4, (c, a0, a1) => sBox(u, c, a0 + 0.05, a1 - 0.05, 0.08, 0.04, 0.16, '#6E4C2E')); edgeC(a.pts, 0, 0.2, 0.05, '#A47B52'); } garden3d(a, THREE, M, sc); return; }
   slabC(a.pts, 0, 0.05, AREA3[a.t] || '#7FB35B');
 }
-function hedge3d(wl, THREE, M, sc, box) { const L = Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1), H = 1.3, col = '#3F7A35'; box(wl.x1, wl.y1, wl.x2, wl.y2, 0, H - 0.2, 0.6, col); if (S.low3d || L < 0.1) return; const R = rng3(Math.round(wl.x1 * 97 + wl.y1 * 31));
+function hedge3d(wl, THREE, M, sc, box) { const L = Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1), H = 1.3, col = '#3F7A35'; box(wl.x1, wl.y1, wl.x2, wl.y2, 0, H - 0.2, 0.6, col); if (L < 0.1) return; const R = rng3(Math.round(wl.x1 * 97 + wl.y1 * 31));
   for (let t = 0; t <= L; t += 0.35) { const s = new THREE.Mesh(new THREE.SphereGeometry(0.34, 10, 8), M(['#3F7A35', '#4A8840', '#37702F'][Math.floor(R() * 3)])); s.position.set(wl.x1 + (wl.x2 - wl.x1) * t / L, H - 0.25 + R() * 0.08, wl.y1 + (wl.y2 - wl.y1) * t / L); s.scale.set(1, 0.7, 1); s.castShadow = true; sc.add(s); } }
 // Fönster- och dörrdetaljer på huset
 // ===== Detaljerade möbler i 3D. Lokala mått: bredd W längs x, djup D längs z (framsidan mot +z), höjd H. =====
@@ -7611,6 +7611,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.224', '28 okt 22:38', ['Låga väggar i 3D ändrar bara väggarna, växter och rabatter behåller sin detalj']],
   ['Beta 0.223', '28 okt 22:32', ['Planera rabatt öppnar 3D på din senaste rabatt']],
   ['Beta 0.222', '28 okt 22:12', ['Hem blinkar inte längre när vädret inte kan hämtas']],
   ['Beta 0.221', '28 okt 21:57', ['Mina vänner är första fliken i Gemenskap, och uppdateringsrutan visas även efter F5']],
@@ -8377,7 +8378,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.223';
+const APP_VERSION = 'Beta 0.224';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
