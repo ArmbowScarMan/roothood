@@ -4169,8 +4169,8 @@ function planPickV() {
 function startPlace(pk) { S.modal = null; const P = PL(); P.mode = 'place'; P.pick = pk; P.sel = null; render(); }
 async function placeAt(pt) {
   const P = PL(), pk = P.pick; const keep = pk && (pk.k === 'furn' || pk.k === 'dev'); if (!keep) { P.mode = 'move'; P.pick = null; }
-  if (pk.k === 'furn') { pushUndo(); S.hplan = S.hplan || {}; const F = FURN_M[pk.t], f = { id: 'f' + Date.now().toString(36), t: pk.t, x: r1(pt.x), y: r1(pt.y), w: F[2], h: F[3], rot: 0 }; if (!OUTF.has(f.t)) f.fl = curFl(); S.hplan.furn = planFurnAll().concat(f); P.lastPlaced = { k: 'furn', id: f.id }; P.msg = `${F[1]} är utlagd. Tryck igen för en till, eller välj en annan möbel nedanför. Vrid och ändra storlek under Flytta.`; saveHomeSoon(); render(); return; }
-  if (pk.k === 'dev') { pushUndo(); S.hplan = S.hplan || {}; const it = { id: 'd' + Date.now().toString(36), t: pk.t, x: r1(pt.x), y: r1(pt.y) }; S.hplan.items = planItems().concat(it); growLamp(it); P.msg = `${DEVS[pk.t][0]} är utlagd. Tryck igen för en till, eller välj något annat nedanför.`; saveHomeSoon(); render(); return; }
+  if (pk.k === 'furn') { pushUndo(); S.hplan = S.hplan || {}; const F = FURN_M[pk.t], f = { id: 'f' + Date.now().toString(36), t: pk.t, x: r1(pt.x), y: r1(pt.y), w: F[2], h: F[3], rot: 0 }; if (!OUTF.has(f.t)) f.fl = curFl(); S.hplan.furn = planFurnAll().concat(f); P.lastPlaced = { k: 'furn', id: f.id }; P.mode = 'move'; P.pick = null; P.sel = { k: 'furn', id: f.id }; P.msg = `${F[1]} är utlagd. Dra den dit du vill ha den. Vrid och ändra storlek nedanför. Vill du ha en till, välj möbeln igen.`; saveHomeSoon(); render(); return; }
+  if (pk.k === 'dev') { pushUndo(); S.hplan = S.hplan || {}; const it = { id: 'd' + Date.now().toString(36), t: pk.t, x: r1(pt.x), y: r1(pt.y) }; S.hplan.items = planItems().concat(it); growLamp(it); P.mode = 'move'; P.pick = null; P.sel = { k: 'dev', id: it.id }; P.msg = `${DEVS[pk.t][0]} är utlagd. Dra den dit du vill ha den. Vill du ha en till, välj den igen.`; saveHomeSoon(); render(); return; }
   let m = S.mine.find(x => x.id === pk.id); if (!m) return render();
   m.details = m.details || {}; m.details.pos = { x: r1(pt.x), y: r1(pt.y) };
   await savePos(m);
@@ -7177,6 +7177,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.197', '28 okt 16:55', ['Ritningen: när du har lagt ut en möbel eller smart sak blir den vald direkt, så att du kan flytta den. Ett nytt tryck lägger inte längre till en till']],
   ['1.196', '28 okt 16:45', ['Ritningen: möbler har en grön kant och en liten pil på framsidan, så att du ser åt vilket håll till exempel kylskåpet är vänt']],
   ['1.195', '28 okt 16:30', ['Inloggning med Google: namnet från Google-kontot används i stället för e-postadressen. Konton som redan fått e-postadressen som namn rättas vid nästa start']],
   ['1.194', '28 okt 16:15', ['Mitt hem: gardiner och persienner per rum', 'Nya saker: öppen hylla, förvaringsbänk med korgar, terrarium med värmelampa, tavla eller bonad (djungel, regnbåge, natthimmel), väggklocka, växtställning med hängande kruka och djursäng', 'Taklampa med glödlampor och korallfärgad lamellampa. Mönstrad matta', 'Ingen blå ruta längre när man trycker på knappar']],
@@ -7907,7 +7908,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.196';
+const APP_VERSION = '1.197';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
