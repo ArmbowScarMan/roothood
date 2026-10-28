@@ -1,0 +1,23 @@
+-- 047: Moderatorer granskar föreslagna växter (status pending).
+-- Moderatorer kan inte läsa väntande växter direkt, så det sköts av funktioner med is_mod().
+
+create or replace function public.mod_plants_queue()
+returns setof public.plants
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query select * from public.plants where status = 'pending' order by swedish_name;
+end $$;
+revoke all on function public.mod_plants_queue() from public;
+grant execute on function public.mod_plants_queue() to authenticated;
+
+create or replace function public.mod_plant_decide(p_id bigint, p_approve boolean)
+returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  update public.plants set status = case when p_approve then 'approved' else 'rejected' end
+  where id = p_id and status = 'pending';
+end $$;
+revoke all on function public.mod_plant_decide(bigint, boolean) from public;
+grant execute on function public.mod_plant_decide(bigint, boolean) to authenticated;

@@ -1675,6 +1675,8 @@ const sbApi = {
   async best(pid, aid) { const { error } = await sb.from('posts').update({ pending_best_answer_id: aid }).eq('id', pid); if (error) throw error; },
   async myPlantFollows() { const { data, error } = await sb.from('plant_follows').select('species').eq('user_id', S.user.id); if (error) throw error; return (data || []).map(x => x.species); },
   async followPlant(sp, on) { const r = on ? await sb.from('plant_follows').upsert({ user_id: S.user.id, species: sp }) : await sb.from('plant_follows').delete().eq('user_id', S.user.id).eq('species', sp); if (r.error) throw r.error; },
+  async modPlants() { const { data, error } = await sb.rpc('mod_plants_queue'); if (error) throw /mod_plants/.test(error.message || '') ? new Error('MOD_NOT_READY') : error; return data || []; },
+  async modPlantDecide(id, ok) { const { error } = await sb.rpc('mod_plant_decide', { p_id: id, p_approve: ok }); if (error) throw error; },
   async modBest() { const { data, error } = await sb.rpc('mod_best_queue'); if (error) throw /mod_best/.test(error.message || '') ? new Error('MOD_NOT_READY') : error; return (data || []).map(r => ({ post_id: r.post_id, question: r.question, answer_id: r.answer_id, answer_text: r.answer_text, answer_author: r.answer_author, asked_by: r.asked_by, asked_at: r.asked_at })); },
   async modBestCount() { const { data, error } = await sb.rpc('mod_best_count'); return error ? 0 : (data || 0); },
   async modBestDecide(pid, ok) { const { error } = await sb.rpc('mod_best_decide', { p_post: pid, p_approve: ok }); if (error) throw error; },
@@ -5254,6 +5256,7 @@ async function loadMod() {
     else if (t === 'done') S.modData = (await api.modReports('all')).filter(r => r.status !== 'open');
     else if (t === 'feed') S.modData = await api.modFeed();
     else if (t === 'best') S.modData = await api.modBest();
+    else if (t === 'plants') S.modData = await api.modPlants();
     else if (t === 'team') { S.modData = await api.listStaff(); }
     S.modErr = null; S.modOpen = await api.modOpen(); S.modBestN = await api.modBestCount();
   } catch (e) { S.modData = []; S.modErr = e.message === 'MOD_NOT_READY' || /mod_|NOT_MOD/.test(e.message || '') ? 'Modereringen går inte att använda just nu.' : errMsg(e); }
@@ -5307,7 +5310,7 @@ async function modRole(id, role) { try { await api.setRole(id, role); toast(role
 async function modFind(form) { S.modQ = form.mq.value.trim(); try { S.modRes = S.modQ ? await api.findUsers(S.modQ) : []; } catch (e) { S.modRes = []; toast(errMsg(e)); } render(); }
 const KIND_SV = { post: 'Inlägg', answer: 'Svar', photo: 'Foto' };
 function modV() {
-  const t = S.modTab || 'open', D = S.modData, tabs = [['open', 'Rapporter' + (S.modOpen ? ' (' + S.modOpen + ')' : '')], ['best', 'Bästa svar' + (S.modBestN ? ' (' + S.modBestN + ')' : '')], ['done', 'Hanterade'], ['feed', 'Gemenskap']].concat(isAdmin() ? [['team', 'Team']] : []);
+  const t = S.modTab || 'open', D = S.modData, tabs = [['open', 'Rapporter' + (S.modOpen ? ' (' + S.modOpen + ')' : '')], ['best', 'Bästa svar' + (S.modBestN ? ' (' + S.modBestN + ')' : '')], ['plants', 'Växter'], ['done', 'Hanterade'], ['feed', 'Gemenskap']].concat(isAdmin() ? [['team', 'Team']] : []);
   let body;
   if (S.modErr) body = `<p class="formmsg" style="margin:16px 18px">${esc(S.modErr)}</p>`;
   else if (D == null) body = '<p class="mut" style="margin:16px 18px">Hämtar…</p>';
@@ -5320,6 +5323,8 @@ function modV() {
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${r.status === 'open' ? `<button class="btn sm" onclick="modAct(${r.id},'hide')">Dölj</button><button class="btn sm line" onclick="modAct(${r.id},'keep')">Behåll</button>` : r.hidden ? `<button class="btn sm line" onclick="modAct(${r.id},'unhide')">Visa igen</button>` : `<button class="btn sm" onclick="modAct(${r.id},'hide')">Dölj ändå</button>`}</div></div>`).join('')}</div>` : `<p class="mut" style="margin:16px 18px">${t === 'open' ? 'Inga rapporter att granska. 🎉' : 'Inga hanterade rapporter än.'}</p>`;
   } else if (t === 'best') {
     body = D.length ? `<div class="pad">${D.map(r => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">Fråga av ${esc(r.asked_by || 'okänd')} · ${ago(r.asked_at)}</small><p style="margin:8px 0 4px">”${esc((r.question || '').slice(0, 200))}”</p><small class="mut">Föreslaget bästa svar av ${esc(r.answer_author || 'okänd')}</small><p style="margin:6px 0 0;white-space:pre-line">${esc(r.answer_text || '')}</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="modBestAct(${r.post_id},true)">Godkänn</button><button class="btn sm line" onclick="modBestAct(${r.post_id},false)">Avslå</button></div></div>`).join('')}</div>` : '<p class="mut" style="margin:16px 18px">Inga svar väntar på godkännande.</p>';
+  } else if (t === 'plants') {
+    body = D.length ? `<div class="pad">${D.map(p => `<div class="card modc" style="padding:14px;margin-bottom:12px"><b>${esc(p.swedish_name || 'Okänd växt')}</b><small class="mut" style="display:block">${esc(p.latin_name || '')}${p.category ? ' · ' + esc(p.category) : ''}</small>${p.toxicity_text ? `<p style="margin:8px 0 0;font-size:14px">${esc(p.toxicity_text)}</p>` : ''}${p.tips ? `<p class="mut" style="margin:6px 0 0;font-size:13px;white-space:pre-line">${esc(p.tips)}</p>` : ''}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="modPlantAct(${+p.id},true)">Godkänn</button><button class="btn sm line" onclick="modPlantAct(${+p.id},false)">Avvisa</button></div></div>`).join('')}</div>` : '<p class="mut" style="margin:16px 18px">Inga växter väntar på granskning.</p>';
   } else if (t === 'feed') {
     body = D.length ? modFeedV(D) : '<p class="mut" style="margin:16px 18px">Inget i communityt än.</p>';
   } else {
@@ -6443,6 +6448,7 @@ function toggleLike(pid) {
   commRun(async () => { try { await api.like(pid, on); } catch (e) { p.likers = prev; render(); throw e; } });
 }
 function markBest(pid, aid) { commRun(() => api.best(pid, aid), 'Skickat till en moderator för godkännande'); }
+async function modPlantAct(id, ok) { try { await api.modPlantDecide(id, ok); toast(ok ? 'Växten är godkänd och syns för alla' : 'Växten är avvisad'); } catch (e) { toast(errMsg(e)); } loadMod(); }
 async function modBestAct(pid, ok) { try { await api.modBestDecide(pid, ok); toast(ok ? 'Godkänt som bästa svar' : 'Avslaget'); } catch (e) { toast(errMsg(e)); } loadMod(); }
 function delPost(id) {
   if (S.del !== 'p' + id) { S.del = 'p' + id; return render(); }
@@ -7089,6 +7095,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.188', '28 okt 09:00', ['Moderering: ny flik Växter där moderatorer godkänner eller avvisar föreslagna växter']],
   ['1.187', '28 okt 08:20', ['Alla växter: ny sortering Populära, som visar de växter flest användare har i sin samling']],
   ['1.186', '27 okt 23:25', ['Alla växter: filter och sortering ligger under en knapp som du fäller ut och in']],
   ['1.185', '27 okt 23:20', ['Profil: knapparna för sortering och visning är borttagna. Växterna visas alltid med den senast tillagda först']],
@@ -7809,7 +7816,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.187';
+const APP_VERSION = '1.188';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
