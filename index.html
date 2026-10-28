@@ -2484,8 +2484,11 @@ function tap3(e) {
   if (!T3 || S.hview !== '3d' || T3.walk || S.modal) return;
   const THREE = T3.THREE, c = T3.renderer.domElement, rc = c.getBoundingClientRect(), v = new THREE.Vector2((e.clientX - rc.left) / rc.width * 2 - 1, -(e.clientY - rc.top) / rc.height * 2 + 1), ray = new THREE.Raycaster(); ray.setFromCamera(v, T3.camera);
   const P = PL(), fl = S.f3 != null ? S.f3 : curFl(), y = T3.fyOf ? T3.fyOf(fl) : 0, pt = new THREE.Vector3();
-  let fid = null; for (const h of ray.intersectObjects(T3.scene.children, true)) { if (h.object.isSprite) continue; let o = h.object; while (o && !(o.userData && o.userData.fid)) o = o.parent; if (o) fid = o.userData.fid; break; }
-  if (!ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), pt)) return;
+  let fid = null, hit = null; for (const h of ray.intersectObjects(T3.scene.children, true)) { if (h.object.isSprite) continue; let o = h.object; while (o && !(o.userData && o.userData.fid)) o = o.parent; if (o) fid = o.userData.fid; hit = h; break; }
+  // Använd punkten man faktiskt träffar (fönsterbräda, bord, golv). Träffar man en vägg flyttas punkten en bit ut från väggen, mot kameran.
+  if (hit) { pt.copy(hit.point); const n = hit.face ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld) : null;
+    if (n && Math.abs(n.y) < 0.5) { const dir = ray.ray.direction; if (n.x * dir.x + n.z * dir.z > 0) n.negate(); pt.x += n.x * 0.15; pt.z += n.z * 0.15; } }
+  else if (!ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), pt)) return;
   const at = { x: r1(pt.x), y: r1(pt.z) };
   if (P.mode === 'place' && P.pick) { placeAt(at); return; }
   if (fid) { P.sel = { k: 'furn', id: fid }; P.pmin = false; render(); return; }
@@ -7194,6 +7197,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.199', '28 okt 17:35', ['3D: när du trycker på en fönsterbräda, ett bord eller en vägg hamnar växten eller möbeln där du tryckte, inte utanför rummet']],
   ['1.198', '28 okt 17:20', ['3D: ställ ut möbler och växter direkt i 3D-vyn med + Möbel och + Växt, och tryck på golvet där de ska stå', '3D: tryck på en möbel för att välja den, och tryck sedan på golvet för att flytta den. Vrid, storlek och färg finns i rutan']],
   ['1.197', '28 okt 16:55', ['Ritningen: när du har lagt ut en möbel eller smart sak blir den vald direkt, så att du kan flytta den. Ett nytt tryck lägger inte längre till en till']],
   ['1.196', '28 okt 16:45', ['Ritningen: möbler har en grön kant och en liten pil på framsidan, så att du ser åt vilket håll till exempel kylskåpet är vänt']],
@@ -7926,7 +7930,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.198';
+const APP_VERSION = '1.199';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
