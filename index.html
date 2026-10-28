@@ -1897,11 +1897,11 @@ function detailsV(m, inModal) {
   if (out) outItems(m, d).forEach(x => items.push(x));
   if (!out) {
   if (d.place) items.push(['Planterad', d.place]);
-  if (d.cm || d.mat) items.push(['Kruka', [d.cm ? d.cm + ' cm' : '', d.mat || ''].filter(Boolean).join(', ')]);
+  if (d.cm || d.ph || d.mat) items.push(['Kruka', [d.cm ? 'Ø' + d.cm + ' cm' : '', d.ph ? d.ph + ' cm hög' : '', d.mat || ''].filter(Boolean).join(', ')]);
   if (d.self) items.push(['Självvattnande', 'Ja']);
   if (d.drain && !d.self) items.push(['Dräneringshål', d.drain]);
   if (d.soil && d.soil.length) items.push(['Jord', d.soil.join(', ')]);
-  if (d.h) items.push(['Höjd/längd', d.h + ' cm', growthTxt(d)]);
+  if (d.h) items.push(['Växtens höjd/längd', d.h + ' cm', growthTxt(d)]);
   if (d.w) items.push(['Bredd', d.w + ' cm']);
   const rm = S.pro ? roomOf(m) : null;
   if (rm) items.push(['Rum', rm.name, [dirTxt(rm), d.win].filter(Boolean).join(' · ')]);
@@ -1942,11 +1942,12 @@ function pdetV() {
   ${outd ? outFormV(m, d, ps) + `<button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="saveDetails()">${S.busy ? 'Sparar…' : 'Spara'}</button>${S.pdNew ? '<button class="link3" style="margin:8px auto 0;display:block" onclick="closeDetails()">Hoppa över</button>' : ''}</div>` : `
   <label class="fl" style="margin-top:0">Hur är den planterad?</label>${pdChips('place')}
   ${pot ? `<div class="two"><div><label class="fl" for="pdcm">Krukans diameter (cm)</label><input id="pdcm" type="number" inputmode="numeric" min="1" max="300" value="${d.cm || ''}" oninput="S.pd.cm=+this.value||null"></div>
-  <div><label class="fl" for="pdh">Höjd/längd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="2000" value="${d.h || ''}" oninput="S.pd.h=+this.value||null"></div></div>
+  <div><label class="fl" for="pdph">Krukans höjd (cm)</label><input id="pdph" type="number" inputmode="numeric" min="1" max="300" value="${d.ph || ''}" oninput="S.pd.ph=+this.value||null"></div></div>
+  <label class="fl" for="pdh">Växtens höjd eller längd (cm)</label><p class="mut" style="font-size:12.5px;margin:-2px 0 6px">Mät från jorden till toppen. Hänger eller klättrar den, mät den längsta rankan.</p><input id="pdh" type="number" inputmode="numeric" min="1" max="2000" value="${d.h || ''}" oninput="S.pd.h=+this.value||null">
   <label class="fl">Krukans material</label>${pdChips('mat')}
   <label class="tog"><input type="checkbox" ${d.self ? 'checked' : ''} onchange="S.pd.self=this.checked;keepScroll()"><span><b>Självvattnande kruka</b></span></label>
   ${d.self ? '' : `<label class="fl">Dräneringshål i botten?</label>${pdChips('drain')}`}`
-  : `<div class="two"><div><label class="fl" for="pdh">Höjd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="4000" placeholder="${ps ? 'Fullvuxen ca ' + ps[0] : ''}" value="${d.h || ''}" oninput="S.pd.h=+this.value||null"></div>
+  : `<div class="two"><div><label class="fl" for="pdh">Växtens höjd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="4000" placeholder="${ps ? 'Fullvuxen ca ' + ps[0] : ''}" value="${d.h || ''}" oninput="S.pd.h=+this.value||null"></div>
   <div><label class="fl" for="pdw">Bredd (cm)</label><input id="pdw" type="number" inputmode="numeric" min="1" max="3000" placeholder="${ps ? 'Fullvuxen ca ' + ps[1] : ''}" value="${d.w || ''}" oninput="S.pd.w=+this.value||null"></div></div>${outd ? '<p class="mut" style="font-size:12.5px;margin:6px 0 0">Höjden och bredden används när växten visas i 3D och på ritningen av Mitt hem.</p>' : ''}`}
   <label class="fl">Jord och substrat (välj flera)</label>${pdChips('soil', true)}
   ${S.pro ? `<label class="fl">Vilket rum står den i?</label>
@@ -1965,12 +1966,13 @@ async function saveDetails() {
   const m = S.mine.find(x => x.id === S.pdId); if (!m) return;
   const old = m.details || {}, d = JSON.parse(JSON.stringify(S.pd));
   if (d.cm && (d.cm < 1 || d.cm > 300)) return toast('Krukstorleken verkar inte stämma');
+  if (d.ph && (d.ph < 1 || d.ph > 300)) return toast('Krukans höjd verkar inte stämma');
   if (d.h && (d.h < 1 || d.h > 4000)) return toast('Höjden verkar inte stämma');
   if (d.w && (d.w < 1 || d.w > 3000)) return toast('Bredden verkar inte stämma');
   if (d.from) d.from = d.from.trim().slice(0, 80);
   ['sort', 'nick'].forEach(k => { if (d[k]) d[k] = d[k].trim().replace(/^'|'$/g, '').replace(/\s+/g, ' ').slice(0, 60); });
-  if (isOutM(m)) { delete d.room; delete d.win; delete d.light; if (d.place !== 'Kruka ute') { delete d.cm; delete d.drain; } delete d.mat; delete d.self; }
-  if (['Rabatt', 'Odlingslåda', 'I vatten', 'I marken'].includes(d.place)) { delete d.cm; delete d.mat; delete d.self; delete d.drain; }
+  if (isOutM(m)) { delete d.room; delete d.win; delete d.light; if (d.place !== 'Kruka ute') { delete d.cm; delete d.ph; delete d.drain; } delete d.mat; delete d.self; }
+  if (['Rabatt', 'Odlingslåda', 'I vatten', 'I marken'].includes(d.place)) { delete d.cm; delete d.ph; delete d.mat; delete d.self; delete d.drain; }
   if (d.room) { const r = roomOf(null, d); if (r) d.light = roomLightWord(r); else delete d.room; } else delete d.win;
   const hChanged = d.h && d.h !== old.h;
   if (hChanged) d.hist = (old.hist || []).filter(x => x.d !== today()).concat({ d: today(), h: d.h }).slice(-50);
@@ -2401,7 +2403,7 @@ function soilTex3(THREE, list) {
 function pot3d(THREE, M, d, seed) {
   const g = new THREE.Group(), K = kit3(THREE, M, g, seed), place = d.place || 'Kruka', soil = d.soil || [], dia = Math.max(0.08, Math.min(0.7, (d.cm || 24) / 100)), r = dia / 2;
   const ceram = ['#E8E2D6', '#2F5A6E', '#7A8F6A', '#C9A0B0', '#2A2A2A', '#D9C08A'][Math.abs(seed) % 6], mat = d.mat || 'Terrakotta';
-  let H = Math.max(0.08, dia * 0.9), top = H - 0.02, inner = r * 0.92;
+  let H = d.ph ? Math.max(0.05, Math.min(1.0, d.ph / 100)) : Math.max(0.08, dia * 0.9), top = H - 0.02, inner = r * 0.92;
   const soilTop = (y, rr) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, 0.01, 28), new THREE.MeshStandardMaterial({ map: soilTex3(THREE, soil.length ? soil : ['Krukjord']), roughness: 1 })); m.position.y = y; m.receiveShadow = true; g.add(m);
     const kind = (SOIL3[soil[0]] || [])[2], n = Math.round(Math.min(120, rr * rr * 2400));
     if (kind === 'balls' || kind === 'pon' || kind === 'bark') { const L = []; for (let i = 0; i < n; i++) { const a = K.R() * 6.283, dd = Math.sqrt(K.R()) * rr * 0.95, s = kind === 'balls' ? 0.009 + K.R() * 0.004 : kind === 'pon' ? 0.004 + K.R() * 0.003 : 0.012; L.push([Math.cos(a) * dd, y + 0.006, Math.sin(a) * dd, K.R() * 3, K.R() * 3, 0, kind === 'bark' ? s * 1.6 : s, s, kind === 'bark' ? s * 0.6 : s]); }
@@ -5480,12 +5482,12 @@ function outChips(k) { return `<div class="chips2">${OUTP[k].map(v => { const on
 function outFormV(m, d, ps) {
   const pot = d.place === 'Kruka ute', areas = planAreas().filter(a => ['bed', 'veg'].includes(a.t));
   return `<label class="fl" style="margin-top:0">Var växer den?</label>${outChips('place')}
-  ${pot ? `<div class="two"><div><label class="fl" for="pdcm">Krukans diameter (cm)</label><input id="pdcm" type="number" inputmode="numeric" min="1" max="300" value="${d.cm || ''}" oninput="S.pd.cm=+this.value||null"></div><div><label class="fl">Dräneringshål?</label>${pdChips('drain')}</div></div>` : ''}
+  ${pot ? `<div class="two"><div><label class="fl" for="pdcm">Krukans diameter (cm)</label><input id="pdcm" type="number" inputmode="numeric" min="1" max="300" value="${d.cm || ''}" oninput="S.pd.cm=+this.value||null"></div><div><label class="fl">Dräneringshål?</label>${pdChips('drain')}</div></div><label class="fl" for="pdph">Krukans höjd (cm)</label><input id="pdph" type="number" inputmode="numeric" min="1" max="300" value="${d.ph || ''}" oninput="S.pd.ph=+this.value||null">` : ''}
   ${S.pro && areas.length && ['Rabatt', 'Odlingsland'].includes(d.place) ? `<label class="fl">Vilken av dina rabatter?</label><div class="chips2">${areas.map(a => `<button class="${d.area === a.id ? 'on' : ''}" onclick="pdSet('area','${a.id}')">${a.t === 'veg' ? 'Odlingsland' : 'Rabatt'} ${String(polyArea(a.pts)).replace('.', ',')} m²</button>`).join('')}</div>` : ''}
   <label class="fl">Hur mycket sol får den?</label>${outChips('sun')}
   <label class="fl">Hur skyddat står den?</label>${outChips('shelter')}
   ${pot ? '' : `<label class="fl">Vilken sorts jord?</label>${outChips('gsoil')}`}
-  <div class="two"><div><label class="fl" for="pdh">Höjd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="4000" placeholder="${ps ? 'Fullvuxen ca ' + ps[0] : ''}" value="${d.h || ''}" oninput="S.pd.h=+this.value||null"></div>
+  <div class="two"><div><label class="fl" for="pdh">Växtens höjd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="4000" placeholder="${ps ? 'Fullvuxen ca ' + ps[0] : ''}" value="${d.h || ''}" oninput="S.pd.h=+this.value||null"></div>
   <div><label class="fl" for="pdw">Bredd (cm)</label><input id="pdw" type="number" inputmode="numeric" min="1" max="3000" placeholder="${ps ? 'Fullvuxen ca ' + ps[1] : ''}" value="${d.w || ''}" oninput="S.pd.w=+this.value||null"></div></div>
   <label class="tog"><input type="checkbox" ${d.wcover ? 'checked' : ''} onchange="S.pd.wcover=this.checked;keepScroll()"><span><b>Jag täcker eller skyddar den på vintern</b></span></label>
   <div class="two"><div><label class="fl" for="pdsince">Planterad</label><input id="pdsince" type="date" max="${today()}" value="${d.since || ''}" oninput="S.pd.since=this.value||null"></div>
@@ -5494,9 +5496,9 @@ function outFormV(m, d, ps) {
 }
 function outItems(m, d) { const it = [];
   if (d.place) { const a = d.area && planAreas().find(x => x.id === d.area); it.push(['Växer', d.place, a ? String(polyArea(a.pts)).replace('.', ',') + ' m²' : '']); }
-  if (d.place === 'Kruka ute' && d.cm) it.push(['Kruka', d.cm + ' cm']);
+  if (d.place === 'Kruka ute' && (d.cm || d.ph)) it.push(['Kruka', [d.cm ? 'Ø' + d.cm + ' cm' : '', d.ph ? d.ph + ' cm hög' : ''].filter(Boolean).join(', ')]);
   if (d.sun) it.push(['Sol', d.sun]); if (d.shelter) it.push(['Läge', d.shelter]); if (d.gsoil && d.gsoil !== 'Vet inte') it.push(['Jord', d.gsoil]);
-  if (d.h) it.push(['Höjd', d.h + ' cm', growthTxt(d)]); if (d.w) it.push(['Bredd', d.w + ' cm']); if (d.wcover) it.push(['Vinterskydd', 'Ja']);
+  if (d.h) it.push(['Växtens höjd', d.h + ' cm', growthTxt(d)]); if (d.w) it.push(['Bredd', d.w + ' cm']); if (d.wcover) it.push(['Vinterskydd', 'Ja']);
   if (d.since) it.push(['Planterad', whenTxt(d.since)]); if (d.from) it.push(['Kommer från', d.from]); return it; }
 function tender(p) { if (!p) return false; const t = guessType(p); return ['gron', 'sommar', 'krydda'].includes(t) && !/Allium|Brassica|Spinacia|Pisum|Vicia|Daucus|Pastinaca|Petroselinum|Thymus|Salvia officinalis|Origanum|Mentha|Melissa|Levisticum|Armoracia|Rheum/.test(p.latin_name || ''); }
 function outHints(m, d) {
@@ -5963,9 +5965,9 @@ function allPlV() {
 }
 function plRow(pl, db, th) {
   const d = pl.d || {}, f = [];
-  if (d.cm || d.mat) f.push([d.cm ? 'Ø' + d.cm + ' cm' : '', d.mat || ''].filter(Boolean).join(' '));
+  if (d.cm || d.ph || d.mat) f.push('kruka ' + [d.cm ? 'Ø' + d.cm + ' cm' : '', d.ph ? d.ph + ' cm hög' : '', d.mat || ''].filter(Boolean).join(' '));
   if (d.soil && d.soil.length) f.push(d.soil.join(', '));
-  if (d.h) f.push(d.h + ' cm hög');
+  if (d.h) f.push('växten ' + d.h + ' cm');
   if (d.light) f.push(d.light);
   if (pl.interval) f.push('vattnas var ' + pl.interval + ' d');
   return `<button class="prow" onclick="openMine(${pl.mid})">${th}<span class="grow"><b>${esc(pl.name || 'Växt')}</b><span>${esc(f.join(' · ')) || '–'}</span></span></button>`;
@@ -7197,6 +7199,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.200', '28 okt 17:50', ['Om min växt: det står tydligt Växtens höjd eller längd, med tips om hur du mäter', 'Nytt fält: Krukans höjd. Den syns i uppgifterna, i listan på profilen och i 3D']],
   ['1.199', '28 okt 17:35', ['3D: när du trycker på en fönsterbräda, ett bord eller en vägg hamnar växten eller möbeln där du tryckte, inte utanför rummet']],
   ['1.198', '28 okt 17:20', ['3D: ställ ut möbler och växter direkt i 3D-vyn med + Möbel och + Växt, och tryck på golvet där de ska stå', '3D: tryck på en möbel för att välja den, och tryck sedan på golvet för att flytta den. Vrid, storlek och färg finns i rutan']],
   ['1.197', '28 okt 16:55', ['Ritningen: när du har lagt ut en möbel eller smart sak blir den vald direkt, så att du kan flytta den. Ett nytt tryck lägger inte längre till en till']],
@@ -7930,7 +7933,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.199';
+const APP_VERSION = '1.200';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
