@@ -2144,23 +2144,50 @@ const lightIc = l => (WZ_LIGHT.find(x => x[0] === l) || WZ_LIGHT[1])[2];
 const dirName = d => (DIRS.find(x => x[0] === d) || [0, ''])[1];
 function wzStart(tpl, editId) {
   const ex = S.home || [], data = {};
-  ex.forEach(r => { data[r.name] = { id: r.id, dir: (r.dirs || [])[0] || null, light: r.lightPick || null, plants: plantsIn(r.id).map(m => m.id), hang: plantsIn(r.id).filter(m => ['Ampel', 'Upp och ner'].includes((m.details || {}).place)).map(m => m.id) }; });
+  ex.forEach(r => { data[r.name] = { id: r.id, dir: (r.dirs || [])[0] || null, light: r.lightPick || null, plants: plantsIn(r.id).map(m => m.id), hang: plantsIn(r.id).filter(m => ['Ampel', 'Upp och ner'].includes((m.details || {}).place)).map(m => m.id), furn: [...new Set((S.hplan && S.hplan.furn || []).filter(f => furnInRoom(r, f)).map(f => f.t))], skipF: false }; });
   let sel = ex.map(r => r.name); if (tpl) sel = [...new Set(sel.concat(tpl))];
   S.wz = { step: editId ? 2 : 1, sel, cur: 0, data, other: null, only: null };
   if (editId) { const r = ex.find(x => x.id === editId); S.wz.only = r ? r.name : null; S.wz.sel = r ? [r.name] : sel; }
   render(); $('#main').scrollTop = 0;
 }
-const wzD = n => (S.wz.data[n] = S.wz.data[n] || { id: null, dir: null, light: null, plants: [], hang: [] });
+const wzD = n => (S.wz.data[n] = S.wz.data[n] || { id: null, dir: null, light: null, plants: [], hang: [], furn: [...(FURN_PRESET[roomKind(n)] || [])], skipF: false });
+// Möbler man kan välja i varje rumstyp, och det som är förvalt för nya rum
+const FURN_CHOICES = { Vardagsrum: ['sofa', 'chair2', 'table', 'tv', 'shelf', 'etag', 'sbench', 'pstand'], Kök: ['ksink', 'hobc', 'counter', 'ucab', 'tallcab', 'fridge', 'freezer', 'stove', 'dishw', 'hood', 'dtable', 'chair'], Sovrum: ['bed2', 'bed1', 'dresser', 'ward', 'desk', 'chair'], Badrum: ['bath', 'shower', 'wc', 'sink'], Hall: ['ward', 'shelf'], Arbetsrum: ['desk', 'chair', 'shelf'], Barnrum: ['bed1', 'dresser', 'shelf', 'desk', 'chair'], Balkong: ['obench', 'otable', 'pstand'], Trädgård: ['obench', 'otable', 'grill', 'pergola'], Uterum: ['sofa', 'chair2', 'table', 'pstand'] };
+const FURN_PRESET = { Vardagsrum: ['sofa', 'table', 'tv', 'shelf'], Kök: ['ksink', 'hobc', 'ucab', 'fridge', 'stove', 'dishw'], Sovrum: ['bed2', 'dresser'], Badrum: ['bath', 'wc', 'sink'], Hall: ['ward'], Arbetsrum: ['desk', 'chair'], Balkong: ['obench', 'otable'], Trädgård: ['obench', 'otable'] };
+// Möbler som ligger i rummets rektangel (samma våning)
+const furnInRoom = (r, f) => { if (!r.rect) return false; const R = r.rect, rf = Number.isFinite(r.fl) ? r.fl : 0; return f.x >= R.x && f.x <= R.x + R.w && f.y >= R.y && f.y <= R.y + R.h && (OUTF.has(f.t) ? rf === 0 : flOf(f) === rf); };
+// Rektangel för en möbel och om två rektanglar krockar
+const furnBox = f => { const q = (f.rot || 0) % 180 !== 0, w = q ? f.h : f.w, d = q ? f.w : f.h; return [f.x - w / 2, f.y - d / 2, f.x + w / 2, f.y + d / 2]; };
+const furnHit = (a, b) => a[0] < b[2] - 0.02 && a[2] > b[0] + 0.02 && a[1] < b[3] - 0.02 && a[3] > b[1] + 0.02;
+// Ställer ut möbler längs väggarna i rummet. Väggar utan fönster används först. Det som inte får plats hoppas över.
+function furnFit(r, keys, existing) {
+  const R = r.rect, m = 0.1, out = [], taken = existing.map(furnBox), walls = ['t', 'r', 'b', 'l'].sort((a, b) => (r.wins || []).some(w => w.s === a) - (r.wins || []).some(w => w.s === b));
+  const sorted = keys.map(k => FURN_M[k]).filter(Boolean).sort((a, b) => Math.max(b[2], b[3]) - Math.max(a[2], a[3]));
+  sorted.forEach(F => { let done = false;
+    for (const sd of walls) { if (done) break; const side = sd === 't' || sd === 'b', L = side ? R.w : R.h, along = F[2], dep = F[3]; if (along + 2 * m > L) continue;
+      const start = side ? R.x + m : R.y + m, end = start + L - 2 * m - along;
+      for (let p = start; p <= end + 1e-6 && !done; p += 0.1) {
+        const c = sd === 't' ? [p + along / 2, R.y + m + dep / 2] : sd === 'b' ? [p + along / 2, R.y + R.h - m - dep / 2] : sd === 'l' ? [R.x + m + dep / 2, p + along / 2] : [R.x + R.w - m - dep / 2, p + along / 2];
+        const f = { id: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t: F[0], x: r1(c[0]), y: r1(c[1]), w: F[2], h: F[3], rot: side ? 0 : 90 };
+        if (!OUTF.has(f.t)) f.fl = Number.isFinite(r.fl) ? r.fl : 0;
+        const box = furnBox(f); if (box[0] < R.x || box[2] > R.x + R.w || box[1] < R.y || box[3] > R.y + R.h) continue;
+        if (taken.some(t => furnHit(t, box))) continue;
+        taken.push(box); out.push(f); done = true; } }
+    if (!done) out.skipped = (out.skipped || 0) + 1; });
+  return out;
+}
+function wzFurn(k) { const d = wzD(wzName()); d.skipF = false; d.furn = d.furn.includes(k) ? d.furn.filter(x => x !== k) : d.furn.concat(k); keepScroll(); }
+function wzSkipFurn() { wzD(wzName()).skipF = true; wzNext(); }
 const wzName = () => S.wz.sel[S.wz.cur];
 function wzTog(n) { const a = S.wz.sel; S.wz.sel = a.includes(n) ? a.filter(x => x !== n) : a.concat(n); keepScroll(); }
 function wzTpl(i) { S.wz.sel = [...new Set(WZ_TPL[i][1])]; keepScroll(); }
 function wzOther() { const v = (($('#wzo') || {}).value || '').trim(); if (!v) return toast('Skriv ett namn på rummet'); if (!S.wz.sel.includes(v)) S.wz.sel.push(v); S.wz.other = null; keepScroll(); }
 function wzNext() { const W = S.wz; if (W.step === 1) { if (!W.sel.length) return toast('Välj minst ett rum'); W.cur = 0; W.step = 2; }
-  else if (W.step < 4) W.step++;
+  else if (W.step < 5) { W.step++; if (W.step === 4 && WZ_OUT.includes(roomKind(wzName()))) W.step = 5; }
   else if (W.cur < W.sel.length - 1) { W.cur++; W.step = 2; }
   else return wzSave();
   render(); $('#main').scrollTop = 0; }
-function wzBack() { const W = S.wz; if (W.step === 1 || (W.only && W.step === 2)) { S.wz = null; return render(); } if (W.step === 2 && W.cur > 0) { W.cur--; W.step = 4; } else W.step--; render(); $('#main').scrollTop = 0; }
+function wzBack() { const W = S.wz; if (W.step === 1 || (W.only && W.step === 2)) { S.wz = null; return render(); } if (W.step === 2 && W.cur > 0) { W.cur--; W.step = 5; } else W.step--; if (W.step === 4 && WZ_OUT.includes(roomKind(wzName()))) W.step = 3; render(); $('#main').scrollTop = 0; }
 function wzSet(k, v) { wzD(wzName())[k] = wzD(wzName())[k] === v ? null : v; keepScroll(); }
 function wzPlant(id) { const d = wzD(wzName()); d.plants = d.plants.includes(id) ? d.plants.filter(x => x !== id) : d.plants.concat(id); if (!d.plants.includes(id)) d.hang = d.hang.filter(x => x !== id); keepScroll(); }
 function wzHang(id) { const d = wzD(wzName()); d.hang = d.hang.includes(id) ? d.hang.filter(x => x !== id) : d.hang.concat(id); keepScroll(); }
@@ -2194,6 +2221,15 @@ async function wzSave() {
     if (!r) { const t = roomKind(n) || ''; r = { id: 'r' + Date.now().toString(36) + i, name: n, type: t, dirs: [], lamp: false, temp: 'Normalt', hum: t === 'Badrum' ? 'Fuktig' : 'Normal' }; rooms.push(r); }
     if (D.dir) r.dirs = [D.dir]; if (D.light) r.lightPick = D.light; else delete r.lightPick; D.id = r.id; });
   wzLayout(rooms);
+  let skipped = 0;
+  S.hplan = S.hplan || {}; let furn = (S.hplan.furn || []).slice();
+  W.sel.forEach(n => { const D = wzD(n), r = rooms.find(x => x.id === D.id); if (!r || !r.rect || D.skipF || WZ_OUT.includes(roomKind(n))) return;
+    const choices = FURN_CHOICES[roomKind(n)] || FURN_CHOICES.Vardagsrum;
+    furn = furn.filter(f => !(furnInRoom(r, f) && choices.includes(f.t) && !D.furn.includes(f.t)));
+    const have = furn.filter(f => furnInRoom(r, f)).map(f => f.t), need = D.furn.filter(k => FURN_M[k] && !have.includes(k));
+    if (!need.length) return; const add = furnFit(r, need, furn); skipped += need.length - add.length; furn = furn.concat(add); });
+  S.hplan.furn = furn;
+  if (skipped) toast(skipped === 1 ? 'En möbel fick inte plats i rummet. Flytta den själv.' : skipped + ' möbler fick inte plats. Flytta dem själv.');
   try {
     S.hDirty = true; await api.saveHome(rooms); S.hDirty = false;
     for (const n of W.sel) { const D = wzD(n), r = rooms.find(x => x.id === D.id); if (!r) continue; let k = 0;
@@ -2208,7 +2244,7 @@ async function wzSave() {
     S.mine = await api.mine(); S.wz = null; S.busy = false; render(); $('#main').scrollTop = 0; toast('Ditt hem är sparat');
   } catch (e) { S.busy = false; render(); toast(e.message === 'HOME_NOT_READY' ? 'Mitt hem går inte att använda just nu.' : 'Kunde inte spara. ' + errMsg(e)); }
 }
-function wzHead(n, sub) { const W = S.wz, tot = 4, pct = Math.round(W.step / tot * 100);
+function wzHead(n, sub) { const W = S.wz, tot = 5, pct = Math.round(W.step / tot * 100);
   return `<div class="wzh"><button class="circ" onclick="wzBack()" aria-label="Tillbaka">${ic(I.back, 'currentColor', 22)}</button><div class="grow"><span class="wzs">Steg ${W.step} av ${tot}${sub ? ' · ' + esc(sub) : ''}</span><div class="wzbar"><i style="width:${pct}%"></i></div></div></div>`; }
 function wizardV() {
   const W = S.wz, n = wzName(), D = n ? wzD(n) : null, kind = n ? roomKind(n) : '';
@@ -2227,6 +2263,10 @@ function wizardV() {
     <div class="wzlist">${WZ_LIGHT.map(([l, t, icn]) => `<button class="wzl ${D.light === l ? 'on' : ''}" aria-pressed="${D.light === l}" onclick="wzSet('light','${l}')">${ic(icn, 'currentColor', 26)}<span class="grow"><b>${l}</b><span>${t}</span></span></button>`).join('')}</div>
     ${S.pro ? `<button class="btn wide line" onclick="openTool('light')">${ic(I.sun, 'currentColor', 18)} Mät med ljusmätaren</button>` : ''}
     <button class="btn wide wznext" onclick="wzNext()">Nästa</button></div>`;
+  if (W.step === 4) { const kinds = FURN_CHOICES[kind] || FURN_CHOICES.Vardagsrum;
+    return `${wzHead(0, n)}<div class="wz"><h1>Vad finns i rummet?</h1><p class="mut">Tryck på det du har. Roothood ställer ut det längs väggarna åt dig, och du kan flytta det senare.</p>
+    <div class="wzgrid">${kinds.map(k => { const F = FURN_M[k], on = D.furn.includes(k); return `<button class="wzc ${on ? 'on' : ''}" aria-pressed="${on}" onclick="wzFurn('${k}')"><span>${F[4] || ''} ${esc(F[1])}</span><i class="wzck">${on ? '✓' : ''}</i></button>`; }).join('')}</div>
+    <button class="btn wide wznext" onclick="wzNext()">Nästa</button><button class="btn wide line" onclick="wzSkipFurn()">Hoppa över</button></div>`; }
   const last = W.cur >= W.sel.length - 1;
   return `${wzHead(0, n)}<div class="wz"><h1>Vilka växter står här?</h1><p class="mut">Välj ur din samling. Du kan flytta dem senare.</p>
     <div class="wzlist">${S.mine.length ? S.mine.map(m => { const on = D.plants.includes(m.id), other = !on && (m.details || {}).room && (S.home || []).find(r => r.id === m.details.room), hang = D.hang.includes(m.id);
@@ -7269,6 +7309,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.205', '28 okt 17:30', ['Ditt hem: nytt steg "Vad finns i rummet". Tryck på det du har, så ställs möblerna ut längs väggarna åt dig', 'Mallarna Lägenhet och Villa har nu vanliga möbler redan på plats. Ta bort det du inte har']],
   ['1.204', '28 okt 16:30', ['Uppdateringsloggen visas automatiskt första gången du öppnar appen efter en uppdatering']],
   ['1.203', '28 okt 16:00', ['Djursängen har plysch, rosa kant, fenor och ögon med svart kors', 'Hund och katt har ben, vit bröstfärg och vita tassar']],
   ['1.202', '28 okt 18:35', ['3D: hundar och katter ser mer ut som djur, med nos, öron, tassar och bakben. Chihuahua får stora upprätta öron', 'Små djur ligger inne i djursängen med huvudet i öppningen']],
@@ -8010,7 +8051,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.204';
+const APP_VERSION = '1.205';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
