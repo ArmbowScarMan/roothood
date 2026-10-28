@@ -2201,7 +2201,12 @@ function roomHints(p, r, win) {
 async function loadRole() { if (!S.user) return; try { S.role = await api.myRole(); S.blocks = await api.myBlocks(); if (isMod()) S.modOpen = await api.modOpen(); } catch (e) { console.warn('Roothood:', e); } try { S.pfol = await api.myPlantFollows(); } catch (e) { S.pfol = S.pfol || []; } }
 async function loadHome() { if (!S.user) return; loadFavs(); loadWishes(); loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
 // Ett tryck från Hem: rakt in i rabattplaneringen i ritningen
-function openBedPlan() { if (needPro()) return; openHouse(); S.hmode = 'adv'; S.hview = 'plan'; render(); setTimeout(() => { if (S.tool === 'house') planMode('bed'); }, 60); }
+function openBedPlan() {
+  if (needPro()) return; openHouse(); S.hmode = 'adv';
+  const beds = planAreas().filter(a => ['bed', 'veg'].includes(a.t));
+  if (beds.length) { const P = PL(); P.bedId = beds[beds.length - 1].id; P.bnew = false; S.focusBed = P.bedId; S.hview = '3d'; render(); return; }
+  S.hview = 'plan'; render(); setTimeout(() => { if (S.tool === 'house') planMode('bed'); }, 60);
+}
 function openHouse(id) { if (needPro()) return; stopLight(); if (S.user && !S.pets && !S.petsLoading) { S.petsLoading = true; loadPets().then(() => { S.petsLoading = false; if (S.tool === 'house') render(); }); } S.sel = null; S.modal = null; S.tool = 'house'; S.room = id || null; if (S.pl) { S.pl.sel = null; S.pl.mode = 'move'; S.pl.fit = true; } render(); $('#main').scrollTop = 0; }
 function compassSvg(dirs, size) {
   const sz = size || 44, c = sz / 2, R = c - 3;
@@ -7606,6 +7611,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.223', '28 okt 22:32', ['Planera rabatt öppnar 3D på din senaste rabatt']],
   ['Beta 0.222', '28 okt 22:12', ['Hem blinkar inte längre när vädret inte kan hämtas']],
   ['Beta 0.221', '28 okt 21:57', ['Mina vänner är första fliken i Gemenskap, och uppdateringsrutan visas även efter F5']],
   ['Beta 0.220', '28 okt 21:45', ['Hälsning i uppdateringsrutan med uppmaning att testa och ge feedback']],
@@ -8371,7 +8377,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.222';
+const APP_VERSION = 'Beta 0.223';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
