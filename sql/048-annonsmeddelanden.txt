@@ -1,0 +1,26 @@
+-- 048: Meddelanden från annonser (köp, byte, önskemål) utan att vara vänner.
+-- Kör i Supabase SQL Editor. Ändrar bara vem som får skicka första meddelandet om en annons.
+
+alter table public.messages add column if not exists post_id bigint references public.posts(id) on delete set null;
+
+drop policy if exists "Skicka till vän" on public.messages;
+create policy "Skicka till vän" on public.messages for insert with check (
+  auth.uid() = from_user and (
+    public.are_friends(from_user, to_user)
+    or (
+      -- Första meddelandet: en öppen annons som ägs av mottagaren
+      post_id is not null and exists (
+        select 1 from public.posts p
+        where p.id = post_id and p.user_id = to_user and p.kind = 'listing' and p.taken is not true
+      )
+    )
+    or (
+      -- Vidare samtal: någon av er har redan skrivit om en annons till den andra
+      exists (
+        select 1 from public.messages m
+        where m.post_id is not null
+          and ((m.from_user = from_user and m.to_user = to_user) or (m.from_user = to_user and m.to_user = from_user))
+      )
+    )
+  )
+);
