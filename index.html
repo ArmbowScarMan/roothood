@@ -5213,7 +5213,7 @@ const wxIco = (e, s) => ic(WXI[String(e || '').replace(/\uFE0F/g, '')] || 'ph-wa
 const DAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
 function wxPlace() { const M = S.hplan && S.hplan.map; if (M && M.lat != null) return { lat: M.lat, lon: M.lon, name: S.city || 'ditt hem' }; const g = store.get('wxGeo', null); if (g && g.q === (S.city || '').trim().toLowerCase() && g.lat != null) return g; return null; }
 async function loadWeather(force) {
-  if (S.wxBusy) { S.wxAgain = true; return; } const c = store.get('wx', null), pl = wxPlace();
+  if (S.wxBusy) { S.wxAgain = true; return; } if (!force && S.wxFailAt && Date.now() - S.wxFailAt < 10 * 60e3) return; const c = store.get('wx', null), pl = wxPlace();
   if (!force && c && Date.now() - c.t < 30 * 60e3 && pl && Math.abs(c.lat - pl.lat) < 0.01 && Math.abs(c.lon - pl.lon) < 0.01) { S.wx = c; if (T3 && T3.scene) env3d(); if (!S.tool && !S.sel && S.tab === 'home') render(); return; }
   S.wxBusy = true;
   try {
@@ -5225,8 +5225,8 @@ async function loadWeather(force) {
     if (!place) { S.wx = { none: true }; return; }
     const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,wind_gusts_10m_max&wind_speed_unit=ms&timezone=Europe%2FStockholm&forecast_days=5`;
     const r = await fetch(u); if (!r.ok) throw new Error('wx ' + r.status); const j = await r.json();
-    S.wx = { t: Date.now(), lat: place.lat, lon: place.lon, name: place.name, cur: j.current, d: j.daily }; store.set('wx', S.wx); if (T3 && T3.scene) env3d();
-  } catch (e) { S.wx = Object.assign({}, store.get('wx', {}), { err: 1 }); }
+    S.wx = { t: Date.now(), lat: place.lat, lon: place.lon, name: place.name, cur: j.current, d: j.daily }; store.set('wx', S.wx); S.wxFailAt = 0; if (T3 && T3.scene) env3d();
+  } catch (e) { S.wxFailAt = Date.now(); S.wx = Object.assign({}, store.get('wx', {}), { err: 1 }); }
   finally { S.wxBusy = false; if (S.wxAgain) { S.wxAgain = false; return loadWeather(true); } if (!S.tool && !S.sel && S.tab === 'home') render(); }
 }
 function wxLocBtn() { return `<button class="wxloc" onclick="${S.user ? 'openSettings()' : "openModal('login')"}" aria-label="Välj ort" title="Välj ort">${ic('ph-map-pin', 'currentColor', 18)}</button>`; }
@@ -7606,6 +7606,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.222', '28 okt 22:12', ['Hem blinkar inte längre när vädret inte kan hämtas']],
   ['Beta 0.221', '28 okt 21:57', ['Mina vänner är första fliken i Gemenskap, och uppdateringsrutan visas även efter F5']],
   ['Beta 0.220', '28 okt 21:45', ['Hälsning i uppdateringsrutan med uppmaning att testa och ge feedback']],
   ['Beta 0.219', '28 okt 21:30', ['3D visar månad för månad med ‹ ›, och växterna får sina egna höstfärger och blommar under sina riktiga blomningsmånader',
@@ -8370,7 +8371,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.221';
+const APP_VERSION = 'Beta 0.222';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
