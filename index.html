@@ -8159,7 +8159,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.218';
+const APP_VERSION = 'Beta 0.218';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -8470,7 +8470,7 @@ window.addEventListener('online', showOffline); window.addEventListener('offline
 function loadScript(src) { return new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fail(new Error('Kunde inte ladda ' + src)); document.head.appendChild(s); }); }
 async function init() {
   applyPrefs();
-  if (LANG === 'en') { try { await loadScript('en.js?v=' + APP_VERSION); trInit(window.EN_DICT || {}); } catch (e) { console.warn('Roothood:', e); } }
+  if (LANG === 'en') { try { await loadScript('en.js?v=' + encodeURIComponent(APP_VERSION)); trInit(window.EN_DICT || {}); } catch (e) { console.warn('Roothood:', e); } }
   trStart();
   render();
   checkUpdate();
