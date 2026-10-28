@@ -7007,10 +7007,10 @@ function delBtn(key, fn, id) {
   const sure = S.del === key + id;
   return `<button class="x ${sure ? 'sure' : ''}" onclick="${fn}(${id})">${sure ? 'Bekräfta' : 'Ta bort'}</button>`;
 }
-const CTABS = [['q', 'Frågor'], ['show', 'Visa upp'], ['swap', 'Byt & ge bort'], ['near', 'Händer nära dig'], ['detect', 'Detektiver'], ['forum', 'Forum'], ['friends', 'Mina vänner']];
+const CTABS = [['friends', 'Mina vänner'], ['q', 'Frågor'], ['show', 'Visa upp'], ['swap', 'Byt & ge bort'], ['near', 'Händer nära dig'], ['detect', 'Detektiver'], ['forum', 'Forum']];
 const CTAB_HELP = { q: 'Ställ frågor om växter och få svar från andra odlare.', show: 'Bilder på växter som andra har visat upp.', swap: 'Ge bort, byt eller önska växter i din ort.', near: 'Annonser från andra i din ort.', detect: 'Hjälp varandra att räkna ut vilka okända växter det är.', forum: 'Diskussioner om odling och växtvård.', friends: 'Dina vänner och meddelanden till dem.' };
 function segBar() {
-  return `<div class="seg2 ctabs" role="tablist">${CTABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${t}</button>`).join('')}</div>
+  return `<div class="seg2 ctabs" role="tablist">${CTABS.map(([k, t]) => `<button class="${S.ctab === k ? 'on' : ''}" role="tab" aria-selected="${S.ctab === k}" onclick="setCtab('${k}')">${k === 'friends' ? ic('ph-users', 'currentColor', 16) + ' ' : ''}${t}${k === 'friends' && msgUnread() ? ' (' + msgUnread() + ')' : ''}</button>`).join('')}</div>
   <p class="mut" style="margin:10px 18px 0;font-size:13px">${CTAB_HELP[S.ctab] || ''}</p>
   `;
 }
@@ -7606,6 +7606,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.221', '28 okt 21:57', ['Mina vänner är första fliken i Gemenskap, och uppdateringsrutan visas även efter F5']],
   ['Beta 0.220', '28 okt 21:45', ['Hälsning i uppdateringsrutan med uppmaning att testa och ge feedback']],
   ['Beta 0.219', '28 okt 21:30', ['3D visar månad för månad med ‹ ›, och växterna får sina egna höstfärger och blommar under sina riktiga blomningsmånader',
     'Planera rabatt: ett tryck från Hem, numrerade steg och växtförslag efter ljus, fukt, syfte och höjd, med sidor, sortering och filter',
@@ -8369,7 +8370,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.220';
+const APP_VERSION = 'Beta 0.221';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -8683,7 +8684,6 @@ async function init() {
   if (LANG === 'en') { try { await loadScript('en.js?v=' + encodeURIComponent(APP_VERSION)); trInit(window.EN_DICT || {}); } catch (e) { console.warn('Roothood:', e); } }
   trStart();
   render();
-  checkUpdate();
   try {
     if (!DEMO) {
       await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js');
@@ -8717,6 +8717,7 @@ async function init() {
   render();
   if (restoreY) setTimeout(() => { const m = $('#main'); if (m) m.scrollTop = restoreY; }, 350);
   $('#main').addEventListener('scroll', () => { clearTimeout(scrollT); scrollT = setTimeout(saveView, 400); }, { passive: true });
+  checkUpdate();
   if (S.user) refreshPush();
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.modal) closeModal(); });
