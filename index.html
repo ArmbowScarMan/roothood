@@ -1341,15 +1341,22 @@ body.hadv nav{display:none}
 /* Månadsväljare i 3D: ‹ Oktober › */
 .v3btns .m3b{min-width:36px;padding-left:8px;padding-right:8px;font-size:18px;line-height:1}
 .v3btns .m3n{min-width:92px}
-.v3dock{position:absolute;left:10px;right:10px;bottom:10px;z-index:2;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:20px;background:var(--surf);box-shadow:0 8px 22px rgba(70,52,28,.2)}
+.v3dock{position:absolute;left:10px;right:10px;bottom:10px;z-index:2;display:flex;flex-direction:column;gap:5px;padding:6px;border-radius:20px;background:var(--surf);box-shadow:0 8px 22px rgba(70,52,28,.2)}
 .v3dock .r{display:flex;gap:6px;align-items:stretch}
-.v3dock button{flex:1;min-height:44px;border:0;border-radius:14px;background:var(--bg);color:var(--ink);font:inherit;font-size:14px;font-weight:700;padding:8px 6px;cursor:pointer;white-space:nowrap}
+.v3dock button{flex:1;min-height:40px;border:0;border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px;font-weight:700;padding:6px 4px;cursor:pointer;white-space:nowrap}
 .v3dock button.on{background:var(--pri);color:var(--onpri)}
 .v3dock .r.tm button.m3b{flex:0 0 52px;font-size:22px;line-height:1}
 .v3dock .r.tm button.m3n{flex:1;font-size:16px}
 .v3dock .sg{flex:2;display:flex;gap:3px;padding:3px;border-radius:14px;background:var(--bg)}
 .v3dock .sg button{background:transparent;padding:6px 4px;min-height:38px}
 .v3dock .sg button:active{background:var(--surf)}
+.v3pop{position:absolute;left:0;right:0;bottom:calc(100% + 6px);max-height:48vh;overflow:auto;padding:10px;border-radius:18px;background:var(--surf);box-shadow:0 10px 26px rgba(70,52,28,.22);z-index:3}
+.v3pop[hidden]{display:none}
+.v3pop .fl{display:block;font-size:12px;font-weight:700;color:var(--mut);margin:8px 2px 4px}
+.v3pop .fl:first-child{margin-top:0}
+.v3pop .v3g{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.v3pop .v3l{grid-template-columns:1fr}
+.v3pop button{text-align:left;font-size:13px;min-height:40px}
 /* Vädret i 3D ligger uppe till vänster, så det inte krockar med knapparna */
 .wx3{top:10px;bottom:auto}
 /* Hem: knappen Lägg till växt uppe till höger, under meddelanden och notiser */
@@ -2658,7 +2665,7 @@ function view3dV() {
   const has = planRoomsAll().length || planAreas().length;
   const P = PL(), placing = P.mode === 'place' && P.pick, selF = !placing && P.sel && P.sel.k === 'furn' && planFurnAll().some(x => x.id === P.sel.id);
   return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}${has && !S.walk && placing ? `<div class="p3hint"><span>Tryck på golvet där ${esc(place3Name())} ska stå</span><button class="btn sm line" onclick="PL().mode='move';PL().pick=null;render()">Avbryt</button></div>` : ''}${has && !S.walk && selF ? `<div class="p3sel">${planSelV()}</div>` : ''}
-    ${has && S.walk ? walkUiV() : has ? `<div class="wx3" id="wx3">${wx3Text()}</div><div class="v3dock"><div class="r"><button onclick="planPick('furn')">+ Möbel</button><button onclick="planPick('plant')">+ Växt</button><button class="on" onclick="walkStart()">Gå runt</button></div><div class="r tm"><button class="m3b" onclick="stepMon3(-1)" aria-label="Förra månaden">‹</button><button class="m3n" onclick="S.mon3=null;build3d();keepMain()" title="Tillbaka till nu">${MONTH_NAMES[mo3() - 1].replace(/^./, c => c.toUpperCase())}</button><button class="m3b" onclick="stepMon3(1)" aria-label="Nästa månad">›</button></div><div class="r"><div class="sg"><button onclick="cam3('top')">Uppifrån</button><button onclick="cam3('iso')">Snett</button></div><button class="${S.low3d ? 'on' : ''}" onclick="S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button>${floors().length > 1 ? `<button onclick="cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}</div></div>` : ''}</div>
+    ${has && S.walk ? walkUiV() : has ? `<div class="wx3" id="wx3">${wx3Text()}</div><div class="v3dock"><div class="v3pop" id="v3pop" hidden></div><div class="r"><button onclick="v3pop('furn')">Möbler ▾</button><button onclick="v3pop('plant')">Växter ▾</button><button class="on" onclick="walkStart()">Gå runt</button></div><div class="r tm"><button class="m3b" onclick="stepMon3(-1)" aria-label="Förra månaden">‹</button><button class="m3n" onclick="S.mon3=null;build3d();keepMain()" title="Tillbaka till nu">${MONTH_NAMES[mo3() - 1].replace(/^./, c => c.toUpperCase())}</button><button class="m3b" onclick="stepMon3(1)" aria-label="Nästa månad">›</button></div><div class="r"><div class="sg"><button onclick="cam3('top')">Uppifrån</button><button onclick="cam3('iso')">Snett</button></div><button class="${S.low3d ? 'on' : ''}" onclick="S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button>${floors().length > 1 ? `<button onclick="cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}</div></div>` : ''}</div>
   <div style="height:12px"></div>`;
 }
 async function mount3d() {
@@ -2703,6 +2710,10 @@ function place3dCam() { if (S.focusBed && T3 && T3.bounds) focusBed3d(); const s
   if (T3.walk && !S.walk) T3.walk = null; const fov = T3.walk ? 70 : 45; if (c.fov !== fov) { c.fov = fov; c.updateProjectionMatrix(); }
   if (T3.walk) { const w = T3.walk, ey = (T3.fyOf ? T3.fyOf(w.fl) : w.fl * 2.75) + 1.6; c.position.set(w.x, ey, w.z); c.lookAt(w.x + Math.sin(w.yaw) * Math.cos(w.pitch), ey + Math.sin(w.pitch), w.z + Math.cos(w.yaw) * Math.cos(w.pitch)); return; } c.position.set(st.tx + st.dist * Math.cos(st.el) * Math.sin(st.az), ty + st.dist * Math.sin(st.el), st.tz + st.dist * Math.cos(st.el) * Math.cos(st.az)); c.lookAt(st.tx, 0.6 + ty, st.tz); }
 function cam3(k) { if (!T3) return; const st = T3.st; if (k === 'top') { st.el = 1.52; st.az = 0; } else { st.el = 0.85; st.az = 0.75; } fit3d(); T3.dirty = true; }
+function v3FurnHtml() { return FURN_GROUPS.map(([g, ks]) => [g, ks.map(k => FURN_M[k]).filter(Boolean)]).concat([['Ute', FURN_OUT]]).map(([g, L]) => `<span class="fl">${g}</span><div class="v3g">${L.map(([k, n, w, h, e]) => `<button onclick="v3pick('furn','${k}')">${e} ${n}</button>`).join('')}</div>`).join(''); }
+function v3PlantHtml() { const list = S.mine.slice(); return list.length ? `<span class="fl">Din samling</span><div class="v3g v3l">${list.map(m => `<button onclick="v3pick('plant','${m.id}')">${esc(m.name)}</button>`).join('')}</div>` : '<p class="mut" style="margin:6px 2px">Lägg först till växter i din samling.</p>'; }
+function v3pop(k) { const p = $('#v3pop'); if (!p) return; if (k === 'plant' && !planRooms().length) return toast('Rita först ett rum'); if (!p.hidden && p.dataset.k === k) { p.hidden = true; return; } p.dataset.k = k; p.innerHTML = k === 'furn' ? v3FurnHtml() : v3PlantHtml(); p.hidden = false; }
+function v3pick(k, t) { const p = $('#v3pop'); if (p) p.hidden = true; if (k === 'furn') startPlace({ k: 'furn', t }); else startPlace({ k: 'plant', id: +t }); }
 function fit3d() { let b = T3.bounds; if (!b) return;
   // Den lilla bilden av Mitt hem på Hem visar huset tätt, utan trädgård och tomt runt om
   if (!S.tool) { const rs = planRoomsAll().filter(r => r.rect); if (rs.length) b = [Math.min(...rs.map(r => r.rect.x)), Math.min(...rs.map(r => r.rect.y)), Math.max(...rs.map(r => r.rect.x + r.rect.w)), Math.max(...rs.map(r => r.rect.y + r.rect.h))]; } T3.st.tx = (b[0] + b[2]) / 2; T3.st.tz = (b[1] + b[3]) / 2;
@@ -7620,6 +7631,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.226', '28 okt 22:48', ['3D: Möbler och Växter öppnar en lista direkt i 3D-vyn']],
   ['Beta 0.225', '28 okt 22:43', ['3D-knapparna ligger i en samlad panel med tydligare grupper']],
   ['Beta 0.224', '28 okt 22:38', ['Låga väggar i 3D ändrar bara väggarna, växter och rabatter behåller sin detalj']],
   ['Beta 0.223', '28 okt 22:32', ['Planera rabatt öppnar 3D på din senaste rabatt']],
@@ -8388,7 +8400,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.225';
+const APP_VERSION = 'Beta 0.226';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
