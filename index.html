@@ -1338,6 +1338,8 @@ body.hadv nav{display:none}
 .wx3{position:absolute;left:10px;bottom:10px;z-index:4;background:var(--surf);border-radius:14px;padding:7px 11px;font-size:13px;font-weight:600;box-shadow:var(--sh);pointer-events:none}
 .cemo{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;vertical-align:middle;margin:0 1px}.cemo svg{width:26px;height:26px;display:block}
 .emop{background:var(--surf);border-radius:16px;box-shadow:var(--sh);padding:8px;margin:0 12px 8px;max-height:200px;overflow:auto}.emog{display:flex;flex-wrap:wrap;gap:4px}.emog button{border:0;background:none;padding:4px;border-radius:10px;cursor:pointer}.emog button:active{background:var(--soft)}
+/* Vädret i 3D ligger uppe till vänster, så det inte krockar med knapparna */
+.wx3{top:10px;bottom:auto}
 /* Kompakt väderkort på Hem */
 .wxc{padding:12px 14px;margin-top:12px;border-radius:20px}
 .wxtop{gap:10px}
@@ -2624,7 +2626,7 @@ function view3dV() {
   const P = PL(), placing = P.mode === 'place' && P.pick, selF = !placing && P.sel && P.sel.k === 'furn' && planFurnAll().some(x => x.id === P.sel.id);
   return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}${has && !S.walk && placing ? `<div class="p3hint"><span>Tryck på golvet där ${esc(place3Name())} ska stå</span><button class="btn sm line" onclick="PL().mode='move';PL().pick=null;render()">Avbryt</button></div>` : ''}${has && !S.walk && selF ? `<div class="p3sel">${planSelV()}</div>` : ''}
     ${has && S.walk ? walkUiV() : has ? `<div class="wx3" id="wx3">${wx3Text()}</div><div class="v3btns"><button onclick="planPick('furn')">+ Möbel</button><button onclick="planPick('plant')">+ Växt</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="cam3('top')">Uppifrån</button><button onclick="cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button><button onclick="cycleSea3()">Säsong: ${seas3()}</button>${floors().length > 1 ? `<button onclick="cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}</div>` : ''}</div>
-  <p class="mut" style="margin:10px 18px 24px;font-size:13px">Dra med ett finger för att snurra. Nyp med två fingrar för att zooma, och dra med två fingrar för att flytta. Tryck på + Möbel eller + Växt och sedan på golvet för att ställa ut. Tryck på en möbel för att välja den, och sedan på golvet för att flytta den dit. Solen lyser från söder enligt norrpilen i ritningen.</p>`;
+  <div style="height:12px"></div>`;
 }
 async function mount3d() {
   const box = $('#box3d'); if (!box || !(planRoomsAll().length || planAreas().length || planGarden().length || planFurnAll().length)) return;
@@ -2668,7 +2670,9 @@ function place3dCam() { if (S.focusBed && T3 && T3.bounds) focusBed3d(); const s
   if (T3.walk && !S.walk) T3.walk = null; const fov = T3.walk ? 70 : 45; if (c.fov !== fov) { c.fov = fov; c.updateProjectionMatrix(); }
   if (T3.walk) { const w = T3.walk, ey = (T3.fyOf ? T3.fyOf(w.fl) : w.fl * 2.75) + 1.6; c.position.set(w.x, ey, w.z); c.lookAt(w.x + Math.sin(w.yaw) * Math.cos(w.pitch), ey + Math.sin(w.pitch), w.z + Math.cos(w.yaw) * Math.cos(w.pitch)); return; } c.position.set(st.tx + st.dist * Math.cos(st.el) * Math.sin(st.az), ty + st.dist * Math.sin(st.el), st.tz + st.dist * Math.cos(st.el) * Math.cos(st.az)); c.lookAt(st.tx, 0.6 + ty, st.tz); }
 function cam3(k) { if (!T3) return; const st = T3.st; if (k === 'top') { st.el = 1.52; st.az = 0; } else { st.el = 0.85; st.az = 0.75; } fit3d(); T3.dirty = true; }
-function fit3d() { const b = T3.bounds; if (!b) return; T3.st.tx = (b[0] + b[2]) / 2; T3.st.tz = (b[1] + b[3]) / 2;
+function fit3d() { let b = T3.bounds; if (!b) return;
+  // Den lilla bilden av Mitt hem på Hem visar huset tätt, utan trädgård och tomt runt om
+  if (!S.tool) { const rs = planRoomsAll().filter(r => r.rect); if (rs.length) b = [Math.min(...rs.map(r => r.rect.x)), Math.min(...rs.map(r => r.rect.y)), Math.max(...rs.map(r => r.rect.x + r.rect.w)), Math.max(...rs.map(r => r.rect.y + r.rect.h))]; } T3.st.tx = (b[0] + b[2]) / 2; T3.st.tz = (b[1] + b[3]) / 2;
   const t = Math.tan(22.5 * Math.PI / 180), asp = (T3.camera && T3.camera.aspect) || 1, cw = (b[2] - b[0]) + 2, cd = (b[3] - b[1]) + 2;
   const dv = (cd / 2) / t, dh = (cw / 2) / (t * asp); T3.st.dist = Math.max(6, Math.max(dv, dh) * 1.2 + (T3.ty || 0) * 1.6); }
 function canvasTex3d(THREE, w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); return new THREE.CanvasTexture(c); }
@@ -6383,7 +6387,7 @@ function homeBlocks(intro) {
   // Nya användare utan växter: bara första steget, resten visas när det finns något att visa
   if (!(S.mine && S.mine.length)) { out.push(`<div class="sec cap2"><h2>Kom igång</h2></div><div class="pad"><button class="btn wide" onclick="openDb()">Lägg till din första växt</button></div>`); return out.join('\n'); }
   // Växtdatabasen: alltid en tydlig väg dit, eftersom den är det mest använda verktyget
-  out.push(`<div class="pad" style="padding-top:8px"><button class="btn wide line" onclick="openDb()">Växtdatabasen</button></div>`);
+  out.push(`<div class="pad" style="padding-top:8px"><button class="btn wide line" onclick="openDb(true)">${ic('ph-plus', 'currentColor', 18)} Lägg till växt</button></div>`);
   const flush = () => { if (tiles.length) { out.push(`<div class="tools">${tiles.join('')}</div>`); tiles = []; } };
   L.forEach(x => {
     const sz = sizeOf(x);
