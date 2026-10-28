@@ -459,6 +459,8 @@ details.tech p b{color:var(--ink)}
 .plink-about{display:inline-block;padding:10px 2px;min-height:24px}
 *{-webkit-tap-highlight-color:transparent}
 button,[role=tab],.nrow,.prow,.setrow,.upl,label.tog{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.p3hint{position:absolute;left:8px;right:8px;top:8px;z-index:4;background:var(--surf);border-radius:14px;padding:8px 10px;display:flex;align-items:center;gap:8px;justify-content:space-between;box-shadow:var(--sh);font-weight:700;font-size:13.5px}
+.p3sel .pselw{top:8px;bottom:auto;right:8px}
 .swd{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px;border:1px solid rgba(0,0,0,.25)}
 .pfopts{padding:4px 2px 2px}.pftog{display:flex!important;align-items:center;gap:10px;justify-content:flex-start}.pftog input{margin:0;flex:none!important;width:20px!important;height:20px}.pftog span{flex:1;text-align:left}.pfopt{margin-top:8px}.pfopt small{display:block;font-size:12px;font-weight:700;color:var(--mut);margin:0 0 4px}
 .seg2.pl-view{flex:none;width:auto}.seg2.pl-view button{flex:none;padding:7px 11px;font-size:13px;white-space:nowrap}
@@ -2477,11 +2479,26 @@ document.addEventListener('keydown', e => { if (!S.walk || /input|textarea|selec
 document.addEventListener('keyup', e => { if (S.walk && T3 && ['ArrowUp', 'KeyW', 'ArrowDown', 'KeyS', 'ArrowLeft', 'KeyA', 'ArrowRight', 'KeyD'].includes(e.code)) walkHold(null); });
 function walkUiV() { const b = (k, txt, cls) => `<button class="wkb ${cls}" onpointerdown="walkHold('${k}')" onpointerup="walkHold(null)" onpointerleave="walkHold(null)" onpointercancel="walkHold(null)" oncontextmenu="return false">${txt}</button>`;
   return `<button class="wkstop" onclick="walkStop()">Sluta gå</button><p class="wkhint">Håll in en knapp för att gå. Dra med fingret för att titta runt.</p><div class="walkui">${b('f', '▲<span>Framåt</span>', 'f')}${b('l', '◀<span>Vänster</span>', 'l')}${b('r', '▶<span>Höger</span>', 'r')}${b('b', '▼<span>Bakåt</span>', 'b')}</div>`; }
+// Tryck i 3D-vyn: ställ ut det som valts, välj en möbel, eller flytta den valda möbeln dit man trycker på golvet
+function tap3(e) {
+  if (!T3 || S.hview !== '3d' || T3.walk || S.modal) return;
+  const THREE = T3.THREE, c = T3.renderer.domElement, rc = c.getBoundingClientRect(), v = new THREE.Vector2((e.clientX - rc.left) / rc.width * 2 - 1, -(e.clientY - rc.top) / rc.height * 2 + 1), ray = new THREE.Raycaster(); ray.setFromCamera(v, T3.camera);
+  const P = PL(), fl = S.f3 != null ? S.f3 : curFl(), y = T3.fyOf ? T3.fyOf(fl) : 0, pt = new THREE.Vector3();
+  let fid = null; for (const h of ray.intersectObjects(T3.scene.children, true)) { if (h.object.isSprite) continue; let o = h.object; while (o && !(o.userData && o.userData.fid)) o = o.parent; if (o) fid = o.userData.fid; break; }
+  if (!ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), pt)) return;
+  const at = { x: r1(pt.x), y: r1(pt.z) };
+  if (P.mode === 'place' && P.pick) { placeAt(at); return; }
+  if (fid) { P.sel = { k: 'furn', id: fid }; P.pmin = false; render(); return; }
+  const f = P.sel && P.sel.k === 'furn' && planFurnAll().find(x => x.id === P.sel.id);
+  if (f) { pushUndo(); f.x = at.x; f.y = at.y; saveHomeSoon(); render(); }
+}
+function place3Name() { const pk = PL().pick; if (!pk) return ''; if (pk.k === 'furn') return (FURN_M[pk.t] || [0, 'möbeln'])[1].toLowerCase(); if (pk.k === 'dev') return (DEVS[pk.t] || ['saken'])[0].toLowerCase(); const m = S.mine.find(x => x.id === pk.id); return m ? m.name : 'växten'; }
 function view3dV() {
   const has = planRoomsAll().length || planAreas().length;
-  return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}
-    ${has && S.walk ? walkUiV() : has ? `<div class="v3btns"><button class="on" onclick="walkStart()">Gå runt</button><button onclick="cam3('top')">Uppifrån</button><button onclick="cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button><button onclick="cycleSea3()">Säsong: ${seas3()}</button>${floors().length > 1 ? `<button onclick="cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}</div>` : ''}</div>
-  <p class="mut" style="margin:10px 18px 24px;font-size:13px">Dra med ett finger för att snurra. Nyp med två fingrar för att zooma, och dra med två fingrar för att flytta. Solen lyser från söder enligt norrpilen i ritningen.</p>`;
+  const P = PL(), placing = P.mode === 'place' && P.pick, selF = !placing && P.sel && P.sel.k === 'furn' && planFurnAll().some(x => x.id === P.sel.id);
+  return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}${has && !S.walk && placing ? `<div class="p3hint"><span>Tryck på golvet där ${esc(place3Name())} ska stå</span><button class="btn sm line" onclick="PL().mode='move';PL().pick=null;render()">Avbryt</button></div>` : ''}${has && !S.walk && selF ? `<div class="p3sel">${planSelV()}</div>` : ''}
+    ${has && S.walk ? walkUiV() : has ? `<div class="v3btns"><button onclick="planPick('furn')">+ Möbel</button><button onclick="planPick('plant')">+ Växt</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="cam3('top')">Uppifrån</button><button onclick="cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button><button onclick="cycleSea3()">Säsong: ${seas3()}</button>${floors().length > 1 ? `<button onclick="cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}</div>` : ''}</div>
+  <p class="mut" style="margin:10px 18px 24px;font-size:13px">Dra med ett finger för att snurra. Nyp med två fingrar för att zooma, och dra med två fingrar för att flytta. Tryck på + Möbel eller + Växt och sedan på golvet för att ställa ut. Tryck på en möbel för att välja den, och sedan på golvet för att flytta den dit. Solen lyser från söder enligt norrpilen i ritningen.</p>`;
 }
 async function mount3d() {
   const box = $('#box3d'); if (!box || !(planRoomsAll().length || planAreas().length || planGarden().length || planFurnAll().length)) return;
@@ -2493,7 +2510,7 @@ async function mount3d() {
     r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
     T3.scene = new THREE.Scene(); T3.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 2000);
     const c = r.domElement; c.style.touchAction = 'none'; c.style.display = 'block';
-    c.addEventListener('pointerdown', e => { if (c.style.touchAction !== 'pan-y') T3.auto = false; if (c.style.touchAction !== 'pan-y') c.setPointerCapture(e.pointerId); T3.ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); T3.g = null; });
+    c.addEventListener('pointerdown', e => { if (c.style.touchAction !== 'pan-y') T3.auto = false; if (c.style.touchAction !== 'pan-y') c.setPointerCapture(e.pointerId); T3.ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); T3.g = null; T3.tap = T3.ptr.size === 1 ? { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId } : null; });
     c.addEventListener('pointermove', e => { if (c.style.touchAction === 'pan-y') return; const P = T3.ptr; if (!P.has(e.pointerId)) return; const o = P.get(e.pointerId), st = T3.st;
       if (P.size === 1 && T3.walk) { T3.walk.yaw += (e.clientX - o.x) * 0.005; T3.walk.pitch = Math.max(-1.1, Math.min(1.1, T3.walk.pitch + (e.clientY - o.y) * 0.004)); }
       else if (P.size === 1) { st.az -= (e.clientX - o.x) * 0.008; st.el = Math.max(0.12, Math.min(1.52, st.el + (e.clientY - o.y) * 0.006)); }
@@ -2503,7 +2520,7 @@ async function mount3d() {
           st.tx -= dx * Math.cos(st.az) + dy * Math.sin(st.az); st.tz -= -dx * Math.sin(st.az) + dy * Math.cos(st.az); }
         T3.g = { d, m }; }
       T3.dirty = true; });
-    const up = e => { T3.ptr.delete(e.pointerId); T3.g = null; }; c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+    const up = e => { T3.ptr.delete(e.pointerId); T3.g = null; const tp = T3.tap; T3.tap = null; if (tp && tp.id === e.pointerId && e.type === 'pointerup' && Math.hypot(e.clientX - tp.x, e.clientY - tp.y) < 8 && Date.now() - tp.t < 600 && c.style.touchAction !== 'pan-y' && !T3.walk) tap3(e); }; c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
     c.addEventListener('wheel', e => { if (c.style.touchAction === 'pan-y') return; e.preventDefault(); if (T3.walk) { walkStep(e.deltaY < 0 ? 0.3 : -0.3, 0); return; } T3.st.dist = Math.max(2, Math.min(400, T3.st.dist * (e.deltaY > 0 ? 1.1 : 0.9))); T3.dirty = true; }, { passive: false });
     build3d(true); T3.justBuilt = true;
   }
@@ -3371,8 +3388,8 @@ function furn3d(f, THREE, M, add) {
     else { put(new THREE.BoxGeometry(f.w, T, f.h), top, 0, h - T / 2, 0); const lw = 0.05, ix = f.w / 2 - 0.07, iz = f.h / 2 - 0.07;
       [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => put(new THREE.BoxGeometry(lw, h - T, lw), leg, a * ix, (h - T) / 2, b * iz));
       if (f.t === 'desk') put(new THREE.BoxGeometry(Math.min(0.45, f.w * 0.35), 0.5, f.h - 0.1), top, ix - Math.min(0.45, f.w * 0.35) / 2 + 0.03, h - T - 0.25, 0); }
-    g.position.set(f.x, 0.01, f.y); g.rotation.y = rot; add(g); return true; }
-  if (FURN3[f.t]) { const g = new THREE.Group(), K = kit3(THREE, M, g, Math.round(f.x * 97 + f.y * 31)); FURN3[f.t](K, f.w, f.h || f.w, h, f); g.position.set(f.x, 0.01, f.y); g.rotation.y = rot; add(g); return true; }
+    g.position.set(f.x, 0.01, f.y); g.rotation.y = rot; (g.userData || (g.userData = {})).fid = f.id; add(g); return true; }
+  if (FURN3[f.t]) { const g = new THREE.Group(), K = kit3(THREE, M, g, Math.round(f.x * 97 + f.y * 31)); FURN3[f.t](K, f.w, f.h || f.w, h, f); g.position.set(f.x, 0.01, f.y); g.rotation.y = rot; (g.userData || (g.userData = {})).fid = f.id; add(g); return true; }
   if (f.t === 'deck') {
     const rooms = planRooms().filter(r => flOf(r) === 0).map(roomPoly); if (!rooms.length) return false;
     const c = Math.max(0.1, Math.sqrt(f.w * f.h / 2500)), nx = Math.ceil(f.w / c), nz = Math.ceil(f.h / c), cw = f.w / nx, cz = f.h / nz, cos = Math.cos(rot), sin = Math.sin(rot), keep = []; let cut = 0;
@@ -7177,6 +7194,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.198', '28 okt 17:20', ['3D: ställ ut möbler och växter direkt i 3D-vyn med + Möbel och + Växt, och tryck på golvet där de ska stå', '3D: tryck på en möbel för att välja den, och tryck sedan på golvet för att flytta den. Vrid, storlek och färg finns i rutan']],
   ['1.197', '28 okt 16:55', ['Ritningen: när du har lagt ut en möbel eller smart sak blir den vald direkt, så att du kan flytta den. Ett nytt tryck lägger inte längre till en till']],
   ['1.196', '28 okt 16:45', ['Ritningen: möbler har en grön kant och en liten pil på framsidan, så att du ser åt vilket håll till exempel kylskåpet är vänt']],
   ['1.195', '28 okt 16:30', ['Inloggning med Google: namnet från Google-kontot används i stället för e-postadressen. Konton som redan fått e-postadressen som namn rättas vid nästa start']],
@@ -7908,7 +7926,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.197';
+const APP_VERSION = '1.198';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
