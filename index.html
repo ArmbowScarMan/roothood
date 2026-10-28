@@ -1339,6 +1339,11 @@ body.hadv nav{display:none}
 .cemo{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;vertical-align:middle;margin:0 1px}.cemo svg{width:26px;height:26px;display:block}
 .emop{background:var(--surf);border-radius:16px;box-shadow:var(--sh);padding:8px;margin:0 12px 8px;max-height:200px;overflow:auto}.emog{display:flex;flex-wrap:wrap;gap:4px}.emog button{border:0;background:none;padding:4px;border-radius:10px;cursor:pointer}.emog button:active{background:var(--soft)}
 /* Växtförslag i rabatten */
+.bhf{display:flex;flex-direction:column;gap:6px;margin:0 0 4px}
+.bhf>.mut{font-size:12.5px;font-weight:700;margin-top:4px}
+.bhbest{align-self:flex-start;margin-top:4px}
+.bhpager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
+.bhpager button[disabled]{opacity:.4;cursor:default}
 .bhq{margin:0 0 12px}
 .bhq>b{display:block;font-size:14px;margin-bottom:6px}
 .bhelp-r{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line, #E8E2D6)}
@@ -5924,7 +5929,9 @@ function bedV() {
 }
 // Växtförslag för rabatten: några frågor om ljus, vatten, syfte och höjd.
 function openBedHelp() { S.bh = S.bh || { light: null, water: null, use: null, height: null }; S.modal = 'bedhelp'; render(); }
-function setBh(k, v) { S.bh = S.bh || {}; S.bh[k] = S.bh[k] === v ? null : v; render(); }
+function setBh(k, v) { S.bh = S.bh || {}; S.bh[k] = S.bh[k] === v ? null : v; S.bh.page = 0; render(); }
+function setBhSel(k, v) { S.bh = S.bh || {}; S.bh[k] = v; S.bh.page = 0; render(); }
+function bhPage(d) { S.bh = S.bh || {}; S.bh.page = Math.max(0, (S.bh.page || 0) + d); render(); }
 function bedHelpTarget() { return PL().mode === 'bed' ? curBed() : bedArea(S.bedId); }
 function bedHelpList() {
   const h = S.bh || {}, z = store.get('zone', 0), a = bedHelpTarget(), have = new Set(((a && a.bp) || []).map(x => x.pid));
@@ -5932,16 +5939,17 @@ function bedHelpList() {
   for (const p of S.plants || []) {
     if (!['Trädgård', 'Köksträdgård'].includes(p.category) || have.has(p.id)) continue;
     if (z) { const r = zoneOf(p); if (r && r[1] < z) continue; }
-    let sc = 0, why = [], skip = false;
-    if (h.use === 'ata') { if (p.category === 'Köksträdgård') { sc += 3; why.push('Ätbart'); } else skip = true; }
-    if (h.use === 'prydnad') { if (p.category === 'Trädgård') { sc += 3; why.push('Prydnad'); } else skip = true; }
-    if (h.light && p.light_level != null) { const d = Math.abs(p.light_level - h.light); if (d >= 2) skip = true; else if (d === 0) { sc += 3; why.push('Passar ljuset'); } else sc += 1; }
-    if (h.water && p.water_level != null) { const d = Math.abs(p.water_level - h.water); if (d >= 2) skip = true; else if (d === 0) { sc += 3; why.push('Passar vattnet'); } else sc += 1; }
-    if (h.height) { const H = pSize(p)[0], ok = h.height === 'low' ? H <= 50 : h.height === 'mid' ? H > 50 && H <= 120 : H > 120; if (ok) { sc += 2; why.push(H >= 100 ? fmtM(H / 100) + ' hög' : H + ' cm hög'); } }
+    let sc = 0, why = [], hit = 0, skip = false;
+    if (h.use === 'ata') { if (p.category === 'Köksträdgård') { sc += 3; why.push('Ätbart'); hit++; } else skip = true; }
+    if (h.use === 'prydnad') { if (p.category === 'Trädgård') { sc += 3; why.push('Prydnad'); hit++; } else skip = true; }
+    if (h.use === 'bada') hit++;
+    if (h.light && p.light_level != null) { const d = Math.abs(p.light_level - h.light); if (d >= 2) skip = true; else if (d === 0) { sc += 3; why.push('Passar ljuset'); hit++; } else sc += 1; }
+    if (h.water && p.water_level != null) { const d = Math.abs(p.water_level - h.water); if (d >= 2) skip = true; else if (d === 0) { sc += 3; why.push('Passar vattnet'); hit++; } else sc += 1; }
+    if (h.height) { const H = pSize(p)[0], ok = h.height === 'low' ? H <= 50 : h.height === 'mid' ? H > 50 && H <= 120 : H > 120; if (ok) { sc += 2; hit++; why.push(H >= 100 ? fmtM(H / 100) + ' hög' : H + ' cm hög'); } }
     if (skip) continue;
-    out.push({ p, sc, why });
+    out.push({ p, sc, why, hit, type: guessType(p) });
   }
-  return out.sort((x, y) => y.sc - x.sc || (x.p.swedish_name || '').localeCompare(y.p.swedish_name || '', 'sv')).slice(0, 8);
+  return out.sort((x, y) => y.sc - x.sc || (x.p.swedish_name || '').localeCompare(y.p.swedish_name || '', 'sv'));
 }
 function bedHelpAdd(pid) {
   const a = bedHelpTarget(); if (!a) return toast('Välj en rabatt först');
@@ -5951,17 +5959,33 @@ function bedHelpAdd(pid) {
   saveHomeSoon(); render(); toast('Tillagd i rabatten');
 }
 function bedHelpV() {
-  const h = S.bh || {}, answered = ['light', 'water', 'use', 'height'].filter(k => h[k]).length;
+  const h = S.bh || {}, keys = ['light', 'water', 'use', 'height'], answered = keys.filter(k => h[k]).length;
   const q = (k, title, opts) => `<div class="bhq"><b>${title}</b><div class="chips2">${opts.map(([v, t]) => `<button class="${h[k] === v ? 'on' : ''}" aria-pressed="${h[k] === v}" onclick="setBh('${k}',${typeof v === 'number' ? v : `'${v}'`})">${t}</button>`).join('')}</div></div>`;
-  const list = bedHelpList();
+  const all = bedHelpList();
+  const types = [...new Set(all.map(x => x.type))];
+  let items = all.filter(x => !h.typ || x.type === h.typ).filter(x => !h.best || x.hit >= answered);
+  const sort = h.sort || 'match';
+  if (sort === 'lag') items = items.slice().sort((x, y) => pSize(x.p)[0] - pSize(y.p)[0]);
+  if (sort === 'hog') items = items.slice().sort((x, y) => pSize(y.p)[0] - pSize(x.p)[0]);
+  if (sort === 'az') items = items.slice().sort((x, y) => (x.p.swedish_name || '').localeCompare(y.p.swedish_name || '', 'sv'));
+  const per = 8, pages = Math.max(1, Math.ceil(items.length / per)), page = Math.min(h.page || 0, pages - 1), shown = items.slice(page * per, page * per + per);
+  const chip = (cur, cb, opts) => `<div class="chips2 sm">${opts.map(([v, t]) => `<button class="${cur === v ? 'on' : ''}" aria-pressed="${cur === v}" onclick="${cb(v)}">${t}</button>`).join('')}</div>`;
   return `<button class="close" onclick="closeModal()" aria-label="Stäng">×</button><h2>Växtförslag till rabatten</h2>
   <p class="mut" style="margin:2px 0 12px;font-size:14px">Svara på några frågor så föreslår vi växter som passar just din plats. Du kan hoppa över frågor.</p>
   ${q('light', 'Hur mycket sol får platsen?', [[3, 'Full sol'], [2, 'Halvskugga'], [1, 'Skugga']])}
   ${q('water', 'Hur fuktig är jorden?', [[1, 'Torr'], [2, 'Lagom'], [3, 'Fuktig']])}
   ${q('use', 'Vad ska rabatten vara till?', [['prydnad', 'Prydnad'], ['ata', 'Ätbart'], ['bada', 'Både och']])}
   ${q('height', 'Hur högt får det bli?', [['low', 'Låg, upp till 50 cm'], ['mid', 'Mellan, 50–120 cm'], ['high', 'Hög, över 120 cm']])}
-  <h3 style="margin:14px 0 6px;font-size:16px">Förslag${answered ? '' : ''}</h3>
-  ${list.length ? `<div class="bhelp-list">${list.map(({ p, sc, why }) => { const [H, W, cc] = pSize(p); return `<div class="bhelp-r"><span class="bdot" style="background:hsl(${plantHue(p.id)},55%,55%)"></span><div class="grow"><b>${esc(p.swedish_name)}</b><span>${H >= 100 ? fmtM(H / 100) : H + ' cm'} hög · ${cc} cm mellan${why.length ? ' · ' + esc(why.join(', ')) : ''}</span></div><button class="btn sm" onclick="bedHelpAdd(${p.id})">Lägg till</button></div>`; }).join('')}</div>` : `<p class="mut" style="font-size:14px">${answered ? 'Inga växter passar alla svar. Prova att ändra något.' : 'Svara på en eller flera frågor så visas förslag här.'}</p>`}
+  <h3 style="margin:14px 0 6px;font-size:16px">Förslag</h3>
+  ${all.length ? `<div class="bhf">
+    <span class="mut">Typ</span>${chip(h.typ || '', v => `setBhSel('typ','${v}')`, [['', 'Alla'], ...types.map(t => [t, PT_NAME[t] || t])])}
+    <span class="mut">Sortera</span>${chip(sort, v => `setBhSel('sort','${v}')`, [['match', 'Bäst match'], ['lag', 'Lägst först'], ['hog', 'Högst först'], ['az', 'A–Ö']])}
+    <button class="chips2 sm bhbest ${h.best ? 'on' : ''}" aria-pressed="${!!h.best}" onclick="setBhSel('best',${!h.best})">Bara bästa matchningar</button>
+  </div>
+  <p class="mut" style="font-size:13px;margin:8px 0 2px">${items.length} ${items.length === 1 ? 'växt' : 'växter'}${items.length ? ` · sida ${page + 1} av ${pages}` : ''}</p>` : ''}
+  ${items.length ? `<div class="bhelp-list">${shown.map(({ p, why }) => { const [H, W, cc] = pSize(p); return `<div class="bhelp-r"><span class="bdot" style="background:hsl(${plantHue(p.id)},55%,55%)"></span><div class="grow"><b>${esc(p.swedish_name)}</b><span>${H >= 100 ? fmtM(H / 100) : H + ' cm'} hög · ${cc} cm mellan${why.length ? ' · ' + esc(why.join(', ')) : ''}</span></div><button class="btn sm" onclick="bedHelpAdd(${p.id})">Lägg till</button></div>`; }).join('')}</div>
+  ${pages > 1 ? `<div class="bhpager"><button class="btn sm line" ${page === 0 ? 'disabled' : ''} onclick="bhPage(-1)">Föregående</button><span class="mut">${page + 1} / ${pages}</span><button class="btn sm line" ${page >= pages - 1 ? 'disabled' : ''} onclick="bhPage(1)">Nästa</button></div>` : ''}`
+  : `<p class="mut" style="font-size:14px">${answered ? 'Inga växter passar dina svar. Prova att ändra något.' : 'Svara på en eller flera frågor så visas förslag här.'}</p>`}
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn sm line" onclick="S.bh=null;render()">Börja om</button><button class="btn sm" onclick="S.modal='bed';render()">Tillbaka till rabatten</button></div>`;
 }
 function bedHitsV(hits) { return hits.length ? `<div class="bhits">${hits.map(p => { const [h, w, cc] = pSize(p); return `<button onclick="bedAdd(${p.id})"><b>${esc(p.swedish_name)}</b><span>${h >= 100 ? fmtM(h / 100) : h + ' cm'} · ${cc} cm mellan</span></button>`; }).join('')}</div>` : ''; }
