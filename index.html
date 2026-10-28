@@ -4874,7 +4874,7 @@ function render() {
     iconize(m);
     if (!S.sel && (S.tool === 'db' || (!S.tool && S.tab === 'home'))) renderList();
   }
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov'));
   $('#ov').insertAdjacentHTML('beforeend', instBanner());
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); idCtlInit(); }
@@ -7269,6 +7269,8 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.204', '28 okt 16:30', ['Uppdateringsloggen visas automatiskt första gången du öppnar appen efter en uppdatering']],
+  ['1.203', '28 okt 16:00', ['Djursängen har plysch, rosa kant, fenor och ögon med svart kors', 'Hund och katt har ben, vit bröstfärg och vita tassar']],
   ['1.202', '28 okt 18:35', ['3D: hundar och katter ser mer ut som djur, med nos, öron, tassar och bakben. Chihuahua får stora upprätta öron', 'Små djur ligger inne i djursängen med huvudet i öppningen']],
   ['1.201', '28 okt 18:20', ['Mitt hem: lägg in dina djur i terrarium, djursäng, akvarium och bur. Välj djuren under Djur här när du trycker på möbeln', 'Djuren syns i 3D: reptiler på sanden, hundar och katter vid sängen, fiskar i akvariet och fåglar på pinnen. Namnet syns i ritningen', 'Nya möbler: Akvarium och Bur']],
   ['1.200', '28 okt 17:50', ['Om min växt: det står tydligt Växtens höjd eller längd, med tips om hur du mäter', 'Nytt fält: Krukans höjd. Den syns i uppgifterna, i listan på profilen och i 3D']],
@@ -7420,6 +7422,9 @@ const NEWS = [
   ['1.5x', 'Tidigare', ['Rabattläge med växtavstånd och djup', 'Utomhus i 3D med höjd på träd och buskar', 'Reptiler, akvarium och giftvarningar', 'Äppelsorter och bärbuskar för zon 4 och uppåt', 'Vetenskapliga namn först, svenska under']],
 ];
 function openNews() { stopLight(); S.sel = null; S.modal = null; S.tool = 'news'; render(); $('#main').scrollTop = 0; }
+function updV() { const from = S.updFrom, list = []; for (const n of NEWS) { if (n[0] === from) break; list.push(n); } const items = list.length ? list : NEWS.slice(0, 1);
+  return `<div class="mh"><h2>Nytt i version ${APP_VERSION}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div><div style="max-height:60vh;overflow:auto">${items.map(n => `<div class="setcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b>Version ${n[0]}</b><span class="mut" style="font-size:13px">${n[1]}</span></div><ul style="margin:8px 0 0;padding-left:18px;font-size:14.5px;line-height:1.5">${n[2].map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div><div class="cta" style="padding:12px 0 0;display:flex;gap:8px"><button class="btn" onclick="closeModal()">Klart</button><button class="btn line" onclick="closeModal();openNews()">Hela loggen</button></div>`; }
+function checkUpdate() { let seen = '1.202'; try { seen = store.get('seenVer', '1.202'); } catch (e) {} if (seen === APP_VERSION) return; store.set('seenVer', APP_VERSION); S.updFrom = seen; S.modal = 'upd'; render(); }
 function newsV() { return `${topbar('Uppdateringar', 'closeTool()')}<div class="pad">${LANG === 'en' ? '<p class="mut" style="margin:0 0 12px">Uppdateringarna nedan är på svenska.</p>' : ''}<div data-notr>${NEWS.map(n => `<div class="setcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b>Version ${n[0]}</b><span class="mut" style="font-size:13px">${n[1]}</span></div><ul style="margin:8px 0 0;padding-left:18px;font-size:14.5px;line-height:1.5">${n[2].map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div></div><div style="height:24px"></div>`; }
 // ===== Såkalender =====
 const FROST = { 1: [6, 10], 2: [6, 1], 3: [5, 25], 4: [5, 18], 5: [5, 12], 6: [5, 5], 7: [4, 25], 8: [4, 15] };
@@ -8005,7 +8010,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.203';
+const APP_VERSION = '1.204';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -8319,6 +8324,7 @@ async function init() {
   if (LANG === 'en') { try { await loadScript('en.js?v=' + APP_VERSION); trInit(window.EN_DICT || {}); } catch (e) { console.warn('Roothood:', e); } }
   trStart();
   render();
+  checkUpdate();
   try {
     if (!DEMO) {
       await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js');
