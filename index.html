@@ -1338,8 +1338,19 @@ body.hadv nav{display:none}
 .wx3{position:absolute;left:10px;bottom:10px;z-index:4;background:var(--surf);border-radius:14px;padding:7px 11px;font-size:13px;font-weight:600;box-shadow:var(--sh);pointer-events:none}
 .cemo{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;vertical-align:middle;margin:0 1px}.cemo svg{width:26px;height:26px;display:block}
 .emop{background:var(--surf);border-radius:16px;box-shadow:var(--sh);padding:8px;margin:0 12px 8px;max-height:200px;overflow:auto}.emog{display:flex;flex-wrap:wrap;gap:4px}.emog button{border:0;background:none;padding:4px;border-radius:10px;cursor:pointer}.emog button:active{background:var(--soft)}
+/* Månadsväljare i 3D: ‹ Oktober › */
+.v3btns .m3b{min-width:36px;padding-left:8px;padding-right:8px;font-size:18px;line-height:1}
+.v3btns .m3n{min-width:92px}
 /* Vädret i 3D ligger uppe till vänster, så det inte krockar med knapparna */
 .wx3{top:10px;bottom:auto}
+/* Hem: knappen Lägg till växt uppe till höger, under meddelanden och notiser */
+.homehead .brand{font-size:clamp(28px,8.5vw,34px)}
+.hhbtns{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
+.hhrow{display:flex;gap:8px}
+.addpill{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border:0;border-radius:999px;background:var(--surf);color:var(--ink);font:inherit;font-size:14px;font-weight:700;box-shadow:var(--sh);cursor:pointer;white-space:nowrap}
+/* Planera rabatt sticker ut lite bland genvägarna */
+.qc.hl{background:linear-gradient(135deg,rgba(46,110,70,.16),rgba(46,110,70,.05)),var(--surf);box-shadow:inset 0 0 0 2px var(--pri),var(--sh)}
+.qc.hl i,.qc.hl span{color:var(--pri)}
 /* Kompakt väderkort på Hem */
 .wxc{padding:12px 14px;margin-top:12px;border-radius:20px}
 .wxtop{gap:10px}
@@ -2633,7 +2644,7 @@ function view3dV() {
   const has = planRoomsAll().length || planAreas().length;
   const P = PL(), placing = P.mode === 'place' && P.pick, selF = !placing && P.sel && P.sel.k === 'furn' && planFurnAll().some(x => x.id === P.sel.id);
   return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}${has && !S.walk && placing ? `<div class="p3hint"><span>Tryck på golvet där ${esc(place3Name())} ska stå</span><button class="btn sm line" onclick="PL().mode='move';PL().pick=null;render()">Avbryt</button></div>` : ''}${has && !S.walk && selF ? `<div class="p3sel">${planSelV()}</div>` : ''}
-    ${has && S.walk ? walkUiV() : has ? `<div class="wx3" id="wx3">${wx3Text()}</div><div class="v3btns"><button onclick="planPick('furn')">+ Möbel</button><button onclick="planPick('plant')">+ Växt</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="cam3('top')">Uppifrån</button><button onclick="cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button><button onclick="cycleSea3()">Säsong: ${seas3()}</button>${floors().length > 1 ? `<button onclick="cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}</div>` : ''}</div>
+    ${has && S.walk ? walkUiV() : has ? `<div class="wx3" id="wx3">${wx3Text()}</div><div class="v3btns"><button onclick="planPick('furn')">+ Möbel</button><button onclick="planPick('plant')">+ Växt</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="cam3('top')">Uppifrån</button><button onclick="cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button><button onclick="stepMon3(-1)" class="m3b" aria-label="Förra månaden">‹</button><button class="m3n" onclick="S.mon3=null;build3d();keepMain()" title="Tillbaka till nu">${MONTH_NAMES[mo3() - 1].replace(/^./, c => c.toUpperCase())}</button><button class="m3b" onclick="stepMon3(1)" aria-label="Nästa månad">›</button>${floors().length > 1 ? `<button onclick="cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}</div>` : ''}</div>
   <div style="height:12px"></div>`;
 }
 async function mount3d() {
@@ -2792,8 +2803,13 @@ function garden3d(a, THREE, M, sc) { const y0 = a.t === 'bed' ? 0.12 : 0.08; (a.
 // Detaljerade växter i 3D. Storlek i meter, seed ger variation som är samma varje gång.
 function rng3(seed) { let s = (Math.abs(Math.round(seed)) % 2147483646) + 1; return () => (s = s * 16807 % 2147483647) / 2147483647; }
 const SEAS3 = ['Sommar', 'Höst', 'Vinter', 'Vår'];
-const SEAS_NOW = () => { const m = new Date().getMonth(); return m === 11 || m <= 1 ? 'Vinter' : m <= 4 ? 'Vår' : m <= 7 ? 'Sommar' : 'Höst'; };
-const seas3 = () => S.sea3 || SEAS_NOW();
+// 3D-vyn visar en månad i taget (1–12). Årstiden räknas fram ur månaden.
+const seasOfMonth = m => m === 12 || m <= 2 ? 'Vinter' : m <= 5 ? 'Vår' : m <= 8 ? 'Sommar' : 'Höst';
+const SEAS_NOW = () => seasOfMonth(new Date().getMonth() + 1);
+const mo3 = () => S.mon3 || (new Date().getMonth() + 1);
+const seas3 = () => seasOfMonth(mo3());
+// Växternas läge en viss månad: w = vila (bart eller nedvissnat), v = vår, s = sommar, h = höst
+const plantSk3 = mo => [11, 12, 1, 2, 3].includes(mo) ? 'w' : mo <= 5 ? 'v' : mo <= 8 ? 's' : 'h';
 // Väder och säsong i 3D: himmel, sol, snö på marken, regn, snö, löv och dimma
 const SKY3 = { Sommar: ['#7EC8E8', '#BFE6F5', '#E8F6F2'], Höst: ['#A9B8C4', '#D8CFC0', '#EFE6D2'], Vinter: ['#B8CBDA', '#DCE7EF', '#F2F6F8'], Vår: ['#9ED6E8', '#CFEBDD', '#F1F7EA'] };
 const SUNF3 = { Sommar: 1.15, Vår: 1.0, Höst: 0.8, Vinter: 0.7 };
@@ -2826,7 +2842,8 @@ function env3d() { try { if (!T3 || !T3.scene) return; const THREE = T3.THREE, s
     const p = new THREE.Points(geo, mat); sc.add(p); T3.envPts = p; T3.envK = { kind: pk, box: [X0, X1, Z0, Z1, H], speed: { rain: 9, snow: 0.8, leaf: 1.2 }[pk], cnt }; }
   T3.dirty = true; const el = $('#wx3'); if (el) el.textContent = wx3Text(); } catch (e) { console.warn('Roothood 3D-miljö:', e); } }
 function cycleFl3() { const F = floors().map(x => x.l), i = S.f3 == null ? -1 : F.indexOf(S.f3); const nx = i + 1 >= F.length ? null : F[i + 1]; S.f3 = (nx === F[F.length - 1]) ? null : nx; build3d(); keepMain(); }
-function cycleSea3() { S.sea3 = SEAS3[(SEAS3.indexOf(seas3()) + 1) % 4]; build3d(); keepMain(); }
+function cycleSea3() { stepMon3(3); }
+function stepMon3(d) { S.mon3 = ((mo3() - 1 + d + 12) % 12) + 1; build3d(); keepMain(); }
 function kind3d(p) {
   const t = guessType(p), g = genusOf(p), lat = p.latin_name || '';
   if (t === 'barr') return /Pinus/.test(g) && !/mugo/.test(lat) ? 'tall' : /Thuja|Juniperus communis|Taxus/.test(lat) ? 'pelare' : /Microbiota|horizontalis|sabina|mugo/.test(lat) ? 'krypbarr' : /Larix/.test(g) ? 'gran' : 'gran';
@@ -2942,13 +2959,13 @@ function flatGeo3(THREE) { const G = g3(THREE); return G.flatGeo || (G.flatGeo =
 function branchGeo3(THREE) { const G = g3(THREE); if (G.branchGeo) return G.branchGeo; const geo = new THREE.PlaneGeometry(1, 1, 2, 6), q = geo.attributes.position; for (let i = 0; i < q.count; i++) { const x = q.getX(i), v = q.getY(i) + 0.5; q.setXYZ(i, x, v, 0.12 * v * v); } q.needsUpdate = true; geo.computeVertexNormals(); return G.branchGeo = geo; }
 function veg3d(THREE, M, kind, h, w, seed, hue, opt) {
   const gr = new THREE.Group(), R = rng3(seed), lo = S.low3d, seg = lo ? [8, 6] : [14, 10], o = opt || {};
-  const sn = seas3(), sk = { Sommar: 's', Höst: 'h', Vinter: 'w', Vår: 'v' }[sn];
+  const sn = seas3(), mo = mo3(), sk = plantSk3(mo);
   const EG = ['gran', 'tall', 'pelare', 'krypbarr', 'marktack'].includes(kind) || o.everg, DEC = ['lov', 'frukt', 'bjork', 'pelarlov', 'buske', 'bar', 'ros', 'klatter'].includes(kind) && !o.everg;
   const PER = ['perenn', 'sommar', 'lok', 'blad', 'svard', 'ormbunke', 'krydda', 'gron', 'rot', 'solros', 'gras'].includes(kind) && !o.everg;
   const dead = (DEC || PER) && sk === 'w', bare = dead && kind !== 'gras';
-  const showFl = !o.when ? (sk === 's' || sk === 'v') : o.when.includes(sk), showFruit = sk === 's' || sk === 'h';
+  const showFl = o.bm ? o.bm.includes(mo) : !o.when ? (sk === 's' || sk === 'v') : o.when.includes(sk), showFruit = sk === 's' || sk === 'h';
   const gcol = (l, s) => { let hh = o.leaf ? o.leaf[0] + Math.round((R() - 0.5) * 14) : 95 + Math.round(R() * 30), ss = o.leaf ? o.leaf[1] : (s || 38), ll = o.leaf ? o.leaf[2] + (l - 34) * 0.4 : l;
-    if (!EG && sk === 'h' && (DEC || PER) && !(o.leaf && o.leaf[0] > 300)) { hh = 22 + Math.round(R() * 28); ss = 68; ll = Math.max(ll, 40) + 6; }
+    if (!EG && sk === 'h' && (DEC || PER) && (mo >= 10 || R() < 0.4)) { if (o.aut) { hh = (o.aut[0] + Math.round((R() - 0.5) * 16) + 360) % 360; ss = o.aut[1]; ll = o.aut[2] + Math.round((R() - 0.5) * 8); } else if (!(o.leaf && o.leaf[0] > 300)) { hh = 22 + Math.round(R() * 28); ss = 68; ll = Math.max(ll, 40) + 6; } }
     else if (!EG && sk === 'v' && !o.leaf) { hh = 88 + Math.round(R() * 18); ss = 52; ll += 8; }
     else if (!EG && sk === 'w' && PER) { hh = 40; ss = 22; ll = 40; }
     return `hsl(${hh},${ss}%,${Math.round(ll)}%)`; }, green = (l, s) => M(gcol(l, s)), fcol = o.flower || ['#E8508C', '#F2C230', '#F5F2EA', '#9B6FD0', '#E8452B', '#F28BB0', '#7A8CE0'][Math.abs(Math.round(hue)) % 7], bark = lo ? M(kind === 'bjork' ? '#E8E4DA' : kind === 'tall' ? '#9A5B34' : '#6B4A2A') : barkMat3(THREE, kind);
@@ -3054,8 +3071,26 @@ const FLOWER3 = [[/Lavandula|Perovskia|Nepeta|Salvia/, '#8E6BD1', 'sh'], [/Tulip
 const LEAF3 = [[/Prunus cerasifera|Nigra|Acer palmatum|Berberis thunbergii|Cotinus|Physocarpus opulifolius 'Diabolo'|Purpurea|Atropurpurea|Heuchera|Oxalis triangularis|Tradescantia pallida|Coleus|Iresine/, [345, 38, 28]], [/Lavandula|Elaeagnus|Artemisia|Stachys|Hippophae|Santolina|Perovskia|Cerastium|Helichrysum|Salix alba|silver/, [150, 12, 56]],
   [/Picea pungens|blågran/, [190, 22, 42]], [/Gold|Luteus|Aurea|Tuff Gold|Lemon/, [58, 62, 46]], [/Hosta/, [140, 30, 40]], [/Buxus|Ilex|Rhododendron|Hedera|Vinca|Pachysandra|Mahonia|Skimmia|Cotoneaster/, [140, 36, 24]], [/Acer platanoides 'Crimson|Fagus sylvatica 'Atropunicea|Blodbok/, [350, 36, 26]]];
 const EVERG3 = /Buxus|Ilex|Rhododendron|Hedera|Vinca|Pachysandra|Mahonia|Skimmia|Cotoneaster|Calluna|Erica|Bergenia|Helleborus|Lavandula|Thymus|Sempervivum/;
+// Höstfärg per släkte/art: [nyans, mättnad, ljushet]. Mer specifika först.
+const AUT3 = [[/Euonymus alatus|vingad benved/i, [328, 82, 56]], [/Euonymus/, [342, 72, 50]], [/Acer palmatum|japansk lönn/i, [356, 82, 44]], [/Acer platanoides|skogslönn|Acer saccharinum/i, [46, 88, 55]],
+  [/Acer rubrum|Acer ginnala|Acer tataricum|Acer japonicum/, [4, 86, 45]], [/Acer/, [26, 86, 50]], [/Cotinus/, [10, 86, 46]], [/Berberis/, [6, 82, 44]], [/Amelanchier/, [16, 86, 50]], [/Aronia/, [356, 76, 40]],
+  [/Viburnum/, [340, 62, 38]], [/Cornus/, [344, 56, 36]], [/Rhus|Toxicodendron/, [4, 90, 48]], [/Parthenocissus/, [354, 86, 40]], [/Sorbus/, [14, 86, 48]], [/Betula/, [50, 86, 56]], [/Ginkgo/, [48, 92, 55]],
+  [/Larix/, [42, 86, 52]], [/Fagus/, [24, 66, 38]], [/Quercus/, [22, 56, 35]], [/Prunus/, [12, 80, 48]], [/Malus|Pyrus/, [44, 70, 50]], [/Spiraea/, [22, 86, 52]], [/Physocarpus/, [20, 76, 45]],
+  [/Hamamelis/, [38, 92, 52]], [/Fothergilla/, [20, 90, 50]], [/Liquidambar/, [330, 60, 35]], [/Cercidiphyllum/, [30, 80, 60]], [/Rosa/, [40, 76, 50]], [/Vaccinium/, [356, 76, 40]], [/Ribes/, [48, 76, 52]],
+  [/Philadelphus|Syringa|Forsythia/, [56, 56, 48]], [/Hydrangea/, [12, 52, 45]], [/Rubus/, [350, 56, 38]], [/Hosta/, [50, 82, 58]], [/Paeonia/, [10, 62, 40]], [/Geranium/, [10, 72, 45]], [/Bergenia/, [345, 56, 35]],
+  [/Ceratostigma/, [356, 72, 40]], [/Tilia|Ulmus|Fraxinus|Populus|Salix|Carpinus|Corylus/, [52, 72, 54]], [/Miscanthus|Panicum|Calamagrostis|Pennisetum|Molinia|Deschampsia/, [40, 46, 62]], [/Aquilegia|Alchemilla|Astilbe/, [38, 60, 48]]];
+// Blomningsmånader i Sverige (ungefär, mellersta Sverige). Mer specifika först.
+const BLOOM3 = [[/Galanthus|Eranthis/, [2, 3]], [/Hamamelis/, [2, 3]], [/Crocus|krokus/i, [3, 4]], [/Scilla|Chionodoxa|Puschkinia/, [4]], [/Narcissus|påsklilja|narciss/i, [4, 5]], [/Muscari/, [4, 5]], [/Forsythia/, [4, 5]],
+  [/Pulmonaria|Bergenia/, [4, 5]], [/Tulipa|tulpan/i, [5]], [/Magnolia/, [5]], [/Prunus|Malus|Pyrus/, [5]], [/Myosotis|Brunnera/, [5]], [/Ribes|Vaccinium|Amelanchier/, [5]], [/Rhododendron|Azalea/, [5, 6]], [/Wisteria/, [5, 6]],
+  [/Syringa/, [6]], [/Lamprocapnos|Dicentra/, [5, 6]], [/Aquilegia/, [6]], [/^Iris|Iris /, [6]], [/Allium/, [6, 7]], [/Paeonia/, [6, 7]], [/Lupinus/, [6, 7]], [/Papaver/, [6, 7]], [/Philadelphus|Spiraea/, [6, 7]],
+  [/Alchemilla/, [6, 7]], [/Heuchera/, [6, 7]], [/Geranium/, [6, 7, 8]], [/Astrantia/, [6, 7, 8]], [/Campanula/, [6, 7, 8]], [/Leucanthemum/, [6, 7, 8]], [/Clematis/, [6, 7, 8]], [/Nepeta/, [6, 7, 8, 9]],
+  [/Rosa/, [6, 7, 8, 9]], [/Salvia/, [6, 7, 8]], [/Digitalis/, [7]], [/Delphinium/, [7]], [/Lilium/, [7]], [/Lavandula/, [7, 8]], [/Achillea|Astilbe|Hemerocallis|Monarda|Kniphofia|Lathyrus|Hosta/, [7, 8]],
+  [/Phlox|Echinacea|Calendula|Tagetes|Verbena|Cosmos|Zinnia|Hydrangea/, [7, 8, 9]], [/Petunia|Pelargonium/, [6, 7, 8, 9]], [/Viola|pensé/i, [4, 5, 6, 7, 8, 9]], [/Rudbeckia|Helianthus|Perovskia|Dahlia|Anemone hupehensis|Calluna|Erica/, [8, 9]],
+  [/Gladiolus/, [8]], [/Hylotelephium|Sedum/, [8, 9, 10]], [/Aster|Symphyotrichum/, [9, 10]], [/Fragaria/, [5, 6]], [/Rubus/, [6]]];
 function look3d(p, o) {
   const nm = (p.latin_name || '') + ' ' + (p.swedish_name || '');
+  for (const [re, c] of AUT3) if (re.test(nm)) { o.aut = c; break; }
+  for (const [re, m] of BLOOM3) if (re.test(nm)) { o.bm = m; break; }
   for (const [re, c, w] of FLOWER3) if (re.test(nm)) { o.flower = c; o.when = w; break; }
   for (const [re, sh, ce] of SHAPE3) if (re.test(nm)) { o.fshape = sh; if (ce) o.fcenter = ce; break; }
   for (const [re, c] of LEAF3) if (re.test(nm)) { o.leaf = c; break; }
@@ -3370,8 +3405,8 @@ function opt3dBase(p) { const g = genusOf(p), n = (p.swedish_name || '').toLower
 function bead3(THREE, M, x, y, z, r, col, sx, sy, sz, ry) { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), M(col)); m.position.set(x, y, z); if (sx || sy || sz) m.scale.set(sx || 1, sy || 1, sz || 1); if (ry) m.rotation.y = ry; return m; }
 function bez3(a, b, c, t) { const u = 1 - t; return [0, 1, 2].map(i => u * u * a[i] + 2 * u * t * b[i] + t * t * c[i]); }
 // Löjtnantshjärta: bågformade stjälkar med hjärtformade rosa blommor som hänger ner
-function dicentra3d(THREE, M, h, w, seed, sk) {
-  const g = new THREE.Group(), R = rng3(seed), SC = Math.max(0.5, Math.min(1.4, h)), aut = sk === 'h', fl = sk === 'v' || sk === 's' || !sk, LC = aut ? '#B8993E' : '#5E8F4C', STC = aut ? '#A68B3E' : '#5B8A46';
+function dicentra3d(THREE, M, h, w, seed, sk, mo) {
+  const g = new THREE.Group(), R = rng3(seed), SC = Math.max(0.5, Math.min(1.4, h)), aut = sk === 'h', fl = mo ? mo === 5 || mo === 6 : (sk === 'v' || sk === 's' || !sk), LC = aut ? '#B8993E' : '#5E8F4C', STC = aut ? '#A68B3E' : '#5B8A46';
   for (let j = 0; j < 6; j++) { const a = j / 6 * Math.PI * 2 + R() * 0.5, rr = 0.09 * SC; g.add(bead3(THREE, M, Math.cos(a) * rr, 0.02 * SC, Math.sin(a) * rr, 0.07 * SC, LC, 3.2, 0.12, 0.7, -a)); }
   for (let i = 0; i < 7; i++) {
     const a = R() * Math.PI * 2, reach = w * (0.25 + 0.3 * R()), top = h * (0.55 + 0.4 * R());
@@ -3387,8 +3422,8 @@ function dicentra3d(THREE, M, h, w, seed, sk) {
   return g;
 }
 // Stjärnflocka: tunna stjälkar med platta, ljusrosa skärmar av små blommor och gröna hörblad
-function astrantia3d(THREE, M, h, w, seed, sk) {
-  const g = new THREE.Group(), R = rng3(seed), H = Math.max(0.3, h), S = Math.max(0.5, Math.min(1.4, w * 1.2)), fl = sk === 's' || !sk, LC = sk === 'h' ? '#B0943C' : '#5E8C4A';
+function astrantia3d(THREE, M, h, w, seed, sk, mo) {
+  const g = new THREE.Group(), R = rng3(seed), H = Math.max(0.3, h), S = Math.max(0.5, Math.min(1.4, w * 1.2)), fl = mo ? mo >= 6 && mo <= 8 : (sk === 's' || !sk), LC = sk === 'h' ? '#B0943C' : '#5E8C4A';
   for (let j = 0; j < 7; j++) { const a = j / 7 * Math.PI * 2, rr = 0.14 * Math.max(0.5, w); g.add(bead3(THREE, M, Math.cos(a) * rr, 0.01, Math.sin(a) * rr, 0.05 * S, LC, 3, 0.12, 0.6, -a)); }
   if (fl) for (let i = 0; i < 5; i++) {
     const a = R() * Math.PI * 2, lean = 0.1 + 0.2 * R(), tip = [Math.cos(a) * lean * H * 0.4, H * (0.7 + 0.3 * R()), Math.sin(a) * lean * H * 0.4];
@@ -3409,12 +3444,12 @@ function deadPer3d(THREE, M, h, w, seed) {
 function plant3d(p, THREE, M, hcm, wcm, seed) {
   const [h0, w0] = pSize(p), h = Math.max(0.05, Math.min(40, (hcm || h0) / 100)), w = Math.max(0.05, Math.min(25, (wcm || w0) / 100));
   const nm = (p.latin_name || '') + ' ' + (p.swedish_name || ''), sd = seed != null ? seed : p.id * 13;
-  const kind = kind3d(p), o = opt3d(p), sk = { Sommar: 's', Höst: 'h', Vinter: 'w', Vår: 'v' }[seas3()];
+  const kind = kind3d(p), o = opt3d(p), mo = mo3(), sk = plantSk3(mo);
   // Perenner och sommarblommor vissnar ner på vintern: bara låga, torra stjälkar syns.
   const dies = (['perenn', 'sommar', 'lok', 'blad', 'svard', 'ormbunke', 'krydda', 'gron', 'rot', 'solros'].includes(kind) && !o.everg) || /Lamprocapnos|Dicentra|Astrantia/.test(nm);
   if (sk === 'w' && dies) return deadPer3d(THREE, M, h, w, sd);
-  if (/Lamprocapnos|Dicentra/.test(nm)) return dicentra3d(THREE, M, h, w, sd, sk);
-  if (/Astrantia/.test(nm)) return astrantia3d(THREE, M, h, w, sd, sk);
+  if (/Lamprocapnos|Dicentra/.test(nm)) return dicentra3d(THREE, M, h, w, sd, sk, mo);
+  if (/Astrantia/.test(nm)) return astrantia3d(THREE, M, h, w, sd, sk, mo);
   return veg3d(THREE, M, kind, h, w, sd, plantHue(p.id), o);
 }
 const GKIND = { tree: 'lov', fruit: 'frukt', conifer: 'gran', bush: 'buske' };
@@ -5165,7 +5200,7 @@ function home() {
     ? `<h2>Börja din samling</h2><p>Öppna en växt du har och tryck Lägg till i min samling, så påminner vi dig när den behöver vatten.</p><button class="pillbtn" onclick="openDb(true)">Sök växter</button>`
     : `<h2>Växtfolk som hjälper varandra</h2><p>Spara dina växter, få vattningspåminnelser och fråga andra.</p><button class="pillbtn" onclick="openModal('login')">Kom igång</button>`}</div></div>`;
   const city = S.city || '';
-  return `<div class="homehead"><div class="grow"><h1 class="brand">Roothood</h1><span>${S.user ? 'Hej' + (name ? ' ' + esc(name) : '') + '! ' + sub : sub}</span></div><div style="display:flex;gap:8px;align-items:center;flex:none"><button class="circ" onclick="openQAdd()" aria-label="Lägg till växt">${ic('ph-plus', null, 22)}</button>${S.user ? msgBtn() + bell : ''}</div></div>
+  return `<div class="homehead"><div class="grow"><h1 class="brand">Roothood</h1><span>${S.user ? 'Hej' + (name ? ' ' + esc(name) : '') + '! ' + sub : sub}</span></div><div class="hhbtns">${S.user ? `<div class="hhrow">${msgBtn() + bell}</div>` : ''}<button class="addpill" onclick="openQAdd()">${ic('ph-plus', 'currentColor', 18)} Lägg till växt</button></div></div>
   ${DEMO ? '<p style="text-align:center;margin:4px 0 0"><span class="badge" title="Ingen databas kopplad. Det du gör sparas bara i den här webbläsaren.">Demoläge</span></p>' : ''}
   ${homeBlocks(intro)}
   <div class="hcfgrow"><button class="hcfgb" onclick="openHomeCfg()">${ic(PEN, 'currentColor', 15)} Anpassa startskärmen</button></div>`;
@@ -6397,7 +6432,6 @@ function homeBlocks(intro) {
   // Nya användare utan växter: bara första steget, resten visas när det finns något att visa
   if (!(S.mine && S.mine.length)) { out.push(`<div class="sec cap2"><h2>Kom igång</h2></div><div class="pad"><button class="btn wide" onclick="openDb()">Lägg till din första växt</button></div>`); return out.join('\n'); }
   // Växtdatabasen: alltid en tydlig väg dit, eftersom den är det mest använda verktyget
-  out.push(`<div class="pad" style="padding-top:8px"><button class="btn wide line" onclick="openDb(true)">${ic('ph-plus', 'currentColor', 18)} Lägg till växt</button></div>`);
   const flush = () => { if (tiles.length) { out.push(`<div class="tools">${tiles.join('')}</div>`); tiles = []; } };
   L.forEach(x => {
     const sz = sizeOf(x);
@@ -6434,7 +6468,7 @@ const QPH = { bed: ['ph-flower-tulip', 'Planera rabatt'], db: ['ph-magnifying-gl
 function qcard(q) {
   const [k, n, , cls, act, pro] = q, [icn, lbl] = QPH[k] || ['ph-star', n];
   const big = k === 'id';
-  return `<button class="qc${big ? ' big' : ''}${k === 'doc' ? ' warn' : ''}" onclick="${act}">${icn.startsWith('ph-') ? `<i class="ph ${icn}" aria-hidden="true"></i>` : ic(icn, 'currentColor', 24)}<span>${lbl}</span>${pro && !S.pro ? '<em class="pro">PRO</em>' : ''}</button>`;
+  return `<button class="qc${big ? ' big' : ''}${k === 'doc' ? ' warn' : ''}${k === 'bed' ? ' hl' : ''}" onclick="${act}">${icn.startsWith('ph-') ? `<i class="ph ${icn}" aria-hidden="true"></i>` : ic(icn, 'currentColor', 24)}<span>${lbl}</span>${pro && !S.pro ? '<em class="pro">PRO</em>' : ''}</button>`;
 }
 function quickV() {
   const Q = QUICK(), f = favs().map(k => Q.find(q => q[0] === k)).filter(Boolean).slice(0, 7);
@@ -7572,6 +7606,13 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.219', '28 okt 21:30', ['3D visar månad för månad med ‹ ›, och växterna får sina egna höstfärger och blommar under sina riktiga blomningsmånader',
+    'Planera rabatt: ett tryck från Hem, numrerade steg och växtförslag efter ljus, fukt, syfte och höjd, med sidor, sortering och filter',
+    'På vintern ligger det snö på rabatterna och perennerna vissnar ner. Går man från Planera rabatt till 3D kommer man nära rabatten',
+    'Gå runt börjar vid ytterdörren, och laddar man om sidan står man kvar där man var',
+    'Hem: knappen + Lägg till växt uppe till höger, enklare väderkort, och Mitt hem visar huset tätt',
+    'Samling: välj kompakt eller detaljerad lista, och vattenkannan är bronsfärgad',
+    'Notiser: ett dagligt tips om dina växter och vädret där du bor, och en notis när appen har uppdaterats']],
   ['Beta 0.218', '28 okt 18:40', ['Min samling: kompaktare rader, mindre text och knappar. Fotoknappen i listan är borttagen: lägg till foto under växten, så ändras bilden i listan']],
   ['Beta 0.217', '28 okt 18:30', ['Annonser: knappen Skicka meddelande öppnar en chatt med säljaren eller den som vill byta', 'Chatten visar vilken annons det gäller']],
   ['Beta 0.216', '28 okt 18:20', ['Meddelanden: egna emojis för dina växter och djur. Tryck på 🌿 bredvid skrivfältet', 'Det går att skicka fler meddelanden direkt utan att gå ur chatten']],
@@ -8327,7 +8368,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.218';
+const APP_VERSION = 'Beta 0.219';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
