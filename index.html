@@ -7096,6 +7096,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['1.191', '28 okt 14:30', ['Identifiera växt: när växten finns i databasen visas både Skötselråd och Lägg till i samling']],
   ['1.190', '28 okt 11:40', ['Växtidentifiering: Pl@ntNet-nyckeln ligger på servern i stället för i appen']],
   ['1.189', '28 okt 11:20', ['Inställningar: länkar till integritetspolicy och källor och licenser']],
   ['1.188', '28 okt 09:00', ['Moderering: ny flik Växter där moderatorer godkänner eller avvisar föreslagna växter']],
@@ -7522,7 +7523,7 @@ function idV() {
 function idRow(r) {
   const p = matchPlant(r.latin, r.genus);
   return `<div class="idr"><div class="grow"><b>${esc(r.common || r.latin)}</b><i>${esc(r.latin)}</i>${(() => { const hf = p ? homeFit(p).filter(x => x.tone !== 'd')[0] : null; return hf ? `<small style="color:var(--pri2);font-weight:700">Trivs i ${esc(hf.r.name)}. ${esc(hf.tip)}</small>` : ''; })()}${S.idDemo ? '<small style="color:var(--mut)">Exempel, inte ditt foto</small>' : `<div class="bar"><i style="width:${Math.round(r.score * 100)}%"></i></div><small>${Math.round(r.score * 100)} % säker</small>`}</div>
-  ${p ? `<button class="btn sm" onclick="S.tool=null;openPlant(${p.id})">Skötselråd</button>` : `<button class="btn sm line" onclick="addFromIdx(${S.idRes.indexOf(r)})">Lägg till</button>`}</div>`;
+  ${p ? `<div style="display:flex;flex-direction:column;gap:8px"><button class="btn sm" onclick="S.tool=null;openPlant(${p.id})">Skötselråd</button>${S.mine.some(m => m.plant_id === p.id) ? '<span class="tag green" style="text-align:center">I din samling</span>' : `<button class="btn sm line" onclick="addPlant(${p.id})">Lägg till i samling</button>`}</div>` : `<button class="btn sm line" onclick="addFromIdx(${S.idRes.indexOf(r)})">Lägg till</button>`}</div>`;
 }
 function matchPlant(latin, genus) {
   const l = (latin || '').toLowerCase(), g = (genus || '').toLowerCase();
@@ -7820,7 +7821,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = '1.190';
+const APP_VERSION = '1.191';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
