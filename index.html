@@ -1359,6 +1359,9 @@ body.hadv nav{display:none}
 .bname{display:flex;flex-direction:column;gap:6px;margin:6px 0 8px}
 .bname label{font-size:12.5px;font-weight:700;color:var(--mut)}
 .bname input,.bname select{font:inherit;font-size:15px;padding:9px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surf);color:var(--ink);width:100%}
+.sunrow{padding:6px 4px 2px}
+.sunrow label{display:block;font-size:12.5px;font-weight:700;color:var(--mut);margin-bottom:4px}
+.sunrow input{width:100%;accent-color:var(--pri)}
 .v3pop>button{display:block;width:100%;margin-bottom:6px;text-align:left;font-size:14px;min-height:40px}
 .v3tabs{display:flex;gap:4px;padding:3px;margin-bottom:6px;border-radius:12px;background:var(--bg)}
 .v3tabs button{flex:1;min-height:32px;padding:4px;font-size:12.5px;background:transparent}
@@ -2290,12 +2293,13 @@ const wzName = () => S.wz.sel[S.wz.cur];
 function wzTog(n) { const a = S.wz.sel; S.wz.sel = a.includes(n) ? a.filter(x => x !== n) : a.concat(n); keepScroll(); }
 function wzTpl(i) { S.wz.sel = [...new Set(WZ_TPL[i][1])]; keepScroll(); }
 function wzOther() { const v = (($('#wzo') || {}).value || '').trim(); if (!v) return toast('Skriv ett namn på rummet'); if (!S.wz.sel.includes(v)) S.wz.sel.push(v); S.wz.other = null; keepScroll(); }
-function wzNext() { const W = S.wz; if (W.step === 1) { if (!W.sel.length) return toast('Välj minst ett rum'); W.cur = 0; W.step = 2; }
+const isGarden = () => { const n = wzName() || ''; return n === 'Trädgård' || n.startsWith('Trädgård '); };
+function wzNext() { const W = S.wz; if (W.step === 1) { if (!W.sel.length) return toast('Välj minst ett rum'); W.cur = 0; W.step = isGarden() ? 3 : 2; }
   else if (W.step < 5) { W.step++; if (W.step === 4 && WZ_OUT.includes(roomKind(wzName()))) W.step = 5; }
-  else if (W.cur < W.sel.length - 1) { W.cur++; W.step = 2; }
+  else if (W.cur < W.sel.length - 1) { W.cur++; W.step = isGarden() ? 3 : 2; }
   else return wzSave();
   render(); $('#main').scrollTop = 0; }
-function wzBack() { const W = S.wz; if (W.step === 1 || (W.only && W.step === 2)) { S.wz = null; return render(); } if (W.step === 2 && W.cur > 0) { W.cur--; W.step = 5; } else W.step--; if (W.step === 4 && WZ_OUT.includes(roomKind(wzName()))) W.step = 3; render(); $('#main').scrollTop = 0; }
+function wzBack() { const W = S.wz; if (W.step === 1 || (W.only && W.step === 2)) { S.wz = null; return render(); } if (W.step === 2 && W.cur > 0) { W.cur--; W.step = 5; } else W.step--; if (W.step === 2 && isGarden()) W.step = 1; if (W.step === 4 && WZ_OUT.includes(roomKind(wzName()))) W.step = 3; render(); $('#main').scrollTop = 0; }
 function wzSet(k, v) { wzD(wzName())[k] = wzD(wzName())[k] === v ? null : v; keepScroll(); }
 function wzPlant(id) { const d = wzD(wzName()); d.plants = d.plants.includes(id) ? d.plants.filter(x => x !== id) : d.plants.concat(id); if (!d.plants.includes(id)) d.hang = d.hang.filter(x => x !== id); keepScroll(); }
 function wzHang(id) { const d = wzD(wzName()); d.hang = d.hang.includes(id) ? d.hang.filter(x => x !== id) : d.hang.concat(id); keepScroll(); }
@@ -2367,7 +2371,7 @@ function wizardV() {
     <div class="wzcomp"><span></span>${b('N')}<span></span>${b('V')}<span class="wzmid">${ic('ph-frame-corners', 'currentColor', 26)}</span>${b('O')}<span></span>${b('S')}<span></span></div>
     <button class="btn wide line" onclick="wzCompass()">${ic('ph-compass', 'currentColor', 18)} Använd telefonens kompass</button><p class="mut" style="text-align:center;font-size:14px">Ställ dig vid fönstret och håll telefonen mot det.</p>
     <button class="btn wide wznext" onclick="wzNext()">Nästa</button><button class="btn wide line" onclick="wzD(wzName()).dir=null;wzNext()">Vet inte, hoppa över</button></div>`; }
-  if (W.step === 3) return `${wzHead(0, n)}<div class="wz"><h1>Hur ljust är det?</h1><p class="mut">Tänk på platsen där växterna står.</p>
+  if (W.step === 3) return `${wzHead(0, n)}<div class="wz"><h1>${isGarden() ? 'Hur mycket sol får trädgården?' : 'Hur ljust är det?'}</h1><p class="mut">${isGarden() ? 'Solen beräknas från din ort och årstid. Se skuggorna i 3D-vyn för var solen når.' : 'Tänk på platsen där växterna står.'}</p>
     <div class="wzlist">${WZ_LIGHT.map(([l, t, icn]) => `<button class="wzl ${D.light === l ? 'on' : ''}" aria-pressed="${D.light === l}" onclick="wzSet('light','${l}')">${ic(icn, 'currentColor', 26)}<span class="grow"><b>${l}</b><span>${t}</span></span></button>`).join('')}</div>
     ${S.pro ? `<button class="btn wide line" onclick="openTool('light')">${ic(I.sun, 'currentColor', 18)} Mät med ljusmätaren</button>` : ''}
     <button class="btn wide wznext" onclick="wzNext()">Nästa</button></div>`;
@@ -2720,10 +2724,16 @@ function cam3(k) { if (!T3) return; const st = T3.st; if (k === 'top') { st.el =
 function v3FurnHtml() { return FURN_GROUPS.map(([g, ks]) => [g, ks.map(k => FURN_M[k]).filter(Boolean)]).concat([['Ute', FURN_OUT]]).map(([g, L]) => `<span class="fl">${g}</span><div class="v3g">${L.map(([k, n, w, h, e]) => `<button onclick="v3pick('furn','${k}')">${e} ${n}</button>`).join('')}</div>`).join(''); }
 function v3PlantHtml() { const list = S.mine.slice(); return list.length ? `<span class="fl">Din samling</span><div class="v3g v3l">${list.map(m => `<button onclick="v3pick('plant','${m.id}')">${esc(m.name)}</button>`).join('')}</div>` : '<p class="mut" style="margin:6px 2px">Lägg först till växter i din samling.</p>'; }
 function v3AddHtml(sub) { return `<div class="v3tabs"><button class="${sub === 'furn' ? 'on' : ''}" onclick="v3pop('add','furn')">Möbler</button><button class="${sub === 'plant' ? 'on' : ''}" onclick="v3pop('add','plant')">Växter</button></div>` + (sub === 'plant' ? v3PlantHtml() : v3FurnHtml()); }
-function v3ViewHtml() { return `<button onclick="v3done();cam3('top')">Uppifrån</button><button onclick="v3done();cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="v3done();S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button>${floors().length > 1 ? `<button onclick="v3done();cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}`; }
+function v3ViewHtml() { return `<button onclick="v3done();cam3('top')">Uppifrån</button><button onclick="v3done();cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="v3done();S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button>${floors().length > 1 ? `<button onclick="v3done();cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}<div class="sunrow"><label>Solen kl <b id="sunlbl">${sunLbl()}</b></label><input type="range" min="5" max="22" step="0.5" value="${sunH()}" oninput="sunSet(this.value)"></div>`; }
 function v3BedsHtml() { const L = bedsList(), cur = curBed(); return (L.length ? L.map(x => `<button class="${cur && cur.id === x.id ? 'on' : ''}" onclick="v3bed('${x.id}')">${esc(bedNameOf(x))}</button>`).join('') : '<p class="mut" style="margin:6px 2px">Du har inga rabatter än.</p>') + '<button onclick="v3newBed()">＋ Ny rabatt</button>'; }
 function v3bed(id) { v3done(); bedSwitch(id); }
 function v3newBed() { v3done(); PL().bname = ''; S.focusBed = null; S.hview = 'plan'; render(); setTimeout(() => { if (S.tool === 'house') { planMode('bed'); PL().bnew = true; render(); } }, 60); }
+const sunH = () => S.sunH == null ? 12 : S.sunH;
+const sunLbl = () => { const h = sunH(); return String(Math.floor(h)).padStart(2, '0') + ':' + (h % 1 ? '30' : '00'); };
+function sunSet(v) { S.sunH = +v; const l = $('#sunlbl'); if (l) l.textContent = sunLbl(); sunUpdate3d(); }
+function sunAt3d() { const pl = wxPlace() || {}, lat = (pl.lat != null ? pl.lat : 65.3) * Math.PI / 180, lon = pl.lon != null ? pl.lon : 21.5; const m = mo3(); const N = Math.round((Date.UTC(2026, m - 1, 15) - Date.UTC(2026, 0, 1)) / 864e5) + 1; const dec = 23.44 * Math.PI / 180 * Math.sin(2 * Math.PI / 365 * (N - 81)); const tz = m >= 4 && m <= 10 ? 2 : 1; const H = ((sunH() - tz + lon / 15) - 12) * Math.PI / 12; const sa = Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(H); const alt = Math.asin(Math.max(-1, Math.min(1, sa))); let az = Math.acos(Math.max(-1, Math.min(1, (Math.sin(dec) - Math.sin(lat) * sa) / ((Math.cos(lat) * Math.cos(alt)) || 1e-6)))); if (H > 0) az = 2 * Math.PI - az; return { alt, az }; }
+function sunPlace3d(light, cx, cz, span) { const s = sunAt3d(), R = span * 2, a = Math.max(s.alt, 0.08), th = northDeg() * Math.PI / 180, d = Math.cos(a) * R; light.position.set(cx + Math.sin(s.az - th) * d, Math.sin(a) * R, cz + Math.cos(s.az - th) * d); }
+function sunUpdate3d() { if (!T3 || !T3.scene || !T3.bounds) return; const b = T3.bounds, cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2, span = Math.max(10, b[2] - b[0], b[3] - b[1]); T3.scene.children.forEach(o => { if (o.isDirectionalLight) sunPlace3d(o, cx, cz, span); }); T3.dirty = true; }
 function v3done() { const p = $('#v3pop'); if (p) p.hidden = true; }
 function v3pop(k, sub) { const p = $('#v3pop'); if (!p) return; sub = sub || 'furn'; if (k === 'add' && sub === 'plant' && !planRooms().length) return toast('Rita först ett rum'); if (!p.hidden && p.dataset.k === k && (k !== 'add' || p.dataset.s === sub)) { p.hidden = true; return; } p.dataset.k = k; p.dataset.s = sub; p.innerHTML = k === 'add' ? v3AddHtml(sub) : k === 'beds' ? v3BedsHtml() : v3ViewHtml(); p.hidden = false; }
 function v3pick(k, t) { const p = $('#v3pop'); if (p) p.hidden = true; if (k === 'furn') startPlace({ k: 'furn', t }); else startPlace({ k: 'plant', id: +t }); }
@@ -2761,7 +2771,7 @@ function build3dInner(first) {
   const g = new THREE.Mesh(new THREE.PlaneGeometry(span * 6, span * 6), groundMat3d(THREE, span, dark, F3.some(f3 => f3.l < 0 && !f3.sub) && floorVis(-1) ? { transparent: true, opacity: 0.4, depthWrite: false } : null)); g.rotation.x = -Math.PI / 2; g.position.set(cx, -0.02, cz); add(g, false, true);
   sc.add(new THREE.HemisphereLight(dark ? '#9fb7c8' : '#ffffff', dark ? '#1b2a20' : '#cbd6c2', dark ? 0.7 : 1.0));
   const th = northDeg() * Math.PI / 180, sx = -Math.sin(th), sz = Math.cos(th), sun = new THREE.DirectionalLight('#fff4e0', dark ? 1.0 : 1.6);
-  sun.position.set(cx + sx * span, span * 0.9, cz + sz * span); sun.target.position.set(cx, 0, cz); sun.castShadow = true;
+  sunPlace3d(sun, cx, cz, span); sun.target.position.set(cx, 0, cz); sun.castShadow = true;
   Object.assign(sun.shadow.camera, { left: -span, right: span, top: span, bottom: -span, near: 0.5, far: span * 4 }); sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sc.add(sun); sc.add(sun.target);
   // tomt och ytor
   planAreas().slice().sort((a, c) => (c.t === 'lot') - (a.t === 'lot')).forEach((a, i) => { const y = 0.002 + i * 0.001, col = AREA3[a.t] || '#7FB35B';
@@ -7649,6 +7659,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.229', '28 okt 23:09', ['Trädgården utgår från solen i stället för väderstreck, och 3D visar solen och skuggor efter månad och tid på dygnet']],
   ['Beta 0.228', '28 okt 22:59', ['Rabatter får namn och du byter mellan dem med en rullgardin, i ritningen och i 3D']],
   ['Beta 0.227', '28 okt 22:52', ['3D-knapparna är färre åt gången: Lägg till och Vy öppnar undermenyer']],
   ['Beta 0.226', '28 okt 22:48', ['3D: Möbler och Växter öppnar en lista direkt i 3D-vyn']],
@@ -8420,7 +8431,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.228';
+const APP_VERSION = 'Beta 0.229';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
