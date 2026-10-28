@@ -18,6 +18,26 @@ const json = (body: unknown, status = 200) =>
 
 type Wx = { maxToday: number; maxTomorrow: number; minTonight: number; rain: number };
 
+// Kort tips: första meningen, högst 100 tecken.
+function shortTip(t: string) {
+  const s = String(t).replace(/\s+/g, " ").trim();
+  const m = s.match(/^.{20,100}?[.!?](?=\s|$)/);
+  return m ? m[0] : s.slice(0, 100);
+}
+
+// Aktuell version och senaste nyheten, läst från den publicerade appen.
+async function currentVersion(): Promise<{ v: string; note: string } | null> {
+  try {
+    const h = await (await fetch(APP_URL + "index.html", { cache: "no-store" })).text();
+    const v = h.match(/const APP_VERSION = '([^']+)'/)?.[1];
+    if (!v) return null;
+    const note = h.match(/const NEWS = \[\s*\[\s*'[^']*',\s*'[^']*',\s*\[\s*'([^']*)'/)?.[1] || "";
+    return { v, note };
+  } catch (_) {
+    return null;
+  }
+}
+
 function namesText(names: string[]) {
   if (names.length === 1) return names[0];
   if (names.length <= 3) return names.slice(0, -1).join(", ") + " och " + names[names.length - 1];
@@ -71,7 +91,7 @@ Deno.serve(async (req) => {
     return json({ sent: ok });
   }
 
-  let q = db.from("push_subscriptions").select("id,user_id,endpoint,p256dh,auth,notify_hour,last_sent");
+  let q = db.from("push_subscriptions").select("id,user_id,endpoint,p256dh,auth,notify_hour,last_sent,last_version");
   if (onlyUser) q = q.eq("user_id", onlyUser);
   const { data: subs, error: subErr } = await q;
   if (subErr) return json({ error: subErr.message }, 500);
@@ -81,7 +101,7 @@ Deno.serve(async (req) => {
   const users = [...new Set(subs.map((s) => s.user_id))];
   const { data: ups, error: upErr } = await db
     .from("user_plants")
-    .select("user_id,last_watered,remind,custom_name,custom_water_interval_days,plants(swedish_name,water_interval_days,category)")
+    .select("user_id,last_watered,remind,custom_name,custom_water_interval_days,plants(swedish_name,water_interval_days,category,tips)")
     .in("user_id", users);
   if (upErr) return json({ error: upErr.message }, 500);
   const todayStr = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Stockholm" });
@@ -89,12 +109,14 @@ Deno.serve(async (req) => {
   const hourNow = Number(new Intl.DateTimeFormat("sv-SE", { hour: "numeric", hourCycle: "h23", timeZone: "Europe/Stockholm" }).format(new Date()));
   const due: Record<string, { name: string; out: boolean }[]> = {};
   const outdoor: Record<string, boolean> = {};
+  const mine: Record<string, { name: string; tips: string }[]> = {};
   for (const u of ups || []) {
-    const p = u.plants as { swedish_name: string; water_interval_days: number | null; category?: string | null } | null;
+    const p = u.plants as { swedish_name: string; water_interval_days: number | null; category?: string | null; tips?: string | null } | null;
     const out = /trädgård/i.test(p?.category || "");
     if (out) outdoor[u.user_id] = true;
     const interval = p ? p.water_interval_days : u.custom_water_interval_days;
     const name = p ? p.swedish_name : u.custom_name;
+    if (p && p.tips) (mine[u.user_id] ||= []).push({ name, tips: p.tips });
     if (!interval || !u.last_watered || u.remind === false) continue;
     const days = Math.round((today - Date.parse(u.last_watered)) / 864e5);
     if (days >= interval) (due[u.user_id] ||= []).push({ name, out });
@@ -130,11 +152,34 @@ Deno.serve(async (req) => {
     return null;
   }
 
+  // Ny version i appen: en notis per prenumerant och version. Nya prenumeranter får bara en markering.
+  if (!onlyUser) {
+    const ver = await currentVersion();
+    if (ver) {
+      for (const s of subs) {
+        if (s.last_version === ver.v) continue;
+        if (s.last_version == null) { await db.from("push_subscriptions").update({ last_version: ver.v }).eq("id", s.id); continue; }
+        try {
+          await webpush.sendNotification(
+            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+            JSON.stringify({ title: "Ny version: " + ver.v, body: ver.note || "Nya förbättringar i appen.", url: APP_URL, tag: "roothood-update" }),
+            { TTL: 24 * 3600 },
+          );
+          await db.from("push_subscriptions").update({ last_version: ver.v }).eq("id", s.id);
+        } catch (e) {
+          const code = (e as { statusCode?: number }).statusCode;
+          if (code === 404 || code === 410) await db.from("push_subscriptions").delete().eq("id", s.id);
+        }
+      }
+    }
+  }
+
   let sent = 0, removed = 0;
   for (const s of subs) {
     if (!onlyUser && ((s.notify_hour ?? 8) !== hourNow || s.last_sent === todayStr)) continue;
     const city = cityOf[s.user_id];
-    const tip = city ? wxTip(await wxFor(city), !!outdoor[s.user_id]) : null;
+    const wx = city ? await wxFor(city) : null;
+    const tip = wxTip(wx, !!outdoor[s.user_id]);
     // Regnar det mycket behöver växterna ute inget extra vatten.
     const names = (due[s.user_id] || []).filter((x) => !(tip?.kind === "rain" && x.out)).map((x) => x.name);
     let title: string, body: string;
@@ -142,9 +187,14 @@ Deno.serve(async (req) => {
       title = "Notiserna fungerar! 🌱";
       body = (names.length ? "Just nu behöver " + namesText(names) + " vattnas." : "Inga växter behöver vattnas just nu.") + (tip ? " " + tip.text : city ? " Inget särskilt väder i " + city + " just nu." : " Välj din ort i appen så får du väderråd.");
     } else {
-      if (!names.length && !tip) continue;
-      title = names.length ? "Dags att vattna 💧" : tip!.kind === "heat" ? "Varmt väder på väg ☀️" : tip!.kind === "frost" ? "Frostvarning ❄️" : "Regn idag 🌧️";
-      body = [names.length ? namesText(names) + " behöver vatten idag." : "", tip ? tip.text : ""].filter(Boolean).join(" ");
+      // Varje dag: vad som ska vattnas, väder på orten, ett tips om en av dina växter.
+      const pl = mine[s.user_id] || [];
+      const dayNo = Math.floor(today / 864e5);
+      const pick = pl.length ? pl[dayNo % pl.length] : null;
+      const plantTip = pick ? "Tips för " + pick.name + ": " + shortTip(pick.tips) : "";
+      const where = city && wx ? "I " + city + " idag: högst " + Math.round(wx.maxToday) + " °C." : "";
+      title = names.length ? "Dags att vattna 💧" : tip ? (tip.kind === "heat" ? "Varmt väder på väg ☀️" : tip.kind === "frost" ? "Frostvarning ❄️" : "Regn idag 🌧️") : "Dagens tips 🌿";
+      body = [names.length ? namesText(names) + " behöver vatten idag." : "", tip ? tip.text : "", where, plantTip].filter(Boolean).join(" ");
     }
     try {
       await webpush.sendNotification(
