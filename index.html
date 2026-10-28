@@ -1348,8 +1348,9 @@ body.hadv nav{display:none}
 .mrow .bar{margin:4px 0 3px}
 .mrow .note{font-size:11.5px}
 .mrow .side{width:70px;flex:none;align-items:center;justify-content:center;gap:2px;text-align:center}
-.mrow .side .wbtn{width:42px;height:42px;margin:0;background:#F2E6D6;color:#9A5F2B;box-shadow:inset 0 0 0 1px #E2C9A8}
-.mrow .side .wbtn.due{background:#B5773E;color:#fff;box-shadow:none}
+.mrow .side .wbtn{width:44px;height:44px;margin:0;background:linear-gradient(160deg,#F4E4CC,#E3BF93);color:#7A4619;box-shadow:0 2px 6px rgba(122,70,25,.18),inset 0 1px 0 rgba(255,255,255,.6)}
+.mrow .side .wbtn.due{background:linear-gradient(160deg,#D08E4E,#A65F24);color:#fff;box-shadow:0 3px 8px rgba(122,70,25,.35),inset 0 1px 0 rgba(255,255,255,.35)}
+.mrow .side .wbtn svg{width:24px;height:24px;stroke-width:1.8}
 .mrow .side .rtag2{display:flex;align-items:center;justify-content:center;gap:3px;font-size:10.5px;line-height:1.2;color:var(--mut);max-width:70px;margin-top:2px;text-align:center}
 .mrow .side .rtag2 i{font-size:11px;line-height:1;flex:none}
 .mrow .side .wnext{display:block;font-size:10.5px;line-height:1.2;text-align:center;white-space:normal;max-width:70px;color:var(--mut)}
@@ -6493,7 +6494,7 @@ function mineV() {
     const d = left(m), pct = m.interval ? Math.round((m.interval - d) / m.interval * 100) : 0;
     const status = d === null ? `<span class="mut">${m.remind === false ? 'Ingen påminnelse, du sköter vattningen' : 'Växer ute, vattna vid torka'}</span>` : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
     return `<div class="mrow"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${nameHtml(m)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${m.details && +m.details.count > 1 ? `<span class="mini">× ${+m.details.count} samplanterade i samma kruka</span>` : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
-      <div class="side">${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(WATER_CAN, 'currentColor', 22)}</button>` : ''}${d !== null ? `<small class="wnext">${d === 0 ? 'Vattna idag' : 'Vattna om ' + d + ' d'}</small>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}${roomOf(m) && !S.mroom ? `<span class="rtag2">${ic(DOORI, 'currentColor', 11)}${esc(roomOf(m).name)}</span>` : ''}</div></div>`;
+      <div class="side">${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${ic(WATER_CAN, 'currentColor', 22)}</button>` : ''}${d !== null ? `<small class="wnext">${d === 0 ? 'Vattna idag' : 'Vattna om ' + d + ' d'}</small>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
   }).join('');
   return `${topbar('Min samling')}${mtabBar()}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
