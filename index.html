@@ -1359,9 +1359,9 @@ body.hadv nav{display:none}
 .bname{display:flex;flex-direction:column;gap:6px;margin:6px 0 8px}
 .bname label{font-size:12.5px;font-weight:700;color:var(--mut)}
 .bname input,.bname select{font:inherit;font-size:15px;padding:9px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surf);color:var(--ink);width:100%}
-.sunrow{padding:6px 4px 2px}
-.sunrow label{display:block;font-size:12.5px;font-weight:700;color:var(--mut);margin-bottom:4px}
-.sunrow input{width:100%;accent-color:var(--pri)}
+.sunrow{display:flex;align-items:center;gap:8px;padding:0 4px}
+.sunrow label{margin:0;white-space:nowrap;font-size:12px;font-weight:700;color:var(--mut)}
+.sunrow input{flex:1;min-width:0;accent-color:var(--pri)}
 .v3pop>button{display:block;width:100%;margin-bottom:6px;text-align:left;font-size:14px;min-height:40px}
 .v3tabs{display:flex;gap:4px;padding:3px;margin-bottom:6px;border-radius:12px;background:var(--bg)}
 .v3tabs button{flex:1;min-height:32px;padding:4px;font-size:12.5px;background:transparent}
@@ -2676,7 +2676,7 @@ function view3dV() {
   const has = planRoomsAll().length || planAreas().length;
   const P = PL(), placing = P.mode === 'place' && P.pick, selF = !placing && P.sel && P.sel.k === 'furn' && planFurnAll().some(x => x.id === P.sel.id);
   return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}${has && !S.walk && placing ? `<div class="p3hint"><span>Tryck på golvet där ${esc(place3Name())} ska stå</span><button class="btn sm line" onclick="PL().mode='move';PL().pick=null;render()">Avbryt</button></div>` : ''}${has && !S.walk && selF ? `<div class="p3sel">${planSelV()}</div>` : ''}
-    ${has && S.walk ? walkUiV() : has ? `<div class="wx3" id="wx3">${wx3Text()}</div><div class="v3dock"><div class="v3pop" id="v3pop" hidden></div><div class="r"><button onclick="v3pop('beds')">Rabatter ▾</button><button onclick="v3pop('add')">+ Lägg till ▾</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="v3pop('view')">Vy ▾</button></div><div class="r tm"><button class="m3b" onclick="stepMon3(-1)" aria-label="Förra månaden">‹</button><button class="m3n" onclick="S.mon3=null;build3d();keepMain()" title="Tillbaka till nu">${MONTH_NAMES[mo3() - 1].replace(/^./, c => c.toUpperCase())}</button><button class="m3b" onclick="stepMon3(1)" aria-label="Nästa månad">›</button></div></div>` : ''}</div>
+    ${has && S.walk ? walkUiV() : has ? `<div class="wx3" id="wx3">${wx3Text()}</div><div class="v3dock"><div class="v3pop" id="v3pop" hidden></div><div class="r"><button onclick="v3pop('beds')">Rabatter ▾</button><button onclick="v3pop('add')">+ Lägg till ▾</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="v3pop('view')">Vy ▾</button></div><div class="r tm"><button class="m3b" onclick="stepMon3(-1)" aria-label="Förra månaden">‹</button><button class="m3n" onclick="S.mon3=null;build3d();keepMain()" title="Tillbaka till nu">${MONTH_NAMES[mo3() - 1].replace(/^./, c => c.toUpperCase())}</button><button class="m3b" onclick="stepMon3(1)" aria-label="Nästa månad">›</button></div><div class="sunrow"><label>Solen kl <b id="sunlbl">${sunLbl()}</b></label><input type="range" min="5" max="22" step="0.5" value="${sunH()}" oninput="sunSet(this.value)"></div></div>` : ''}</div>
   <div style="height:12px"></div>`;
 }
 async function mount3d() {
@@ -2724,7 +2724,7 @@ function cam3(k) { if (!T3) return; const st = T3.st; if (k === 'top') { st.el =
 function v3FurnHtml() { return FURN_GROUPS.map(([g, ks]) => [g, ks.map(k => FURN_M[k]).filter(Boolean)]).concat([['Ute', FURN_OUT]]).map(([g, L]) => `<span class="fl">${g}</span><div class="v3g">${L.map(([k, n, w, h, e]) => `<button onclick="v3pick('furn','${k}')">${e} ${n}</button>`).join('')}</div>`).join(''); }
 function v3PlantHtml() { const list = S.mine.slice(); return list.length ? `<span class="fl">Din samling</span><div class="v3g v3l">${list.map(m => `<button onclick="v3pick('plant','${m.id}')">${esc(m.name)}</button>`).join('')}</div>` : '<p class="mut" style="margin:6px 2px">Lägg först till växter i din samling.</p>'; }
 function v3AddHtml(sub) { return `<div class="v3tabs"><button class="${sub === 'furn' ? 'on' : ''}" onclick="v3pop('add','furn')">Möbler</button><button class="${sub === 'plant' ? 'on' : ''}" onclick="v3pop('add','plant')">Växter</button></div>` + (sub === 'plant' ? v3PlantHtml() : v3FurnHtml()); }
-function v3ViewHtml() { return `<button onclick="v3done();cam3('top')">Uppifrån</button><button onclick="v3done();cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="v3done();S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button>${floors().length > 1 ? `<button onclick="v3done();cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}<div class="sunrow"><label>Solen kl <b id="sunlbl">${sunLbl()}</b></label><input type="range" min="5" max="22" step="0.5" value="${sunH()}" oninput="sunSet(this.value)"></div>`; }
+function v3ViewHtml() { return `<button onclick="v3done();cam3('top')">Uppifrån</button><button onclick="v3done();cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="v3done();S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button>${floors().length > 1 ? `<button onclick="v3done();cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}`; }
 function v3BedsHtml() { const L = bedsList(), cur = curBed(); return (L.length ? L.map(x => `<button class="${cur && cur.id === x.id ? 'on' : ''}" onclick="v3bed('${x.id}')">${esc(bedNameOf(x))}</button>`).join('') : '<p class="mut" style="margin:6px 2px">Du har inga rabatter än.</p>') + '<button onclick="v3newBed()">＋ Ny rabatt</button>'; }
 function v3bed(id) { v3done(); bedSwitch(id); }
 function v3newBed() { v3done(); PL().bname = ''; S.focusBed = null; S.hview = 'plan'; render(); setTimeout(() => { if (S.tool === 'house') { planMode('bed'); PL().bnew = true; render(); } }, 60); }
@@ -7659,6 +7659,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.230', '28 okt 23:12', ['Reglaget för tiden på dygnet ligger under 3D-bilden, så den inte döljs']],
   ['Beta 0.229', '28 okt 23:09', ['Trädgården utgår från solen i stället för väderstreck, och 3D visar solen och skuggor efter månad och tid på dygnet']],
   ['Beta 0.228', '28 okt 22:59', ['Rabatter får namn och du byter mellan dem med en rullgardin, i ritningen och i 3D']],
   ['Beta 0.227', '28 okt 22:52', ['3D-knapparna är färre åt gången: Lägg till och Vy öppnar undermenyer']],
@@ -8431,7 +8432,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.229';
+const APP_VERSION = 'Beta 0.230';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
