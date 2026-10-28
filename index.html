@@ -7606,6 +7606,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.220', '28 okt 21:45', ['Hälsning i uppdateringsrutan med uppmaning att testa och ge feedback']],
   ['Beta 0.219', '28 okt 21:30', ['3D visar månad för månad med ‹ ›, och växterna får sina egna höstfärger och blommar under sina riktiga blomningsmånader',
     'Planera rabatt: ett tryck från Hem, numrerade steg och växtförslag efter ljus, fukt, syfte och höjd, med sidor, sortering och filter',
     'På vintern ligger det snö på rabatterna och perennerna vissnar ner. Går man från Planera rabatt till 3D kommer man nära rabatten',
@@ -7781,7 +7782,7 @@ const NEWS = [
 ];
 function openNews() { stopLight(); S.sel = null; S.modal = null; S.tool = 'news'; render(); $('#main').scrollTop = 0; }
 function updV() { const norm = v => String(v).replace(/^Beta 0\./, '1.'), from = S.updFrom, list = []; for (const n of NEWS) { if (norm(n[0]) === norm(from)) break; list.push(n); } const items = list.length ? list : NEWS.slice(0, 1);
-  return `<div class="mh"><h2>Nytt i version ${APP_VERSION}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div><div style="max-height:60vh;overflow:auto">${items.map(n => `<div class="setcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b>Version ${n[0]}</b><span class="mut" style="font-size:13px">${n[1]}</span></div><ul style="margin:8px 0 0;padding-left:18px;font-size:14.5px;line-height:1.5">${n[2].map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div><div class="cta" style="padding:12px 0 0;display:flex;gap:8px"><button class="btn" onclick="closeModal()">Klart</button><button class="btn line" onclick="closeModal();openNews()">Hela loggen</button></div>`; }
+  return `<div class="mh"><h2>Nytt i version ${APP_VERSION}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div><p style="margin:10px 0 4px;font-size:14.5px;line-height:1.5">Kul att du testar Roothood! Kolla gärna vad som är nytt nedan och testa det. Säg gärna till om något ska fixas, ändras, tas bort eller läggas till.</p><div style="max-height:60vh;overflow:auto">${items.map(n => `<div class="setcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b>Version ${n[0]}</b><span class="mut" style="font-size:13px">${n[1]}</span></div><ul style="margin:8px 0 0;padding-left:18px;font-size:14.5px;line-height:1.5">${n[2].map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div><div class="cta" style="padding:12px 0 0;display:flex;gap:8px"><button class="btn" onclick="closeModal()">Klart</button><button class="btn line" onclick="closeModal();openNews()">Hela loggen</button></div>`; }
 function checkUpdate() { let seen = '1.202'; try { seen = store.get('seenVer', '1.202'); } catch (e) {} if (seen === APP_VERSION) return; store.set('seenVer', APP_VERSION); S.updFrom = seen; S.modal = 'upd'; render(); }
 function newsV() { return `${topbar('Uppdateringar', 'closeTool()')}<div class="pad">${LANG === 'en' ? '<p class="mut" style="margin:0 0 12px">Uppdateringarna nedan är på svenska.</p>' : ''}<div data-notr>${NEWS.map(n => `<div class="setcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b>Version ${n[0]}</b><span class="mut" style="font-size:13px">${n[1]}</span></div><ul style="margin:8px 0 0;padding-left:18px;font-size:14.5px;line-height:1.5">${n[2].map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div></div><div style="height:24px"></div>`; }
 // ===== Såkalender =====
@@ -8368,7 +8369,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.219';
+const APP_VERSION = 'Beta 0.220';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
