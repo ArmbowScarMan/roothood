@@ -1356,6 +1356,9 @@ body.hadv nav{display:none}
 .v3pop .fl:first-child{margin-top:0}
 .v3pop .v3g{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .v3pop .v3l{grid-template-columns:1fr}
+.bname{display:flex;flex-direction:column;gap:6px;margin:6px 0 8px}
+.bname label{font-size:12.5px;font-weight:700;color:var(--mut)}
+.bname input,.bname select{font:inherit;font-size:15px;padding:9px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surf);color:var(--ink);width:100%}
 .v3pop>button{display:block;width:100%;margin-bottom:6px;text-align:left;font-size:14px;min-height:40px}
 .v3tabs{display:flex;gap:4px;padding:3px;margin-bottom:6px;border-radius:12px;background:var(--bg)}
 .v3tabs button{flex:1;min-height:32px;padding:4px;font-size:12.5px;background:transparent}
@@ -2669,7 +2672,7 @@ function view3dV() {
   const has = planRoomsAll().length || planAreas().length;
   const P = PL(), placing = P.mode === 'place' && P.pick, selF = !placing && P.sel && P.sel.k === 'furn' && planFurnAll().some(x => x.id === P.sel.id);
   return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}${has && !S.walk && placing ? `<div class="p3hint"><span>Tryck på golvet där ${esc(place3Name())} ska stå</span><button class="btn sm line" onclick="PL().mode='move';PL().pick=null;render()">Avbryt</button></div>` : ''}${has && !S.walk && selF ? `<div class="p3sel">${planSelV()}</div>` : ''}
-    ${has && S.walk ? walkUiV() : has ? `<div class="wx3" id="wx3">${wx3Text()}</div><div class="v3dock"><div class="v3pop" id="v3pop" hidden></div><div class="r"><button onclick="v3pop('add')">+ Lägg till ▾</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="v3pop('view')">Vy ▾</button></div><div class="r tm"><button class="m3b" onclick="stepMon3(-1)" aria-label="Förra månaden">‹</button><button class="m3n" onclick="S.mon3=null;build3d();keepMain()" title="Tillbaka till nu">${MONTH_NAMES[mo3() - 1].replace(/^./, c => c.toUpperCase())}</button><button class="m3b" onclick="stepMon3(1)" aria-label="Nästa månad">›</button></div></div>` : ''}</div>
+    ${has && S.walk ? walkUiV() : has ? `<div class="wx3" id="wx3">${wx3Text()}</div><div class="v3dock"><div class="v3pop" id="v3pop" hidden></div><div class="r"><button onclick="v3pop('beds')">Rabatter ▾</button><button onclick="v3pop('add')">+ Lägg till ▾</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="v3pop('view')">Vy ▾</button></div><div class="r tm"><button class="m3b" onclick="stepMon3(-1)" aria-label="Förra månaden">‹</button><button class="m3n" onclick="S.mon3=null;build3d();keepMain()" title="Tillbaka till nu">${MONTH_NAMES[mo3() - 1].replace(/^./, c => c.toUpperCase())}</button><button class="m3b" onclick="stepMon3(1)" aria-label="Nästa månad">›</button></div></div>` : ''}</div>
   <div style="height:12px"></div>`;
 }
 async function mount3d() {
@@ -2718,8 +2721,11 @@ function v3FurnHtml() { return FURN_GROUPS.map(([g, ks]) => [g, ks.map(k => FURN
 function v3PlantHtml() { const list = S.mine.slice(); return list.length ? `<span class="fl">Din samling</span><div class="v3g v3l">${list.map(m => `<button onclick="v3pick('plant','${m.id}')">${esc(m.name)}</button>`).join('')}</div>` : '<p class="mut" style="margin:6px 2px">Lägg först till växter i din samling.</p>'; }
 function v3AddHtml(sub) { return `<div class="v3tabs"><button class="${sub === 'furn' ? 'on' : ''}" onclick="v3pop('add','furn')">Möbler</button><button class="${sub === 'plant' ? 'on' : ''}" onclick="v3pop('add','plant')">Växter</button></div>` + (sub === 'plant' ? v3PlantHtml() : v3FurnHtml()); }
 function v3ViewHtml() { return `<button onclick="v3done();cam3('top')">Uppifrån</button><button onclick="v3done();cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="v3done();S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button>${floors().length > 1 ? `<button onclick="v3done();cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}`; }
+function v3BedsHtml() { const L = bedsList(), cur = curBed(); return (L.length ? L.map(x => `<button class="${cur && cur.id === x.id ? 'on' : ''}" onclick="v3bed('${x.id}')">${esc(bedNameOf(x))}</button>`).join('') : '<p class="mut" style="margin:6px 2px">Du har inga rabatter än.</p>') + '<button onclick="v3newBed()">＋ Ny rabatt</button>'; }
+function v3bed(id) { v3done(); bedSwitch(id); }
+function v3newBed() { v3done(); PL().bname = ''; S.focusBed = null; S.hview = 'plan'; render(); setTimeout(() => { if (S.tool === 'house') { planMode('bed'); PL().bnew = true; render(); } }, 60); }
 function v3done() { const p = $('#v3pop'); if (p) p.hidden = true; }
-function v3pop(k, sub) { const p = $('#v3pop'); if (!p) return; sub = sub || 'furn'; if (k === 'add' && sub === 'plant' && !planRooms().length) return toast('Rita först ett rum'); if (!p.hidden && p.dataset.k === k && (k !== 'add' || p.dataset.s === sub)) { p.hidden = true; return; } p.dataset.k = k; p.dataset.s = sub; p.innerHTML = k === 'add' ? v3AddHtml(sub) : v3ViewHtml(); p.hidden = false; }
+function v3pop(k, sub) { const p = $('#v3pop'); if (!p) return; sub = sub || 'furn'; if (k === 'add' && sub === 'plant' && !planRooms().length) return toast('Rita först ett rum'); if (!p.hidden && p.dataset.k === k && (k !== 'add' || p.dataset.s === sub)) { p.hidden = true; return; } p.dataset.k = k; p.dataset.s = sub; p.innerHTML = k === 'add' ? v3AddHtml(sub) : k === 'beds' ? v3BedsHtml() : v3ViewHtml(); p.hidden = false; }
 function v3pick(k, t) { const p = $('#v3pop'); if (p) p.hidden = true; if (k === 'furn') startPlace({ k: 'furn', t }); else startPlace({ k: 'plant', id: +t }); }
 function fit3d() { let b = T3.bounds; if (!b) return;
   // Den lilla bilden av Mitt hem på Hem visar huset tätt, utan trädgård och tomt runt om
@@ -5891,8 +5897,8 @@ const curBed = () => { const P = PL(); return P.bedId ? planAreas().find(a => a.
 function bedFocus(a) { const P = PL(), box = $('#planbox'); if (!a || !box) return; const bb = bbox(a.pts), W = box.clientWidth, H = box.clientHeight * 0.55, z = Math.max(20, Math.min(zMax(), Math.min(W / (bb[2] - bb[0] + 0.8), H / (bb[3] - bb[1] + 0.8))));
   P.z = z; P.fit = false; const cx = (bb[0] + bb[2]) / 2, cy = (bb[1] + bb[3]) / 2, q = rotPt(cx * z, cy * z, viewRot()); P.ox = W / 2 - q[0]; P.oy = box.clientHeight * 0.3 - q[1]; }
 function bedModeStart() { const P = PL(); const beds = planAreas().filter(a => ['bed', 'veg'].includes(a.t)); if (!curBed() && beds.length) P.bedId = beds[beds.length - 1].id; P.bnew = !beds.length; P.bdim = P.bdim || { L: 3, D: 1.2, shape: 'rect' }; P.ssel = null; setTimeout(() => { if (curBed()) { bedFocus(curBed()); renderPlan(); } }, 30); }
-function bedNewAt(pt) { const P = PL(), d = P.bdim || { L: 3, D: 1.2, shape: 'rect' }; pushUndo(); S.hplan = S.hplan || {}; const br = { cx: Math.round(pt.x * 20) / 20, cy: Math.round(pt.y * 20) / 20, L: d.L, D: d.D, rot: 0, shape: d.shape }, a = { id: 'a' + Date.now().toString(36), t: 'bed', pts: bedPts(br), br, bp: [], spots: [] };
-  S.hplan.areas = planAreas().concat(a); P.bedId = a.id; P.bnew = false; P.ssel = null; saveHomeSoon(); bedFocus(a); render(); toast('Rabatten är utlagd. Välj en växt och tryck i rabatten för att sätta ut den.'); }
+function bedNewAt(pt) { const P = PL(), d = P.bdim || { L: 3, D: 1.2, shape: 'rect' }; if (!(P.bname || '').trim()) return toast('Ge rabatten ett namn först'); pushUndo(); S.hplan = S.hplan || {}; const br = { cx: Math.round(pt.x * 20) / 20, cy: Math.round(pt.y * 20) / 20, L: d.L, D: d.D, rot: 0, shape: d.shape }, a = { id: 'a' + Date.now().toString(36), t: 'bed', name: (P.bname || '').trim(), pts: bedPts(br), br, bp: [], spots: [] };
+  S.hplan.areas = planAreas().concat(a); P.bedId = a.id; P.bnew = false; P.bname = ''; P.ssel = null; saveHomeSoon(); bedFocus(a); render(); toast('Rabatten är utlagd. Välj en växt och tryck i rabatten för att sätta ut den.'); }
 function bedSetDim(k, v) { const P = PL(), a = curBed(); v = parseFloat(String(v).replace(',', '.')); if (!(v > 0)) return; v = Math.max(0.2, Math.min(50, Math.round(v * 100) / 100));
   if (!a || P.bnew) { P.bdim = Object.assign({ L: 3, D: 1.2, shape: 'rect' }, P.bdim, { [k]: v }); render(); return; }
   if (!a.br) return; pushUndo(); a.br[k] = v; a.pts = bedPts(a.br); const before = (a.spots || []).length; a.spots = (a.spots || []).filter(s => inPoly(s.x, s.y, a.pts)); bedSyncBp(a); saveHomeSoon(); render(); if (a.spots.length < before) toast((before - a.spots.length) + ' växter hamnade utanför och togs bort'); }
@@ -5935,14 +5941,19 @@ function bedLayer(X, Y, z) {
   if (P.ssel != null && a.spots[P.ssel]) { const s = a.spots[P.ssel], n = spotNear(a, P.ssel); if (n) { const t = a.spots[n.j], bad = n.d < n.need * 0.9; o += `<line x1="${X(s.x)}" y1="${Y(s.y)}" x2="${X(t.x)}" y2="${Y(t.y)}" stroke="${bad ? '#C2412D' : 'var(--pri)'}" stroke-width="2" pointer-events="none"/><text x="${((+X(s.x) + +X(t.x)) / 2).toFixed(1)}" y="${((+Y(s.y) + +Y(t.y)) / 2 - 6).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="800" fill="${bad ? '#C2412D' : 'var(--pri)'}" stroke="var(--bg)" stroke-width="3.5" paint-order="stroke" pointer-events="none">${Math.round(n.d * 100)} cm${bad ? ' (minst ' + Math.round(n.need * 100) + ')' : ''}</text>`; } }
   return o;
 }
+function bedsList() { return planAreas().filter(a => ['bed', 'veg'].includes(a.t)); }
+function bedNameOf(a) { const i = bedsList().indexOf(a); return (a && a.name) || 'Rabatt ' + (i + 1); }
+function bedSwitch(id) { const P = PL(); const a = bedsList().find(x => x.id === id); if (!a) return; P.bedId = a.id; P.bnew = false; P.ssel = null; S.focusBed = a.id; if (S.hview === 'plan') { bedFocus(a); render(); } else if (T3 && T3.st) { focusBed3d(); T3.dirty = true; } }
+function bedRename(v) { const a = curBed(), n = (v || '').trim(); if (!a) return; if (!n) { toast('Namnet får inte vara tomt'); return render(); } a.name = n; saveHomeSoon(); render(); }
 function bedPanelV() {
   const P = PL(), a = curBed(), d = P.bdim || { L: 3, D: 1.2, shape: 'rect' };
   const dims = (L, D, sh, dis) => `<div class="bdims"><label>Längd<input type="text" inputmode="decimal" value="${String(L).replace('.', ',')}" ${dis ? 'disabled' : ''} onchange="bedSetDim('L',this.value)"><small>m</small></label><label>Djup<input type="text" inputmode="decimal" value="${String(D).replace('.', ',')}" ${dis ? 'disabled' : ''} onchange="bedSetDim('D',this.value)"><small>m</small></label><div class="chips2 sm">${[['rect', '▭ Rak'], ['round', '◯ Rund']].map(([k, t]) => `<button class="${sh === k ? 'on' : ''}" ${dis ? 'disabled' : ''} onclick="bedShape('${k}')">${t}</button>`).join('')}</div></div>`;
-  if (P.bnew || !a) return `<div class="psel col bpanel"><b>Ny rabatt</b><p class="bstep"><span>1</span>Välj storlek och form</p>${dims(d.L, d.D, d.shape)}<p class="bstep"><span>2</span>Tryck på gården där rabatten ska ligga</p>${planAreas().some(x => ['bed', 'veg'].includes(x.t)) ? '<button class="link3" onclick="PL().bnew=false;render()">Avbryt</button>' : ''}</div>`;
+  if (P.bnew || !a) return `<div class="psel col bpanel"><b>Ny rabatt</b><div class="bname"><label>Namn på rabatten (krävs)</label><input type="text" value="${esc(P.bname || '')}" placeholder="t.ex. Rosenrabatten" oninput="PL().bname=this.value"></div><p class="bstep"><span>1</span>Välj storlek och form</p>${dims(d.L, d.D, d.shape)}<p class="bstep"><span>2</span>Tryck på gården där rabatten ska ligga</p>${planAreas().some(x => ['bed', 'veg'].includes(x.t)) ? '<button class="link3" onclick="PL().bnew=false;render()">Avbryt</button>' : ''}</div>`;
   const p = plantById(P.bpick), [L, D] = a.br ? [a.br.L, a.br.D] : bedDims(a.pts), sp = a.spots || [], bad = sp.filter((s, i) => spotBad(a, i)).length;
   const cnt = {}; sp.forEach(s => cnt[s.pid] = (cnt[s.pid] || 0) + 1);
   const sel = P.ssel != null && sp[P.ssel] ? sp[P.ssel] : null, sp2 = sel && plantById(sel.pid), nn = sel ? spotNear(a, P.ssel) : null;
   return `<div class="psel col bpanel">
+    <div class="bname"><select class="bsel" onchange="bedSwitch(this.value)" aria-label="Byt rabatt">${bedsList().map(x => `<option value="${x.id}" ${x.id === a.id ? 'selected' : ''}>${esc(bedNameOf(x))}</option>`).join('')}</select><input type="text" value="${esc(bedNameOf(a))}" aria-label="Namn på rabatten" onchange="bedRename(this.value)"></div>
     <div class="brow2"><div class="grow"><b>Rabatt ${fmtM(L)} × ${fmtM(D)}</b><span>${sp.length} ${sp.length === 1 ? 'växt' : 'växter'}${bad ? ` · <em class="bad">${bad} står för tätt</em>` : ''}</span></div></div>
     <div class="btools"><button onclick="bedRot(15)">⟳ Vrid</button><button class="${P.bdimOpen ? 'on' : ''}" onclick="PL().bdimOpen=!PL().bdimOpen;render()">📏 Storlek</button><button onclick="PL().bnew=true;PL().ssel=null;render()">＋ Ny rabatt</button></div>
     ${P.bdimOpen ? (a.br ? dims(a.br.L, a.br.D, a.br.shape) : `<span class="mut" style="font-size:12.5px">Formen ändrar du med hörnen under Flytta.</span>`) : ''}
@@ -7638,6 +7649,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.228', '28 okt 22:59', ['Rabatter får namn och du byter mellan dem med en rullgardin, i ritningen och i 3D']],
   ['Beta 0.227', '28 okt 22:52', ['3D-knapparna är färre åt gången: Lägg till och Vy öppnar undermenyer']],
   ['Beta 0.226', '28 okt 22:48', ['3D: Möbler och Växter öppnar en lista direkt i 3D-vyn']],
   ['Beta 0.225', '28 okt 22:43', ['3D-knapparna ligger i en samlad panel med tydligare grupper']],
@@ -8408,7 +8420,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.227';
+const APP_VERSION = 'Beta 0.228';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
