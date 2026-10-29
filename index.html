@@ -2986,6 +2986,31 @@ function fit3d() { let b = T3.bounds; if (!b) return;
   const dv = (cd / 2) / t, dh = (cw / 2) / (t * asp); T3.st.dist = Math.max(6, Math.max(dv, dh) * 1.2 + (T3.ty || 0) * 1.6); }
 function canvasTex3d(THREE, w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); if (THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace; return t; }
 function skyTex3d(THREE, dark) { return canvasTex3d(THREE, 4, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, dark ? '#0E1D16' : '#CFE4EC'); g.addColorStop(0.6, dark ? '#16281E' : '#EAF2EE'); g.addColorStop(1, dark ? '#1F3427' : '#F3F1E6'); x.fillStyle = g; x.fillRect(0, 0, w, h); }); }
+// Hitta inneslutna ytor utan golv: rita rummens kanter och de fristående väggarna i ett rutnät, fyll utifrån,
+// och det som inte nås och inte ligger i ett rum är en yta inomhus som behöver golv. Ger en geometri per yta.
+function gapFloor3(fl, rooms, walls) {
+  if (!rooms.length || !walls.length) return [];
+  const segs = []; rooms.forEach(r => { const pg = roomPoly(r); pg.forEach((q, i) => { const n = pg[(i + 1) % pg.length]; segs.push([q[0], q[1], n[0], n[1]]); }); }); walls.forEach(wl => segs.push([wl.x1, wl.y1, wl.x2, wl.y2]));
+  const xs = segs.flatMap(q => [q[0], q[2]]), ys = segs.flatMap(q => [q[1], q[3]]), C = 0.1, x0 = Math.min(...xs) - 0.5, y0 = Math.min(...ys) - 0.5, W = Math.ceil((Math.max(...xs) + 0.5 - x0) / C), H = Math.ceil((Math.max(...ys) + 0.5 - y0) / C);
+  if (W * H > 400000) return [];
+  const id = (i, j) => j * W + i, wall = new Uint8Array(W * H), inRoom = new Uint8Array(W * H), seen = new Uint8Array(W * H);
+  segs.forEach(([a1, b1, a2, b2]) => { const L = Math.hypot(a2 - a1, b2 - b1), n = Math.max(1, Math.ceil(L / 0.02)); for (let k = 0; k <= n; k++) { const x = a1 + (a2 - a1) * k / n, y = b1 + (b2 - b1) * k / n, i = Math.floor((x - x0) / C), j = Math.floor((y - y0) / C);
+    for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) { const ii = i + di, jj = j + dj; if (ii >= 0 && jj >= 0 && ii < W && jj < H) wall[id(ii, jj)] = 1; } } });
+  const pgs = rooms.map(roomPoly); for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const x = x0 + (i + 0.5) * C, y = y0 + (j + 0.5) * C; if (pgs.some(pg => inPoly(x, y, pg))) inRoom[id(i, j)] = 1; }
+  const st = []; for (let i = 0; i < W; i++) { st.push(id(i, 0), id(i, H - 1)); } for (let j = 0; j < H; j++) { st.push(id(0, j), id(W - 1, j)); }
+  while (st.length) { const k = st.pop(); if (seen[k] || wall[k]) continue; seen[k] = 1; const i = k % W, j = (k - i) / W; if (i > 0) st.push(k - 1); if (i < W - 1) st.push(k + 1); if (j > 0) st.push(k - W); if (j < H - 1) st.push(k + W); }
+  const out = [], comp = new Int32Array(W * H).fill(-1);
+  for (let k0 = 0; k0 < W * H; k0++) { if (seen[k0] || wall[k0] || inRoom[k0] || comp[k0] >= 0) continue;
+    const cells = [], q = [k0]; comp[k0] = out.length; while (q.length) { const k = q.pop(); cells.push(k); const i = k % W; [i > 0 ? k - 1 : -1, i < W - 1 ? k + 1 : -1, k - W, k + W].forEach(n => { if (n >= 0 && n < W * H && comp[n] < 0 && !seen[n] && !wall[n] && !inRoom[n]) { comp[n] = out.length; q.push(n); } }); }
+    if (cells.length * C * C < 0.5 || cells.length * C * C > 80) { out.push(null); continue; }
+    // Väx ut ett par rutor in under väggarna så att golvet möter rummens golv utan glipa
+    const set = new Set(cells); for (let g = 0; g < 2; g++) [...set].forEach(k => { const i = k % W; [i > 0 ? k - 1 : -1, i < W - 1 ? k + 1 : -1, k - W, k + W].forEach(n => { if (n >= 0 && n < W * H && !seen[n] && !inRoom[n]) set.add(n); }); });
+    const pos = [], uv = [], idx = []; let cx = 0, cy = 0, v = 0;
+    [...set].forEach(k => { const i = k % W, j = (k - i) / W, xa = x0 + i * C, ya = y0 + j * C, xb = xa + C, yb = ya + C; cx += xa; cy += ya;
+      pos.push(xa, 0, ya, xb, 0, ya, xb, 0, yb, xa, 0, yb); uv.push(xa, -ya, xb, -ya, xb, -yb, xa, -yb); idx.push(v, v + 2, v + 1, v, v + 3, v + 2); v += 4; });
+    out.push({ pos, uv, idx, cx: cx / set.size, cy: cy / set.size }); }
+  const THREE = T3.THREE; return out.filter(Boolean).map(o => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(o.pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(o.uv, 2)); g.setIndex(o.idx); g.computeVertexNormals(); return { geo: g, cx: o.cx, cy: o.cy }; });
+}
 // Golvtextur på 1,2 × 1,2 m: brädor med ådring, eller kakel med fogar
 function floorTex3d(THREE, kind, col) { return canvasTex3d(THREE, 512, 512, (x, w, h) => {
   const rnd = (i => () => { i = (i * 16807) % 2147483647; return (i % 1000) / 1000; })(7 + col.length * 131 + (kind === 'tile' ? 3 : 0)), sh = (c, f) => mixHex(c, f > 0 ? '#FFFFFF' : '#000000', Math.abs(f));
@@ -3088,6 +3113,11 @@ function build3dInner(first) {
         else if (o.k === 'bay') fwBaySegs(wl, o).forEach(g => { box(g[0], g[1], g[2], g[3], 0, Math.min(0.9, WH), TH, '#F4EFE6'); if (WH > 0.9) { box(g[0], g[1], g[2], g[3], 0.9, Math.min(WH, 2.1) - 0.9, 0.03, '#9FD3EF', { noext: 1, mat: { transparent: true, opacity: 0.35, roughness: 0.1 } }); if (WH > 2.1) box(g[0], g[1], g[2], g[3], 2.1, WH - 2.1, TH, '#F4EFE6'); } });
         else { if (WH > 2.1 && wl.h !== 'half') box(q[0], q[1], q[2], q[3], 2.1, WH - 2.1, TH, '#F4EFE6', { noext: 1 }); if (wl.h !== 'half') doorDetail(q, WH, TH, box); }
         a = o.p + o.l; }); part(a, Lw); } } });
+  // Golv i ytor som är inneslutna av rum och fristående väggar men inte är egna rum (t.ex. en hall man byggt med väggar)
+  [...new Set(planRooms().map(flOf))].filter(floorVis).forEach(fl => { try { gapFloor3(fl, planRooms().filter(r => flOf(r) === fl), planWalls().filter(wl => wl.h !== 'hedge' && flOf(wl) === fl)).forEach(g => {
+    const near = planRooms().filter(r => flOf(r) === fl).map(r => { const c = roomPoly(r).reduce((a2, q) => [a2[0] + q[0], a2[1] + q[1]], [0, 0]).map(v2 => v2 / roomPoly(r).length); return { r, d: Math.hypot(c[0] - g.cx, c[1] - g.cy) }; }).sort((a2, b2) => a2.d - b2.d)[0];
+    const r = near && near.r, v = r ? roomSun(r) : 2, col = (r && r.floor) || (v >= 2.5 ? '#E3C99D' : v >= 1.7 ? '#DCC7A6' : '#CDBCA3'), kind = r && /kök|bad|tvätt|hall|wc|entré|toalett|dusch/i.test((r.type || '') + ' ' + (r.name || '')) ? 'tile' : 'wood';
+    const m = new THREE.Mesh(g.geo, S.low3d ? M(col) : fmat(kind, col)); m.position.y = 0.01; cur = grp(fl); add(m, false, true); }); } catch (e) { console.warn('Roothood golv:', e); } });
   cur = null;
   // möbler
   planFurn().filter(f => OUT3[f.t]).forEach(f => OUT3[f.t](f, THREE, M, sc));
@@ -8090,6 +8120,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.241', '29 okt 15:00', ['Golv i inomhusytor som är inneslutna av fristående väggar eller där väggar tagits bort, så att rum som byggts ihop får golv överallt inomhus', 'Golvet får samma färg och material som rummet bredvid'] ],
   ['Beta 0.240', '29 okt 14:30', ['532 nya trädgårdsväxter: träd, barrväxter, buskar, rosor, klätterväxter, perenner, gräs, ormbunkar, lökar och sommarblommor, med kända sorter', 'Växtlampor kan sitta i taket, på väggen, på en möbel eller på golvstativ', 'Ny grafik i 3D: trägolv och kakel, golvlister, mjuka skuggor vid väggarna, sockel runt huset, bättre ljus och glans, mjukare gräsmatta och riktiga löv', 'Ny styrning i 3D: zooma ända fram till en blomma, nyp mot det du vill se, dubbeltryck för att åka fram, vrid och flytta med två fingrar, snurr med tröghet och plus och minus bredvid Ångra', 'Möbelpanelen i 3D är inte längre högre än sitt innehåll', 'Såkalendern på startsidan har samma gröna ikonruta som de andra']],
   ['Beta 0.239', '29 okt 12:55', ['Ångra-knapp i 3D-vyn, på samma rad som vädret så den inte krockar med något', 'Saker i rummen kan inte längre flyttas ut ur huset i 3D. En klämlampa på en växt hoppar inte när du börjar flytta den', 'Städer på zongränsen visar båda zonerna, till exempel Piteå zon 5 och zon 6']],
   ['Beta 0.238', '29 okt 12:45', ['Växtbelysning: välj om en växt har lampa och hur långt från växten den sitter. Den syns i 3D och påverkar rådet om ljus', 'Växtbelysning i 3D: en lampa-panel när du trycker på en växtlampa, och ett valbart avstånd för växtlampor', 'Såkalender: sök din stad för att välja zon, och zonkartan från Blomsterlandet kan visas när du väljer zon', 'Zonerna och städerna är uppdaterade efter zonkartan', 'Vädret i 3D ligger nu under 3D-rutan i stället för över knapparna', 'Möbelpanelen i 3D är mer kompakt']],
@@ -9104,7 +9135,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.240';
+const APP_VERSION = 'Beta 0.241';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
