@@ -29,6 +29,17 @@ const srv = http.createServer((q, r) => { const p = path.join(dir, q.url.split('
         out.termometerPaVagg = Math.abs(P[1].x - 0.08) < 0.01 && P[1].y > 1.2;
         out.lampaOverVaxt = Math.hypot(P[2].x - 2, P[2].z - 1.5) < 0.01 && P[2].y > 0.55; // standardavstånd 40 cm ovanför växten
         out.allaApparater = sc.children.length === 8 && sc.children.every(g => g.children.length >= 1); S.hplan = oldP; }
+      // Växtlampans fäste: tak, vägg, möbel och golvstativ, för alla utseenden
+      { const oldP = S.hplan, GS = ['bar', 'panel', 'bulb', 'shade', 'stand', 'clip', 'ring', 'strip'], GM = ['tak', 'vagg', 'mobel', 'golv'];
+        S.hplan = { items: GS.flatMap(gs => GM.map(gm => ({ id: gs + gm, t: 'grow', gs, gm, x: gm === 'vagg' ? 0.4 : 2.6, y: 1.5 }))) };
+        const sc = new Obj(); devices3d(THREE, M, sc, [], () => 0);
+        const at = (gs, gm) => sc.children[GS.indexOf(gs) * 4 + GM.indexOf(gm)];
+        out.fasteAlla = sc.children.length === 32 && sc.children.every(g => g.children.length >= 1);
+        out.fasteTak = GS.every(gs => Math.abs(at(gs, 'tak').position.y - 1.9) < 0.01);
+        out.fasteVagg = GS.every(gs => Math.abs(at(gs, 'vagg').position.x - 0.33) < 0.02 && Math.abs(at(gs, 'vagg').position.y - 1.6) < 0.01);
+        out.fasteGolv = GS.every(gs => Math.abs(at(gs, 'golv').position.y - 1.5) < 0.01);
+        out.fasteMobel = GS.every(gs => at(gs, 'mobel').position.y < 0.6);
+        S.hplan = oldP; }
       // Bord med ben
       const added = []; furn3d({ t: 'dtable', x: 2, y: 1.5, w: 1.6, h: 0.9 }, THREE, M, o => added.push(o));
       out.bord = added.length === 1 && added[0].children.length === 5;   // skiva + 4 ben
