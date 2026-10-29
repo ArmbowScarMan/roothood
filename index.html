@@ -1169,7 +1169,16 @@ button.pw{cursor:pointer}
 .ptools .pti svg{width:18px;height:18px}
 .ptools .ptl{font-size:10.5px}
 .pbar{display:flex;align-items:flex-start;gap:8px;margin:0 18px 8px}
-.pbar .phint{flex:1;margin:0;height:auto;max-height:36px;font-size:12.5px;line-height:1.4;-webkit-line-clamp:2}
+.pbar .phint{flex:1;margin:0;height:auto;max-height:none;overflow:visible;display:block;-webkit-line-clamp:unset;font-size:12.5px;line-height:1.4}
+.pguide{margin:0 18px 8px;padding:8px 10px;border-radius:14px;background:var(--surf);border:1px solid var(--line)}
+.pguide .gh{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;margin-bottom:6px}
+.pguide .gh button{margin-left:auto;background:none;border:0;color:var(--mut);font-size:12.5px;font-weight:700;padding:2px 4px}
+.pguide .gs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.pguide .gs button{flex:none;display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 10px;font-size:12.5px;font-weight:700}
+.pguide .gs button i{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--line);font-style:normal;font-size:11px;font-weight:800}
+.pguide .gs button.ok{color:var(--mut)}
+.pguide .gs button.ok i{background:var(--pri2);color:#fff}
+.pguide .gs button.nx{border-color:var(--pri);box-shadow:0 0 0 1px var(--pri) inset}
 .savep{flex:none;border:0;font:inherit;font-size:12.5px;font-weight:800;border-radius:999px;padding:7px 12px;cursor:pointer;background:var(--soft);color:var(--pri2)}
 .savep.dirty{background:var(--acc);color:#fff;box-shadow:0 4px 12px rgba(194,100,63,.35)}
 .savep:disabled{opacity:.7}
@@ -2931,7 +2940,7 @@ async function mount3d() {
 }
 // Från Planera rabatt till 3D: kameran går nära den rabatt man planerar
 function focusBed3d() { const id = S.focusBed; S.focusBed = null; if (!T3 || !T3.st) return; const a = planAreas().find(x => x.id === id); if (!a || !a.pts || a.pts.length < 3) return;
-  const b = bbox(a.pts), st = T3.st, span = Math.max(b[2] - b[0], b[3] - b[1]); st.tx = (b[0] + b[2]) / 2; st.tz = (b[1] + b[3]) / 2; st.dist = Math.max(2.5, span * 1.3 + 1.5); st.el = 0.7; T3.dirty = true; }
+  const b = bbox(a.pts), st = T3.st, span = Math.max(b[2] - b[0], b[3] - b[1]); st.tx = (b[0] + b[2]) / 2; st.tz = (b[1] + b[3]) / 2; st.dist = Math.max(2.5, span * 1.1 + 1.2); st.el = 0.5; T3.dirty = true; }
 function setHView(k) { if (k === '3d' && S.hview !== '3d' && PL().mode === 'bed') { const a = curBed(); if (a) S.focusBed = a.id; } S.hview = k; render(); }
 function place3dCam() { if (S.focusBed && T3 && T3.bounds) focusBed3d(); const st = T3.st, c = T3.camera, ty = T3.ty || 0;
   if (T3.walk && !S.walk) T3.walk = null; const fov = T3.walk ? 70 : 45; if (c.fov !== fov) { c.fov = fov; c.updateProjectionMatrix(); }
@@ -3104,7 +3113,7 @@ function build3dInner(first) {
       if (!w.k) { winDetail(q, WH, TH, box); curt3(q, r, WH, box); } else if (w.k === 'door') doorDetail(q, WH, TH, box); });
     const lab = label3d(r.name); if (lab) { lab.userData.lbl = 1; const c0 = roomPoly(r).reduce((s2, q) => [s2[0] + q[0], s2[1] + q[1]], [0, 0]).map(v2 => v2 / roomPoly(r).length); lab.position.set(c0[0], WH + 0.6, c0[1]); (cur || sc).add(lab); }
   });
-  planWalls().filter(wl => wl.h === 'hedge' || floorVis(flOf(wl))).forEach(wl => { if (wl.h === 'hedge') { cur = null; hedge3d(wl, THREE, M, sc, box); } else { cur = grp(flOf(wl)); const hh = wl.h === 'half' ? Math.min(1.1, WH) : WH;
+  planWalls().filter(wl => wl.h === 'hedge' || floorVis(flOf(wl))).forEach(wl => { if (wl.h === 'hedge') { cur = null; hedge3d(wl, THREE, M, sc, box); } else { cur = grp(flOf(wl)); const TH = wl.th || 0.12; const hh = wl.h === 'half' ? Math.min(1.1, WH) : WH;
     const items = (wl.ops || []).filter(o => o.k === 'door' || (o.k === 'win' && wl.h !== 'half')).map(o => ({ ...o })).concat((wl.bays || []).map(b => ({ ...b, k: 'bay' }))).sort((x, y) => x.p - y.p);
     if (!items.length) box(wl.x1, wl.y1, wl.x2, wl.y2, 0, hh, TH, '#F4EFE6');
     else { let a = 0; const Lw = fwLen(wl), part = (p0, p1) => { if (p1 - p0 > 0.02) { const q = fwSeg(wl, p0, p1 - p0); box(q[0], q[1], q[2], q[3], 0, hh, TH, '#F4EFE6'); } };
@@ -4427,10 +4436,11 @@ function planInner() {
       void lx; void ly; });
     if (on) out += `<circle data-k="handle" data-id="${r.id}" cx="${X(x + w)}" cy="${Y(y + h)}" r="11" fill="var(--acc)" stroke="#fff" stroke-width="3"/><path d="M${(P.ox + (x + w) * z - 4).toFixed(1)} ${(P.oy + (y + h) * z + 4).toFixed(1)}l8 -8m-5 0h5v5" stroke="#fff" stroke-width="2" fill="none" pointer-events="none"/>`;
   });
-  planWalls().forEach(wl => { const on = sel.k === 'fwall' && sel.id === wl.id, half = wl.h === 'half';
+  const fopHits = [];
+  planWalls().forEach(wl => { const on = (sel.k === 'fwall' && sel.id === wl.id) || multiHas('fwall', wl.id), half = wl.h === 'half';
     if (wl.h === 'hedge') { out += `<line x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="${on ? 'var(--acc)' : '#4E8B3A'}" stroke-width="${Math.max(6, 0.8 * z).toFixed(1)}" stroke-linecap="round" opacity=".75" pointer-events="none"/><line data-k="fwall" data-id="${wl.id}" x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="transparent" stroke-width="26"/>`; return; }
     const pcs = fwPieces(wl);
-    out += pcs.map(g => `<line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="${on ? 'var(--acc)' : half ? 'var(--mut)' : 'var(--ink)'}" stroke-width="${half ? 8 : 3.2}" stroke-linecap="round" ${half ? 'opacity=".35"' : ''} pointer-events="none"/>`).join('');
+    out += pcs.map(g => `<line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="${on ? 'var(--acc)' : half ? 'var(--mut)' : 'var(--ink)'}" stroke-width="${half ? 8 : Math.max(3.2, (wl.th || 0.12) * z).toFixed(1)}" stroke-linecap="round" ${half ? 'opacity=".35"' : ''} pointer-events="none"/>`).join('');
     { const L0 = fwLen(wl) || 1, [fnx, fny] = fwNorm(wl);
       (wl.ops || []).forEach(o => { const [a, b, c, d] = fwSeg(wl, o.p, o.l), sg = o.sg || 1;
         if (o.k === 'win') out += `<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="var(--wat)" stroke-width="9" pointer-events="none"/><line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="#fff" stroke-width="2" pointer-events="none"/>`;
@@ -4438,12 +4448,18 @@ function planInner() {
         else if (o.k === 'rad') { const f = 0.16 * sg, x1 = a + fnx * f, y1 = b + fny * f, x2 = c + fnx * f, y2 = d + fny * f; out += `<line x1="${X(x1)}" y1="${Y(y1)}" x2="${X(x2)}" y2="${Y(y2)}" stroke="#D9825C" stroke-width="7" stroke-linecap="round" pointer-events="none"/><line x1="${X(x1)}" y1="${Y(y1)}" x2="${X(x2)}" y2="${Y(y2)}" stroke="#fff" stroke-width="5" stroke-dasharray="1.5 3" pointer-events="none" opacity=".8"/>`; }
         else if (o.k === 'vent') { const mx = (a + c) / 2 + fnx * 0.18 * sg, my = (b + d) / 2 + fny * 0.18 * sg; out += `<g transform="translate(${X(mx)},${Y(my)})" pointer-events="none"><rect x="-8" y="-8" width="16" height="16" rx="4" fill="var(--surf)" stroke="var(--mut)" stroke-width="1.6"/><path d="M-4.5 -3h9M-4.5 0h9M-4.5 3h9" stroke="var(--mut)" stroke-width="1.4"/></g>`; } });
       (wl.bays || []).forEach(by => fwBaySegs(wl, by).forEach(g => { out += `<line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="var(--ink)" stroke-width="3.2" stroke-linecap="round" pointer-events="none"/><line x1="${X(g[0])}" y1="${Y(g[1])}" x2="${X(g[2])}" y2="${Y(g[3])}" stroke="var(--wat)" stroke-width="6" stroke-linecap="round" pointer-events="none" opacity=".7"/>`; })); }
+    (wl.ops || []).forEach((o, oi) => { const [a, b, c, d] = fwSeg(wl, o.p, o.l), ss = sel.k === 'fop' && sel.id === wl.id && sel.i === oi;
+      if (ss) fopHits.push(`<line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="var(--acc)" stroke-width="3" stroke-dasharray="5 4" pointer-events="none"/>`);
+      fopHits.push(`<line data-k="fop" data-id="${wl.id}" data-i="${oi}" x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" stroke="transparent" stroke-width="26"/>`); });
+    (wl.bays || []).forEach((by, bi) => { const q = fwBayPts(wl, by), ss = sel.k === 'fbay' && sel.id === wl.id && sel.i === bi;
+      fopHits.push(`<polyline data-k="fbay" data-id="${wl.id}" data-i="${bi}" points="${q.map(v => X(v[0]) + ',' + Y(v[1])).join(' ')}" fill="none" stroke="${ss ? 'var(--acc)' : 'transparent'}" stroke-width="${ss ? 3 : 26}" stroke-dasharray="${ss ? '5 4' : ''}"/>`); });
     out += `${half ? `<line x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="${on ? 'var(--acc)' : 'var(--mut)'}" stroke-width="2" stroke-linecap="round" pointer-events="none"/>` : ''}<line data-k="fwall" data-id="${wl.id}" x1="${X(wl.x1)}" y1="${Y(wl.y1)}" x2="${X(wl.x2)}" y2="${Y(wl.y2)}" stroke="transparent" stroke-width="26"/>`; });
+  out += fopHits.join('');
   if (P.ldraft) { const d = P.ldraft; out += `<line x1="${X(d.x0)}" y1="${Y(d.y0)}" x2="${X(d.x1)}" y2="${Y(d.y1)}" stroke="var(--pri)" stroke-width="4" stroke-linecap="round" stroke-dasharray="6 5"/><text x="${X((d.x0 + d.x1) / 2)}" y="${(P.oy + ((d.y0 + d.y1) / 2) * z - 10).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--pri)">${r1(Math.hypot(d.x1 - d.x0, d.y1 - d.y0))} m</text>`; }
   if (z < 6 && rs.length) { const [hx, hy] = mapCenter(); out += `<g transform="translate(${X(hx)},${Y(hy)})" pointer-events="none"><path d="M0 0c-7-9-11-14-11-19a11 11 0 0 1 22 0c0 5-4 10-11 19z" fill="var(--acc)" stroke="#fff" stroke-width="2"/><circle cy="-19" r="4" fill="#fff"/></g>`; }
-  if (z >= 18) planFurn().slice().sort((a, b) => (FLAT.has(b.t) - FLAT.has(a.t)) || (WALLF.has(a.t) - WALLF.has(b.t))).forEach(f => { const wf = WALLF.has(f.t); const on = sel.k === 'furn' && sel.id === f.id, W = f.w * z, H = f.h * z, nm = furnLabel(f), rug = FLAT.has(f.t), round = ROUNDS.has(f.t);
+  if (z >= 18) planFurn().slice().sort((a, b) => (FLAT.has(b.t) - FLAT.has(a.t)) || (WALLF.has(a.t) - WALLF.has(b.t))).forEach(f => { const wf = WALLF.has(f.t); const on = (sel.k === 'furn' && sel.id === f.id) || multiHas('furn', f.id), W = f.w * z, H = f.h * z, nm = furnLabel(f), rug = FLAT.has(f.t), round = ROUNDS.has(f.t);
     out += `<g data-k="furn" data-id="${f.id}" transform="translate(${T(f.x, f.y)}) rotate(${f.rot || 0})">${round ? `<ellipse rx="${(W / 2).toFixed(1)}" ry="${(H / 2).toFixed(1)}"` : `<rect x="${(-W / 2).toFixed(1)}" y="${(-H / 2).toFixed(1)}" width="${W.toFixed(1)}" height="${H.toFixed(1)}" rx="${Math.min(6, W / 5, H / 5).toFixed(1)}"`} fill="${wf ? 'none' : rug ? 'rgba(160,140,200,.18)' : 'var(--phb)'}" fill-opacity="${S.hplan.map && S.hplan.map.on ? .8 : 1}" stroke="${on ? 'var(--acc)' : 'var(--mut)'}" stroke-width="${on ? 2.5 : wf ? 3 : 1.3}" ${rug || wf ? 'stroke-dasharray="4 3"' : ''}/>${!rug && (!round || f.t === 'clock') && f.t !== 'stairs' ? frontMark(W, H) : ''}${f.t === 'sofa' && H > 14 ? `<rect x="${(-W / 2 + 3).toFixed(1)}" y="${(-H / 2 + 3).toFixed(1)}" width="${(W - 6).toFixed(1)}" height="${(H * 0.28).toFixed(1)}" rx="3" fill="none" stroke="var(--mut)" stroke-width="1" pointer-events="none"/>` : ''}${f.t.startsWith('bed') && H > 20 ? `<rect x="${(-W / 2 + 4).toFixed(1)}" y="${(-H / 2 + 4).toFixed(1)}" width="${(W - 8).toFixed(1)}" height="${(H * 0.18).toFixed(1)}" rx="3" fill="var(--surf)" stroke="var(--mut)" stroke-width="1" pointer-events="none"/>` : ''}${(f.rot || 0) % 180 === 90 ? (H > 34 && W > 13) : (f.rot || 0) % 180 === 0 ? (W > 34 && H > 13) : (Math.min(W, H) > 30) ? `<text y="4" text-anchor="middle" font-size="${Math.min(11, Math.min(W, H) * 0.45).toFixed(1)}" font-weight="700" fill="var(--mut)" pointer-events="none" transform="rotate(${-(f.rot || 0)})">${esc(nm)}</text>` : ''}</g>`; });
-  if (z >= 18) planItems().forEach(it => { const on = sel.k === 'dev' && sel.id === it.id, d = DEVS[it.t] || ['?', '•'];
+  if (z >= 18) planItems().forEach(it => { const on = (sel.k === 'dev' && sel.id === it.id) || multiHas('dev', it.id), d = DEVS[it.t] || ['?', '•'];
     out += `<g data-k="dev" data-id="${it.id}" transform="translate(${T(it.x, it.y)})">${on ? '<circle r="20" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>' : ''}<circle r="14" fill="var(--surf)" stroke="var(--pri)" stroke-width="2"/><text y="5" text-anchor="middle" font-size="14" pointer-events="none">${d[1]}</text></g>`; });
   if (z >= 2) S.mine.filter(m => m.details && m.details.pos && OUTDOOR.includes(m.category || (plantById(m.plant_id) || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place)).forEach(m => { const { x, y } = m.details.pos, pp = plantById(m.plant_id), wm = (m.details.w || pSize(pp || {})[1]) / 100, k = pp ? kind3d(pp) : 'perenn', col = ['gran', 'tall', 'pelare', 'krypbarr'].includes(k) ? '47,94,58' : '78,139,58';
     out += `<circle cx="${X(x)}" cy="${Y(y)}" r="${Math.max(4, wm / 2 * z).toFixed(1)}" fill="rgba(${col},.32)" stroke="rgb(${col})" stroke-width="1.5" ${m.details.w ? '' : 'stroke-dasharray="4 3"'} pointer-events="none"/>`; });
@@ -4474,6 +4490,7 @@ function planHint() {
   if (P.mode === 'room' && !P.roomDraw && !planRooms().length) return 'Tryck på <b>+ Nytt rum</b> när du vill rita ditt första rum. Tills dess kan du bara flytta kartan.';
   if (P.mode === 'room') return P.roomDraw ? '<b>Tryck där det nya rummet ska vara</b>, så får du ett rum på 3 × 3 m. Ändra storleken med knapparna sedan. Du kan också dra ut rummet.' : P.sel && P.sel.k === 'room' ? 'Dra rummet för att flytta det. Dra i den orange pricken för att ändra storlek.' : 'Tryck på ett rum för att välja det. Tryck på + Nytt rum för att rita ett nytt.';
   if (P.msg) return P.msg;
+  if (P.mode === 'multi') return (P.multi || []).length ? 'Tryck på fler möbler, väggar eller lampor, eller välj vad som ska hända med dem nedan.' : '<b>Tryck på möbler, väggar eller lampor</b> som du vill flytta, kopiera, vrida eller ta bort samtidigt.';
   if (P.mode === 'bed') return P.bnew || !curBed() ? 'Välj storlek nedan. Tryck sedan på gården där rabatten ska ligga.' : P.bpick ? 'Tryck i rabatten där växten ska stå. Ringen visar hur mycket plats den behöver.' : 'Välj en växt nedan. Tryck på en annan rabatt för att byta rabatt.';
   if ((P.mode === 'ute' && !P.ukind) || (P.mode === 'win' && !P.wkind)) return 'Välj vad du vill rita i raden längst ner. Tills dess kan du bara flytta kartan.';
   if (P.mode === 'ute') { const u = UK_M[P.ukind || 'lot']; return u[2] === 'poly' ? (u[0] === 'lot' && planRooms().length && !planAreas().some(a => a.t === 'lot') ? 'Tryck var som helst så läggs tomten runt huset, eller dra ut den med fingret.' : 'Dra ut en rektangel med fingret, eller tryck så läggs en färdig yta ut. Sedan formar du den med hörnen.') + ' Flytta dig med två fingrar.' : u[2] === 'line' ? 'Dra med fingret där häcken går.' : 'Tryck där ' + u[1].toLowerCase() + ' står.'; }
@@ -4484,22 +4501,31 @@ function planHint() {
   if (P.sel && P.sel.k === 'area') return 'Dra i hörnen för att forma ytan. Dra i + för att lägga till ett hörn. Dra mitt i ytan för att flytta den.';
   if (P.sel && ['room', 'plant', 'dev', 'furn', 'area', 'gitem'].includes(P.sel.k) && P.mode === 'move') return '<b>Tryck där du vill flytta den.</b> Du kan också dra den. Tryck på Klar när du är färdig.';
   if (P.sel && ['room', 'plant', 'dev', 'furn', 'area', 'gitem'].includes(P.sel.k)) return 'Dra den valda för att flytta den. Tryck utanför för att avmarkera.';
-  return planRooms().length ? 'Dra för att flytta dig. Tryck på något för att välja det, dra sedan för att flytta det.' : 'Börja med att trycka på <b>Rum</b> och dra ut ditt första rum.';
+  return planRooms().length ? 'Dra för att flytta dig. Tryck på något för att välja det, dra sedan för att flytta det. Tryck på ett fönster eller en dörr för att ändra det.' : 'Börja med att trycka på <b>Rum</b> och dra ut ditt första rum.';
 }
 function planV() {
   const P = PL(), m = P.mode, unplaced = (S.home || []).filter(r => !r.rect);
   const tool = (k, n, icon, act, on) => `<button class="pt pt-${k} ${on ? 'on' : ''}" aria-pressed="${!!on}" onclick="${act}"><span class="pti">${String(icon).startsWith('ph-') ? `<i class="ph ${icon}" style="font-size:20px"></i>` : `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>`}</span><span class="ptl">${n}</span></button>`;
-  const more = P.more, isBld = m === 'place' && P.pick && P.pick.k === 'furn' && BLD.has(P.pick.t), isFurn = m === 'place' && P.pick && P.pick.k === 'furn' && !BLD.has(P.pick.t), isDev = m === 'place' && P.pick && P.pick.k === 'dev', inMore = ['ute', 'bed', 'map'].includes(m) || isBld || isFurn || isDev;
+  const more = P.more, isBld = m === 'place' && P.pick && P.pick.k === 'furn' && BLD.has(P.pick.t), isFurn = m === 'place' && P.pick && P.pick.k === 'furn' && !BLD.has(P.pick.t), isDev = m === 'place' && P.pick && P.pick.k === 'dev', inMore = ['ute', 'bed', 'map', 'multi'].includes(m) || isBld || isFurn || isDev;
   return `${floors().length > 1 || curFl() !== 0 ? floorBarV() : ''}<div class="ptools four">${tool('room', 'Rum', PTI.room, "planMode('room')", m === 'room')}${tool('win', 'Fönster', PTI.win, "planMode('win')", m === 'win')}${tool('plant', 'Växt', PTI.plant, "planPick('plant')", m === 'place' && P.pick && P.pick.k === 'plant')}${tool('move', 'Flytta', PTI.move, "planMode('move')", m === 'move')}<button class="pt pt-more ${more || inMore ? 'on' : ''}" aria-expanded="${!!more}" onclick="PL().more=!PL().more;render()"><span class="pti"><i class="ph ph-dots-three" style="font-size:22px"></i></span><span class="ptl">Mer</span></button></div>
-  ${more ? `<div class="ptools more">${tool('ute', 'Trädgård och tomt', PTI.ute, "PL().more=false;planMode('ute')", m === 'ute')}${tool('bed', 'Rabatt', PTI.bed, "PL().more=false;planMode('bed')", m === 'bed')}${tool('bld', 'Byggnader', PTI.bld, "PL().more=false;planPick('bld')", isBld)}${tool('furn', 'Möbler', PTI.furn, "PL().more=false;planPick('furn')", isFurn)}${tool('dev', 'Smarta saker', PTI.dev, "PL().more=false;planPick('dev')", isDev)}<button class="pt" onclick="PL().more=false;planMode(PL().mode === 'map' ? 'move' : 'map')"><span class="pti"><i class="ph ph-map-trifold" style="font-size:20px"></i></span><span class="ptl">Karta</span></button><button class="pt" onclick="PL().more=false;openFl('add')"><span class="pti"><i class="ph ph-stack" style="font-size:20px"></i></span><span class="ptl">Ny våning</span></button></div>` : ''}
-  <div class="pbar"><p class="phint" id="phint">${planHint()}${m === 'ute' && (P.upoly || []).length >= 3 ? ` <button class="link3" onclick="finishPoly()">Klar med ytan</button>` : m === 'move' && P.sel ? ` <button class="btn sm" onclick="PL().sel=null;PL().msg=null;render()">Klar</button>` : m !== 'move' ? ` <button class="link3" onclick="planMode('move')">${m === 'win' || m === 'ute' || m === 'room' || m === 'bed' || (m === 'place' && P.pick && P.pick.k !== 'plant') ? 'Klar' : 'Avbryt'}</button>` : ''}</p><span id="savebar">${saveBarInner()}</span></div>
+  ${more ? `<div class="ptools more">${tool('ute', 'Trädgård och tomt', PTI.ute, "PL().more=false;planMode('ute')", m === 'ute')}${tool('bed', 'Rabatt', PTI.bed, "PL().more=false;planMode('bed')", m === 'bed')}${tool('bld', 'Byggnader', PTI.bld, "PL().more=false;planPick('bld')", isBld)}${tool('furn', 'Möbler', PTI.furn, "PL().more=false;planPick('furn')", isFurn)}${tool('dev', 'Smarta saker', PTI.dev, "PL().more=false;planPick('dev')", isDev)}${tool('multi', 'Välj flera', PTI.move, "PL().more=false;planMode('multi')", m === 'multi')}<button class="pt" onclick="PL().more=false;planMode(PL().mode === 'map' ? 'move' : 'map')"><span class="pti"><i class="ph ph-map-trifold" style="font-size:20px"></i></span><span class="ptl">Karta</span></button><button class="pt" onclick="PL().more=false;openFl('add')"><span class="pti"><i class="ph ph-stack" style="font-size:20px"></i></span><span class="ptl">Ny våning</span></button></div>` : ''}
+  ${planGuideV()}<div class="pbar"><p class="phint" id="phint">${planHint()}${m === 'ute' && (P.upoly || []).length >= 3 ? ` <button class="link3" onclick="finishPoly()">Klar med ytan</button>` : m === 'move' && P.sel ? ` <button class="btn sm" onclick="PL().sel=null;PL().msg=null;render()">Klar</button>` : m !== 'move' ? ` <button class="link3" onclick="planMode('move')">${m === 'win' || m === 'ute' || m === 'room' || m === 'bed' || (m === 'place' && P.pick && P.pick.k !== 'plant') ? 'Klar' : 'Avbryt'}</button>` : ''}</p><span id="savebar">${saveBarInner()}</span></div>
   <div class="planbox" id="planbox">${m === 'room' ? `<button class="newroomb ${P.roomDraw ? 'on' : ''}" onclick="PL().roomDraw=!PL().roomDraw;PL().sel=null;PL().msg=null;render()">${P.roomDraw ? 'Avbryt nytt rum' : '+ Nytt rum'}</button>` : ''}${m === 'ute' ? `<div class="wkind">${UK.map(([k, n, ty, e]) => `<button class="${P.ukind === k ? 'on ute' : ''}" onclick="uteKind('${k}')"><span style="font-size:15px">${e}</span>${n}</button>`).join('')}</div>` : ''}${m === 'place' && P.pick && (P.pick.k === 'furn' || P.pick.k === 'dev') ? `<div class="wkind">${P.pick.k === 'furn' ? (BLD.has(P.pick.t) ? '' : `<button class="${OUTF.has(P.pick.t) ? '' : 'on'}" onclick="PL().pick={k:'furn',t:'sofa'};render()">🏠 Inne</button><button class="${OUTF.has(P.pick.t) ? 'on ute' : ''}" onclick="PL().pick={k:'furn',t:'rbed'};render()">🌳 Ute</button>`) + (BLD.has(P.pick.t) ? FURN_BLD : OUTF.has(P.pick.t) ? FURN_UTE : FURN).map(([k, n, w, h, e]) => `<button class="${P.pick.t === k ? 'on' : ''}" onclick="PL().pick={k:'furn',t:'${k}'};PL().msg=null;render()"><span style="font-size:15px">${e}</span>${n}</button>`).join('') : Object.entries(DEVS).map(([k, [n, e]]) => `<button class="${P.pick.t === k ? 'on' : ''}" onclick="PL().pick={k:'dev',t:'${k}'};PL().msg=null;render()"><span style="font-size:15px">${e}</span>${n}</button>`).join('')}</div>` : ''}${m === 'win' ? `<div class="wkind">${WK.map(([k, n]) => `<button class="${P.wkind === k ? 'on' : ''}" onclick="PL().wkind='${k}';PL().msg=null;render()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${WKI[k]}</svg>${n}</button>`).join('')}</div>` : ''}${(S.undo || []).length ? `<button class="pundo" onclick="undoPlan()" aria-label="Ångra"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Ångra</button>` : ''}<svg id="plan" width="100%" height="100%" onpointerdown="planDown(event)" onpointermove="planMove(event)" onpointerup="planUp(event)" onpointercancel="planUp(event)" onwheel="planWheel(event)">${planInner()}</svg>
     <button class="pmapb ${m === 'map' ? 'on' : ''}" onclick="planMode(PL().mode === 'map' ? 'move' : 'map')" aria-label="Karta i bakgrunden"><i class="ph ph-map-trifold" style="font-size:20px"></i><span>Karta</span></button>${m === 'map' ? mapPanelV() : ''}${mapOn() && m !== 'map' ? `<span class="mattr">${TILES[S.hplan.map.layer || 'sat'][2]}</span>` : ''}
     <button class="pnorth" onclick="rotNorth()" aria-label="Vrid norrpilen" title="Vrid norrpilen så den pekar mot norr"><span style="transform:rotate(${northDeg() + viewRot()}deg)">${compassSvg([], 40)}</span><span class="pnl">Norr</span></button>
-    <div class="pzoom"><button onclick="planZoom(1.6)" aria-label="Zooma in">+</button><button onclick="planZoom(0.625)" aria-label="Zooma ut">−</button><button onclick="PL().fit=true;renderPlan()" style="font-size:12px;font-weight:800">Allt</button></div>${planSelV()}</div>
+    <div class="pzoom"><button onclick="undoPlan()" ${(S.undo || []).length ? '' : 'disabled'} aria-label="Ångra" title="Ångra" style="font-size:17px">↶</button><button onclick="planZoom(1.6)" aria-label="Zooma in">+</button><button onclick="planZoom(0.625)" aria-label="Zooma ut">−</button><button onclick="PL().fit=true;renderPlan()" style="font-size:12px;font-weight:800">Allt</button></div>${planSelV()}</div>
   ${unplaced.length ? `<div class="sec"><h2>Rum som inte är ritade</h2></div><div class="pad"><div class="chips2">${unplaced.map(r => `<button onclick="drawIn('${r.id}')">+ ${esc(r.name)}</button>`).join('')}</div></div>` : ''}
   <p class="mut" style="margin:14px 18px 24px;font-size:14px">Fönstrens färg visar ljuset: <b style="color:#D9921B">gul</b> ger mycket ljus, <b style="color:#B9A23F">ljusgul</b> lagom och <b style="color:#5E8FC9">blå</b> lite ljus. Pilen uppe till höger visar norr. Tryck på den för att vrida den rätt.</p>`;
 }
+// Kom igång: fem steg för att bygga sitt hem, med bock när steget är gjort
+function planGuideSteps() { const rs = planRoomsAll(), ws = planWallsAll().filter(w => w.h !== 'hedge');
+  return [['Rita rummen', rs.length > 0, "planMode('room')"],
+    ['Fönster och dörrar', rs.some(r => (r.wins || []).some(w => ['win', 'door'].includes(wkOf(w)))) || ws.some(w => (w.ops || []).length), "planMode('win')"],
+    ['Väggar mellan rummen', ws.length > 0 || rs.some(r => (r.wins || []).some(w => wkOf(w) === 'open')), "planMode('win');PL().wkind='wall';PL().msg=null;render()"],
+    ['Möbler', planFurnAll().length > 0, "planPick('furn')"],
+    ['Växter', S.mine.some(m => m.details && m.details.pos), "planPick('plant')"]]; }
+function planGuideV() { let off = false; try { off = store.get('pguideOff', false); } catch (e) {} if (off) return ''; const L = planGuideSteps(), done = L.filter(x => x[1]).length; if (done === L.length) return ''; const nx = L.findIndex(x => !x[1]);
+  return `<div class="pguide"><div class="gh">Bygg ditt hem · ${done} av ${L.length} klara<button onclick="try{store.set('pguideOff',true)}catch(e){};render()">Dölj</button></div><div class="gs">${L.map((x, i) => [...x, i]).sort((a, b) => a[1] - b[1]).map(([t, ok, act, i]) => `<button class="${ok ? 'ok' : i === nx ? 'nx' : ''}" onclick="${act}"><i>${ok ? '✓' : i + 1}</i>${t}</button>`).join('')}</div></div>`; }
 function planSelV() {
   const P = PL(), html = planSelInner(); if (!html) return '';
   const title = ((html.match(/<b>([^<]*)<\/b>/) || [])[1] || 'Detaljer').replace(/^Sätter ut: /, '');
@@ -4526,9 +4552,10 @@ function plantSelV() {
   if (S.v3pmin) return `<button class="pmini" onclick="S.v3pmin=false;render()" aria-label="Visa rutan igen"><span>▴</span>${esc(m.name.slice(0, 26))}</button>`;
   return `<div class="pselw"><div class="pctl"><b>${esc(m.name.slice(0, 30))}</b><button onclick="S.v3pmin=true;render()" aria-label="Minimera" title="Minimera">_</button><button onclick="S.v3p=null;render()" aria-label="Stäng" title="Stäng">×</button></div>${plantTipV()}</div>`;
 }
-function closePanel() { const P = PL(); P.pmin = false; if (P.mode === 'bed') { P.ssel = null; planMode('move'); return; } P.sel = null; P.vsel = null; render(); }
+function closePanel() { const P = PL(); P.pmin = false; if (P.mode === 'bed') { P.ssel = null; planMode('move'); return; } if (P.mode === 'multi') { planMode('move'); return; } P.sel = null; P.vsel = null; render(); }
 function planSelInner() {
   if (PL().mode === 'bed') return bedPanelV();
+  if (PL().mode === 'multi') return multiPanel();
   const sel = PL().sel; if (!sel) return '';
   if (sel.k === 'room') { const r = S.home.find(x => x.id === sel.id); if (!r) return '';
     return `<div class="psel"><div class="grow"><b>${esc(r.name)}</b><span>${esc(dirTxt(r))} · ${roomLightWord(r)}</span></div><button class="btn sm" onclick="openHouse('${r.id}')">Öppna</button><button class="btn sm line" onclick="editRoom('${r.id}')">Ändra</button><button class="x" onclick="unplanRoom('${r.id}')">Ta bort</button><div class="rquick"><input class="rname" value="${esc(r.name)}" maxlength="40" aria-label="Rumsnamn" onchange="roomName('${r.id}',this.value)">${['w', 'h'].map(d => `<div class="rstep"><button onclick="roomDim('${r.id}','${d}',-0.5)" aria-label="Mindre">−</button><span>${d === 'w' ? 'Bredd' : 'Djup'}<b>${r.rect[d]} m</b></span><button onclick="roomDim('${r.id}','${d}',0.5)" aria-label="Större">+</button></div>`).join('')}<button class="btn sm line" onclick="roomDup('${r.id}')">Kopiera rum</button></div></div>`; }
@@ -4538,9 +4565,10 @@ function planSelInner() {
     return `<div class="psel"><span style="font-size:22px">${UK_M[g.t][3]}</span><div class="grow"><b>${UK_M[g.t][1]}</b><span>Bredd ${fmtM(g.r * 2)} · höjd ${fmtM(g.h || gDefH(g))}</span></div><div class="stepr"><small>Bredd</small><button onclick="gEdit(-0.25)" aria-label="Smalare">−</button><button onclick="gEdit(0.25)" aria-label="Bredare">+</button></div><div class="stepr"><small>Höjd</small><button onclick="gEditH(-0.5)" aria-label="Lägre">−</button><button onclick="gEditH(0.5)" aria-label="Högre">+</button></div><button class="x" onclick="delG('${g.id}')">Ta bort</button></div>`; }
   if (sel.k === 'furn') { const f = planFurnAll().find(x => x.id === sel.id); if (!f) return ''; const F = FURN_M[f.t] || [0, 'Möbel', 0, 0, '🪑'];
     return `<div class="psel col"><div class="fcomp"><span style="font-size:20px">${F[4]}</span><div class="grow"><b>${F[1]}</b><span>${f.w.toFixed(2).replace(/0$/, '')} × ${f.h.toFixed(2).replace(/0$/, '')} m · grön kant är framsidan</span></div></div><div class="fcomp"><div class="stepr"><small>Bredd</small><button onclick="furnEdit('w',-0.1)" aria-label="Smalare">−</button><button onclick="furnEdit('w',0.1)" aria-label="Bredare">+</button></div><div class="stepr"><small>Djup</small><button onclick="furnEdit('h',-0.1)" aria-label="Grundare">−</button><button onclick="furnEdit('h',0.1)" aria-label="Djupare">+</button></div></div><div class="fcomp">${S.hview === '3d' ? `<button class="btn sm" onclick="mv3Start('furn','${f.id}')">✥ Flytta</button>` : ''}<button class="btn sm line" onclick="furnRot()" aria-label="Vrid">↻ Vrid</button><button class="x" style="margin-left:auto" onclick="delFurn('${f.id}')">Ta bort</button></div>${furnOpts(f)}</div>`; }
+  if (sel.k === 'fop' || sel.k === 'fbay') return fopPanel(sel);
   if (sel.k === 'fwall') { const wl = planWalls().find(x => x.id === sel.id); if (!wl) return '';
     if (wl.h === 'hedge') return `<div class="psel"><div class="grow"><b>Häck</b><span>${r1(Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1))} m lång</span></div><button class="x" onclick="delFWall('${wl.id}')">Ta bort</button></div>`;
-    return `<div class="psel"><div class="grow"><b>${wl.h === 'half' ? 'Halvvägg' : 'Vägg'}</b><span>${r1(Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1))} m lång</span></div><button class="btn sm line" onclick="toggleHalf('${wl.id}')">${wl.h === 'half' ? 'Gör hel' : 'Gör halv'}</button>${((wl.ops || []).length || (wl.bays || []).length) ? `<button class="btn sm line" onclick="fwOpsClear('${wl.id}')">Ta bort fönster/dörrar</button>` : ''}<button class="x" onclick="delFWall('${wl.id}')">Ta bort</button></div>`; }
+    return `<div class="psel"><div class="grow"><b>${wl.h === 'half' ? 'Halvvägg' : 'Vägg'}</b><span>${r1(Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1))} m lång</span></div>${wl.h === 'half' ? '' : `<div class="chips2 sm">${[0.10, 0.15, 0.25, 0.35].map(t => `<button class="${Math.abs((wl.th || 0.12) - t) < 0.005 ? 'on' : ''}" onclick="setWallTh('${wl.id}',${t})">${Math.round(t * 100)} cm</button>`).join('')}</div>`}<button class="btn sm line" onclick="toggleHalf('${wl.id}')">${wl.h === 'half' ? 'Gör hel' : 'Gör halv'}</button>${((wl.ops || []).length || (wl.bays || []).length) ? `<button class="btn sm line" onclick="fwOpsClear('${wl.id}')">Ta bort fönster/dörrar</button>` : ''}<button class="x" onclick="delFWall('${wl.id}')">Ta bort</button></div>`; }
   if (sel.k === 'bay') { const r = S.home.find(x => x.id === sel.id), by = r && (r.bays || [])[sel.i]; if (!by) return '';
     return `<div class="psel"><div class="grow"><b>Burspråk</b><span>${esc(r.name)} · ${baySegs(r, by).map(g => angDir(g[1])).join(', ')} · ${by.l} × ${by.d} m</span></div><div class="stepr"><small>Bredd</small><button onclick="bayEdit('l',-0.5)" aria-label="Smalare">−</button><button onclick="bayEdit('l',0.5)" aria-label="Bredare">+</button></div><div class="stepr"><small>Djup</small><button onclick="bayEdit('d',-0.2)" aria-label="Grundare">−</button><button onclick="bayEdit('d',0.2)" aria-label="Djupare">+</button></div><div class="stepr"><small>Flytta</small><button onclick="bayShift(-0.25)" aria-label="Flytta åt ena hållet">‹</button><button onclick="bayShift(0.25)" aria-label="Flytta åt andra hållet">›</button></div><button class="x" onclick="delBay()">Ta bort</button></div>`; }
   if (sel.k === 'win') { const r = S.home.find(x => x.id === sel.id), w = r && r.wins[sel.i]; if (!w) return '';
@@ -4556,7 +4584,7 @@ function renderPlan() {
   if (P.fit) planFit();
   svg.innerHTML = planInner();
 }
-function planMode(k) { const P = PL(); if (P.mode === 'ute' && (P.upoly || []).length >= 3) finishPoly(); P.wstart = null; P.mode = k; P.pick = null; P.draft = null; P.msg = null; P.upoly = []; P.roomDraw = false; if (k === 'ute') P.ukind = null; if (k === 'win') P.wkind = null; if (k === 'bed') bedModeStart(); if (k !== 'move' && !(k === 'room' && P.sel && P.sel.k === 'room')) P.sel = null; render(); }
+function planMode(k) { const P = PL(); P.multi = k === 'multi' ? [] : null; if (P.mode === 'ute' && (P.upoly || []).length >= 3) finishPoly(); P.wstart = null; P.mode = k; P.pick = null; P.draft = null; P.msg = null; P.upoly = []; P.roomDraw = false; if (k === 'ute') P.ukind = null; if (k === 'win') P.wkind = null; if (k === 'bed') bedModeStart(); if (k !== 'move' && !(k === 'room' && P.sel && P.sel.k === 'room')) P.sel = null; render(); }
 function zMin() { return mapOn() ? 0.35 : 3; }
 function planZoom(f) { const P = PL(), box = $('#planbox'), cx = box.clientWidth / 2, cy = box.clientHeight / 2, nz = Math.max(zMin(), Math.min(zMax(), P.z * f)); P.ox = cx - (cx - P.ox) * nz / P.z; P.oy = cy - (cy - P.oy) * nz / P.z; P.z = nz; renderPlan(); }
 function planWheel(e) { e.preventDefault(); planZoom(e.deltaY < 0 ? 1.1 : 0.9); }
@@ -4584,6 +4612,7 @@ function planDown(e) {
   if (P.mode === 'win') { P.drag = { k: 'tapwin', pt }; return; }
   if (P.mode === 'place') { P.drag = { k: 'tapplace', pt }; return; }
   const k = t && t.dataset.k, id = t && t.dataset.id;
+  if (P.mode === 'multi' && ['furn', 'fwall', 'dev'].includes(k)) { multiToggle(k, id); return; }
   if (k === 'vtx' || k === 'mid') { const a = planAreas().find(x => x.id === id), i = +t.dataset.i, sn = snapState(); if (k === 'mid') { const p0 = a.pts[i], p1 = a.pts[(i + 1) % a.pts.length]; a.pts.splice(i + 1, 0, [(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2]); } P.drag = { k: 'vtx', a, i: k === 'mid' ? i + 1 : i, pt, snap: sn, moved: k === 'mid' }; return; }
   if (P.mode === 'room' && !['room', 'handle'].includes(k)) { P.drag = { k: 'pan', sx: e.clientX, sy: e.clientY, ox: P.ox, oy: P.oy, moved: false }; return; }
   const sk = { room: 'room', plant: 'plant', dev: 'dev', furn: 'furn', area: 'area', gitem: 'gitem' }[k], isSel = sk && P.sel && P.sel.k === sk && String(P.sel.id) === String(id);
@@ -4597,6 +4626,7 @@ function planDown(e) {
   if (k === 'win') { P.drag = { k: 'selwin', id, i: +t.dataset.i, pt }; return; }
   if (k === 'bay') { P.drag = { k: 'selbay', id, i: +t.dataset.i, pt }; return; }
   if (k === 'fwall') { P.drag = { k: 'selfw', id, pt }; return; }
+  if (k === 'fop' || k === 'fbay') { P.drag = { k: 'selfop', kind: k, id, i: +t.dataset.i, pt }; return; }
   if (k === 'room') { const r = S.home.find(x => x.id === id); P.drag = { k: 'room', r, pt, o: { ...r.rect }, moved: false, snap: snapState(),
     kids: S.mine.filter(m => m.details && m.details.pos && roomAt(m.details.pos.x, m.details.pos.y) === r).map(m => [m, { ...m.details.pos }]),
     devs: planItems().filter(it => roomAt(it.x, it.y) === r).map(it => [it, { x: it.x, y: it.y }]),
@@ -4664,12 +4694,13 @@ async function planUp(e) {
   if (d.k === 'pan' && d.bedTap) { if (!d.moved) bedTap(pt); return; }
   if (d.k === 'spot') { if (!d.moved) { P.ssel = d.i; render(); return; } const s = d.a.spots[d.i]; if (!inPoly(s.x, s.y, d.a.pts)) { s.x = d.o.x; s.y = d.o.y; toast('Växten måste stå inne i rabatten'); } else { pushUndo(d.snap); saveHomeSoon(); } render(); return; }
   if (d.k === 'pan') { if (!d.moved) P.vsel = null;
-    if (!d.moved && P.sel && P.mode === 'move' && !['win', 'bay', 'fwall'].includes(P.sel.k)) { const ts = d.tapSel, onBg = !ts || (P.sel.k !== 'room' && ['room', 'area'].includes(ts.k) && ts.k !== P.sel.k); if (onBg && await tapMove(pt)) return; }
+    if (!d.moved && P.sel && P.mode === 'move' && !['win', 'bay', 'fwall', 'fop', 'fbay'].includes(P.sel.k)) { const ts = d.tapSel, onBg = !ts || (P.sel.k !== 'room' && ['room', 'area'].includes(ts.k) && ts.k !== P.sel.k); if (onBg && await tapMove(pt)) return; }
     if (!d.moved && d.tapSel) { P.sel = d.tapSel; render(); } else if (!d.moved && P.sel) { P.sel = null; render(); } return; }
   if (d.k === 'winmove') { if (!d.moved) { P.sel = { k: d.kind, id: d.r.id, i: d.i }; render(); return; } pushUndo(d.snap); syncDirs(d.r); saveHomeSoon(); P.sel = { k: d.kind, id: d.r.id, i: d.i }; render(); return; }
   if (d.k === 'selwin') { P.sel = { k: 'win', id: d.id, i: d.i }; render(); return; }
   if (d.k === 'selbay') { P.sel = { k: 'bay', id: d.id, i: d.i }; render(); return; }
   if (d.k === 'selfw') { P.sel = { k: 'fwall', id: d.id }; render(); return; }
+  if (d.k === 'selfop') { P.sel = { k: d.kind === 'fbay' ? 'fbay' : 'fop', id: d.id, i: d.i }; render(); return; }
   if (d.k === 'room' || d.k === 'resize') {
     if (!d.moved) { P.sel = { k: 'room', id: d.r.id }; render(); return; }
     pushUndo(d.snap);
@@ -4720,15 +4751,15 @@ function snapPoint(x, y) {
   planRooms().forEach(r => { const { x: rx, y: ry, w, h } = r.rect; [[rx, ry], [rx + w, ry], [rx, ry + h], [rx + w, ry + h]].forEach(c => { const dd = Math.hypot(c[0] - x, c[1] - y); if (dd < lim * 1.4 && (!best || dd < best[2])) best = [c[0], c[1], dd]; }); });
   planWalls().forEach(wl => [[wl.x1, wl.y1], [wl.x2, wl.y2]].forEach(c => { const dd = Math.hypot(c[0] - x, c[1] - y); if (dd < lim * 1.4 && (!best || dd < best[2])) best = [c[0], c[1], dd]; }));
   if (best) return [best[0], best[1]];
-  for (const [a, b, c, d] of wallLines()) { if (segDist(x, y, [a, b, c, d]) < lim) { if (a === c) return [a, Math.round(y * 4) / 4]; if (b === d) return [Math.round(x * 4) / 4, b]; } }
+  for (const [a, b, c, d] of wallLines()) { if (segDist(x, y, [a, b, c, d]) < lim) { if (a === c) return [a, Math.round(y * 10) / 10]; if (b === d) return [Math.round(x * 10) / 10, b]; } }
   for (const [a, b, c, d] of wallLines()) { if (a === c || b === d) continue; const dx = c - a, dy = d - b, L2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - a) * dx + (y - b) * dy) / L2)), px = a + t * dx, py = b + t * dy; if (Math.hypot(px - x, py - y) < lim) return [Math.round(px * 100) / 100, Math.round(py * 100) / 100]; }
-  return [Math.round(x * 4) / 4, Math.round(y * 4) / 4];
+  return [Math.round(x * 10) / 10, Math.round(y * 10) / 10];
 }
 function snapLineEnd(x0, y0, x, y, free) {
   let [ex, ey] = snapPoint(x, y); if (free) return [ex, ey];
   const dx = ex - x0, dy = ey - y0, L = Math.hypot(dx, dy); if (L < 0.05) return [ex, ey];
   const ang = Math.atan2(dy, dx), st = Math.round(ang / (Math.PI / 4)) * (Math.PI / 4);
-  if (Math.abs(ang - st) < 0.12) { const L2 = Math.round(L * 4) / 4; const sx = x0 + Math.cos(st) * L2, sy = y0 + Math.sin(st) * L2; const sp = snapPoint(sx, sy); return Math.hypot(sp[0] - sx, sp[1] - sy) < 0.2 ? sp : [Math.round(sx * 100) / 100, Math.round(sy * 100) / 100]; }
+  if (Math.abs(ang - st) < 0.12) { const L2 = Math.round(L * 10) / 10; const sx = x0 + Math.cos(st) * L2, sy = y0 + Math.sin(st) * L2; const sp = snapPoint(sx, sy); return Math.hypot(sp[0] - sx, sp[1] - sy) < 0.2 ? sp : [Math.round(sx * 100) / 100, Math.round(sy * 100) / 100]; }
   return [ex, ey];
 }
 // Sätt tillbaka borttagen vägg längs en rumsvägg. seg = [x0, y0, x1, y1] (ett tryck = samma punkt två gånger)
@@ -4792,6 +4823,41 @@ function addFreeOp(kind, h, pt) {
   if (kind === 'door') w.bays = (w.bays || []).filter(b => !(b.p < p + l && p < b.p + b.l));
   saveHomeSoon(); return planMsg({ win: 'Fönster', door: 'Dörr', rad: 'Element', vent: 'Ventil' }[kind] + ' på den fria väggen. Tryck på det igen för att ta bort det.');
 }
+// Redigera ett fönster, en dörr eller ett burspråk som redan sitter på en fri vägg
+const OP_MIN = { win: 0.3, door: 0.6, rad: 0.2, vent: 0.1, bay: 0.6 };
+function fopGet(sel) { const wl = planWalls().find(x => x.id === sel.id); if (!wl) return null; const list = sel.k === 'fbay' ? (wl.bays || []) : (wl.ops || []); const o = list[sel.i]; return o ? { wl, o, list, kind: sel.k === 'fbay' ? 'bay' : o.k } : null; }
+function fopFits(wl, self, p, l) { const L = fwLen(wl); if (p < -0.001 || p + l > L + 0.001) return false; const all = [].concat(wl.ops || [], wl.bays || []); return all.every(o => o === self || !(o.p < p + l - 0.001 && p < o.p + o.l - 0.001)); }
+function fopEdit(sel, dl, dp) { const g = fopGet(sel); if (!g) return; const { wl, o, kind } = g, L = fwLen(wl), min = OP_MIN[kind] || 0.2;
+  let nl = Math.round((o.l + dl) * 100) / 100, np = Math.round((o.p + dp) * 100) / 100;
+  if (nl > L) nl = L; if (nl < min) nl = min; if (np < 0) np = 0; if (np + nl > L) np = L - nl;
+  if (!fopFits(wl, o, np, nl)) return toast('Det finns inte plats där. Flytta eller ta bort något annat först.'); pushUndo(); o.l = nl; o.p = np; saveHomeSoon(); render(); }
+function fopDel(sel) { const g = fopGet(sel); if (!g) return; pushUndo(); g.list.splice(sel.i, 1); PL().sel = null; saveHomeSoon(); render(); toast('Borttaget'); }
+function fopKind(sel, k) { const g = fopGet(sel); if (!g || g.kind === 'bay') return; pushUndo(); g.o.k = k; saveHomeSoon(); render(); }
+function fopPanel(sel) { const g = fopGet(sel); if (!g) return ''; const { wl, o, kind } = g, L = fwLen(wl), m = v => v.toFixed(2).replace('.', ',') + ' m', cm = v => Math.round(v * 100) + ' cm';
+  const name = { win: 'Fönster', door: 'Dörr', rad: 'Element', vent: 'Ventil', bay: 'Burspråk' }[kind] || 'Öppning';
+  const typeBtn = kind === 'win' ? `<button class="btn sm line" onclick="fopKind(PL().sel,'door')">Gör till dörr</button>` : kind === 'door' ? `<button class="btn sm line" onclick="fopKind(PL().sel,'win')">Gör till fönster</button>` : '';
+  return `<div class="psel"><div class="grow"><b>${name}</b><span>${m(o.l)} bred · ${m(o.p)} från väggens början · väggen ${m(L)}</span></div>
+    <div class="chips2 sm"><button onclick="fopEdit(PL().sel,-0.1,0)">Smalare −10 cm</button><button onclick="fopEdit(PL().sel,0.1,0)">Bredare +10 cm</button><button onclick="fopEdit(PL().sel,0,-0.1)">← Flytta 10 cm</button><button onclick="fopEdit(PL().sel,0,0.1)">Flytta 10 cm →</button></div>
+    ${typeBtn}<button class="x" onclick="fopDel(PL().sel)">Ta bort</button></div>`; }
+// Välj flera: flytta, kopiera, vrida eller ta bort flera möbler, väggar och lampor på en gång
+function multiHas(k, id) { const L = PL().multi; return !!(L && L.some(x => x.k === k && String(x.id) === String(id))); }
+function multiToggle(k, id) { const P = PL(); P.multi = P.multi || []; const i = P.multi.findIndex(x => x.k === k && String(x.id) === String(id)); if (i >= 0) P.multi.splice(i, 1); else P.multi.push({ k, id }); P.msg = null; render(); }
+function multiItems() { return (PL().multi || []).map(x => ({ k: x.k, o: x.k === 'furn' ? planFurnAll().find(f => String(f.id) === String(x.id)) : x.k === 'fwall' ? planWallsAll().find(w => String(w.id) === String(x.id)) : planItems().find(d => String(d.id) === String(x.id)) })).filter(x => x.o); }
+const r2m = v => Math.round(v * 100) / 100;
+function multiAct(op, dx, dy) { const P = PL(), L = multiItems(); if (!L.length) return; pushUndo(); S.hplan = S.hplan || {};
+  if (op === 'del') { const has = k => new Set(L.filter(x => x.k === k).map(x => x.o)); const F = has('furn'), W = has('fwall'), D = has('dev'); S.hplan.furn = planFurnAll().filter(f => !F.has(f)); S.hplan.walls = planWallsAll().filter(w => !W.has(w)); S.hplan.items = planItems().filter(d => !D.has(d)); P.multi = []; saveHomeSoon(); render(); return toast(L.length + ' borttagna'); }
+  const mv = (o, k, a, b) => { if (k === 'fwall') { o.x1 = r2m(o.x1 + a); o.y1 = r2m(o.y1 + b); o.x2 = r2m(o.x2 + a); o.y2 = r2m(o.y2 + b); } else { o.x = r2m(o.x + a); o.y = r2m(o.y + b); } };
+  if (op === 'copy') { const nw = [], t0 = Date.now(); L.forEach((x, n) => { const c = JSON.parse(JSON.stringify(x.o)); c.id = { furn: 'f', fwall: 'w', dev: 'd' }[x.k] + (t0 + n).toString(36); mv(c, x.k, 0.5, 0.5); nw.push({ k: x.k, c }); });
+    S.hplan.furn = planFurnAll().concat(nw.filter(x => x.k === 'furn').map(x => x.c)); S.hplan.walls = planWallsAll().concat(nw.filter(x => x.k === 'fwall').map(x => x.c)); S.hplan.items = planItems().concat(nw.filter(x => x.k === 'dev').map(x => x.c));
+    P.multi = nw.map(x => ({ k: x.k, id: x.c.id })); saveHomeSoon(); render(); return toast('Kopiorna ligger en halv meter snett nedanför och är valda nu'); }
+  if (op === 'move') L.forEach(x => mv(x.o, x.k, dx, dy));
+  if (op === 'rot') { const pts = L.map(x => x.k === 'fwall' ? [(x.o.x1 + x.o.x2) / 2, (x.o.y1 + x.o.y2) / 2] : [x.o.x, x.o.y]), cx = pts.reduce((s, q) => s + q[0], 0) / pts.length, cy = pts.reduce((s, q) => s + q[1], 0) / pts.length, rt = (x, y) => [r2m(cx - (y - cy)), r2m(cy + (x - cx))];
+    L.forEach(x => { if (x.k === 'fwall') { const a = rt(x.o.x1, x.o.y1), b = rt(x.o.x2, x.o.y2); x.o.x1 = a[0]; x.o.y1 = a[1]; x.o.x2 = b[0]; x.o.y2 = b[1]; } else { const a = rt(x.o.x, x.o.y); x.o.x = a[0]; x.o.y = a[1]; if (x.k === 'furn') x.o.rot = ((x.o.rot || 0) + 90) % 360; } }); }
+  saveHomeSoon(); render(); }
+function multiPanel() { const L = multiItems(); if (!L.length) return ''; const n = k => L.filter(x => x.k === k).length, parts = [[n('furn'), 'möbel', 'möbler'], [n('fwall'), 'vägg', 'väggar'], [n('dev'), 'lampa eller sak', 'lampor och saker']].filter(q => q[0]).map(q => q[0] + ' ' + (q[0] === 1 ? q[1] : q[2]));
+  return `<div class="psel col"><div class="fcomp"><div class="grow"><b>${L.length} valda</b><span>${parts.join(', ')}</span></div><button class="btn sm line" onclick="PL().multi=[];render()">Avmarkera</button></div>
+    <div class="fcomp"><small style="margin-right:4px">Flytta 10 cm</small><button class="btn sm line" onclick="multiAct('move',-0.1,0)" aria-label="Vänster">←</button><button class="btn sm line" onclick="multiAct('move',0,-0.1)" aria-label="Upp">↑</button><button class="btn sm line" onclick="multiAct('move',0,0.1)" aria-label="Ner">↓</button><button class="btn sm line" onclick="multiAct('move',0.1,0)" aria-label="Höger">→</button></div>
+    <div class="fcomp"><button class="btn sm line" onclick="multiAct('copy')">⧉ Kopiera</button><button class="btn sm line" onclick="multiAct('rot')">↻ Vrid 90°</button><button class="x" style="margin-left:auto" onclick="multiAct('del')">Ta bort</button></div></div>`; }
 function fwOpsClear(id) { pushUndo(); const w = planWalls().find(x => x.id === id); if (w) { delete w.ops; delete w.bays; } saveHomeSoon(); render(); }
 function addWin(pt, pt2) {
   const P = PL(), kind = P.wkind || 'win', cands = [];
@@ -4843,6 +4909,7 @@ function delBay() { pushUndo(); const sel = PL().sel, r = S.home.find(x => x.id 
 function furnEdit(k, dv) { pushUndo(); const f = planFurn().find(x => x.id === PL().sel.id); f[k] = Math.max(0.2, Math.min(8, Math.round((f[k] + dv) * 100) / 100)); saveHomeSoon(); render(); }
 function furnRot() { pushUndo(); const f = planFurn().find(x => x.id === PL().sel.id); f.rot = ((f.rot || 0) + 45) % 360; saveHomeSoon(); render(); }
 function delFurn(id) { pushUndo(); S.hplan.furn = planFurnAll().filter(x => x.id !== id); PL().sel = null; saveHomeSoon(); render(); }
+function setWallTh(id, t) { const wl = planWalls().find(x => x.id === id); if (!wl || !(t > 0)) return; pushUndo(); wl.th = t; saveHomeSoon(); render(); }
 function toggleHalf(id) { pushUndo(); const wl = planWalls().find(x => x.id === id); wl.h = wl.h === 'half' ? 'full' : 'half'; saveHomeSoon(); render(); }
 function delFWall(id) { pushUndo(); S.hplan.walls = planWallsAll().filter(x => x.id !== id); PL().sel = null; saveHomeSoon(); render(); }
 function pairOpen(r, el) { // öppen planlösning: samma öppning i rummet på andra sidan väggen
@@ -8120,6 +8187,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.242', '29 okt 15:10', ['Ritningen: välj tjocklek på väggar (10, 15, 25 eller 35 cm), syns både i ritningen och i 3D', 'Väggar och hörn fastnar på 10 cm i stället för 25 cm', 'Ångra-knapp i ritningen', 'Tryck på ett fönster, en dörr eller ett burspråk på en vägg för att göra det bredare, smalare, flytta det, byta mellan fönster och dörr eller ta bort det', 'Välj flera under Mer: markera möbler, väggar och lampor och flytta, kopiera, vrid eller ta bort dem samtidigt', 'Bygg ditt hem: fem steg ovanför ritningen som visar vad som är gjort och vad som är nästa steg', 'Hela hjälptexten i ritningen syns nu', 'Kameran i 3D hamnar lägre och närmare när du väljer en rabatt']],
   ['Beta 0.241', '29 okt 15:00', ['Golv i inomhusytor som är inneslutna av fristående väggar eller där väggar tagits bort, så att rum som byggts ihop får golv överallt inomhus', 'Golvet får samma färg och material som rummet bredvid'] ],
   ['Beta 0.240', '29 okt 14:30', ['532 nya trädgårdsväxter: träd, barrväxter, buskar, rosor, klätterväxter, perenner, gräs, ormbunkar, lökar och sommarblommor, med kända sorter', 'Växtlampor kan sitta i taket, på väggen, på en möbel eller på golvstativ', 'Ny grafik i 3D: trägolv och kakel, golvlister, mjuka skuggor vid väggarna, sockel runt huset, bättre ljus och glans, mjukare gräsmatta och riktiga löv', 'Ny styrning i 3D: zooma ända fram till en blomma, nyp mot det du vill se, dubbeltryck för att åka fram, vrid och flytta med två fingrar, snurr med tröghet och plus och minus bredvid Ångra', 'Möbelpanelen i 3D är inte längre högre än sitt innehåll', 'Såkalendern på startsidan har samma gröna ikonruta som de andra']],
   ['Beta 0.239', '29 okt 12:55', ['Ångra-knapp i 3D-vyn, på samma rad som vädret så den inte krockar med något', 'Saker i rummen kan inte längre flyttas ut ur huset i 3D. En klämlampa på en växt hoppar inte när du börjar flytta den', 'Städer på zongränsen visar båda zonerna, till exempel Piteå zon 5 och zon 6']],
@@ -9135,7 +9203,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.241';
+const APP_VERSION = 'Beta 0.242';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
