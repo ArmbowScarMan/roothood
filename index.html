@@ -1371,8 +1371,24 @@ body.hadv nav{display:none}
 .v3tabs button{flex:1;min-height:32px;padding:4px;font-size:12.5px;background:transparent}
 .v3tabs button.on{background:var(--pri);color:var(--onpri)}
 .v3pop button{text-align:left;font-size:13px;min-height:40px}
-/* Vädret i 3D ligger uppe till vänster, så det inte krockar med knapparna */
-.wx3{top:10px;bottom:auto}
+/* Vädret i 3D ligger i dockan, ovanför knapparna, så det inte krockar med något */
+.wx3in{position:static;display:block;margin:0 0 6px;padding:0 4px;background:none;box-shadow:none;font-size:12.5px;color:var(--mut);text-align:center}
+/* Möbelpanelen i 3D: kompakt, inga tomma ytor */
+.pfopts .chips2 button{min-height:0;padding:5px 10px;font-size:12.5px}
+.pfopt{margin-top:4px}
+.pfopt small{margin-bottom:2px}
+.fcomp{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%}
+.fcomp .stepr button{width:28px;height:28px}
+.fcomp .btn.sm{padding:6px 11px;min-height:0}
+.fcomp .x{padding:4px 6px}
+.p3sel .pselw .psel{padding:6px 10px 8px;gap:6px}
+.sowcity{margin:12px 0 0}.sowcity input{width:100%;box-sizing:border-box;border:0;border-radius:14px;padding:12px 14px;font:inherit;font-size:15px;background:var(--surf);color:var(--ink);box-shadow:var(--sh)}
+.sowcityh{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.sowcityh:empty{display:none}
+.sowcityh button{border:0;border-radius:999px;padding:7px 12px;background:var(--soft);color:var(--pri);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.sowcityh button span{font-weight:500;margin-left:6px;opacity:.8}.sowcityh p{font-size:13px;color:var(--mut);margin:0}
+.sowhint{font-size:13px;color:var(--mut);margin:12px 0 0}
+.sowhintr{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px}.sowhintr .sowhint{margin:0}
+.zonkarta{display:block;width:100%;height:auto;border-radius:16px;margin:10px 0 0;box-shadow:var(--sh);background:#fff}
 /* Hem: knappen Lägg till växt uppe till höger, under meddelanden och notiser */
 .homehead .brand{font-size:clamp(28px,8.5vw,34px)}
 .hhbtns{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
@@ -2056,7 +2072,7 @@ function pdHints(m, d) {
   if (d.mat === 'Terrakotta') h.push(['', 'Terrakotta andas och torkar snabbare än plast. Känn på jorden lite oftare.']);
   if (d.mat === 'Ytterkruka') h.push(['', 'Med ytterkruka: kolla att inget vatten blir stående i botten efter vattning.']);
   if (d.place === 'Semi-hydro' || soil.includes('Leca') || soil.includes('Pon')) h.push(['', 'I leca, pon eller semi-hydro: håll vattnet på ungefär en tredjedel av krukans höjd och använd näring för hydrokultur.']);
-  const rmH = S.pro ? roomOf(m, d) : null; if (rmH) roomHints(p, rmH, d.win).forEach(x => h.push(x)); if (d.pos) posHints({ details: d }).forEach(x => h.push(x));
+  const rmH = S.pro ? roomOf(m, d) : null; if (rmH) roomHints(p, rmH, d.win, d).forEach(x => h.push(x)); if (d.pos) posHints({ details: d }).forEach(x => h.push(x));
   else if (p && p.light_level === 3 && ['Norr', 'Inget fönster', 'Ute i skugga'].includes(d.light)) h.push(['warn', `${p.swedish_name} vill ha mycket ljus. ${d.light === 'Norr' ? 'Ett norrfönster' : 'Den platsen'} kan bli för mörk, prova en ljusare plats eller en växtlampa.`]);
   if (!rmH && p && p.light_level === 1 && ['Söder', 'Ute i sol'].includes(d.light)) h.push(['warn', `${p.swedish_name} trivs i skugga. Stark sol kan bränna bladen, ställ den en bit från fönstret.`]);
   if (cat === 'Kaktus' && soil.length && !soil.some(x => ['Kaktusjord', 'Pimpsten', 'Perlit', 'Leca'].includes(x))) h.push(['warn', 'Suckulenter vill ha luftig jord som torkar snabbt. Blanda gärna i perlit eller pimpsten.']);
@@ -2080,6 +2096,7 @@ function detailsV(m, inModal) {
   if (d.place) items.push(['Planterad', d.place]);
   if (d.cm || d.ph || d.mat) items.push(['Kruka', [d.cm ? 'Ø' + d.cm + ' cm' : '', d.ph ? d.ph + ' cm hög' : '', d.mat || ''].filter(Boolean).join(', ')]);
   if (d.self) items.push(['Självvattnande', 'Ja']);
+  if (d.lamp) items.push(['Växtbelysning', d.lampcm ? d.lampcm + ' cm från växten' : 'Ja']);
   if (d.drain && !d.self) items.push(['Dräneringshål', d.drain]);
   if (d.soil && d.soil.length) items.push(['Jord', d.soil.join(', ')]);
   if (d.h) items.push(['Växtens höjd/längd', d.h + ' cm', growthTxt(d)]);
@@ -2135,6 +2152,8 @@ function pdetV() {
   <div class="chips2">${(S.home || []).map(r => `<button class="${d.room === r.id ? 'on' : ''}" aria-pressed="${d.room === r.id}" onclick="pdSet('room','${r.id}')">${esc(r.name)}</button>`).join('')}<button class="addroom" onclick="newRoom('pdet')">+ Nytt rum</button></div>
   ${d.room && roomOf(null, d) ? `${(roomOf(null, d).dirs || []).length ? `<label class="fl">Hur nära fönstret?</label><div class="chips2">${WIN.map(v => `<button class="${d.win === v ? 'on' : ''}" aria-pressed="${d.win === v}" onclick="pdSet('win','${v}')">${v}</button>`).join('')}</div>` : ''}`
    : `<label class="fl">${(S.home || []).length ? 'Eller välj plats' : 'Var står den?'}</label>${pdChips('light')}`}` : `<label class="fl">Var står den?</label>${pdChips('light')}<p class="mut" style="font-size:12.5px;margin:6px 0 0">Med Pro kan du rita ditt hem och välja rum och avstånd till fönstret.</p>`}
+  <label class="tog"><input type="checkbox" ${d.lamp ? 'checked' : ''} onchange="S.pd.lamp=this.checked;keepScroll()"><span><b>Växtbelysning</b></span></label>
+  ${d.lamp ? `<label class="fl" for="pdlamp">Avstånd från växten till lampan (cm, valfritt)</label><input id="pdlamp" type="number" inputmode="numeric" min="5" max="200" placeholder="t.ex. 40" value="${d.lampcm || ''}" oninput="S.pd.lampcm=+this.value||null"><p class="mut" style="font-size:12.5px;margin:6px 0 0">Mät från växtens topp till lampan. 20–45 cm passar de flesta växter. Närmare kan bränna bladen, längre bort blir ljuset svagt.</p>` : ''}
   <div class="two"><div><label class="fl" for="pdsince">Har haft den sedan</label><input id="pdsince" type="date" max="${today()}" value="${d.since || ''}" oninput="S.pd.since=this.value||null"></div>
   <div><label class="fl" for="pdfrom">Kommer från</label><input id="pdfrom" maxlength="80" placeholder="t.ex. stickling från mormor" value="${esc(d.from || '')}" oninput="S.pd.from=this.value"></div></div>
   <p class="mut" style="font-size:13px;margin:12px 0 0">Ändrar du höjden sparas den i skötseldagboken, så ser du hur växten växer.</p>
@@ -2290,8 +2309,14 @@ function homeFitV(p) {
   const ic2 = { s: '✅', w: '⚠️', d: '⛔' };
   return `<div class="sec"><h2>Var i ditt hem?</h2></div><div class="aqchk">${L.slice(0, 5).map(x => `<div class="ac ${x.tone}"><span>${ic2[x.tone]}</span><span><b>${esc(x.r.name)}</b> · ${x.word}. ${esc(x.tip)}.</span></div>`).join('')}</div>`;
 }
-function roomHints(p, r, win) {
+// Egen växtbelysning: hur mycket ljus den ger beroende på avståndet
+function lampLv(d) { if (!d || !d.lamp) return 0; const c = +d.lampcm; return !c ? 2.6 : c <= 30 ? 3.0 : c <= 60 ? 2.6 : c <= 90 ? 2.0 : 1.4; }
+function roomHints(p, r, win, pd) {
   const h = []; if (!p) return h;
+  if (pd && pd.lamp) { const lv = lampLv(pd), need0 = { 1: 0.8, 2: 1.6, 3: 2.4 }[p.light_level] || 1.6, c = +pd.lampcm;
+    if (p.light_level === 1 && c && c < 30) return [['warn', `Lampan sitter nära. ${p.swedish_name} trivs i skugga, höj lampan till 40–60 cm så bränns inte bladen.`]];
+    if (Math.max(lv, roomSun(r, win)) < need0) return [['warn', `${p.swedish_name} vill ha ${LIGHT[p.light_level - 1].toLowerCase()}. Lampan sitter långt bort, flytta den närmare, till 20–45 cm.`]];
+    return [['', `Bra! Växtbelysningen ger ${p.swedish_name} det ljus den behöver${c ? ' på ' + c + ' cm avstånd' : ''}.`]]; }
   const v = roomSun(r, win), need = { 1: 0.8, 2: 1.6, 3: 2.4 }[p.light_level] || 1.6, nm = p.swedish_name;
   if (v < need) h.push(['warn', `${nm} vill ha ${LIGHT[p.light_level - 1].toLowerCase()} men ${win && win !== 'I fönstret' && roomSun(r) >= need ? 'står för långt från fönstret. Flytta den närmare' : `det är ${roomLightWord(r, win).toLowerCase()} i ${r.name.toLowerCase()}. Prova ${p.light_level === 3 ? 'ett fönster mot söder eller väster' : 'ett ljusare fönster'}${r.lamp ? '' : ' eller en växtlampa'}`}.`]);
   else if (p.light_level === 1 && v >= 2.5 && win !== '2 m eller mer' && !r.lamp) h.push(['warn', `${nm} trivs i skugga. Direkt sol från ${dirTxt(r).replace('Fönster mot ', '')} kan bränna bladen, ställ den en bit in i rummet.`]);
@@ -2532,7 +2557,7 @@ function roomV(r) {
   return `${topbar(r.name, `openHouse()`)}
   <div class="roomhero"><div class="cbig">${compassSvg(r.dirs, 92)}</div><div class="grow"><span class="rl ${v >= 2.5 ? 'hi' : v < 0.9 ? 'lo' : ''}">${roomLightWord(r)}</span><b>${esc(dirTxt(r))}</b><span>${[r.type && r.type !== r.name ? r.type : '', r.lamp ? 'Växtlampa' : '', r.temp && r.temp !== 'Normalt' ? r.temp : '', r.hum && r.hum !== 'Normal' ? r.hum : ''].filter(Boolean).join(' · ') || 'Normal temperatur och luftfukt'}</span><button class="btn sm line" style="margin-top:10px" onclick="editRoom('${r.id}')">Ändra rummet</button></div></div>
   <div class="sec"><h2>Växter här (${ps.length})</h2></div>
-  <div class="pad">${ps.length ? `<div class="norm">${ps.map(m => { const p = S.plants.find(x => x.id === m.plant_id), hs = roomHints(p, r, (m.details || {}).win), w = hs.find(x => x[0] === 'warn'), d = m.details || {};
+  <div class="pad">${ps.length ? `<div class="norm">${ps.map(m => { const p = S.plants.find(x => x.id === m.plant_id), hs = roomHints(p, r, (m.details || {}).win, m.details), w = hs.find(x => x[0] === 'warn'), d = m.details || {};
     return `<div class="rrow"><button class="nrow" onclick="openMine(${m.id})">${myPh(m)}<span class="grow">${esc(m.name)}<small class="${w ? 'bad' : 'ok'}">${p ? (w ? '⚠️ ' + (w[1].split('.')[0]) : '✓ Bra ljus här') : 'Egen växt'}</small></span></button>
       ${(r.dirs || []).length ? `<div class="chips2 sm">${WIN.map(x => `<button class="${d.win === x ? 'on' : ''}" onclick="moveTo(${m.id},'${r.id}','${d.win === x ? '' : x}')">${x}</button>`).join('')}<button class="x" onclick="moveTo(${m.id},null)">Flytta ut</button></div>` : `<div class="chips2 sm"><button class="x" onclick="moveTo(${m.id},null)">Flytta ut</button></div>`}</div>`; }).join('')}</div>`
    : '<p class="mut" style="margin:0">Inga växter i rummet än. Flytta hit några nedanför.</p>'}</div>
@@ -2847,9 +2872,9 @@ function tap3(e) {
 function place3Name() { const pk = PL().pick; if (!pk) return ''; if (pk.k === 'furn') return (FURN_M[pk.t] || [0, 'möbeln'])[1].toLowerCase(); if (pk.k === 'dev') return (DEVS[pk.t] || ['saken'])[0].toLowerCase(); const m = S.mine.find(x => x.id === pk.id); return m ? m.name : 'växten'; }
 function view3dV() {
   const has = planRoomsAll().length || planAreas().length;
-  const P = PL(), placing = P.mode === 'place' && P.pick, selF = !placing && P.sel && P.sel.k === 'furn' && planFurnAll().some(x => x.id === P.sel.id);
-  return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}${has && !S.walk && placing ? `<div class="p3hint"><span>Tryck på golvet där ${esc(place3Name())} ska stå</span><button class="btn sm line" onclick="PL().mode='move';PL().pick=null;render()">Avbryt</button></div>` : ''}${has && !S.walk && S.mv3 ? `<div class="p3hint"><span>Dra med fingret för att flytta ${esc(mv3Name())}. Den stannar mot väggar och möbler.</span><button class="btn sm" onclick="mv3Stop()">Klar</button></div>` : ''}${has && !S.walk && !S.mv3 && selF ? `<div class="p3sel">${planSelV()}</div>` : ''}${has && !S.walk && !S.mv3 && !placing && !selF && S.v3p != null && S.mine.some(x => x.id === S.v3p) ? `<div class="p3sel">${plantSelV()}</div>` : ''}
-    ${has && S.walk ? walkUiV() : has ? `<div class="wx3" id="wx3">${wx3Text()}</div><div class="v3dock"><div class="v3pop" id="v3pop" hidden></div><div class="r"><button onclick="v3pop('beds')">Rabatter ▾</button><button onclick="v3pop('add')">+ Lägg till ▾</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="v3pop('view')">Vy ▾</button></div><div class="r tm"><button class="m3b" onclick="stepMon3(-1)" aria-label="Förra månaden">‹</button><button class="m3n" onclick="S.mon3=null;build3d();keepMain()" title="Tillbaka till nu">${MONTH_NAMES[mo3() - 1].replace(/^./, c => c.toUpperCase())}</button><button class="m3b" onclick="stepMon3(1)" aria-label="Nästa månad">›</button></div><div class="sunrow"><label>Solen kl <b id="sunlbl">${sunLbl()}</b></label><input type="range" min="5" max="22" step="0.5" value="${sunH()}" oninput="sunSet(this.value)"><button class="gear" onclick="v3pop('set')" aria-label="Inställningar">${ic(GEAR, 'currentColor', 16)}</button></div></div>` : ''}</div>
+  const P = PL(), placing = P.mode === 'place' && P.pick, selF = !placing && P.sel && P.sel.k === 'furn' && planFurnAll().some(x => x.id === P.sel.id), selD = !placing && P.sel && P.sel.k === 'dev' && planItems().some(x => x.id === P.sel.id);
+  return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}${has && !S.walk && placing ? `<div class="p3hint"><span>Tryck på golvet där ${esc(place3Name())} ska stå</span><button class="btn sm line" onclick="PL().mode='move';PL().pick=null;render()">Avbryt</button></div>` : ''}${has && !S.walk && S.mv3 ? `<div class="p3hint"><span>Dra med fingret för att flytta ${esc(mv3Name())}. Den stannar mot väggar och möbler.</span><button class="btn sm" onclick="mv3Stop()">Klar</button></div>` : ''}${has && !S.walk && !S.mv3 && (selF || selD) ? `<div class="p3sel">${planSelV()}</div>` : ''}${has && !S.walk && !S.mv3 && !placing && !selF && !selD && S.v3p != null && S.mine.some(x => x.id === S.v3p) ? `<div class="p3sel">${plantSelV()}</div>` : ''}
+    ${has && S.walk ? walkUiV() : has ? `<div class="v3dock"><div class="wx3 wx3in" id="wx3">${wx3Text()}</div><div class="v3pop" id="v3pop" hidden></div><div class="r"><button onclick="v3pop('beds')">Rabatter ▾</button><button onclick="v3pop('add')">+ Lägg till ▾</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="v3pop('view')">Vy ▾</button></div><div class="r tm"><button class="m3b" onclick="stepMon3(-1)" aria-label="Förra månaden">‹</button><button class="m3n" onclick="S.mon3=null;build3d();keepMain()" title="Tillbaka till nu">${MONTH_NAMES[mo3() - 1].replace(/^./, c => c.toUpperCase())}</button><button class="m3b" onclick="stepMon3(1)" aria-label="Nästa månad">›</button></div><div class="sunrow"><label>Solen kl <b id="sunlbl">${sunLbl()}</b></label><input type="range" min="5" max="22" step="0.5" value="${sunH()}" oninput="sunSet(this.value)"><button class="gear" onclick="v3pop('set')" aria-label="Inställningar">${ic(GEAR, 'currentColor', 16)}</button></div></div>` : ''}</div>
   <div style="height:12px"></div>`;
 }
 async function mount3d() {
@@ -3015,8 +3040,8 @@ function build3dInner(first) {
     else { const SURF = ['table', 'dtable', 'desk', 'dresser', 'tv', 'counter', 'round', 'shelf', 'pshelf', 'otable'];
       planFurnAll().forEach(f => { if (!SURF.includes(f.t) || flOf(f) !== pfl) return; const dx = sx - f.x, dz = sy - f.y, r = (f.rot || 0) * Math.PI / 180, lx = dx * Math.cos(r) + dz * Math.sin(r), lz = -dx * Math.sin(r) + dz * Math.cos(r);
         const inside = ROUNDS.has(f.t) ? Math.hypot(dx, dz) <= f.w / 2 + 0.05 : Math.abs(lx) <= f.w / 2 + 0.05 && Math.abs(lz) <= f.h / 2 + 0.05; if (inside) lift = Math.max(lift, (FH[f.t] || 0.8) + 0.01); }); }
-    if (m.details.place !== 'Upp och ner') leanToLight3d(THREE, gr.userData.pl, pRoom, sx, sy, pfl);
-    (gr.userData || (gr.userData = {})).pid = m.id; gr.position.set(sx, fyOf(pfl) + lift, sy); sc.add(gr); if (mineSunBad(m)) sunRing3d(THREE, M, sc, sx, sy, fyOf(pfl) + lift - 0.02, m.id); PLT.push({ x: sx, z: sy, y: fyOf(pfl) + lift, top: fyOf(pfl) + lift + (PT.inv ? PT.H + 0.04 : PT.top), fl: pfl }); });
+    if (m.details.place !== 'Upp och ner' && !m.details.lamp) leanToLight3d(THREE, gr.userData.pl, pRoom, sx, sy, pfl);
+    (gr.userData || (gr.userData = {})).pid = m.id; gr.position.set(sx, fyOf(pfl) + lift, sy); sc.add(gr); if (m.details.lamp && !['Ampel', 'Upp och ner'].includes(m.details.place) && !planItems().some(it => it.t === 'grow' && Math.hypot(it.x - sx, it.y - sy) < 0.6)) { const lg = new THREE.Group(), K = kit3(THREE, M, lg, 5), fy0 = fyOf(pfl), y0 = Math.min(fy0 + 2.32, fy0 + lift + PT.top + (+m.details.lampcm || 40) / 100), top = fy0 + 2.4 - y0; K.cyl(0.003, 0.003, top, '#3A3A3A', 0, top / 2, 0, 4); K.cyl(0.016, 0.016, 0.04, '#2A2A2A', 0, 0.06, 0, 10); K.cyl(0.032, 0.05, 0.06, '#E2E2E0', 0, 0.012, 0, 16); K.cyl(0.045, 0.045, 0.006, '#FFF6E2', 0, -0.02, 0, 20, { emissive: '#FFE2A8' }); lg.position.set(sx, y0, sy); (lg.userData || (lg.userData = {})).pid = m.id; sc.add(lg); } if (mineSunBad(m)) sunRing3d(THREE, M, sc, sx, sy, fyOf(pfl) + lift - 0.02, m.id); PLT.push({ x: sx, z: sy, y: fyOf(pfl) + lift, top: fyOf(pfl) + lift + (PT.inv ? PT.H + 0.04 : PT.top), fl: pfl }); });
   // smarta saker
   devices3d(THREE, M, sc, PLT, fyOf);
   // träd och buskar
@@ -4398,7 +4423,7 @@ function planSelInner() {
   if (sel.k === 'gitem') { const g = planGarden().find(x => x.id === sel.id); if (!g) return '';
     return `<div class="psel"><span style="font-size:22px">${UK_M[g.t][3]}</span><div class="grow"><b>${UK_M[g.t][1]}</b><span>Bredd ${fmtM(g.r * 2)} · höjd ${fmtM(g.h || gDefH(g))}</span></div><div class="stepr"><small>Bredd</small><button onclick="gEdit(-0.25)" aria-label="Smalare">−</button><button onclick="gEdit(0.25)" aria-label="Bredare">+</button></div><div class="stepr"><small>Höjd</small><button onclick="gEditH(-0.5)" aria-label="Lägre">−</button><button onclick="gEditH(0.5)" aria-label="Högre">+</button></div><button class="x" onclick="delG('${g.id}')">Ta bort</button></div>`; }
   if (sel.k === 'furn') { const f = planFurnAll().find(x => x.id === sel.id); if (!f) return ''; const F = FURN_M[f.t] || [0, 'Möbel', 0, 0, '🪑'];
-    return `<div class="psel"><span style="font-size:22px">${F[4]}</span><div class="grow"><b>${F[1]}</b><span>${f.w.toFixed(2).replace(/0$/, '')} × ${f.h.toFixed(2).replace(/0$/, '')} m · grön kant är framsidan</span></div><div class="stepr"><small>Bredd</small><button onclick="furnEdit('w',-0.1)" aria-label="Smalare">−</button><button onclick="furnEdit('w',0.1)" aria-label="Bredare">+</button></div><div class="stepr"><small>Djup</small><button onclick="furnEdit('h',-0.1)" aria-label="Grundare">−</button><button onclick="furnEdit('h',0.1)" aria-label="Djupare">+</button></div>${S.hview === '3d' ? `<button class="btn sm" onclick="mv3Start('furn','${f.id}')">✥ Flytta</button>` : ''}<button class="btn sm line" onclick="furnRot()" aria-label="Vrid">↻ Vrid</button><button class="x" onclick="delFurn('${f.id}')">Ta bort</button></div>${furnOpts(f)}`; }
+    return `<div class="psel col"><div class="fcomp"><span style="font-size:20px">${F[4]}</span><div class="grow"><b>${F[1]}</b><span>${f.w.toFixed(2).replace(/0$/, '')} × ${f.h.toFixed(2).replace(/0$/, '')} m · grön kant är framsidan</span></div></div><div class="fcomp"><div class="stepr"><small>Bredd</small><button onclick="furnEdit('w',-0.1)" aria-label="Smalare">−</button><button onclick="furnEdit('w',0.1)" aria-label="Bredare">+</button></div><div class="stepr"><small>Djup</small><button onclick="furnEdit('h',-0.1)" aria-label="Grundare">−</button><button onclick="furnEdit('h',0.1)" aria-label="Djupare">+</button></div></div><div class="fcomp">${S.hview === '3d' ? `<button class="btn sm" onclick="mv3Start('furn','${f.id}')">✥ Flytta</button>` : ''}<button class="btn sm line" onclick="furnRot()" aria-label="Vrid">↻ Vrid</button><button class="x" style="margin-left:auto" onclick="delFurn('${f.id}')">Ta bort</button></div>${furnOpts(f)}</div>`; }
   if (sel.k === 'fwall') { const wl = planWalls().find(x => x.id === sel.id); if (!wl) return '';
     if (wl.h === 'hedge') return `<div class="psel"><div class="grow"><b>Häck</b><span>${r1(Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1))} m lång</span></div><button class="x" onclick="delFWall('${wl.id}')">Ta bort</button></div>`;
     return `<div class="psel"><div class="grow"><b>${wl.h === 'half' ? 'Halvvägg' : 'Vägg'}</b><span>${r1(Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1))} m lång</span></div><button class="btn sm line" onclick="toggleHalf('${wl.id}')">${wl.h === 'half' ? 'Gör hel' : 'Gör halv'}</button>${((wl.ops || []).length || (wl.bays || []).length) ? `<button class="btn sm line" onclick="fwOpsClear('${wl.id}')">Ta bort fönster/dörrar</button>` : ''}<button class="x" onclick="delFWall('${wl.id}')">Ta bort</button></div>`; }
@@ -6250,7 +6275,8 @@ function mineSunInfo(m) {
   if (isOutM(m)) { const q = minePos(m); if (!q) return null; const h = sunHours(q.x, q.y); return { h, c: sunCls(h), out: true }; }
   const r = roomOf(m); if (!r || !d.pos || !okn(d.pos.x, d.pos.y)) return null;
   const segs = allWinSegs(r, d.pos.x, d.pos.y), h = sunHoursIn(r, d.pos.x, d.pos.y), near = segs.length ? Math.min(...segs.map(g => segDist(d.pos.x, d.pos.y, g[0]))) : 99;
-  return { h, c: h >= 3 ? 3 : (h >= 1 || near < 1.6) ? 2 : 1, out: false };
+  const lv = lampLv(d), lc = lv >= 2.5 ? 3 : lv >= 1.6 ? 2 : lv ? 1 : 0;
+  return { h, c: Math.max(lc, h >= 3 ? 3 : (h >= 1 || near < 1.6) ? 2 : 1), out: false, lamp: !!lv };
 }
 function mineSunBad(m) { try { const i = mineSunInfo(m), p = plantById(m.plant_id); if (!i || !p || p.light_level == null) return false; return p.light_level > i.c || (p.light_level === 1 && i.c === 3); } catch (e) { return false; } }
 function mineSun(m) { try { const i = mineSunInfo(m); if (!i) return ''; const p = plantById(m.plant_id); return 'Ca ' + sunFmt(i.h) + (i.out ? ' sol per dag i maj–aug · ' : ' direkt sol genom fönstret per dag, snitt över året · ') + LIGHT[i.c - 1] + (mineSunBad(m) ? ' (vill ha ' + LIGHT[p.light_level - 1].toLowerCase() + ')' : ''); } catch (e) { return ''; } }
@@ -7977,6 +8003,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.238', '29 okt 12:45', ['Växtbelysning: välj om en växt har lampa och hur långt från växten den sitter. Den syns i 3D och påverkar rådet om ljus', 'Växtbelysning i 3D: en lampa-panel när du trycker på en växtlampa, och ett valbart avstånd för växtlampor', 'Såkalender: sök din stad för att välja zon, och zonkartan från Blomsterlandet kan visas när du väljer zon', 'Zonerna och städerna är uppdaterade efter zonkartan', 'Vädret i 3D ligger nu under 3D-rutan i stället för över knapparna', 'Möbelpanelen i 3D är mer kompakt']],
   ['Beta 0.237', '29 okt 12:07', ['Såkalendern är helt ny: 92 grödor, rätt frostdatum per zon, fliken Nu med vad du ska göra den här veckan, en sida per gröda med årsschema och steg för steg, Min plan, och Mina sådder med påminnelser från groning till skörd', 'Frostvarning i Såkalendern när prognosen visar minusgrader', 'Påminnelser från Mina sådder syns under Att göra på Hem', '3D: tryck på Flytta i rutan för att flytta något. Det stannar mot väggar och möbler och kan inte hamna inuti något', '3D: växtlampan kan vara ramp, panel, E27-lampa, klämlampa, ringlampa med mera, med vitt eller rosa ljus och valbart avstånd och höjd', 'Rutorna i 3D för växter och möbler visas rätt och kan minimeras', 'Mörkt läge: knapparna är inte längre silverfärgade']],
   ['Beta 0.236', '29 okt 11:31', ['Hem: Mina växter visar en lista med dina tre översta växter och knappen Visa alla', 'Knappar och kort har fått en mjuk 3D-känsla och trycks ner när du trycker', '3D: tryck på en växt för att se varför den har orange ring, tips och knappen Inställningar', '3D: tryck på en möbel, växt eller pryl en gång, håll sedan in och dra för att flytta den. Saker i taket dras i taket', 'Mina djur: du måste välja ras när du lägger till en hund']],
   ['Beta 0.235', '29 okt 11:07', ['Rabatter visar hur många timmar sol de får, utifrån solen och skuggor från hus och träd', 'Växter ute och inne visar Sol där den står, inne genom fönster, burspråk och ytterdörrar', 'Orange ring i 3D runt växter som får för lite eller för mycket sol', 'Växtförslagen för rabatten fyller i ljuset automatiskt', 'Inomhusväxter lutar mot fönstret eller växtlampan i 3D']],
@@ -8298,7 +8325,19 @@ const dTxt = d => d.getDate() + ' ' + MSH[d.getMonth()];
 const d0 = () => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); };
 const dIso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const dParse = s => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, m - 1, d); };
-const SOWZN = { 1: 'Skåne, Öland, Gotland', 2: 'Göteborg, Stockholm, Kalmar', 3: 'Örebro, Uppsala, Linköping', 4: 'Västerås, Falun, Karlstad', 5: 'Sundsvall, Östersund, Mora', 6: 'Umeå, Skellefteå', 7: 'Luleå, Gällivare', 8: 'Kiruna och fjällen' };
+const SOWZN = { 1: 'Malmö, Lund, Ystad, Visby, Öland', 2: 'Göteborg, Halmstad, Kalmar, Karlskrona', 3: 'Stockholm, Linköping, Västerås, Skövde', 4: 'Örebro, Karlstad, Gävle, Jönköping', 5: 'Umeå, Sundsvall, Mora, Falun', 6: 'Luleå, Piteå, Skellefteå, Haparanda', 7: 'Östersund, Strömsund, Gällivare, Jokkmokk', 8: 'Kiruna och Pajala' };
+// Stad → zon (efter zonkartan från Blomsterlandet). Sök på staden så väljs zonen åt dig.
+const CITYZ = { 'Malmö': 1, 'Lund': 1, 'Ystad': 1, 'Trelleborg': 1, 'Visby': 1, 'Borgholm': 1, 'Mörbylånga': 1,
+  'Göteborg': 2, 'Halmstad': 2, 'Falkenberg': 2, 'Kungsbacka': 2, 'Kalmar': 2, 'Karlskrona': 2, 'Strömstad': 2, 'Trollhättan': 2, 'Kristianstad': 2, 'Ängelholm': 2, 'Helsingborg': 2,
+  'Stockholm': 3, 'Linköping': 3, 'Norrköping': 3, 'Nyköping': 3, 'Västerås': 3, 'Enköping': 3, 'Skövde': 3, 'Uppsala': 3, 'Alingsås': 2,
+  'Örebro': 4, 'Karlstad': 4, 'Gävle': 4, 'Jönköping': 4, 'Ljungby': 4, 'Säffle': 4, 'Kristinehamn': 4,
+  'Umeå': 5, 'Sundsvall': 5, 'Mora': 5, 'Falun': 5, 'Borlänge': 5, 'Växjö': 5, 'Vetlanda': 5, 'Härnösand': 5, 'Örnsköldsvik': 5, 'Hudiksvall': 5, 'Avesta': 5, 'Ludvika': 5,
+  'Luleå': 6, 'Piteå': 6, 'Skellefteå': 6, 'Haparanda': 6, 'Kalix': 6, 'Lycksele': 6,
+  'Östersund': 7, 'Strömsund': 7, 'Gällivare': 7, 'Jokkmokk': 7, 'Sveg': 7, 'Älvsbyn': 7,
+  'Kiruna': 8, 'Pajala': 8 };
+function sowCityHits() { const q = (S.sowCq || '').trim().toLowerCase(); if (!q) return ''; const hits = Object.keys(CITYZ).filter(c => c.toLowerCase().startsWith(q)).concat(Object.keys(CITYZ).filter(c => !c.toLowerCase().startsWith(q) && c.toLowerCase().includes(q))).slice(0, 8);
+  return hits.length ? hits.map(c => `<button onclick="S.sowZo=false;S.sowCq='';setPref('zone',${CITYZ[c]})">${esc(c)}<span>Zon ${CITYZ[c]}</span></button>`).join('') : '<p>Hittar inte orten. Välj zon nedan.</p>'; }
+function sowCityQ(v) { S.sowCq = v; const el = $('#sowcity'); if (el) el.innerHTML = sowCityHits(); }
 function stepSpan(st, F, A) {
   if (Array.isArray(st[1])) { const ms = st[1]; return { months: ms, txt: ms.length > 2 ? MSH[ms[0] - 1] + '–' + MSH[ms[ms.length - 1] - 1] : ms.map(m => MSH[m - 1]).join(' och ') }; }
   const base = st[3] === 'A' ? (A || sowA(F.getFullYear())) : F, a = dAdd(base, st[1]), b = dAdd(base, st[2]);
@@ -8429,7 +8468,7 @@ function sowV() {
   const z = sowZ(), y = new Date().getFullYear(), F = sowF(y), A = sowA(y), tab = S.sowTab || 'nu', t0 = d0(), plan = sowPlan();
   const free = Math.round((A - F) / 864e5);
   const zone = `<div class="sowz"><div class="grow"><b>${z ? 'Zon ' + z : 'Ingen zon vald, visar zon 3'}</b><span>Sista vårfrost ca <b>${dTxt(F)}</b> · första höstfrost ca <b>${dTxt(A)}</b> · ${free} frostfria dagar</span></div><button class="btn sm line" onclick="S.sowZo=!S.sowZo;sowKeep()">${z ? 'Ändra' : 'Välj zon'}</button></div>
-  ${S.sowZo || !z ? `<div class="sowzs">${[1, 2, 3, 4, 5, 6, 7, 8].map(k => `<button class="${z === k ? 'on' : ''}" onclick="S.sowZo=false;setPref('zone',${k})"><b>${k}</b><span>${SOWZN[k]}</span></button>`).join('')}</div>` : ''}`;
+  ${S.sowZo || !z ? `<div class="sowcity"><input type="search" placeholder="Skriv din stad, t.ex. Umeå" value="${esc(S.sowCq || '')}" oninput="sowCityQ(this.value)" aria-label="Sök stad"><div id="sowcity" class="sowcityh">${sowCityHits()}</div></div><div class="sowhintr"><p class="sowhint">Eller välj din zon direkt.</p><button class="btn sm line" onclick="S.sowMap=!S.sowMap;sowKeep()">${S.sowMap ? 'Dölj zonkarta' : 'Visa zonkarta'}</button></div>${S.sowMap ? '<img class="zonkarta" src="zonkarta.jpg" alt="Sveriges odlingszoner, zon 1 till 8 och fjäll" loading="lazy">' : ''}<div class="sowzs">${[1, 2, 3, 4, 5, 6, 7, 8].map(k => `<button class="${z === k ? 'on' : ''}" onclick="S.sowZo=false;setPref('zone',${k})"><b>${k}</b><span>${SOWZN[k]}</span></button>`).join('')}</div>` : ''}`;
   let body = '';
   if (tab === 'nu') {
     const due = sowDue(7), only = plan.length && !S.sowAll, list = CROPS.filter(c => !only || plan.includes(c.n));
@@ -8975,7 +9014,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.237';
+const APP_VERSION = 'Beta 0.238';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
