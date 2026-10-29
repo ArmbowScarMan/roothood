@@ -1372,7 +1372,10 @@ body.hadv nav{display:none}
 .v3tabs button.on{background:var(--pri);color:var(--onpri)}
 .v3pop button{text-align:left;font-size:13px;min-height:40px}
 /* Vädret i 3D ligger i dockan, ovanför knapparna, så det inte krockar med något */
-.wx3in{position:static;display:block;margin:0 0 6px;padding:0 4px;background:none;box-shadow:none;font-size:12.5px;color:var(--mut);text-align:center}
+.wx3in{position:static;display:block;margin:0;padding:0 4px;background:none;box-shadow:none;font-size:12.5px;color:var(--mut);text-align:left;flex:1;min-width:0}
+.v3top{display:flex;align-items:center;gap:8px;padding:2px 2px 0}
+.v3undo{flex:none;border:0;border-radius:999px;padding:6px 12px;min-height:32px;font:inherit;font-size:13px;font-weight:700;background:var(--soft);color:var(--pri);cursor:pointer}
+.v3undo:disabled{opacity:.4;cursor:default}
 /* Möbelpanelen i 3D: kompakt, inga tomma ytor */
 .pfopts .chips2 button{min-height:0;padding:5px 10px;font-size:12.5px}
 .pfopt{margin-top:4px}
@@ -2802,7 +2805,7 @@ function mv3Ctx(v, o) {
     const others = flat ? [] : planFurnAll().filter(g => g.id !== f.id && furnFl(g) === fl && !FLAT.has(g.t) && g.t !== 'stairs' && WALLF.has(g.t) === wf).map(g => footF(g, g.x, g.y));
     const plants = flat || wf ? [] : S.mine.filter(m => m.details && m.details.pos && !hangM(m) && plantFl(m) === fl && !onSurf(m, fl)).map(m => [m.details.pos.x, m.details.pos.y, plantR(m)]);
     return { walls: mv3Walls(fl), ok: (x, y) => { const P = footF(f, x, y); return !this_walls(P) && !others.some(B => polyHit(P, B)) && !plants.some(([px, py, r]) => circPolyHit(px, py, r, P)); } }; }
-  if (v.k === 'dev') { const fl = flOf(o.it); return { walls: mv3Walls(fl), ok: (x, y) => !this_wallsC(x, y, 0.08) }; }
+  if (v.k === 'dev') { const fl = flOf(o.it); return { walls: mv3Walls(fl), ok: (x, y) => !this_wallsC(x, y, 0.08) && !!roomAt(x, y) }; }
   const m = o.m, fl = plantFl(m), r = plantR(m), hang = hangM(m);
   const furn = hang ? [] : planFurnAll().filter(f => (OUTF.has(f.t) ? 0 : flOf(f)) === fl && !FLAT.has(f.t) && !SURF3.has(f.t) && !WALLF.has(f.t) && f.t !== 'stairs').map(f => footF(f, f.x, f.y));
   const plants = S.mine.filter(q => q.id !== m.id && q.details && q.details.pos && hangM(q) === hang && plantFl(q) === fl).map(q => [q.details.pos.x, q.details.pos.y, plantR(q)]);
@@ -2831,8 +2834,8 @@ function dragDown(e) {
   if (!ray3(e).ray.intersectPlane(new T3.THREE.Plane(new T3.THREE.Vector3(0, 1, 0), -y), pt)) return;
   const C = mv3Ctx(v, o); MV3W = C.walls;
   // Står saken redan fel får den flyttas fritt tills den står rätt
-  const start = [o.x, o.y], stuck = !C.ok(o.x, o.y);
-  T3.drag = { v, y, sx: pt.x, sz: pt.z, bx: o.x, by: o.y, cur: start, ok: stuck ? (x, y) => true : C.ok, okReal: C.ok, moved: false, items };
+  const start = v.k === 'dev' ? [grp.o.position.x, grp.o.position.z] : [o.x, o.y], stuck = !C.ok(start[0], start[1]);
+  T3.drag = { v, y, sx: pt.x, sz: pt.z, bx: start[0], by: start[1], cur: start, ok: stuck ? (x, y) => true : C.ok, okReal: C.ok, moved: false, items };
   T3.tap = null;
 }
 function dragMove(e) {
@@ -2847,7 +2850,7 @@ function dragMove(e) {
 function dragEnd(d) {
   const v = d.v, o = mv3Obj(v), [x, y] = d.cur; if (!o) return render();
   if (v.k === 'furn') { pushUndo(); o.f.x = r2(x); o.f.y = r2(y); saveHomeSoon(); }
-  else if (v.k === 'dev') { pushUndo(); o.it.x = r2(x); o.it.y = r2(y); growLamp(o.it); saveHomeSoon(); }
+  else if (v.k === 'dev') { pushUndo(); if (roomAt(x, y) || !roomAt(o.it.x, o.it.y)) { o.it.x = r2(x); o.it.y = r2(y); } growLamp(o.it); saveHomeSoon(); }
   else { o.m.details.pos = { x: r2(x), y: r2(y) }; savePos(o.m, true); }
   if (!d.okReal(x, y)) toast('Den står fortfarande i något. Dra den till en fri plats.');
   render();
@@ -2874,7 +2877,7 @@ function view3dV() {
   const has = planRoomsAll().length || planAreas().length;
   const P = PL(), placing = P.mode === 'place' && P.pick, selF = !placing && P.sel && P.sel.k === 'furn' && planFurnAll().some(x => x.id === P.sel.id), selD = !placing && P.sel && P.sel.k === 'dev' && planItems().some(x => x.id === P.sel.id);
   return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}${has && !S.walk && placing ? `<div class="p3hint"><span>Tryck på golvet där ${esc(place3Name())} ska stå</span><button class="btn sm line" onclick="PL().mode='move';PL().pick=null;render()">Avbryt</button></div>` : ''}${has && !S.walk && S.mv3 ? `<div class="p3hint"><span>Dra med fingret för att flytta ${esc(mv3Name())}. Den stannar mot väggar och möbler.</span><button class="btn sm" onclick="mv3Stop()">Klar</button></div>` : ''}${has && !S.walk && !S.mv3 && (selF || selD) ? `<div class="p3sel">${planSelV()}</div>` : ''}${has && !S.walk && !S.mv3 && !placing && !selF && !selD && S.v3p != null && S.mine.some(x => x.id === S.v3p) ? `<div class="p3sel">${plantSelV()}</div>` : ''}
-    ${has && S.walk ? walkUiV() : has ? `<div class="v3dock"><div class="wx3 wx3in" id="wx3">${wx3Text()}</div><div class="v3pop" id="v3pop" hidden></div><div class="r"><button onclick="v3pop('beds')">Rabatter ▾</button><button onclick="v3pop('add')">+ Lägg till ▾</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="v3pop('view')">Vy ▾</button></div><div class="r tm"><button class="m3b" onclick="stepMon3(-1)" aria-label="Förra månaden">‹</button><button class="m3n" onclick="S.mon3=null;build3d();keepMain()" title="Tillbaka till nu">${MONTH_NAMES[mo3() - 1].replace(/^./, c => c.toUpperCase())}</button><button class="m3b" onclick="stepMon3(1)" aria-label="Nästa månad">›</button></div><div class="sunrow"><label>Solen kl <b id="sunlbl">${sunLbl()}</b></label><input type="range" min="5" max="22" step="0.5" value="${sunH()}" oninput="sunSet(this.value)"><button class="gear" onclick="v3pop('set')" aria-label="Inställningar">${ic(GEAR, 'currentColor', 16)}</button></div></div>` : ''}</div>
+    ${has && S.walk ? walkUiV() : has ? `<div class="v3dock"><div class="v3top"><div class="wx3 wx3in" id="wx3">${wx3Text()}</div><button class="v3undo" onclick="undoPlan()" ${(S.undo || []).length ? '' : 'disabled'} aria-label="Ångra">↶ Ångra</button></div><div class="v3pop" id="v3pop" hidden></div><div class="r"><button onclick="v3pop('beds')">Rabatter ▾</button><button onclick="v3pop('add')">+ Lägg till ▾</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="v3pop('view')">Vy ▾</button></div><div class="r tm"><button class="m3b" onclick="stepMon3(-1)" aria-label="Förra månaden">‹</button><button class="m3n" onclick="S.mon3=null;build3d();keepMain()" title="Tillbaka till nu">${MONTH_NAMES[mo3() - 1].replace(/^./, c => c.toUpperCase())}</button><button class="m3b" onclick="stepMon3(1)" aria-label="Nästa månad">›</button></div><div class="sunrow"><label>Solen kl <b id="sunlbl">${sunLbl()}</b></label><input type="range" min="5" max="22" step="0.5" value="${sunH()}" oninput="sunSet(this.value)"><button class="gear" onclick="v3pop('set')" aria-label="Inställningar">${ic(GEAR, 'currentColor', 16)}</button></div></div>` : ''}</div>
   <div style="height:12px"></div>`;
 }
 async function mount3d() {
@@ -8003,6 +8006,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.239', '29 okt 12:55', ['Ångra-knapp i 3D-vyn, på samma rad som vädret så den inte krockar med något', 'Saker i rummen kan inte längre flyttas ut ur huset i 3D. En klämlampa på en växt hoppar inte när du börjar flytta den', 'Städer på zongränsen visar båda zonerna, till exempel Piteå zon 5 och zon 6']],
   ['Beta 0.238', '29 okt 12:45', ['Växtbelysning: välj om en växt har lampa och hur långt från växten den sitter. Den syns i 3D och påverkar rådet om ljus', 'Växtbelysning i 3D: en lampa-panel när du trycker på en växtlampa, och ett valbart avstånd för växtlampor', 'Såkalender: sök din stad för att välja zon, och zonkartan från Blomsterlandet kan visas när du väljer zon', 'Zonerna och städerna är uppdaterade efter zonkartan', 'Vädret i 3D ligger nu under 3D-rutan i stället för över knapparna', 'Möbelpanelen i 3D är mer kompakt']],
   ['Beta 0.237', '29 okt 12:07', ['Såkalendern är helt ny: 92 grödor, rätt frostdatum per zon, fliken Nu med vad du ska göra den här veckan, en sida per gröda med årsschema och steg för steg, Min plan, och Mina sådder med påminnelser från groning till skörd', 'Frostvarning i Såkalendern när prognosen visar minusgrader', 'Påminnelser från Mina sådder syns under Att göra på Hem', '3D: tryck på Flytta i rutan för att flytta något. Det stannar mot väggar och möbler och kan inte hamna inuti något', '3D: växtlampan kan vara ramp, panel, E27-lampa, klämlampa, ringlampa med mera, med vitt eller rosa ljus och valbart avstånd och höjd', 'Rutorna i 3D för växter och möbler visas rätt och kan minimeras', 'Mörkt läge: knapparna är inte längre silverfärgade']],
   ['Beta 0.236', '29 okt 11:31', ['Hem: Mina växter visar en lista med dina tre översta växter och knappen Visa alla', 'Knappar och kort har fått en mjuk 3D-känsla och trycks ner när du trycker', '3D: tryck på en växt för att se varför den har orange ring, tips och knappen Inställningar', '3D: tryck på en möbel, växt eller pryl en gång, håll sedan in och dra för att flytta den. Saker i taket dras i taket', 'Mina djur: du måste välja ras när du lägger till en hund']],
@@ -8330,13 +8334,14 @@ const SOWZN = { 1: 'Malmö, Lund, Ystad, Visby, Öland', 2: 'Göteborg, Halmstad
 const CITYZ = { 'Malmö': 1, 'Lund': 1, 'Ystad': 1, 'Trelleborg': 1, 'Visby': 1, 'Borgholm': 1, 'Mörbylånga': 1,
   'Göteborg': 2, 'Halmstad': 2, 'Falkenberg': 2, 'Kungsbacka': 2, 'Kalmar': 2, 'Karlskrona': 2, 'Strömstad': 2, 'Trollhättan': 2, 'Kristianstad': 2, 'Ängelholm': 2, 'Helsingborg': 2,
   'Stockholm': 3, 'Linköping': 3, 'Norrköping': 3, 'Nyköping': 3, 'Västerås': 3, 'Enköping': 3, 'Skövde': 3, 'Uppsala': 3, 'Alingsås': 2,
-  'Örebro': 4, 'Karlstad': 4, 'Gävle': 4, 'Jönköping': 4, 'Ljungby': 4, 'Säffle': 4, 'Kristinehamn': 4,
-  'Umeå': 5, 'Sundsvall': 5, 'Mora': 5, 'Falun': 5, 'Borlänge': 5, 'Växjö': 5, 'Vetlanda': 5, 'Härnösand': 5, 'Örnsköldsvik': 5, 'Hudiksvall': 5, 'Avesta': 5, 'Ludvika': 5,
-  'Luleå': 6, 'Piteå': 6, 'Skellefteå': 6, 'Haparanda': 6, 'Kalix': 6, 'Lycksele': 6,
-  'Östersund': 7, 'Strömsund': 7, 'Gällivare': 7, 'Jokkmokk': 7, 'Sveg': 7, 'Älvsbyn': 7,
+  'Örebro': 4, 'Karlstad': 4, 'Gävle': [3, 4], 'Jönköping': 4, 'Ljungby': 4, 'Säffle': 4, 'Kristinehamn': 4,
+  'Umeå': 5, 'Sundsvall': 5, 'Mora': 5, 'Falun': [4, 5], 'Borlänge': 5, 'Växjö': 5, 'Vetlanda': 5, 'Härnösand': 5, 'Örnsköldsvik': 5, 'Hudiksvall': 5, 'Avesta': 5, 'Ludvika': 5,
+  'Luleå': 6, 'Piteå': [5, 6], 'Skellefteå': [6, 7], 'Haparanda': [6, 7], 'Kalix': 6, 'Lycksele': [5, 6],
+  'Östersund': 7, 'Strömsund': [6, 7], 'Gällivare': 7, 'Jokkmokk': 7, 'Sveg': 7, 'Älvsbyn': 7,
   'Kiruna': 8, 'Pajala': 8 };
 function sowCityHits() { const q = (S.sowCq || '').trim().toLowerCase(); if (!q) return ''; const hits = Object.keys(CITYZ).filter(c => c.toLowerCase().startsWith(q)).concat(Object.keys(CITYZ).filter(c => !c.toLowerCase().startsWith(q) && c.toLowerCase().includes(q))).slice(0, 8);
-  return hits.length ? hits.map(c => `<button onclick="S.sowZo=false;S.sowCq='';setPref('zone',${CITYZ[c]})">${esc(c)}<span>Zon ${CITYZ[c]}</span></button>`).join('') : '<p>Hittar inte orten. Välj zon nedan.</p>'; }
+  const btns = hits.flatMap(c => [].concat(CITYZ[c]).map(z => `<button onclick="S.sowZo=false;S.sowCq='';setPref('zone',${z})">${esc(c)}<span>zon ${z}</span></button>`));
+  return btns.length ? btns.join('') : '<p>Hittar inte orten. Välj zon nedan.</p>'; }
 function sowCityQ(v) { S.sowCq = v; const el = $('#sowcity'); if (el) el.innerHTML = sowCityHits(); }
 function stepSpan(st, F, A) {
   if (Array.isArray(st[1])) { const ms = st[1]; return { months: ms, txt: ms.length > 2 ? MSH[ms[0] - 1] + '–' + MSH[ms[ms.length - 1] - 1] : ms.map(m => MSH[m - 1]).join(' och ') }; }
@@ -9014,7 +9019,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.238';
+const APP_VERSION = 'Beta 0.239';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
