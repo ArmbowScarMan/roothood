@@ -2885,7 +2885,8 @@ function env3d() { try { if (!T3 || !T3.scene) return; const THREE = T3.THREE, s
     sc.background = canvasTex3d(THREE, 4, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, cols[0]); g.addColorStop(0.6, cols[1]); g.addColorStop(1, cols[2]); x.fillStyle = g; x.fillRect(0, 0, w, h); }); mid = cols[1]; }
   else sc.background = skyTex3d(THREE, true);
   sc.fog = (rainy || foggy) ? new THREE.Fog(mid, foggy ? 6 : 25, foggy ? 55 : 140) : null;
-  sc.children.forEach(o => { if (o.isDirectionalLight) { o.intensity = (dark ? 1.0 : 1.6) * (SUNF3[season] || 1) * wf * v3br(dark); o.castShadow = S.v3sh !== false; } if (o.isHemisphereLight) o.intensity = (dark ? 0.7 : 1.0) * v3br(dark); if (o.userData && o.userData.lbl) o.visible = S.v3lab !== false; });
+  sc.children.forEach(o => { if (o.isDirectionalLight) { o.intensity = (dark ? 1.0 : 1.6) * (SUNF3[season] || 1) * wf * v3br(dark); o.castShadow = S.v3sh !== false; } if (o.isHemisphereLight) o.intensity = (dark ? 0.7 : 1.0) * v3br(dark); });
+  sc.traverse(o => { if (o.userData && o.userData.lbl) o.visible = S.v3lab !== false; });
   if (T3.snowG) { sc.remove(T3.snowG); T3.snowG.geometry.dispose(); T3.snowG = null; }
   if (snowing && T3.bounds) { const b = T3.bounds, span = Math.max(12, b[2] - b[0], b[3] - b[1]) + 12, g = new THREE.Mesh(new THREE.PlaneGeometry(span * 3, span * 3), new THREE.MeshStandardMaterial({ color: '#F4F8FB', roughness: 0.95 })); g.rotation.x = -Math.PI / 2; g.position.set((b[0] + b[2]) / 2, 0.035, (b[1] + b[3]) / 2); g.receiveShadow = true; sc.add(g); T3.snowG = g; }
   if (T3.envPts) { sc.remove(T3.envPts); T3.envPts.geometry.dispose(); T3.envPts.material.dispose(); T3.envPts = null; T3.envK = null; }
@@ -7666,6 +7667,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.234', '29 okt 09:15', ['Rumsnamnen i 3D döljs när Rumsnamn står på av']],
   ['Beta 0.233', '29 okt 09:08', ['3D är ljusare, och ⚙ ger ljusstyrka, skuggor och rumsnamn']],
   ['Beta 0.232', '28 okt 23:21', ['Redigera en trädgård hoppar över väderstreck och går direkt till solen']],
   ['Beta 0.231', '28 okt 23:17', ['Solen i 3D följer kartans väderstreck rätt']],
@@ -8442,7 +8444,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.233';
+const APP_VERSION = 'Beta 0.234';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
