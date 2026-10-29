@@ -1442,6 +1442,33 @@ body.hadv nav{display:none}
 .mrow .side .rtag2 i{font-size:11px;line-height:1;flex:none}
 .mrow .side .wnext{display:block;font-size:10.5px;line-height:1.2;text-align:center;white-space:normal;max-width:70px;color:var(--mut)}
 .mrow .side .x{font-size:11.5px;line-height:1.2;padding:2px 4px;white-space:normal;text-align:center;max-width:70px}
+
+/* Mjuk 3D-känsla: lager av skuggor, ljus överkant och tryck-effekt */
+:root{--hi:rgba(255,255,255,.75);--sh:inset 0 1px 0 var(--hi),0 1px 2px rgba(70,52,28,.06),0 6px 14px rgba(70,52,28,.07),0 18px 34px -10px rgba(70,52,28,.12);--shp:0 1px 1px rgba(70,52,28,.08),0 2px 6px rgba(70,52,28,.08)}
+:root[data-theme="dark"]{--hi:rgba(255,255,255,.06);--sh:inset 0 1px 0 var(--hi),0 0 0 1px rgb(var(--gl) / .12),0 2px 4px rgba(0,0,0,.35),0 12px 28px rgba(0,0,0,.5),0 0 22px rgb(var(--gl) / .05);--shp:0 0 0 1px rgb(var(--gl) / .12),0 2px 6px rgba(0,0,0,.4)}
+.qc:not(.hl),.setcard,.wxrow{background-image:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,0) 70%)}
+:root[data-theme="dark"] .qc:not(.hl),:root[data-theme="dark"] .setcard,:root[data-theme="dark"] .wxrow{background-image:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0) 70%)}
+.qc>i.ph{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.9),var(--soft));box-shadow:inset 0 1px 0 var(--hi),0 2px 5px rgba(70,52,28,.10)}
+.qc.big>i.ph{width:64px;height:64px;border-radius:18px}
+:root[data-theme="dark"] .qc>i.ph{background:linear-gradient(180deg,rgba(255,255,255,.08),var(--soft))}
+.btn:not(.line):not([disabled]),.qbanner,.chips2 button.on{background-image:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,0) 60%);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 0 -2px 0 rgba(0,0,0,.14),0 2px 4px rgba(31,77,58,.16),0 8px 18px -4px rgba(31,77,58,.28)}
+.chips2 button:not(.on){box-shadow:var(--shp)}
+.btn.line{box-shadow:inset 0 0 0 2px var(--pri),var(--shp)}
+.btn,.qc,.qbanner,.chips2 button,.wxrow{transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
+.btn:active,.qc:active,.qbanner:active,.chips2 button:active,.wxrow:active{transform:translateY(1px) scale(.985);filter:brightness(.97)}
+.btn:not(.line):not([disabled]):active,.qbanner:active{box-shadow:inset 0 2px 4px rgba(0,0,0,.18),0 1px 2px rgba(31,77,58,.16)}
+@media (prefers-reduced-motion:reduce){.btn,.qc,.qbanner,.chips2 button,.wxrow{transition:none}.btn:active,.qc:active,.qbanner:active,.chips2 button:active,.wxrow:active{transform:none}}
+.hmine{display:flex;flex-direction:column;gap:8px}
+.hmr{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;background:var(--surf);background-image:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,0) 70%);box-shadow:var(--sh);cursor:pointer;color:var(--ink);min-height:52px;transition:transform .12s ease}
+:root[data-theme="dark"] .hmr{background-image:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0) 70%)}
+.hmr:active{transform:translateY(1px) scale(.985)}
+.hmr .grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.hmr b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hmr .grow i{font-size:12.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hmr small{font-size:12.5px;color:var(--mut);font-weight:600;flex:none}
+.hmr small.due{color:var(--wat)}
+.hmr>i.ph{color:var(--mut);flex:none}
+.hmine .btn{margin-top:4px}
 </style></head><body>
 <div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas inte förrän nätet är tillbaka.</div>
 <div id="app"><div id="main"></div>
@@ -2614,7 +2641,7 @@ function devices3d(THREE, M, sc, PLT, fyOf) {
     else if (it.t === 'speaker') { K.cyl(0.05, 0.05, 0.1, '#9A9A98', 0, 0.05, 0, 20); K.cyl(0.05, 0.05, 0.02, '#F4F4F2', 0, 0.11, 0, 20); [-0.015, -0.005, 0.005, 0.015].forEach(dx => K.sph(0.004, '#E8E8E8', dx, 0.122, 0)); }
     else if (it.t === 'pump') { if (pot) { x = pot.x + 0.28; z = pot.z; y = pot.y; } K.box(0.12, 0.08, 0.08, '#2A2A2A', 0, 0.04, 0); if (pot) { const dy = 0.3, dx = -0.24, L = Math.hypot(dx, dy), t = K.cyl(0.006, 0.006, L, '#4A90C8', dx / 2, 0.08 + dy / 2, 0, 6); t.rotation.z = Math.atan2(-dx, dy); } }
     else K.sph(0.06, '#7D6CB3', 0, 0.06, 0);
-    g.position.set(x, y, z); g.rotation.y = yaw; sc.add(g); });
+    g.position.set(x, y, z); g.rotation.y = yaw; (g.userData || (g.userData = {})).did = it.id; sc.add(g); });
 }
 // ===== Gå runt i hemmet: förstapersonsvy i ögonhöjd =====
 // Väggar, fönster, burspråk, fristående väggar och möbler stoppar. Dörrar och öppningar går att gå igenom.
@@ -2661,18 +2688,51 @@ document.addEventListener('keydown', e => { if (!S.walk || /input|textarea|selec
 document.addEventListener('keyup', e => { if (S.walk && T3 && ['ArrowUp', 'KeyW', 'ArrowDown', 'KeyS', 'ArrowLeft', 'KeyA', 'ArrowRight', 'KeyD'].includes(e.code)) walkHold(null); });
 function walkUiV() { const b = (k, txt, cls) => `<button class="wkb ${cls}" onpointerdown="walkHold('${k}')" onpointerup="walkHold(null)" onpointerleave="walkHold(null)" onpointercancel="walkHold(null)" oncontextmenu="return false">${txt}</button>`;
   return `<button class="wkstop" onclick="walkStop()">Sluta gå</button><p class="wkhint">Håll in en knapp för att gå. Dra med fingret för att titta runt.</p><div class="walkui">${b('f', '▲<span>Framåt</span>', 'f')}${b('l', '◀<span>Vänster</span>', 'l')}${b('r', '▶<span>Höger</span>', 'r')}${b('b', '▼<span>Bakåt</span>', 'b')}</div>`; }
+function ray3(e) { const THREE = T3.THREE, c = T3.renderer.domElement, rc = c.getBoundingClientRect(), v = new THREE.Vector2((e.clientX - rc.left) / rc.width * 2 - 1, -(e.clientY - rc.top) / rc.height * 2 + 1), ray = new THREE.Raycaster(); ray.setFromCamera(v, T3.camera); return ray; }
+// Tryck, håll in och dra en möbel eller växt som redan är vald i 3D för att flytta den
+function dragDown(e) {
+  if (!T3 || !T3.scene || S.hview !== '3d' || T3.walk || S.modal || PL().mode === 'place' || e.button > 0) return;
+  const P = PL(), ray = ray3(e); let fid = null, pid = null, did = null;
+  for (const h of ray.intersectObjects(T3.scene.children, true)) { if (h.object.isSprite) continue; let o = h.object; while (o && !(o.userData && (o.userData.fid || o.userData.pid || o.userData.did))) o = o.parent; if (o) { fid = o.userData.fid || null; pid = o.userData.pid || null; did = o.userData.did || null; } break; }
+  const isF = fid != null && P.sel && P.sel.k === 'furn' && P.sel.id === fid, isP = pid != null && S.v3p === pid, isD = did != null && P.sel && P.sel.k === 'dev' && P.sel.id === did;
+  if (!isF && !isP && !isD) return;
+  const items = [], match = o => !!o.userData && (isF ? o.userData.fid === fid : isP ? o.userData.pid === pid : o.userData.did === did);
+  T3.scene.traverse(o => { if (match(o)) items.push({ o, x0: o.position.x, z0: o.position.z }); });
+  if (!items.length) return;
+  // Möbler dras längs golvet. Växter som hänger i taket och andra saker i höjd dras i den höjd de står, så de stannar kvar där.
+  const grp = items.find(it => it.o.isGroup) || items[0];
+  const y = isF ? (T3.fyOf ? T3.fyOf(S.f3 != null ? S.f3 : curFl()) : 0) : grp.o.position.y, pt = new T3.THREE.Vector3();
+  if (!ray.ray.intersectPlane(new T3.THREE.Plane(new T3.THREE.Vector3(0, 1, 0), -y), pt)) return;
+  T3.drag = { fid: isF ? fid : null, pid: isP ? pid : null, did: isD ? did : null, y, sx: pt.x, sz: pt.z, dx: 0, dz: 0, moved: false, items };
+}
+function dragMove(e) {
+  const d = T3.drag, pt = new T3.THREE.Vector3();
+  if (!ray3(e).ray.intersectPlane(new T3.THREE.Plane(new T3.THREE.Vector3(0, 1, 0), -d.y), pt)) return;
+  d.dx = pt.x - d.sx; d.dz = pt.z - d.sz;
+  if (!d.moved && Math.hypot(d.dx, d.dz) < 0.04) return;
+  d.moved = true; d.items.forEach(it => { it.o.position.x = it.x0 + d.dx; it.o.position.z = it.z0 + d.dz; }); T3.dirty = true;
+}
+function dragEnd(d) {
+  if (d.fid != null) { const f = planFurnAll().find(x => x.id === d.fid); if (f) { pushUndo(); f.x = r1(f.x + d.dx); f.y = r1(f.y + d.dz); saveHomeSoon(); } }
+  else if (d.did != null) { const it = planItems().find(x => x.id === d.did); if (it) { pushUndo(); it.x = r1(it.x + d.dx); it.y = r1(it.y + d.dz); growLamp(it); saveHomeSoon(); } }
+  else { const m = S.mine.find(x => x.id === d.pid); if (m) { m.details = m.details || {}; const b = m.details.pos || { x: 0, y: 0 }; m.details.pos = { x: r1(b.x + d.dx), y: r1(b.y + d.dz) }; savePos(m); } }
+  render();
+}
 // Tryck i 3D-vyn: ställ ut det som valts, välj en möbel, eller flytta den valda möbeln dit man trycker på golvet
 function tap3(e) {
   if (!T3 || S.hview !== '3d' || T3.walk || S.modal) return;
   const THREE = T3.THREE, c = T3.renderer.domElement, rc = c.getBoundingClientRect(), v = new THREE.Vector2((e.clientX - rc.left) / rc.width * 2 - 1, -(e.clientY - rc.top) / rc.height * 2 + 1), ray = new THREE.Raycaster(); ray.setFromCamera(v, T3.camera);
   const P = PL(), fl = S.f3 != null ? S.f3 : curFl(), y = T3.fyOf ? T3.fyOf(fl) : 0, pt = new THREE.Vector3();
-  let fid = null, hit = null; for (const h of ray.intersectObjects(T3.scene.children, true)) { if (h.object.isSprite) continue; let o = h.object; while (o && !(o.userData && o.userData.fid)) o = o.parent; if (o) fid = o.userData.fid; hit = h; break; }
+  let fid = null, pid = null, did = null, hit = null; for (const h of ray.intersectObjects(T3.scene.children, true)) { if (h.object.isSprite) continue; let o = h.object; while (o && !(o.userData && (o.userData.fid || o.userData.pid || o.userData.did))) o = o.parent; if (o) { fid = o.userData.fid || null; pid = o.userData.pid || null; did = o.userData.did || null; } hit = h; break; }
   // Använd punkten man faktiskt träffar (fönsterbräda, bord, golv). Träffar man en vägg flyttas punkten en bit ut från väggen, mot kameran.
   if (hit) { pt.copy(hit.point); const n = hit.face ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld) : null;
     if (n && Math.abs(n.y) < 0.5) { const dir = ray.ray.direction; if (n.x * dir.x + n.z * dir.z > 0) n.negate(); pt.x += n.x * 0.15; pt.z += n.z * 0.15; } }
   else if (!ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), pt)) return;
   const at = { x: r1(pt.x), y: r1(pt.z) };
   if (P.mode === 'place' && P.pick) { placeAt(at); return; }
+  if (pid != null) { S.v3p = pid; render(); return; }
+  if (S.v3p != null) { S.v3p = null; render(); }
+  if (did != null) { P.sel = { k: 'dev', id: did }; P.pmin = false; render(); return; }
   if (fid) { P.sel = { k: 'furn', id: fid }; P.pmin = false; render(); return; }
   const f = P.sel && P.sel.k === 'furn' && planFurnAll().find(x => x.id === P.sel.id);
   if (f) { pushUndo(); f.x = at.x; f.y = at.y; saveHomeSoon(); render(); }
@@ -2681,7 +2741,7 @@ function place3Name() { const pk = PL().pick; if (!pk) return ''; if (pk.k === '
 function view3dV() {
   const has = planRoomsAll().length || planAreas().length;
   const P = PL(), placing = P.mode === 'place' && P.pick, selF = !placing && P.sel && P.sel.k === 'furn' && planFurnAll().some(x => x.id === P.sel.id);
-  return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}${has && !S.walk && placing ? `<div class="p3hint"><span>Tryck på golvet där ${esc(place3Name())} ska stå</span><button class="btn sm line" onclick="PL().mode='move';PL().pick=null;render()">Avbryt</button></div>` : ''}${has && !S.walk && selF ? `<div class="p3sel">${planSelV()}</div>` : ''}
+  return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}${has && !S.walk && placing ? `<div class="p3hint"><span>Tryck på golvet där ${esc(place3Name())} ska stå</span><button class="btn sm line" onclick="PL().mode='move';PL().pick=null;render()">Avbryt</button></div>` : ''}${has && !S.walk && selF ? `<div class="p3sel">${planSelV()}</div>` : ''}${has && !S.walk && !placing && !selF && S.v3p != null && S.mine.some(x => x.id === S.v3p) ? `<div class="p3sel">${plantTipV()}</div>` : ''}
     ${has && S.walk ? walkUiV() : has ? `<div class="wx3" id="wx3">${wx3Text()}</div><div class="v3dock"><div class="v3pop" id="v3pop" hidden></div><div class="r"><button onclick="v3pop('beds')">Rabatter ▾</button><button onclick="v3pop('add')">+ Lägg till ▾</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="v3pop('view')">Vy ▾</button></div><div class="r tm"><button class="m3b" onclick="stepMon3(-1)" aria-label="Förra månaden">‹</button><button class="m3n" onclick="S.mon3=null;build3d();keepMain()" title="Tillbaka till nu">${MONTH_NAMES[mo3() - 1].replace(/^./, c => c.toUpperCase())}</button><button class="m3b" onclick="stepMon3(1)" aria-label="Nästa månad">›</button></div><div class="sunrow"><label>Solen kl <b id="sunlbl">${sunLbl()}</b></label><input type="range" min="5" max="22" step="0.5" value="${sunH()}" oninput="sunSet(this.value)"><button class="gear" onclick="v3pop('set')" aria-label="Inställningar">${ic(GEAR, 'currentColor', 16)}</button></div></div>` : ''}</div>
   <div style="height:12px"></div>`;
 }
@@ -2695,8 +2755,9 @@ async function mount3d() {
     r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
     T3.scene = new THREE.Scene(); T3.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 2000);
     const c = r.domElement; c.style.touchAction = 'none'; c.style.display = 'block';
-    c.addEventListener('pointerdown', e => { if (c.style.touchAction !== 'pan-y') T3.auto = false; if (c.style.touchAction !== 'pan-y') c.setPointerCapture(e.pointerId); T3.ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); T3.g = null; T3.tap = T3.ptr.size === 1 ? { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId } : null; });
+    c.addEventListener('pointerdown', e => { if (c.style.touchAction !== 'pan-y') T3.auto = false; if (c.style.touchAction !== 'pan-y') c.setPointerCapture(e.pointerId); T3.ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); T3.g = null; T3.tap = T3.ptr.size === 1 ? { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId } : null; if (T3.ptr.size === 1) dragDown(e); });
     c.addEventListener('pointermove', e => { if (c.style.touchAction === 'pan-y') return; const P = T3.ptr; if (!P.has(e.pointerId)) return; const o = P.get(e.pointerId), st = T3.st;
+      if (T3.drag && P.size === 1) { dragMove(e); return; }
       if (P.size === 1 && T3.walk) { T3.walk.yaw += (e.clientX - o.x) * 0.005; T3.walk.pitch = Math.max(-1.1, Math.min(1.1, T3.walk.pitch + (e.clientY - o.y) * 0.004)); }
       else if (P.size === 1) { st.az -= (e.clientX - o.x) * 0.008; st.el = Math.max(0.12, Math.min(1.52, st.el + (e.clientY - o.y) * 0.006)); }
       P.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -2705,7 +2766,7 @@ async function mount3d() {
           st.tx -= dx * Math.cos(st.az) + dy * Math.sin(st.az); st.tz -= -dx * Math.sin(st.az) + dy * Math.cos(st.az); }
         T3.g = { d, m }; }
       T3.dirty = true; });
-    const up = e => { T3.ptr.delete(e.pointerId); T3.g = null; const tp = T3.tap; T3.tap = null; if (tp && tp.id === e.pointerId && e.type === 'pointerup' && Math.hypot(e.clientX - tp.x, e.clientY - tp.y) < 8 && Date.now() - tp.t < 600 && c.style.touchAction !== 'pan-y' && !T3.walk) tap3(e); }; c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+    const up = e => { T3.ptr.delete(e.pointerId); T3.g = null; if (T3.drag) { const d = T3.drag; T3.drag = null; if (d.moved) { T3.tap = null; if (e.type === 'pointerup') dragEnd(d); else render(); return; } } const tp = T3.tap; T3.tap = null; if (tp && tp.id === e.pointerId && e.type === 'pointerup' && Math.hypot(e.clientX - tp.x, e.clientY - tp.y) < 8 && Date.now() - tp.t < 600 && c.style.touchAction !== 'pan-y' && !T3.walk) tap3(e); }; c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
     c.addEventListener('wheel', e => { if (c.style.touchAction === 'pan-y') return; e.preventDefault(); if (T3.walk) { walkStep(e.deltaY < 0 ? 0.3 : -0.3, 0); return; } T3.st.dist = Math.max(2, Math.min(400, T3.st.dist * (e.deltaY > 0 ? 1.1 : 0.9))); T3.dirty = true; }, { passive: false });
     build3d(true); T3.justBuilt = true;
   }
@@ -2829,7 +2890,7 @@ function build3dInner(first) {
   (HV ? [] : S.mine).filter(m => m.details && m.details.pos).forEach(m => { const pp = plantById(m.plant_id), isOut = OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place);
     const pRoom = m.details.room && (S.home || []).find(rr => rr.id === m.details.room), pfl = pRoom && !isOut ? flOf(pRoom) : 0; if (!floorVis(pfl)) return;
     const rad = isOut ? Math.min(2.5, ((m.details.w || pSize(pp || {})[1]) / 100) / 2) + TH / 2 + 0.02 : 0.32 + TH / 2 + 0.03, [x, y] = clr(m.details.pos.x, m.details.pos.y, rad, pfl);
-    if (OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place)) { const g3 = plant3d(pp || { id: m.id, swedish_name: m.name, latin_name: m.latin || '', category: m.category }, THREE, M, m.details.h, m.details.w, m.id * 31); g3.position.set(x, 0, y); sc.add(g3); if (mineSunBad(m)) sunRing3d(THREE, M, sc, x, y, 0); if (S.hview === '3d' && !S.low3d && (m.details.h || m.details.w)) { const lab = label3d(m.name); if (lab) { lab.position.set(x, Math.min(40, (m.details.h || pSize(pp || {})[0]) / 100) + 0.5, y); lab.scale.multiplyScalar ? lab.scale.multiplyScalar(0.7) : 0; sc.add(lab); } } return; }
+    if (OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place)) { const g3 = plant3d(pp || { id: m.id, swedish_name: m.name, latin_name: m.latin || '', category: m.category }, THREE, M, m.details.h, m.details.w, m.id * 31); (g3.userData || (g3.userData = {})).pid = m.id; g3.position.set(x, 0, y); sc.add(g3); if (mineSunBad(m)) sunRing3d(THREE, M, sc, x, y, 0, m.id); if (S.hview === '3d' && !S.low3d && (m.details.h || m.details.w)) { const lab = label3d(m.name); if (lab) { lab.position.set(x, Math.min(40, (m.details.h || pSize(pp || {})[0]) / 100) + 0.5, y); lab.scale.multiplyScalar ? lab.scale.multiplyScalar(0.7) : 0; sc.add(lab); } } return; }
     const ok = plantMarkerOk(m), gr = new THREE.Group();
     const PT = pot3d(THREE, M, m.details || {}, seed3(m.id)); gr.add(PT.g);
     { const sc0 = Math.max(0.55, Math.min(1.5, PT.r / 0.16)), pl = (HANG3 = !!PT.inv, indoor3d(THREE, M, pp || { swedish_name: m.name, latin_name: m.latin || '', category: m.category }, ok, seed3(m.id))); HANG3 = false; pl.scale.set(sc0, sc0, sc0); pl.position.y = PT.top - 0.3 * sc0; gr.add(pl); gr.userData.pl = pl; }
@@ -2848,7 +2909,7 @@ function build3dInner(first) {
       planFurnAll().forEach(f => { if (!SURF.includes(f.t) || flOf(f) !== pfl) return; const dx = sx - f.x, dz = sy - f.y, r = (f.rot || 0) * Math.PI / 180, lx = dx * Math.cos(r) + dz * Math.sin(r), lz = -dx * Math.sin(r) + dz * Math.cos(r);
         const inside = ROUNDS.has(f.t) ? Math.hypot(dx, dz) <= f.w / 2 + 0.05 : Math.abs(lx) <= f.w / 2 + 0.05 && Math.abs(lz) <= f.h / 2 + 0.05; if (inside) lift = Math.max(lift, (FH[f.t] || 0.8) + 0.01); }); }
     if (m.details.place !== 'Upp och ner') leanToLight3d(THREE, gr.userData.pl, pRoom, sx, sy, pfl);
-    gr.position.set(sx, fyOf(pfl) + lift, sy); sc.add(gr); if (mineSunBad(m)) sunRing3d(THREE, M, sc, sx, sy, fyOf(pfl) + lift - 0.02); PLT.push({ x: sx, z: sy, y: fyOf(pfl) + lift, top: fyOf(pfl) + lift + (PT.inv ? PT.H + 0.04 : PT.top), fl: pfl }); });
+    (gr.userData || (gr.userData = {})).pid = m.id; gr.position.set(sx, fyOf(pfl) + lift, sy); sc.add(gr); if (mineSunBad(m)) sunRing3d(THREE, M, sc, sx, sy, fyOf(pfl) + lift - 0.02, m.id); PLT.push({ x: sx, z: sy, y: fyOf(pfl) + lift, top: fyOf(pfl) + lift + (PT.inv ? PT.H + 0.04 : PT.top), fl: pfl }); });
   // smarta saker
   devices3d(THREE, M, sc, PLT, fyOf);
   // träd och buskar
@@ -4199,6 +4260,21 @@ function planSelV() {
   if (P.pmin) return `<button class="pmini" onclick="PL().pmin=false;render()" aria-label="Visa rutan igen"><span>▴</span>${P.mode === 'bed' ? 'Rabatt · ' : ''}${esc(title.slice(0, 26))}</button>`;
   return `<div class="pselw"><div class="pctl"><b>${P.mode === 'bed' ? 'Rabattplanering' : esc(title.slice(0, 30))}</b><button onclick="PL().pmin=true;render()" aria-label="Minimera" title="Minimera">_</button><button onclick="closePanel()" aria-label="Stäng" title="Stäng">×</button></div>${html}</div>`;
 }
+// Tryck på en växt i 3D: visar varför den har orange ring (om den har det), tips och inställningar
+function plantTipV() {
+  const m = S.mine.find(x => x.id === S.v3p); if (!m) return '';
+  const p = plantById(m.plant_id), i = mineSunInfo(m), bad = mineSunBad(m), sun = mineSun(m);
+  // (inställningar öppnas i samma formulär som när växten läggs till, så allt kan ändras där)
+  let tip = '';
+  if (bad && p && i) {
+    const want = p.light_level, have = i.c, how = want > have
+      ? (i.out ? 'Flytta den till en plats med mer sol. Hus, träd och staket kan skugga den på dagen.' : 'Flytta den närmare fönstret, helst mot söder eller väster där det är ljusast. En växtlampa ger också extra ljus.')
+      : (i.out ? 'Flytta den till halvskugga, till exempel under ett träd eller intill en vägg.' : 'Flytta den en bit från fönstret så att solen inte bränner bladen. En gardin hjälper också.');
+    tip = `<div class="ptip" style="margin-top:10px"><b>Varför orange ring?</b><p class="mut" style="margin:4px 0">${esc(m.name)} får ${esc(LIGHT[have - 1].toLowerCase())} men vill ha ${esc(LIGHT[want - 1].toLowerCase())}.</p><p style="margin:4px 0">${how}</p></div>`;
+  }
+  const want = p && p.light_level != null ? LIGHT[p.light_level - 1].toLowerCase() : '';
+  return `<div class="psel"><div class="grow"><b>${esc(m.name)}</b><span>${esc(sun || 'Inte utsatt på ritningen ännu')}${want && !bad ? ' · vill ha ' + esc(want) : ''}</span></div>${tip}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" onclick="openDetails(${m.id})">⚙ Inställningar</button><button class="btn sm line" onclick="startPlace({ k: 'plant', id: ${m.id} })">Flytta</button><button class="btn sm line" onclick="S.v3p=null;render()">Stäng</button></div></div>`;
+}
 function closePanel() { const P = PL(); P.pmin = false; if (P.mode === 'bed') { P.ssel = null; planMode('move'); return; } P.sel = null; P.vsel = null; render(); }
 function planSelInner() {
   if (PL().mode === 'bed') return bedPanelV();
@@ -5508,7 +5584,13 @@ function addPet() {
   if (k === 'fisk') { const sp = $('#pfish').value, n = Math.max(1, Math.min(99, +$('#pcount').value || 1)); const ex = petsList().find(x => x.kind === 'fisk' && x.sp === sp); if (ex) ex.n += n; else S.pets.list.push({ id: Date.now(), kind: 'fisk', name: sp, sp, n }); toast(n + ' ' + sp.toLowerCase() + ' i akvariet'); }
   else if (k === 'fagel') { const sp = $('#pbird').value, name = ($('#pname').value || '').trim() || sp || 'Fågel'; S.pets.list.push({ id: Date.now(), kind: 'fagel', name, sp }); S.birdOpen = S.pets.list[S.pets.list.length - 1].id; toast(name + ' är tillagd'); }
   else if (k === 'reptil') { const sp = $('#prep').value, name = ($('#pname').value || '').trim() || sp; S.pets.list.push({ id: Date.now(), kind: 'reptil', name, sp, plants: [] }); S.terOpen = S.pets.list[S.pets.list.length - 1].id; toast(name + ' är tillagd'); }
-  else { const name = ($('#pname').value || '').trim() || PK[k][0]; S.pets.list.push({ id: Date.now(), kind: k, name, sp: ($('#pbreed').value || '').trim() }); toast(name + ' är tillagd'); }
+  else {
+    const sp = ($('#pbreed').value || '').trim();
+    if (k === 'hund' && !sp) { toast('Välj en ras för hunden'); $('#pbreed').focus(); return; }
+    const name = ($('#pname').value || '').trim() || PK[k][0];
+    S.pets.list.push({ id: Date.now(), kind: k, name, sp });
+    toast(name + ' är tillagd');
+  }
   S.petAdd = false; savePets(); keepMain();
 }
 function delPet(id) { if (S.del !== 'pet' + id) { S.del = 'pet' + id; keepMain(); return; } S.del = null; S.pets.list = S.pets.list.filter(x => x.id !== id); savePets(); keepMain(); }
@@ -5540,7 +5622,7 @@ function petFormV() {
     ${k === 'fagel' ? `<label class="fl" for="pbird">Art</label><select id="pbird">${BIRDS.map(b => `<option>${b[0]}</option>`).join('')}<option value="">Annan fågel</option></select><label class="fl" for="pname">Namn</label><input id="pname" maxlength="40" placeholder="t.ex. Pippi">` : k === 'reptil' ? `<label class="fl" for="prep">Art</label><select id="prep">${TERR.map(t => `<option>${t[0]}</option>`).join('')}</select><label class="fl" for="pname">Namn</label><input id="pname" maxlength="40" placeholder="t.ex. Draken">` : k === 'fisk' ? `<label class="fl" for="pfish">Art</label><select id="pfish">${FISH.map(f => `<option>${f[0]}</option>`).join('')}</select>
       <label class="fl" for="pcount">Antal</label><input id="pcount" type="number" min="1" max="99" value="1" inputmode="numeric">`
     : `<label class="fl" for="pname">Namn</label><input id="pname" maxlength="40" placeholder="${k === 'katt' ? 't.ex. Misse' : k === 'hund' ? 't.ex. Bamse' : 'Djurets namn'}">
-      <label class="fl" for="pbreed">Ras eller art (valfritt)</label><input id="pbreed" maxlength="40" placeholder="${k === 'fagel' ? 't.ex. undulat' : k === 'gnagare' ? 't.ex. hamster' : 't.ex. ' + (k === 'hund' ? 'labrador' : k === 'katt' ? 'huskatt' : 'ras')}">`}
+      <label class="fl" for="pbreed">${k === 'hund' ? 'Ras (krävs)' : 'Ras eller art (valfritt)'}</label><input id="pbreed" maxlength="40" placeholder="${k === 'fagel' ? 't.ex. undulat' : k === 'gnagare' ? 't.ex. hamster' : 't.ex. ' + (k === 'hund' ? 'labrador' : k === 'katt' ? 'huskatt' : 'ras')}">`}
     <div style="display:flex;gap:8px;margin-top:14px"><button class="btn" style="flex:1" onclick="addPet()">Lägg till</button>${petsList().length ? '<button class="btn line" onclick="S.petAdd=false;keepMain()">Avbryt</button>' : ''}</div></div>`;
 }
 function petCard(a) {
@@ -6054,7 +6136,7 @@ function leanToLight3d(THREE, pl, r, x, y, fl) {
     pl.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(uz, 0, -ux).normalize(), ang));
   } catch (e) { console.warn('Roothood:', e); }
 }
-function sunRing3d(THREE, M, sc, x, y, z) { const r = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.32, 28), M('#E0652F', { side: THREE.DoubleSide })); r.rotation.x = -Math.PI / 2; r.position.set(x, z + 0.03, y); sc.add(r); }
+function sunRing3d(THREE, M, sc, x, y, z, pid) { const r = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.32, 28), M('#E0652F', { side: THREE.DoubleSide })); r.rotation.x = -Math.PI / 2; r.position.set(x, z + 0.03, y); if (pid != null) (r.userData || (r.userData = {})).pid = pid; sc.add(r); }
 function bedSunLevel() { try { const a = bedHelpTarget(); if (!a || !a.pts) return null; const m = ptsMid(a.pts); return sunCls(sunHours(m[0], m[1])); } catch (e) { return null; } }
 function bedsList() { return planAreas().filter(a => ['bed', 'veg'].includes(a.t)); }
 function bedNameOf(a) { const i = bedsList().indexOf(a); return (a && a.name) || 'Rabatt ' + (i + 1); }
@@ -6600,7 +6682,7 @@ function homeBlocks(intro) {
     else if (x.k === 'alerts') out.push(homeAlerts(sz));
     else if (x.k === 'weather') out.push(weatherV(sz));
     else if (x.k === 'home3d') out.push(home3dV(sz));
-    else if (x.k === 'mine') out.push(S.user && S.mine.length ? `<div class="sec cap2"><h2>Mina växter</h2><button class="viewall" onclick="go('mine')">Visa alla</button></div><div class="mycards big sz-${sz}">${S.mine.map(myCard).join('')}</div>` : intro);
+    else if (x.k === 'mine') out.push(S.user && S.mine.length ? `<div class="sec cap2"><h2>Mina växter</h2></div><div class="pad"><div class="hmine">${S.mine.slice(0, 3).map(hMineRow).join('')}<button class="btn line wide" onclick="go('mine')">Visa alla${S.mine.length > 3 ? ' ' + S.mine.length : ''}</button></div></div>` : intro);
     else if (x.k === 'local') out.push(localV(sz));
     else if (x.k === 'season') out.push(seasonCard(sz));
     else if (x.k === 'quick') out.push(quickV());
@@ -6624,6 +6706,8 @@ function qBtn(q, edit) { const [k, n, icon, cls, act, pro] = q, on = favs().incl
 const SEEDLING = '<path d="M12 21v-9"/><path d="M12 12c0-4 3-6.5 7.5-6.5 0 4.5-3 6.5-7.5 6.5z"/><path d="M12 14.5c0-3.5-2.5-5.5-6.5-5.5 0 3.5 2.5 5.5 6.5 5.5z"/><path d="M7 21h10"/>';
 const WATER_CAN = '<path d="M3 10h12v7a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M15 13l5-7"/><path d="M7 10V7a3 3 0 0 1 6 0"/><path d="M19.5 4.5l1.5-1.5"/><path d="M6 21.5v.5M10 21.5v.5"/>';
 const QPH = { bed: ['ph-flower-tulip', 'Planera rabatt'], db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-calendar-check', 'Dagbok'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-seal-check', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Mina djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: [SEEDLING, 'Såkalender'], perma: ['ph-recycle', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Detektiver'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
+function hMineRow(m) { const d = left(m), w = d === null ? 'Vattna vid torka' : d <= 0 ? 'Vattna idag' : 'Vattnas om ' + d + (d === 1 ? ' dag' : ' dagar');
+  return `<button class="hmr" onclick="openMine(${m.id})"><span class="grow"><b>${esc((m.details && m.details.nick) || m.sv || m.name)}</b>${m.latin ? `<i>${esc(m.latin)}</i>` : ''}</span><small class="${d !== null && d <= 0 ? 'due' : ''}">${w}</small><i class="ph ph-caret-right" aria-hidden="true"></i></button>`; }
 function qcard(q) {
   const [k, n, , cls, act, pro] = q, [icn, lbl] = QPH[k] || ['ph-star', n];
   const big = k === 'id';
@@ -7765,6 +7849,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.236', '29 okt 11:31', ['Hem: Mina växter visar en lista med dina tre översta växter och knappen Visa alla', 'Knappar och kort har fått en mjuk 3D-känsla och trycks ner när du trycker', '3D: tryck på en växt för att se varför den har orange ring, tips och knappen Inställningar', '3D: tryck på en möbel, växt eller pryl en gång, håll sedan in och dra för att flytta den. Saker i taket dras i taket', 'Mina djur: du måste välja ras när du lägger till en hund']],
   ['Beta 0.235', '29 okt 11:07', ['Rabatter visar hur många timmar sol de får, utifrån solen och skuggor från hus och träd', 'Växter ute och inne visar Sol där den står, inne genom fönster, burspråk och ytterdörrar', 'Orange ring i 3D runt växter som får för lite eller för mycket sol', 'Växtförslagen för rabatten fyller i ljuset automatiskt', 'Inomhusväxter lutar mot fönstret eller växtlampan i 3D']],
   ['Beta 0.234', '29 okt 09:15', ['Rumsnamnen i 3D döljs när Rumsnamn står på av']],
   ['Beta 0.233', '29 okt 09:08', ['3D är ljusare, och ⚙ ger ljusstyrka, skuggor och rumsnamn']],
@@ -8543,7 +8628,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.235';
+const APP_VERSION = 'Beta 0.236';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
