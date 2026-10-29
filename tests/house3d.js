@@ -14,7 +14,7 @@ const srv = http.createServer((q, r) => { const p = path.join(dir, q.url.split('
     class Geo { constructor(...a) { this.args = a; } }
     const THREE = { Group: Obj, Object3D: Obj, Mesh: class extends Obj { constructor(g, m) { super(); this.geometry = g; this.material = m; } },
       InstancedMesh: class extends Obj { constructor(g, m, n) { super(); this.geometry = g; this.n = n; this.pos = []; this.instanceMatrix = {}; } setMatrixAt(i, m) { this.pos.push(i); } },
-      BoxGeometry: Geo, CylinderGeometry: Geo, SphereGeometry: Geo, TorusGeometry: Geo, MeshStandardMaterial: class { constructor(o) { Object.assign(this, o); } } };
+      BoxGeometry: Geo, CylinderGeometry: Geo, SphereGeometry: Geo, TorusGeometry: Geo, BufferGeometry: class { constructor() { this.attributes = {}; } setAttribute(k, v) { this.attributes[k] = v; } setIndex(i) { this.index = i; } computeVertexNormals() {} }, Float32BufferAttribute: class { constructor(a, n) { this.array = a; this.count = a.length / n; } }, MeshStandardMaterial: class { constructor(o) { Object.assign(this, o); } } };
     const M = c => new THREE.MeshStandardMaterial({ color: c }), out = {};
     // Ett rum 4 x 3 m med ett fönster på nedre väggen
     const room = { id: 'rt', name: 'Testrum', rect: { x: 0, y: 0, w: 4, h: 3 }, dirs: ['S'], wins: [{ s: 'b', p: 1, l: 1.5 }] };
@@ -40,6 +40,11 @@ const srv = http.createServer((q, r) => { const p = path.join(dir, q.url.split('
         out.fasteGolv = GS.every(gs => Math.abs(at(gs, 'golv').position.y - 1.5) < 0.01);
         out.fasteMobel = GS.every(gs => at(gs, 'mobel').position.y < 0.6);
         S.hplan = oldP; }
+      // Hall byggd med fristående väggar mellan två rum får golv, men inte om den är öppen mot ute
+      { const oh = S.home, op = S.hplan; S.home = [{ id: 'g1', name: 'A', rect: { x: 0, y: 0, w: 4, h: 3 }, wins: [] }, { id: 'g2', name: 'B', rect: { x: 6, y: 0, w: 4, h: 3 }, wins: [] }];
+        const W = [{ id: 'w1', x1: 4, y1: 0, x2: 6, y2: 0 }, { id: 'w2', x1: 4, y1: 3, x2: 6, y2: 3 }]; S.hplan = { walls: W, items: [], furn: [] };
+        const T0 = T3; T3 = { THREE }; const g = gapFloor3(0, S.home, W), g2 = gapFloor3(0, S.home, [W[0]]); T3 = T0;
+        out.hallGolv = g.length === 1 && Math.abs(g[0].cx - 5) < 0.3; out.oppenUtanGolv = g2.length === 0; S.home = oh; S.hplan = op; }
       // Bord med ben
       const added = []; furn3d({ t: 'dtable', x: 2, y: 1.5, w: 1.6, h: 0.9 }, THREE, M, o => added.push(o));
       out.bord = added.length === 1 && added[0].children.length === 5;   // skiva + 4 ben
