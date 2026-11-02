@@ -1615,7 +1615,7 @@ body.hadv nav{display:none}
 <div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas inte förrän nätet är tillbaka.</div>
 <div id="app"><div id="main"></div>
 <nav aria-label="Huvudmeny">
-<button data-t="home" onclick="go('home')" aria-label="Hem"><i class="ph ph-house" style="font-size:22px"></i><span>Hem</span></button>
+<button data-t="home" onclick="go('home')" aria-label="Start"><i class="ph ph-house" style="font-size:22px"></i><span>Start</span></button>
 <button data-t="mine" onclick="go('mine')" aria-label="Min samling"><i class="ph ph-plant" style="font-size:22px"></i><span>Samling</span></button>
 <button data-t="comm" onclick="go('comm')" aria-label="Gemenskap"><i class="ph ph-chats-circle" style="font-size:22px"></i><span>Gemenskap</span></button>
 <button data-t="me" onclick="go('me')" aria-label="Profil"><i class="ph ph-user-circle" style="font-size:22px"></i><span>Profil</span></button>
@@ -1809,8 +1809,14 @@ const sbApi = {
   async savePush(sub) { const j = sub.toJSON(); const { error } = await sb.rpc('save_push', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth }); if (error) throw error; },
   async deletePush(endpoint) { const { error } = await sb.from('push_subscriptions').delete().eq('endpoint', endpoint); if (error) throw error; },
   async plants() {
-    const { data, error } = await sb.from('plants').select('*').neq('status', 'rejected').order('swedish_name');
-    if (error) throw error; return data;
+    const all = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await sb.from('plants').select('*').neq('status', 'rejected').order('swedish_name').order('id').range(from, from + 999);
+      if (error) throw error;
+      all.push(...(data || []));
+      if (!data || data.length < 1000) break;
+    }
+    return all;
   },
   async user() {
     const { data } = await sb.auth.getSession();
@@ -2633,7 +2639,7 @@ function wizardV() {
   return `${wzHead(0, n)}<div class="wz"><h1>Vilka växter står här?</h1><p class="mut">Välj ur din samling. Du kan flytta dem senare.</p>
     <div class="wzlist">${S.mine.length ? S.mine.map(m => { const on = D.plants.includes(m.id), other = !on && (m.details || {}).room && (S.home || []).find(r => r.id === m.details.room), hang = D.hang.includes(m.id);
       return `<div class="wzp ${on ? 'on' : ''}"><button class="wzpb" aria-pressed="${on}" onclick="wzPlant(${m.id})">${myPh(m)}<span class="grow"><b>${esc(m.name)}</b><span>${esc(m.latin || '')}${other ? ' · nu i ' + esc(other.name.toLowerCase()) : ''}</span></span><i class="wzck">${on ? '✓' : ''}</i></button>${on && !WZ_OUT.includes(kind) ? `<button class="wzhang ${hang ? 'on' : ''}" aria-pressed="${hang}" onclick="wzHang(${m.id})">${hang ? '✓ Hänger i taket' : 'Häng i taket (ampel)'}</button>` : ''}</div>`; }).join('') : '<p class="mut">Du har inga växter i samlingen än.</p>'}
-    <button class="wzc add" onclick="openModal('add')">+ Lägg till en ny växt</button></div>
+    <button class="wzc add" onclick="openModal('add')">+ Lägg till en växt</button></div>
     <button class="btn wide wznext" ${S.busy ? 'disabled' : ''} onclick="wzNext()">${S.busy ? 'Sparar…' : last ? 'Klar' : 'Klar med ' + esc(n.toLowerCase())}</button><button class="btn wide line" onclick="wzNext()">Hoppa över</button></div>`;
 }
 const helpBtn = () => `<button class="btn sm line" onclick="openModal('hhelp')" aria-label="Hjälp om Mitt hem" style="min-width:36px;font-weight:800">?</button>`;
@@ -4699,9 +4705,9 @@ function planInner() {
   out += fopHits.join('');
   if (P.ldraft) { const d = P.ldraft; out += `<line x1="${X(d.x0)}" y1="${Y(d.y0)}" x2="${X(d.x1)}" y2="${Y(d.y1)}" stroke="var(--pri)" stroke-width="4" stroke-linecap="round" stroke-dasharray="6 5"/><text x="${X((d.x0 + d.x1) / 2)}" y="${(P.oy + ((d.y0 + d.y1) / 2) * z - 10).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--pri)">${r1(Math.hypot(d.x1 - d.x0, d.y1 - d.y0))} m</text>`; }
   if (z < 6 && rs.length) { const [hx, hy] = mapCenter(); out += `<g transform="translate(${X(hx)},${Y(hy)})" pointer-events="none"><path d="M0 0c-7-9-11-14-11-19a11 11 0 0 1 22 0c0 5-4 10-11 19z" fill="var(--acc)" stroke="#fff" stroke-width="2"/><circle cy="-19" r="4" fill="#fff"/></g>`; }
-  if (z >= 18) planFurn().slice().sort((a, b) => (FLAT.has(b.t) - FLAT.has(a.t)) || (WALLF.has(a.t) - WALLF.has(b.t))).forEach(f => { const wf = WALLF.has(f.t); const on = (sel.k === 'furn' && sel.id === f.id) || multiHas('furn', f.id), W = f.w * z, H = f.h * z, nm = furnLabel(f), rug = FLAT.has(f.t), round = ROUNDS.has(f.t);
+  planFurn().slice().sort((a, b) => (FLAT.has(b.t) - FLAT.has(a.t)) || (WALLF.has(a.t) - WALLF.has(b.t))).forEach(f => { const wf = WALLF.has(f.t); const on = (sel.k === 'furn' && sel.id === f.id) || multiHas('furn', f.id), W = f.w * z, H = f.h * z, nm = furnLabel(f), rug = FLAT.has(f.t), round = ROUNDS.has(f.t);
     out += `<g data-k="furn" data-id="${f.id}" transform="translate(${T(f.x, f.y)}) rotate(${f.rot || 0})">${round ? `<ellipse rx="${(W / 2).toFixed(1)}" ry="${(H / 2).toFixed(1)}"` : `<rect x="${(-W / 2).toFixed(1)}" y="${(-H / 2).toFixed(1)}" width="${W.toFixed(1)}" height="${H.toFixed(1)}" rx="${Math.min(6, W / 5, H / 5).toFixed(1)}"`} fill="${wf ? 'none' : rug ? 'rgba(160,140,200,.18)' : 'var(--phb)'}" fill-opacity="${S.hplan.map && S.hplan.map.on ? .8 : 1}" stroke="${on ? 'var(--acc)' : 'var(--mut)'}" stroke-width="${on ? 2.5 : wf ? 3 : 1.3}" ${rug || wf ? 'stroke-dasharray="4 3"' : ''}/>${!rug && (!round || f.t === 'clock') && f.t !== 'stairs' ? frontMark(W, H) : ''}${f.t === 'sofa' && H > 14 ? `<rect x="${(-W / 2 + 3).toFixed(1)}" y="${(-H / 2 + 3).toFixed(1)}" width="${(W - 6).toFixed(1)}" height="${(H * 0.28).toFixed(1)}" rx="3" fill="none" stroke="var(--mut)" stroke-width="1" pointer-events="none"/>` : ''}${f.t.startsWith('bed') && H > 20 ? `<rect x="${(-W / 2 + 4).toFixed(1)}" y="${(-H / 2 + 4).toFixed(1)}" width="${(W - 8).toFixed(1)}" height="${(H * 0.18).toFixed(1)}" rx="3" fill="var(--surf)" stroke="var(--mut)" stroke-width="1" pointer-events="none"/>` : ''}${(f.rot || 0) % 180 === 90 ? (H > 34 && W > 13) : (f.rot || 0) % 180 === 0 ? (W > 34 && H > 13) : (Math.min(W, H) > 30) ? `<text y="4" text-anchor="middle" font-size="${Math.min(11, Math.min(W, H) * 0.45).toFixed(1)}" font-weight="700" fill="var(--mut)" pointer-events="none" transform="rotate(${-(f.rot || 0)})">${esc(nm)}</text>` : ''}</g>`; });
-  if (z >= 18) planItems().forEach(it => { const on = (sel.k === 'dev' && sel.id === it.id) || multiHas('dev', it.id), d = DEVS[it.t] || ['?', '•'];
+  planItems().forEach(it => { const on = (sel.k === 'dev' && sel.id === it.id) || multiHas('dev', it.id), d = DEVS[it.t] || ['?', '•'];
     out += `<g data-k="dev" data-id="${it.id}" transform="translate(${T(it.x, it.y)})">${on ? '<circle r="20" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>' : ''}<circle r="14" fill="var(--surf)" stroke="var(--pri)" stroke-width="2"/><text y="5" text-anchor="middle" font-size="14" pointer-events="none">${d[1]}</text></g>`; });
   if (z >= 2) S.mine.filter(m => m.details && m.details.pos && OUTDOOR.includes(m.category || (plantById(m.plant_id) || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place)).forEach(m => { const { x, y } = m.details.pos, pp = plantById(m.plant_id), wm = (m.details.w || pSize(pp || {})[1]) / 100, k = pp ? kind3d(pp) : 'perenn', col = ['gran', 'tall', 'pelare', 'krypbarr'].includes(k) ? '47,94,58' : '78,139,58';
     out += `<circle cx="${X(x)}" cy="${Y(y)}" r="${Math.max(4, wm / 2 * z).toFixed(1)}" fill="rgba(${col},.32)" stroke="rgb(${col})" stroke-width="1.5" ${m.details.w ? '' : 'stroke-dasharray="4 3"'} pointer-events="none"/>`; });
@@ -5593,6 +5599,7 @@ const I = {
 const SCISS = 'ph-scissors';
 const PEN = 'ph-pencil-simple';
 const POT = 'ph-plant';
+const SOWI = '<path d="M12 21v-9"/><path d="M12 12c0-3 2.5-5.5 6-5.5 0 3.5-2.5 5.5-6 5.5z"/><path d="M12 15c0-3-2.5-5.5-6-5.5 0 3.5 2.5 5.5 6 5.5z"/>';
 const LOGK = { water: ['Vattnat', I.drop, 'var(--wat)'], feed: ['Gödslat', I.leaf, 'var(--pri2)'], repot: ['Omplanterat', POT, '#A0703F'], prune: ['Beskuret', SCISS, 'var(--acc)'], note: ['Anteckning', PEN, 'var(--mut)'] };
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 function whenTxt(d) {
@@ -5873,7 +5880,7 @@ function iconize(root) {
 function render() {
   HV = otherHome();
   { const fb = $('#fab'); if (fb) fb.hidden = true; }
-  { const bb = $('#bugb'); if (bb) bb.hidden = !S.user || store.get('bugBtn', true) === false || S.tool === 'house' || S.tool === 'chat' || !!S.modal; }
+  { const bb = $('#bugb'); if (bb) bb.hidden = !S.user || store.get('bugBtn', true) === false || S.tool === 'chat' || !!S.modal; }
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tab));
   document.getElementById('app').classList.toggle('nochat', S.tool === 'chat');
   document.body.classList.toggle('hadv', S.tool === 'house' && !S.room && !S.wz && hMode() === 'adv');
@@ -5908,7 +5915,7 @@ function render() {
 // ===== Kom ihåg var man var (och tillbaka-knappen) =====
 let curHash = null, navFromPop = false, scrollT = null;
 const TOOL_LABEL = { house: 'Ritning', people: 'Vänner', mod: 'Moderering', explore: 'Utforska', experts: 'Experter', user: 'Användarprofil', settings: 'Inställningar', notif: 'Notiser', msgs: 'Meddelanden', chat: 'Chatt', news: 'Nyheter', nearby: 'Händer nära dig', pets: 'Djur', season: 'Säsong', learn: 'Lär dig', inspo: 'Inspiration', ask: 'Snabbfråga', db: 'Växtdatabas', sow: 'Så och skörd', smart: 'Smarta förslag', perma: 'Perma', compass: 'Kompass' };
-const TAB_LABEL = { home: 'Hem', mine: 'Samling', comm: 'Gemenskap', me: 'Profil' };
+const TAB_LABEL = { home: 'Start', mine: 'Samling', comm: 'Gemenskap', me: 'Profil' };
 function viewName() { // läsbar text om var användaren var, t.ex. "Ritning · Rum: Kök (#t/house/kok)"
   const hash = viewHash();
   let name;
@@ -6019,7 +6026,7 @@ function home() {
     <h1 class="hhello">${S.user ? greet + (name ? ', ' + esc(name) : '') : 'Välkommen'}</h1><p class="hsub">${sub}</p></div>
   ${DEMO ? '<p style="text-align:center;margin:0 0 4px"><span class="badge" title="Ingen databas kopplad. Det du gör sparas bara i den här webbläsaren.">Demoläge</span></p>' : ''}
   ${homeBlocks(intro)}
-  ${S.user ? `<div class="hcfgrow"><button class="hcfgb" onclick="openHomeCfg()">${ic(PEN, 'currentColor', 15)} Anpassa Hem</button></div>` : ''}</div>`;
+  ${S.user ? `<div class="hcfgrow"><button class="hcfgb" onclick="openHomeCfg()">${ic(PEN, 'currentColor', 15)} Anpassa startsidan</button></div>` : ''}</div>`;
 }
 
 // ===== Väder (Open-Meteo, gratis och utan nyckel) =====
@@ -6092,7 +6099,7 @@ function weatherV(sz) {
     ${warn.length ? `<button class="wxrow" onclick="S.wxOpen=!S.wxOpen;render()" aria-expanded="${!!S.wxOpen}"><span>${wxIco(warn[0][1], 14)} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span><span>${S.wxOpen ? 'Dölj' : 'Visa'}</span></button>${S.wxOpen ? `<div class="wxwarn">${warn.map(x => `<div class="wxw w-${x[0]}"><span class="wwi">${x[1]}</span><div><b>${x[2]}</b><span>${x[3]}</span></div></div>`).join('')}</div>` : ''}` : `<p class="wxok">Inga vädervarningar just nu.</p>`}
     <div class="wxfoot"><span class="wxsrc">${S.wxAll || S.wxOpen ? `Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString(LOC(), { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}` : esc(w.name || S.city || '')}</span><button class="link3" onclick="S.wxAll=!S.wxAll;render()">${S.wxAll ? 'Dölj dagar' : '5 dagar'}</button></div></div>`;
 }
-function openDb(focus) { stopLight(); S.sel = null; S.modal = null; S.tool = 'db'; render(); $('#main').scrollTop = 0; if (focus) setTimeout(() => { const i = $('.search input'); if (i) i.focus(); }, 50); }
+function openDb(focus) { stopLight(); S.sel = null; S.modal = null; S.tool = 'db'; render(); $('#main').scrollTop = 0; if (!S.popMap) loadPop(); if (focus) setTimeout(() => { const i = $('.search input'); if (i) i.focus(); }, 50); }
 function dbV() {
   const n = dbFilterN();
   return `${topbar('Växtbiblioteket', 'closeTool()')}
@@ -6104,7 +6111,7 @@ function dbV() {
   <div class="grid" id="list"></div>`;
 }
 // Filter och sortering i Växtbiblioteket: en filterknapp, valda filter som chips som går att ta bort
-const DB_SORT = [['az', 'A–Ö'], ['za', 'Ö–A'], ['easy', 'Lättast att sköta'], ['sun', 'Mest ljus'], ['shade', 'Tål skugga'], ['pet', 'Husdjursvänliga först']];
+const DB_SORT = [['az', 'A–Ö'], ['za', 'Ö–A'], ['pop', 'Populärast'], ['easy', 'Lättast att sköta'], ['sun', 'Mest ljus'], ['shade', 'Tål skugga'], ['pet', 'Husdjursvänliga först']];
 function dbFilterN() { return (S.cat && S.cat !== 'Alla' && S.cat !== 'zon' ? 1 : 0) + (S.ptypes || []).length + (S.fzon || S.cat === 'zon' ? 1 : 0) + (S.fpet ? 1 : 0) + (S.feasy ? 1 : 0) + (S.flight ? 1 : 0); }
 function dbChips() { const L = [];
   if (S.cat && S.cat !== 'Alla' && S.cat !== 'zon') L.push([S.cat, "S.cat='Alla'"]);
@@ -6621,7 +6628,7 @@ async function modFind(form) { S.modQ = form.mq.value.trim(); try { S.modRes = S
 const KIND_SV = { post: 'Inlägg', answer: 'Svar', photo: 'Foto' };
 // ===== Moderator: alla användare =====
 // Statistik: hur mycket varje funktion används och av vilka
-const FEAT_EXTRA = { 'hem': 'Hem', 'samling': 'Min samling', 'profil': 'Profil', 'vaxt': 'Växtsida', 'comm-q': 'Gemenskap: Frågor', 'comm-forum': 'Gemenskap: Forum', 'comm-swap': 'Gemenskap: Byt & ge bort', 'comm-show': 'Gemenskap: Visa upp', 'comm-near': 'Gemenskap: Nära dig', 'comm-friends': 'Gemenskap: Vänner', experts: 'Fråga expert', user: 'Andras profiler', mod: 'Moderering', settings: 'Inställningar', msgs: 'Meddelanden', chat: 'Chatt', explore: 'Utforska', season: 'Säsongstips', notif: 'Notiser', learn: 'Lär dig' };
+const FEAT_EXTRA = { 'hem': 'Start', 'samling': 'Min samling', 'profil': 'Profil', 'vaxt': 'Växtsida', 'comm-q': 'Gemenskap: Frågor', 'comm-forum': 'Gemenskap: Forum', 'comm-swap': 'Gemenskap: Byt & ge bort', 'comm-show': 'Gemenskap: Visa upp', 'comm-near': 'Gemenskap: Nära dig', 'comm-friends': 'Gemenskap: Vänner', experts: 'Fråga expert', user: 'Andras profiler', mod: 'Moderering', settings: 'Inställningar', msgs: 'Meddelanden', chat: 'Chatt', explore: 'Utforska', season: 'Säsongstips', notif: 'Notiser', learn: 'Lär dig' };
 function featName(f) { return FEAT_EXTRA[f] || (QPH[f] && QPH[f][1]) || f; }
 function modStatsV(D) { if (!D || !D.f) return '<p class="mut" style="margin:12px 18px">Hämtar…</p>'; const d = S.msDays || 30, mx = Math.max(1, ...D.f.map(x => x.users)), md = Math.max(1, ...D.days.map(x => x.users)), tot = D.f.reduce((a, x) => a + x.uses, 0);
   return `<div class="pad"><div class="chips2 sm">${[7, 30, 90].map(n => `<button class="${d === n ? 'on' : ''}" onclick="S.msDays=${n};S.modData=null;render();loadMod()">${n} dagar</button>`).join('')}</div>
@@ -7357,7 +7364,7 @@ function plantsSec(c, self) {
 }
 // ===== Alla växter med filter =====
 function openAllPl() { S.apq = ''; S.apf = {}; S.apOpen = false; S.aps = S.plSort || 'new'; openModal('allpl'); loadPop(); }
-async function loadPop() { try { S.popMap = await api.plantPopularity(); } catch (e) { S.popMap = S.popMap || {}; } if (S.modal === 'allpl') keepScroll(); }
+async function loadPop() { try { S.popMap = await api.plantPopularity(); } catch (e) { S.popMap = S.popMap || {}; } if (S.modal === 'allpl') keepScroll(); if (S.tool === 'db' && (S.dsort || 'az') === 'pop') renderList(); }
 function aplDb(pl) { return pl.plant_id ? S.plants.find(x => x.id === pl.plant_id) : S.plants.find(x => x.swedish_name === pl.name); }
 const APL_F = [['cat', 'Kategori', (pl, db) => [(db && db.category) || null]], ['place', 'Planterad', pl => [(pl.d || {}).place]], ['soil', 'Jord', pl => (pl.d || {}).soil || []], ['light', 'Plats', pl => [(pl.d || {}).light]]];
 function aplItems() {
@@ -7535,7 +7542,7 @@ const QUICK = () => [
   ['ask', 'Snabbfråga', 'ph-sparkle', 'xp', 'openAsk()'], ['db', 'Sök växter', I.search, 'db', 'openDb()'], ['id', 'Identifiera', CAM, '', "openTool('id')", 1], ['doc', 'Växtdoktorn', DOCI, 'doc', 'openDoc()', 1], ['expert', 'Fråga expert', XPI, 'xp', 'openExperts()', 1],
   ['house', 'Mitt hem', DOORI, 'house', 'openHouse()', 1], ['bed', 'Planera rabatt', BEDI, 'db', "openBedPlan()", 1], ['light', 'Ljusmätare', I.sun, 'sun', "openTool('light')", 1], ['nearby', 'Trädgårdar nära dig', 'ph-map-pin', 'inspo', 'openNearby()', 1], ['compass', 'Kompass', 'ph-compass', 'sun', 'openCompass()'], ['pets', 'Mina djur', I.paw, 'pets', 'openPets()', 1], ['smart', 'Smarta hemmet', HOMEI, 'smart', 'openSmart()', 1],
   ['comm', 'Frågor', CHATI, 'db', "go('comm');setCtab('q')"], ['forum', 'Forum', CHATI, 'xp', "go('comm');setCtab('forum')"], ['swap', 'Byt & ge bort', SWAPI, 'inspo', "go('comm');setCtab('swap')"], ['detect', 'Växtdetektiver', I.search, 'sun', 'openDetect()', 1],
-  ['people', 'Hitta vänner', PEOPLEI, 'xp', 'openPeople()'], ['inspo', 'Odlare att följa', INSPI, 'inspo', 'openInspo()'], ['season', 'Säsongstips', I.leaf, 'sun', 'openSeason()'], ['sow', 'Planteringskalender', I.soil, 'db', 'openSow()', 1], ['perma', 'Permakultur', I.leaf, 'inspo', 'openPerma()', 1], ['jord', 'Jord och substrat', 'ph-shovel', 'db', "openLearn('jord')", 1], ['hydro', 'Hydroponi', 'ph-drop', 'xp', "openLearn('hydro')", 1], ['naring', 'Gödsel och näring', 'ph-flask', 'sun', "openLearn('naring')", 1], ['ljuslara', 'Ljus', I.sun, 'sun', "openLearn('ljus')", 1],
+  ['people', 'Hitta vänner', PEOPLEI, 'xp', 'openPeople()'], ['inspo', 'Odlare att följa', INSPI, 'inspo', 'openInspo()'], ['season', 'Säsongstips', I.leaf, 'sun', 'openSeason()'], ['sow', 'Planteringskalender', SOWI, 'db', 'openSow()', 1], ['perma', 'Permakultur', I.leaf, 'inspo', 'openPerma()', 1], ['jord', 'Jord och substrat', 'ph-shovel', 'db', "openLearn('jord')", 1], ['hydro', 'Hydroponi', 'ph-drop', 'xp', "openLearn('hydro')", 1], ['naring', 'Gödsel och näring', 'ph-flask', 'sun', "openLearn('naring')", 1], ['ljuslara', 'Ljus', I.sun, 'sun', "openLearn('ljus')", 1],
   ['mine', 'Min samling', I.plant || I.leaf, 'db', "S.mtab='mine';go('mine')"], ['care', 'Växtjournalen', CALI, 'sun', 'openCare()'], ['notif', 'Notiser', BELLI, 'house', 'openNotif()'], ['cfg', 'Anpassa Hem', PEN, 'smart', "go('home');openHomeCfg()"],
 ];
 const QGROUPS = [['Växter', ['db', 'id', 'care', 'season', 'sow']], ['Verktyg', ['light', 'compass', 'nearby']], ['Hjälp med växterna', ['ask', 'doc', 'expert', 'detect']], ['Gemenskap', ['comm', 'forum', 'swap', 'people', 'inspo']], ['Mitt', ['mine']], ['Fördjupning: hem och trädgård', ['house', 'bed', 'smart']], ['Fördjupning: djur', ['pets']], ['Fördjupning: lär dig', ['jord', 'hydro', 'naring', 'ljuslara', 'perma']]];
@@ -7603,7 +7610,7 @@ const typeOf = p => OUTDOOR.includes(p.category) ? TYPE_G[guessType(p)] || null 
 function renderList() {
   if (!$('#list')) return;
   const so = S.dsort || 'az', nm = (a, b) => (a.swedish_name || '').localeCompare(b.swedish_name || '', 'sv');
-  const r = dbBase().slice().sort(so === 'za' ? (a, b) => nm(b, a) : so === 'easy' ? (a, b) => (a.water_level || 2) - (b.water_level || 2) || nm(a, b) : so === 'sun' ? (a, b) => (b.light_level || 2) - (a.light_level || 2) || nm(a, b) : so === 'shade' ? (a, b) => (a.light_level || 2) - (b.light_level || 2) || nm(a, b) : so === 'pet' ? (a, b) => (b.pet_safe ? 1 : 0) - (a.pet_safe ? 1 : 0) || nm(a, b) : nm);
+  const r = dbBase().slice().sort(so === 'za' ? (a, b) => nm(b, a) : so === 'pop' ? (a, b) => ((S.popMap || {})[String(b.id)] || 0) - ((S.popMap || {})[String(a.id)] || 0) || nm(a, b) : so === 'easy' ? (a, b) => (a.water_level || 2) - (b.water_level || 2) || nm(a, b) : so === 'sun' ? (a, b) => (b.light_level || 2) - (a.light_level || 2) || nm(a, b) : so === 'shade' ? (a, b) => (a.light_level || 2) - (b.light_level || 2) || nm(a, b) : so === 'pet' ? (a, b) => (b.pet_safe ? 1 : 0) - (a.pet_safe ? 1 : 0) || nm(a, b) : nm);
   $('#count').textContent = r.length + (r.length === 1 ? ' växt' : ' växter');
   $('#list').innerHTML = r.map(p => {
     const has = isFav(p.id);
@@ -7660,9 +7667,16 @@ function askLocal(q, mine) { const t = ' ' + (q || '').toLowerCase() + ' ', out 
   const sy = Object.keys(ASK_SYM).filter(k => SYM_M[k] && ASK_SYM[k].test(t)), sc = CAUSE.map(c => [c, sy.reduce((a, k) => a + ((c.w || {})[k] || 0), 0)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 2);
   if (sc.length) { out.push('**Troliga orsaker:** ' + sc.map(x => x[0].n).join(' eller ') + '.'); const c = sc[0][0]; out.push(c.d); out.push((c.a || []).slice(0, 3).map(x => '• ' + x).join('\n')); if (sc[1]) out.push('Om det inte stämmer: ' + sc[1][0].n.toLowerCase() + '. ' + (sc[1][0].a || [''])[0]); }
   if (p) out.push(`**${p.swedish_name}** (${(p.latin_name || '').replace(/'.*$/, '')})\n• Ljus: ${p.light_text || LIGHT[(p.light_level || 2) - 1]}\n• Vatten: ${p.water_text || ''}${p.soil ? '\n• Jord: ' + p.soil : ''}${p.common_problems ? '\n• Vanliga problem: ' + p.common_problems : ''}${p.toxicity_text ? '\n• Djur: ' + p.toxicity_text : ''}${p.tips ? '\n• Tips: ' + p.tips : ''}`);
+  // Fönsterfrågor: ett besked för just växten i stället för en allmän lista över väderstreck
+  let won = false;
+  if (p && /fönster|väderstreck|norr|söder|öster|väster|vilken sida/.test(t)) {
+    const L = p.light_level || 2;
+    const rec = L >= 3 ? 'Söderfönster är bäst. Västerfönster går också bra om den får sol på eftermiddagen.' : L === 2 ? 'Öster- eller västerfönster passar bäst, de ger mild sol. Söderfönster går bra om du skuggar mitt på dagen.' : 'Norrfönster eller ett ställe längre in i rummet. Söderfönster kan bli för starkt.';
+    out.push(`**Fönster för ${p.swedish_name}:** ${rec}`); won = true;
+  }
   // Ämne från Lär dig
   const top = ASK_TOP.find(([, re]) => re.test(t));
-  if (top && out.length < 3) { const L = LEARN[top[0]], words = t.split(/[^a-zåäö]+/).filter(w => w.length >= 4 && !/^(mycket|behöver|växt|växten|växter|vilken|vilket|varför|hur|ska|kan|man|min|mina|mitt|jag|vattnar|vattna)$/.test(w)).map(w => w.slice(0, 4)); const card = L[3].map(c => [c, words.reduce((n, w) => n + 4 * (c[1].toLowerCase().split(w).length - 1) + Math.min(2, (c[2] + ' ' + c[3].join(' ')).toLowerCase().split(w).length - 1), 0)]).sort((a, b) => b[1] - a[1])[0][0]; out.push(`**${card[1]}**\n${card[2]}\n${card[3].map(x => '• ' + x).join('\n')}`); }
+  if (top && out.length < 3 && !won) { const L = LEARN[top[0]], words = t.split(/[^a-zåäö]+/).filter(w => w.length >= 4 && !/^(mycket|behöver|växt|växten|växter|vilken|vilket|varför|hur|ska|kan|man|min|mina|mitt|jag|vattnar|vattna)$/.test(w)).map(w => w.slice(0, 4)); const card = L[3].map(c => [c, words.reduce((n, w) => n + 4 * (c[1].toLowerCase().split(w).length - 1) + Math.min(2, (c[2] + ' ' + c[3].join(' ')).toLowerCase().split(w).length - 1), 0)]).sort((a, b) => b[1] - a[1])[0][0]; out.push(`**${card[1]}**\n${card[2]}\n${card[3].map(x => '• ' + x).join('\n')}`); }
   if (!out.length) return { a: 'Jag hittade inget säkert svar i appens kunskap. Skriv gärna vilken växt det gäller och vad du ser, till exempel "gula blad på min monstera", eller fråga andra odlare i Gemenskap.', miss: true };
   return { a: out.join('\n\n'), plant: p, cause: sc.length ? sc[0][0] : null }; }
 async function askSend() {
@@ -8483,7 +8497,7 @@ function proV() {
     [BEDI, 'Planera rabatt', 'Rita rabatter, få växtförslag för platsen och se hur de växer i 3D.'],
     [DOCI, 'Växtdoktorn', 'Välj vad du ser på växten och få troliga orsaker och vad du kan göra.'],
     [I.search, 'Växtdetektiverna', 'Få hjälp att ta reda på vad en okänd växt heter.'],
-    [I.soil, 'Planteringskalendern', 'Se vad du ska så och plantera varje månad där du bor.'],
+    [SOWI, 'Planteringskalendern', 'Se vad du ska så och plantera varje månad där du bor.'],
     ['ph-map-pin', 'Nära dig', 'Trädgårdar, parker och handelsträdgårdar i närheten.'],
     [HOMEI, 'Smarta hemmet', 'Växtlampor, luftfuktare och bevattning som styrs efter dina växter.'],
     [I.paw, 'Mina djur', 'Lägg till dina djur och få varning för växter som är giftiga för dem.'],
@@ -8751,6 +8765,13 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.253', '2 nov 23:00', ['Knappen i Mitt hem heter Lägg till en växt'] ],
+  ['Beta 0.252', '2 nov 22:50', ['Hem heter nu Start i menyn, och knappen Anpassa Hem heter Anpassa startsidan'] ],
+  ['Beta 0.251', '2 nov 22:40', ['Snabbfrågan: frågor om fönster och väderstreck får ett besked för just din växt'] ],
+  ['Beta 0.250', '2 nov 22:20', ['Ritningen: möbler, byggnader och smarta saker syns även när du zoomar ut, till exempel garage och altan'] ],
+  ['Beta 0.249', '2 nov 22:10', ['Växtbiblioteket: sortera på Populärast, alltså de växter flest användare har i sin samling'] ],
+  ['Beta 0.248', '2 nov 22:00', ['Växtbiblioteket visar nu rätt antal växter i stället för max 1000', 'Felknappen syns även under Mitt hem'] ],
+  ['Beta 0.247', '2 nov 21:50', ['Planteringskalenderns ikon är nu en tunn linje som de andra ikonerna i Utforska'] ],
   ['Beta 0.246', '2 nov 21:40', ['Felrapporter: en bild som inte kan läsas stoppas med ett tydligt meddelande i stället för att skickas trasig', 'Trasiga bilder i Moderering visar texten Bilden kunde inte laddas'] ],
   ['Beta 0.245', '2 nov 21:30', ['Moderatorer och admin får notis när någon skickar en felrapport eller ett förslag, både i appen och i mobilen', 'Experter får notis när någon ställer en fråga till experterna', 'Skärmbilder i felrapporter visas hela, tryck på bilden för att se den större'] ],
   ['Beta 0.244', '2 nov 20:45', ['Växtjournalen ersätter Dagboken: snabba anteckningar med taggar, ett tryck för Vattnat, Gödslat, Omplanterat och Beskuret, tidslinje per månad med höjd och bladstorlek, och sök i hela journalen', 'Snabbfråga: skriv en fråga och få svar direkt från appens växtkunskap', 'Över 900 nya växter: krukväxter med sorter, 150 variegerade sorter och 105 rosor', 'Välj åt vilket håll en dörr går i Ritning: gångjärn på andra sidan och inåt eller utåt', 'Färg på en vägg i taget i 3D, mer snö på rabatterna och ingen snö inomhus', 'Egen vägg på profilen med inlägg, gilla och kommentarer', 'Tillbaka-pilen tar dig till sidan du var på senast', 'Växtdetektiverna finns under Fråga expert, och Växtdoktorn skickar till experter', 'Nytt filter och sortering i Växtbiblioteket (tidigare Växtdatabasen) och Planteringskalendern (tidigare Såkalendern)', 'Moderatorer: Alla användare, Statistik och Feedback', 'Felknapp för testare, notisfråga första gången och tydliga nya notiser', 'Rabattkanter, prickar för att flytta en vägg, vattningsråd efter substrat, regn och snö senaste veckan']],
@@ -9814,7 +9835,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.246';
+const APP_VERSION = 'Beta 0.253';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
