@@ -3365,7 +3365,7 @@ function build3dInner(first) {
       if (d < r) { if (d < 1e-4) { const ln = Math.sqrt(L); x += -dy / ln * r; y += dx / ln * r; } else { x = nx + (x - nx) / d * r; y = ny + (y - ny) / d * r; } } }); return [x, y]; };
   const PLT = []; T3.plt = PLT;
   (HV ? [] : S.mine).filter(m => m.details && m.details.pos).forEach(m => { const pp = plantById(m.plant_id), isOut = OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place);
-    const pRoom = m.details.room && (S.home || []).find(rr => rr.id === m.details.room), pfl = pRoom && !isOut ? flOf(pRoom) : 0; if (!floorVis(pfl)) return;
+    const pRoom = m.details.room && (S.home || []).find(rr => rr.id === m.details.room && rr.rect), pfl = pRoom && !isOut ? flOf(pRoom) : 0; if (!floorVis(pfl)) return;
     const rad = isOut ? Math.min(2.5, ((m.details.w || pSize(pp || {})[1]) / 100) / 2) + TH / 2 + 0.02 : 0.32 + TH / 2 + 0.03, [x, y] = clr(m.details.pos.x, m.details.pos.y, rad, pfl);
     if (OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place)) { const g3 = plant3d(pp || { id: m.id, swedish_name: m.name, latin_name: m.latin || '', category: m.category }, THREE, M, m.details.h, m.details.w, m.id * 31); (g3.userData || (g3.userData = {})).pid = m.id; g3.position.set(x, 0, y); sc.add(g3); if (mineSunBad(m)) sunRing3d(THREE, M, sc, x, y, 0, m.id); if (S.hview === '3d' && !S.low3d && (m.details.h || m.details.w)) { const lab = label3d(m.name); if (lab) { lab.position.set(x, Math.min(40, (m.details.h || pSize(pp || {})[0]) / 100) + 0.5, y); lab.scale.multiplyScalar ? lab.scale.multiplyScalar(0.7) : 0; sc.add(lab); } } return; }
     const ok = plantMarkerOk(m), gr = new THREE.Group();
@@ -4342,7 +4342,7 @@ function furn3d(f, THREE, M, add) {
   return false;
 }
 // Fönsterbräda på insidan av ett fönster. Returnerar mitten och riktningen in i rummet, så att växter kan ställas på den.
-function sill3d(q, r) { const L = Math.hypot(q[2] - q[0], q[3] - q[1]); if (L < 0.2) return null; const ux = (q[2] - q[0]) / L, uz = (q[3] - q[1]) / L, pg = roomPoly(r), cx = pg.reduce((a, p) => a + p[0], 0) / pg.length, cz = pg.reduce((a, p) => a + p[1], 0) / pg.length, mx = (q[0] + q[2]) / 2, mz = (q[1] + q[3]) / 2;
+function sill3d(q, r) { if (!r || !r.rect) return null; const L = Math.hypot(q[2] - q[0], q[3] - q[1]); if (L < 0.2) return null; const ux = (q[2] - q[0]) / L, uz = (q[3] - q[1]) / L, pg = roomPoly(r), cx = pg.reduce((a, p) => a + p[0], 0) / pg.length, cz = pg.reduce((a, p) => a + p[1], 0) / pg.length, mx = (q[0] + q[2]) / 2, mz = (q[1] + q[3]) / 2;
   let nx = -uz, nz = ux; if ((cx - mx) * nx + (cz - mz) * nz < 0) { nx = -nx; nz = -nz; } return { L, ux, uz, nx, nz, mx, mz, q }; }
 const SILL_Y = 0.915;
 // Fönsterbräda som 3D-del (används för vanliga fönster och burspråkens tre delar)
@@ -4590,7 +4590,7 @@ function sideLen(r, s) { return ['t', 'b'].includes(s) ? r.rect.w : r.rect.h; }
 // burspråk lagras med p = avstånd från väggens början i medurs riktning
 function bayPts(r, by) { const L = by.l, d = Math.min(by.d, L / 2 - 0.05); return [wallPt(r, by.s, by.p, 0), wallPt(r, by.s, by.p + d, d), wallPt(r, by.s, by.p + L - d, d), wallPt(r, by.s, by.p + L, 0)]; }
 function baySegs(r, by) { const q = bayPts(r, by), a = SIDE_A[by.s]; return [[[...q[0], ...q[1]], a - 45], [[...q[1], ...q[2]], a], [[...q[2], ...q[3]], a + 45]]; }
-function winSegs(r) { return (r.wins || []).filter(w => !w.k).map(w => [wallSeg(r, w), SIDE_A[w.s]]).concat(...(r.bays || []).map(b => baySegs(r, b))); }
+function winSegs(r) { if (!r || !r.rect) return []; return (r.wins || []).filter(w => !w.k).map(w => [wallSeg(r, w), SIDE_A[w.s]]).concat(...(r.bays || []).map(b => baySegs(r, b))); }
 function sideGaps(r, s) { const L = sideLen(r, s);
   const g = (r.wins || []).filter(w => w.s === s && (w.k === 'open' || w.k === 'door')).map(w => [w.p, w.p + w.l])
     .concat((r.bays || []).filter(b => b.s === s).map(b => s === 't' || s === 'r' ? [b.p, b.p + b.l] : [L - b.p - b.l, L - b.p]));
@@ -8812,6 +8812,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.259', '2 nov 23:06', ['Fix: byta månad i 3D-vyn ger inte längre fel när en växt står i ett borttaget rum'] ],
   ['Beta 0.258', '2 nov 23:55', ['3D: monsteror ser olika ut beroende på sort: Thai Constellation, Albo, Aurea och Mint har egna färger, och Hålmonstera, Silvermonstera och pinnatipartita har egna hål och klyvningar'] ],
   ['Beta 0.257', '2 nov 23:40', ['Rabatter: ta bort alla växter som står för tätt med ett tryck, den som sattes ut först behålls'] ],
   ['Beta 0.256', '2 nov 23:20', ['Snön i rabatterna i 3D-vyn är mjuka högar som sluttar ner mot kanterna, i stället för staplade block'] ],
@@ -9887,7 +9888,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.258';
+const APP_VERSION = 'Beta 0.259';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
