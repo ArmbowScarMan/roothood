@@ -3723,6 +3723,11 @@ const LSHAPE = {
   paddle: (x, w, h) => { const c = w / 2; x.moveTo(c, h); x.bezierCurveTo(w * 0.0, h * 0.92, w * 0.0, h * 0.12, c, 0); x.bezierCurveTo(w, h * 0.12, w, h * 0.92, c, h); },
 };
 const LPAT = {
+  // Monstera-sorter: marmor/prickar, stora vita partier (Albo), gula partier (Aurea), mintfärgade fläckar (Mint)
+  varieg: (x, w, h, R) => { for (let i = 0; i < 26; i++) { x.fillStyle = R() < 0.6 ? 'rgba(236,236,170,.75)' : 'rgba(150,190,110,.55)'; x.beginPath(); x.ellipse(w * (0.05 + R() * 0.9), h * (0.05 + R() * 0.9), (2 + R() * 6) * (w / 128), (2 + R() * 5) * (h / 256), R() * 3, 0, 6.283); x.fill(); } },
+  albo: (x, w, h, R) => { x.fillStyle = 'rgba(250,250,242,.94)'; for (let i = 0; i < 7; i++) { x.beginPath(); x.ellipse(w * (0.15 + R() * 0.7), h * (0.1 + R() * 0.8), (14 + R() * 18) * (w / 128), (12 + R() * 24) * (h / 256), R() * 3, 0, 6.283); x.fill(); } x.fillStyle = 'rgba(70,120,70,.5)'; for (let i = 0; i < 14; i++) { x.beginPath(); x.ellipse(w * R(), h * R(), 2 + R() * 3, 2 + R() * 3, 0, 0, 6.283); x.fill(); } },
+  aurea: (x, w, h, R) => { x.fillStyle = 'rgba(228,226,120,.82)'; for (let i = 0; i < 9; i++) { x.beginPath(); x.ellipse(w * (0.1 + R() * 0.8), h * (0.1 + R() * 0.8), (8 + R() * 14) * (w / 128), (8 + R() * 16) * (h / 256), R() * 3, 0, 6.283); x.fill(); } },
+  mint: (x, w, h, R) => { for (let i = 0; i < 18; i++) { x.fillStyle = 'rgba(200,238,212,.8)'; x.beginPath(); x.ellipse(w * (0.1 + R() * 0.8), h * (0.1 + R() * 0.8), (4 + R() * 9) * (w / 128), (3 + R() * 8) * (h / 256), R() * 3, 0, 6.283); x.fill(); } },
   calathea: (x, w, h) => { x.fillStyle = 'rgba(30,70,38,.85)'; for (let i = 0; i < 9; i++) { const y = h * (0.12 + i * 0.09); [-1, 1].forEach(s => { x.beginPath(); x.ellipse(w / 2 + s * w * 0.2, y, w * 0.14, h * 0.018, s * 0.5, 0, 6.283); x.fill(); }); } x.fillStyle = 'rgba(200,225,160,.6)'; x.fillRect(w * 0.46, 0, w * 0.08, h); },
   orbifolia: (x, w, h) => { x.strokeStyle = 'rgba(205,220,180,.85)'; x.lineWidth = 5; for (let i = 0; i < 8; i++) { const y = h * (0.15 + i * 0.1); [-1, 1].forEach(s => { x.beginPath(); x.moveTo(w / 2, y + 10); x.quadraticCurveTo(w / 2 + s * w * 0.2, y, w / 2 + s * w * 0.5, y - 14); x.stroke(); }); } },
   maranta: (x, w, h) => { x.fillStyle = 'rgba(60,50,25,.85)'; for (let i = 0; i < 5; i++) { const y = h * (0.2 + i * 0.14); [-1, 1].forEach(s => { x.beginPath(); x.ellipse(w / 2 + s * w * 0.2, y, w * 0.09, h * 0.035, 0, 0, 6.283); x.fill(); }); } },
@@ -3743,7 +3748,15 @@ const LPAT = {
 };
 // Bladtyper: form, färger (mitt, kant), mönster, nerver (färg, antal), glans, monsterahål
 const LEAF3D = {
-  monstera: { s: 'heart', c: ['#3D7A35', '#24512A'], v: ['rgba(190,220,150,.6)', 7], gloss: 1, cut: 1 },
+  monstera: { s: 'heart', c: ['#3D7A35', '#24512A'], v: ['rgba(190,220,150,.6)', 7], gloss: 1, cut: { holes: 3, r: 1, slits: 5 } },
+  monsteraSmall: { s: 'heart', c: ['#3F7D38', '#2B5A2C'], v: ['rgba(200,225,160,.5)', 5], gloss: 1, cut: { holes: 1, r: 0.7, slits: 2 } },
+  monsteraSlit: { s: 'heart', c: ['#2F6B33', '#1D4A22'], v: ['rgba(190,220,150,.5)', 6], gloss: 1, cut: { holes: 2, r: 0.8, slits: 10, deep: 1 } },
+  monsteraVar: { s: 'heart', c: ['#3D7A35', '#24512A'], v: ['rgba(190,220,150,.5)', 6], p: 'varieg', gloss: 1, cut: { holes: 6, r: 1, slits: 5 } },
+  monsteraAlbo: { s: 'heart', c: ['#F2F1E2', '#D6D2BA'], v: ['rgba(120,160,110,.6)', 5], p: 'albo', cut: { holes: 4, r: 1, slits: 4 } },
+  monsteraAurea: { s: 'heart', c: ['#8FB04A', '#5E8A32'], v: ['rgba(220,230,140,.5)', 6], p: 'aurea', gloss: 1, cut: { holes: 4, r: 1, slits: 5 } },
+  monsteraMint: { s: 'heart', c: ['#6FAE7E', '#4A8A5C'], v: ['rgba(230,250,235,.5)', 6], p: 'mint', gloss: 1, cut: { holes: 4, r: 1, slits: 5 } },
+  monsteraAdan: { s: 'oval', c: ['#3F7A36', '#2A5A28'], v: ['rgba(200,220,170,.45)', 7], gloss: 1, cut: { holes: 16, r: 1.3, slits: 0 } },
+  monsteraSilver: { s: 'oval', c: ['#7E9C8A', '#5F7D6B'], v: ['rgba(230,240,230,.5)', 6], cut: { holes: 5, r: 1, slits: 0 } },
   alocasia: { s: 'arrow', c: ['#22452C', '#142B1B'], v: ['rgba(235,240,230,.95)', 5, 4], gloss: 1 },
   heart: { s: 'heart', c: ['#3F7D38', '#28552B'], v: ['rgba(200,225,160,.5)', 6], gloss: 1 },
   heartGloss: { s: 'heart', c: ['#2F6A32', '#1D4723'], v: ['rgba(190,215,160,.45)', 6], gloss: 1 },
@@ -3789,8 +3802,9 @@ function paintLeaf3(x, w, h, D, R) {
     for (let i = 1; i <= vn; i++) { const y = h * (0.92 - i * 0.82 / (vn + 1)); [-1, 1].forEach(s => { x.beginPath(); x.moveTo(w / 2, y); x.quadraticCurveTo(w / 2 + s * w * 0.22, y - h * 0.02, w / 2 + s * w * 0.48, y - h * 0.09); x.stroke(); }); } }
   if (D.gloss) { const s = x.createLinearGradient(0, 0, w, h); s.addColorStop(0, 'rgba(255,255,255,0)'); s.addColorStop(0.45, 'rgba(255,255,255,.14)'); s.addColorStop(0.55, 'rgba(255,255,255,0)'); x.fillStyle = s; x.fillRect(0, 0, w, h); }
   x.restore();
-  if (D.cut) { x.save(); x.globalCompositeOperation = 'destination-out'; x.lineCap = 'round';
-    for (let i = 0; i < 5; i++) { const y = h * (0.3 + i * 0.11); [-1, 1].forEach(s => { x.lineWidth = 10; x.beginPath(); x.moveTo(w / 2 + s * w * 0.65, y - h * 0.07); x.lineTo(w / 2 + s * w * 0.2, y); x.stroke(); if (i % 2 === 0 && i < 4) { x.beginPath(); x.ellipse(w / 2 + s * w * 0.12, y + h * 0.055, 5, 10, s * 0.3, 0, 6.283); x.fill(); } }); }
+  if (D.cut) { const C = D.cut, ns = C.slits || 0, sr = C.r || 1, dp = C.deep ? 0.9 : 0.6; x.save(); x.globalCompositeOperation = 'destination-out'; x.lineCap = 'round';
+    for (let i = 0; i < ns; i++) { const y = h * (0.22 + i * (0.66 / Math.max(1, ns - 1))); [-1, 1].forEach(s => { x.lineWidth = 9 * sr * (C.deep ? 0.7 : 1); x.beginPath(); x.moveTo(w / 2 + s * w * (0.5 + dp * 0.4), y - h * 0.05); x.lineTo(w / 2 + s * w * 0.14, y); x.stroke(); }); }
+    for (let i = 0; i < (C.holes || 0); i++) { const r0 = (3 + R() * 5) * sr, s = R() < 0.5 ? -1 : 1, y = h * (0.18 + R() * 0.62); x.beginPath(); x.ellipse(w / 2 + s * w * (0.1 + R() * 0.32), y, r0 * 0.9, r0 * 1.2, R() * 3, 0, 6.283); x.fill(); }
     x.restore(); }
 }
 function cardMat3(THREE, key, sick) {
@@ -3835,8 +3849,21 @@ const IN3 = [
   [/Citrus|Coffea|Olea|Laurus|Murraya|Pachira|Radermachera|Brachychiton/, { h: 'crown', leaf: 'oval', n: 60, L: [0.07, 0.1], asp: 0.45, H: 0.5 }],
   [/Hibiscus|Gerbera|Impatiens|Primula/, { h: 'pet', leaf: 'oval', n: 14, L: [0.08, 0.12], asp: 0.55, pl: [0.05, 0.12], pp: [0.4, 1.0], lp: [0.9, 1.4], fl: ['#E8452B', 'simple'], fh: 0.22 }],
 ];
+// Vilken monstera-sort som ritas: sortnamn först, sedan art (adansonii = Hålmonstera, siltepecana = silvermonstera osv.)
+function monsteraKey(nm) {
+  if (/Albo/i.test(nm)) return 'monsteraAlbo';
+  if (/Aurea|Yellow/i.test(nm)) return 'monsteraAurea';
+  if (/Mint/i.test(nm)) return 'monsteraMint';
+  if (/Thai|Marble|Freckle|Half Moon|Sport|Constellation/i.test(nm)) return 'monsteraVar';
+  if (/adansonii|Hålmonstera|Monkey|Aussie/i.test(nm)) return 'monsteraAdan';
+  if (/siltepecana|Silvermonstera/i.test(nm)) return 'monsteraSilver';
+  if (/pinnatipartita|obliqua|dubia|acuminata|lechleriana|standleyana|subpinnata|karstenianum|Peru|Burle|Esqueleto|epipremnoides/i.test(nm)) return 'monsteraSlit';
+  if (/Dvärg|Tauerii|Dwarf/i.test(nm)) return 'monsteraSmall';
+  return 'monstera';
+}
 function recipe3d(THREE, nm, seed, sick) {
   let rc = null; for (const [re, r] of IN3) if (re.test(nm)) { rc = r; break; } if (!rc) return null;
+  if (/Monstera/i.test(nm)) rc = Object.assign({}, rc, { leaf: monsteraKey(nm) });
   const g = new THREE.Group(), R = rng3(seed), G = g3(THREE), Y0 = 0.3, st = [], lv = [], rr = a => a[0] + R() * (a[1] - a[0]);
   const dir = (p, a) => [Math.sin(p) * Math.sin(a), Math.cos(p), Math.sin(p) * Math.cos(a)];
   const seg = (a, b, r) => { const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L = Math.hypot(dx, dy, dz) || 0.001; st.push([a[0], a[1], a[2], Math.acos(Math.max(-1, Math.min(1, dy / L))), Math.atan2(dx, dz), 0, r, L, r]); };
@@ -4079,8 +4106,20 @@ function area3d(a, THREE, M, sc, slab, shape, y) {
   const sBox = (uu, c, a0, a1, y0, h, wd, col, o) => { if (!ov) return stripBox(THREE, M, sc, uu, c, a0, a1, y0, h, wd, col, o); const v = [-uu[1], uu[0]]; let s0 = null;
     for (let t = a0; ; t = Math.min(a1, t + 0.05)) { const out = !inR(uu[0] * t + v[0] * c, uu[1] * t + v[1] * c); if (out && s0 == null) s0 = t; if (s0 != null && (!out || t >= a1)) { stripBox(THREE, M, sc, uu, c, s0, t, y0, h, wd, col, o); s0 = null; } if (t >= a1) break; } };
   // Snötäcke på rabatten: tjockt och bulligt, eftersom man ofta skottar upp snö på rabatterna
-  const snowMound = (pts, y0) => { const c = pts.reduce((a2, q) => [a2[0] + q[0] / pts.length, a2[1] + q[1] / pts.length], [0, 0]), sh = (k) => pts.map(q => [c[0] + (q[0] - c[0]) * k, c[1] + (q[1] - c[1]) * k]);
-    slabC(pts, y0, 0.14, '#F4F8FB'); slabC(sh(0.8), y0 + 0.14, 0.08, '#F7FAFC'); slabC(sh(0.55), y0 + 0.22, 0.06, '#FAFCFD'); };
+  // Snö: en mjuk, ojämn yta som sluttar ner mot kanterna, i stället för staplade block
+  const snowMound = (pts, y0) => { const [x0, z0, x1, z1] = bbox(pts), N = 36, dx = (x1 - x0) / N, dz = (z1 - z0) / N, rp = RP0.map(roomPoly);
+    const H = (x, z) => { const s = Math.min(1, edgeDist(x, z, pts) / 0.45), e = s * s * (3 - 2 * s); return y0 + 0.02 + 0.1 * e * (0.8 + 0.2 * Math.sin(x * 3.1 + z * 1.7) * Math.cos(z * 2.3 - x * 0.9)) + 0.012 * Math.sin(x * 9.3) * Math.cos(z * 8.1); };
+    const pos = [], idx = [], vmap = new Map();
+    const vid = (i, j) => { const k = i + ',' + j; if (!vmap.has(k)) { const x = x0 + i * dx, z = z0 + j * dz; vmap.set(k, pos.length / 3); pos.push(x, H(x, z), z); } return vmap.get(k); };
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      const cx = x0 + (i + 0.5) * dx, cz = z0 + (j + 0.5) * dz;
+      if (!inPoly3(cx, cz, pts) || rp.some(pg => inPoly3(cx, cz, pg))) continue;
+      const a = vid(i, j), b = vid(i + 1, j), c = vid(i + 1, j + 1), d = vid(i, j + 1);
+      idx.push(a, d, b, b, d, c);
+    }
+    if (!idx.length) return;
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: '#F4F8FB', roughness: 0.92, metalness: 0 })); m.castShadow = true; m.receiveShadow = true; sc.add(m); };
   // Kanten runt rabatten enligt valet
   const bedEdge3 = a => { const e = a.edge || 'sten'; if (e === 'ingen') return; if (e === 'sten') edgeC(a.pts, 0, 0.16, 0.07, '#A39E91'); else if (e === 'gatsten') edgeC(a.pts, 0, 0.1, 0.12, '#8F8C86'); else if (e === 'tra') edgeC(a.pts, 0, 0.22, 0.045, '#8A6440'); else if (e === 'corten') edgeC(a.pts, 0, 0.18, 0.012, '#8B4A26'); else if (e === 'tegel') edgeC(a.pts, 0, 0.12, 0.11, '#A5533C'); else if (e === 'vide') edgeC(a.pts, 0, 0.3, 0.05, '#9C7A4E'); };
   const slabC = (pts, y0, h, col) => ov ? scanStrips(pts, u, 0.25, (c, a0, a1) => sBox(u, c, a0, a1, y0, h, 0.252, col)) : slab(pts, y0, h, col);
@@ -6810,7 +6849,9 @@ const curBed = () => { const P = PL(); return P.bedId ? planAreas().find(a => a.
 function bedFocus(a) { const P = PL(), box = $('#planbox'); if (!a || !box) return; const bb = bbox(a.pts), W = box.clientWidth, H = box.clientHeight * 0.55, z = Math.max(20, Math.min(zMax(), Math.min(W / (bb[2] - bb[0] + 0.8), H / (bb[3] - bb[1] + 0.8))));
   P.z = z; P.fit = false; const cx = (bb[0] + bb[2]) / 2, cy = (bb[1] + bb[3]) / 2, q = rotPt(cx * z, cy * z, viewRot()); P.ox = W / 2 - q[0]; P.oy = box.clientHeight * 0.3 - q[1]; }
 function bedModeStart() { const P = PL(); const beds = planAreas().filter(a => ['bed', 'veg'].includes(a.t)); if (!curBed() && beds.length) P.bedId = beds[beds.length - 1].id; P.bnew = !beds.length; P.bdim = P.bdim || { L: 3, D: 1.2, shape: 'rect' }; P.ssel = null; setTimeout(() => { if (curBed()) { bedFocus(curBed()); renderPlan(); } }, 30); }
-function bedNewAt(pt) { const P = PL(), d = P.bdim || { L: 3, D: 1.2, shape: 'rect' }; if (!(P.bname || '').trim()) return toast('Ge rabatten ett namn först'); pushUndo(); S.hplan = S.hplan || {}; const br = { cx: Math.round(pt.x * 20) / 20, cy: Math.round(pt.y * 20) / 20, L: d.L, D: d.D, rot: 0, shape: d.shape }, a = { id: 'a' + Date.now().toString(36), t: 'bed', name: (P.bname || '').trim(), pts: bedPts(br), br, bp: [], spots: [], edge: P.bedge || 'sten' };
+// Namn på nya rabatter: Ny rabatt, Ny rabatt 1, Ny rabatt 2 osv. om man inte skriver ett eget namn
+function nextBedName() { const used = new Set(bedsList().map(x => x.name)); if (!used.has('Ny rabatt')) return 'Ny rabatt'; let n = 1; while (used.has('Ny rabatt ' + n)) n++; return 'Ny rabatt ' + n; }
+function bedNewAt(pt) { const P = PL(), d = P.bdim || { L: 3, D: 1.2, shape: 'rect' }; pushUndo(); S.hplan = S.hplan || {}; const br = { cx: Math.round(pt.x * 20) / 20, cy: Math.round(pt.y * 20) / 20, L: d.L, D: d.D, rot: 0, shape: d.shape }, a = { id: 'a' + Date.now().toString(36), t: 'bed', name: (P.bname || '').trim() || nextBedName(), pts: bedPts(br), br, bp: [], spots: [], edge: P.bedge || 'sten' };
   S.hplan.areas = planAreas().concat(a); P.bedId = a.id; P.bnew = false; P.bname = ''; P.ssel = null; saveHomeSoon(); bedFocus(a); render(); toast('Rabatten är utlagd. Välj en växt och tryck i rabatten för att sätta ut den.'); }
 // Rabattkanter: sten, gatsten, trä, cortenstål, tegel, flätad vide eller ingen (spadkant)
 const BED_EDGES = [['sten', 'Natursten', '#A39E91'], ['gatsten', 'Gatsten', '#8F8C86'], ['tra', 'Trä', '#8A6440'], ['corten', 'Cortenstål', '#8B4A26'], ['tegel', 'Tegel', '#A5533C'], ['vide', 'Flätad vide', '#9C7A4E'], ['ingen', 'Ingen (spadkant)', '']];
@@ -6827,6 +6868,10 @@ function bedRot(dv) { const a = curBed(); if (!a) return; pushUndo(); let cx, cy
 function bedSyncBp(a) { const cnt = {}; (a.spots || []).forEach(s => cnt[s.pid] = (cnt[s.pid] || 0) + 1); a.bp = Object.keys(cnt).map(k => ({ pid: +k, n: cnt[k] })); }
 function spotNear(a, i) { const s = a.spots[i], p = plantById(s.pid); if (!p) return null; let best = null; a.spots.forEach((o, j) => { if (j === i) return; const q = plantById(o.pid); if (!q) return; const d = Math.hypot(o.x - s.x, o.y - s.y), need = (pSize(p)[2] + pSize(q)[2]) / 200; if (!best || d - need < best.d - best.need) best = { d, need, j, q }; }); return best; }
 function spotBad(a, i) { const n = spotNear(a, i); return n && n.d < n.need * 0.9; }
+// Tar bort växter som står för tätt. Den som sattes ut först behålls, de senare som krockar tas bort.
+function bedClearTight() { const a = curBed(); if (!a) return; pushUndo(); const n0 = (a.spots || []).length, keep = [];
+  (a.spots || []).forEach(s => { const p = plantById(s.pid); const clash = keep.some(k => { const q = plantById(k.pid); if (!p || !q) return false; const need = (pSize(p)[2] + pSize(q)[2]) / 200; return Math.hypot(k.x - s.x, k.y - s.y) < need * 0.9; }); if (!clash) keep.push(s); });
+  a.spots = keep; bedSyncBp(a); PL().ssel = null; saveHomeSoon(); render(); toast(`Tog bort ${n0 - keep.length} ${n0 - keep.length === 1 ? 'växt' : 'växter'} som stod för tätt`); }
 function bedAddSpot(pt) { const P = PL(), a = curBed(); if (!a) return; const p = plantById(P.bpick); if (!p) return planMsg('Välj först vilken växt du vill sätta ut.');
   if (!inPoly(pt.x, pt.y, a.pts)) return planMsg('Tryck inne i rabatten för att sätta ut ' + p.swedish_name.toLowerCase() + '.');
   pushUndo(); a.spots = (a.spots || []).concat({ pid: p.id, x: Math.round(pt.x * 100) / 100, y: Math.round(pt.y * 100) / 100 }); bedSyncBp(a); P.ssel = a.spots.length - 1; saveHomeSoon(); render(); }
@@ -6858,7 +6903,9 @@ function bedLayer(X, Y, z) {
   if (P.ssel != null && a.spots[P.ssel]) { const s = a.spots[P.ssel], n = spotNear(a, P.ssel); if (n) { const t = a.spots[n.j], bad = n.d < n.need * 0.9; o += `<line x1="${X(s.x)}" y1="${Y(s.y)}" x2="${X(t.x)}" y2="${Y(t.y)}" stroke="${bad ? '#C2412D' : 'var(--pri)'}" stroke-width="2" pointer-events="none"/><text x="${((+X(s.x) + +X(t.x)) / 2).toFixed(1)}" y="${((+Y(s.y) + +Y(t.y)) / 2 - 6).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="800" fill="${bad ? '#C2412D' : 'var(--pri)'}" stroke="var(--bg)" stroke-width="3.5" paint-order="stroke" pointer-events="none">${Math.round(n.d * 100)} cm${bad ? ' (minst ' + Math.round(n.need * 100) + ')' : ''}</text>`; } }
   return o;
 }
-function sunAtMH(m, h) { const pl = wxPlace() || {}, lat = (pl.lat != null ? pl.lat : 65.3) * Math.PI / 180, lon = pl.lon != null ? pl.lon : 21.5; const N = Math.round((Date.UTC(2026, m - 1, 15) - Date.UTC(2026, 0, 1)) / 864e5) + 1; const dec = 23.44 * Math.PI / 180 * Math.sin(2 * Math.PI / 365 * (N - 81)); const tz = m >= 4 && m <= 10 ? 2 : 1; const H = ((h - tz + lon / 15) - 12) * Math.PI / 12; const sa = Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(H); const alt = Math.asin(Math.max(-1, Math.min(1, sa))); let az = Math.acos(Math.max(-1, Math.min(1, (Math.sin(dec) - Math.sin(lat) * sa) / ((Math.cos(lat) * Math.cos(alt)) || 1e-6)))); if (H > 0) az = 2 * Math.PI - az; return { alt, az }; }
+// Användarens egen tidszon (klockan på telefonen) styr när solen står högst, inte svensk tid
+const userTzH = m => -new Date(Date.UTC(2026, m - 1, 15, 12)).getTimezoneOffset() / 60;
+function sunAtMH(m, h) { const pl = wxPlace() || {}, lat = (pl.lat != null ? pl.lat : 65.3) * Math.PI / 180, lon = pl.lon != null ? pl.lon : userTzH(m) * 15; const N = Math.round((Date.UTC(2026, m - 1, 15) - Date.UTC(2026, 0, 1)) / 864e5) + 1; const dec = 23.44 * Math.PI / 180 * Math.sin(2 * Math.PI / 365 * (N - 81)); const tz = userTzH(m); const H = ((h - tz + lon / 15) - 12) * Math.PI / 12; const sa = Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(H); const alt = Math.asin(Math.max(-1, Math.min(1, sa))); let az = Math.acos(Math.max(-1, Math.min(1, (Math.sin(dec) - Math.sin(lat) * sa) / ((Math.cos(lat) * Math.cos(alt)) || 1e-6)))); if (H > 0) az = 2 * Math.PI - az; return { alt, az }; }
 const SUN_BLD = { shed: 2.6, garage: 3.2, carport: 2.6 }, SUN_TREE_H = { tree: 8, fruit: 4, conifer: 10, bush: 1.5 }, SUNC = new Map();
 function sunRect(f) { const hw = f.w / 2, hh = f.h / 2, a = (f.rot || 0) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a); return [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(([u, v]) => [f.x + u * c - v * s, f.y + u * s + v * c]); }
 function sunObst() {
@@ -6959,13 +7006,13 @@ function bedRename(v) { const a = curBed(), n = (v || '').trim(); if (!a) return
 function bedPanelV() {
   const P = PL(), a = curBed(), d = P.bdim || { L: 3, D: 1.2, shape: 'rect' };
   const dims = (L, D, sh, dis) => `<div class="bdims"><label>Längd<input type="text" inputmode="decimal" value="${String(L).replace('.', ',')}" ${dis ? 'disabled' : ''} onchange="bedSetDim('L',this.value)"><small>m</small></label><label>Djup<input type="text" inputmode="decimal" value="${String(D).replace('.', ',')}" ${dis ? 'disabled' : ''} onchange="bedSetDim('D',this.value)"><small>m</small></label><div class="chips2 sm">${[['rect', '▭ Rak'], ['round', '◯ Rund']].map(([k, t]) => `<button class="${sh === k ? 'on' : ''}" ${dis ? 'disabled' : ''} onclick="bedShape('${k}')">${t}</button>`).join('')}</div></div>`;
-  if (P.bnew || !a) return `<div class="psel col bpanel"><b>Ny rabatt</b><div class="bname"><label>Namn på rabatten (krävs)</label><input type="text" value="${esc(P.bname || '')}" placeholder="t.ex. Rosenrabatten" oninput="PL().bname=this.value"></div><p class="bstep"><span>1</span>Välj storlek och form</p>${dims(d.L, d.D, d.shape)}<p class="bstep"><span>2</span>Välj kant runt rabatten</p>${edgeChips(P.bedge || 'sten', 'new')}<p class="bstep"><span>3</span>Tryck på gården där rabatten ska ligga</p>${planAreas().some(x => ['bed', 'veg'].includes(x.t)) ? '<button class="link3" onclick="PL().bnew=false;render()">Avbryt</button>' : ''}</div>`;
+  if (P.bnew || !a) return `<div class="psel col bpanel"><b>Ny rabatt</b><div class="bname"><label>Namn på rabatten (valfritt)</label><input type="text" value="${esc(P.bname || '')}" placeholder="Lämna tomt så blir det Ny rabatt" oninput="PL().bname=this.value"></div><p class="bstep"><span>1</span>Välj storlek och form</p>${dims(d.L, d.D, d.shape)}<p class="bstep"><span>2</span>Välj kant runt rabatten</p>${edgeChips(P.bedge || 'sten', 'new')}<p class="bstep"><span>3</span>Tryck på gården där rabatten ska ligga</p>${planAreas().some(x => ['bed', 'veg'].includes(x.t)) ? '<button class="link3" onclick="PL().bnew=false;render()">Avbryt</button>' : ''}</div>`;
   const p = plantById(P.bpick), [L, D] = a.br ? [a.br.L, a.br.D] : bedDims(a.pts), sp = a.spots || [], bad = sp.filter((s, i) => spotBad(a, i)).length;
   const cnt = {}; sp.forEach(s => cnt[s.pid] = (cnt[s.pid] || 0) + 1);
   const sel = P.ssel != null && sp[P.ssel] ? sp[P.ssel] : null, sp2 = sel && plantById(sel.pid), nn = sel ? spotNear(a, P.ssel) : null;
   return `<div class="psel col bpanel">
     <div class="bname"><select class="bsel" onchange="bedSwitch(this.value)" aria-label="Byt rabatt">${bedsList().map(x => `<option value="${x.id}" ${x.id === a.id ? 'selected' : ''}>${esc(bedNameOf(x))}</option>`).join('')}</select><input type="text" value="${esc(bedNameOf(a))}" aria-label="Namn på rabatten" onchange="bedRename(this.value)"></div>
-    <div class="brow2"><div class="grow"><b>Rabatt ${fmtM(L)} × ${fmtM(D)}</b><span>${sp.length} ${sp.length === 1 ? 'växt' : 'växter'}${bad ? ` · <em class="bad">${bad} står för tätt</em>` : ''}</span></div></div>
+    <div class="brow2"><div class="grow"><b>Rabatt ${fmtM(L)} × ${fmtM(D)}</b><span>${sp.length} ${sp.length === 1 ? 'växt' : 'växter'}${bad ? ` · <em class="bad">${bad} står för tätt</em>` : ''}</span></div>${bad ? `<button class="btn sm line" style="margin-top:8px" onclick="bedClearTight()">Ta bort de som står för tätt</button>` : ''}</div>
     ${bedSunV(a, sel)}
     <div class="btools"><button onclick="bedRot(15)">⟳ Vrid</button><button class="${P.bdimOpen ? 'on' : ''}" onclick="PL().bdimOpen=!PL().bdimOpen;render()">📏 Storlek</button><button onclick="PL().bnew=true;PL().ssel=null;render()">＋ Ny rabatt</button></div>
     ${P.bdimOpen ? (a.br ? dims(a.br.L, a.br.D, a.br.shape) : `<span class="mut" style="font-size:12.5px">Formen ändrar du med hörnen under Flytta.</span>`) + `<span class="mut" style="font-size:12.5px;display:block;margin-top:8px">Kant</span>${edgeChips(a.edge || 'sten', 'cur')}` : ''}
@@ -8765,6 +8812,11 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.258', '2 nov 23:55', ['3D: monsteror ser olika ut beroende på sort: Thai Constellation, Albo, Aurea och Mint har egna färger, och Hålmonstera, Silvermonstera och pinnatipartita har egna hål och klyvningar'] ],
+  ['Beta 0.257', '2 nov 23:40', ['Rabatter: ta bort alla växter som står för tätt med ett tryck, den som sattes ut först behålls'] ],
+  ['Beta 0.256', '2 nov 23:20', ['Snön i rabatterna i 3D-vyn är mjuka högar som sluttar ner mot kanterna, i stället för staplade block'] ],
+  ['Beta 0.255', '2 nov 22:45', ['Solen i 3D följer din egen tidszon, inte svensk tid'] ],
+  ['Beta 0.254', '2 nov 22:30', ['Nya rabatter får namnet Ny rabatt, Ny rabatt 1, Ny rabatt 2 osv. om du inte skriver något namn'] ],
   ['Beta 0.253', '2 nov 23:00', ['Knappen i Mitt hem heter Lägg till en växt'] ],
   ['Beta 0.252', '2 nov 22:50', ['Hem heter nu Start i menyn, och knappen Anpassa Hem heter Anpassa startsidan'] ],
   ['Beta 0.251', '2 nov 22:40', ['Snabbfrågan: frågor om fönster och väderstreck får ett besked för just din växt'] ],
@@ -9835,7 +9887,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.253';
+const APP_VERSION = 'Beta 0.258';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
