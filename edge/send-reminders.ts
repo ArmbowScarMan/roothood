@@ -76,6 +76,9 @@ Deno.serve(async (req) => {
     if (body.event === "message") { title = name; url = APP_URL + "?tool=msgs"; tag = "roothood-msg-" + (body.from || ""); }
     else if (body.event === "friend_req") { title = "Ny vänförfrågan 🌿"; text = name + " vill bli din vän" + (body.text ? ": " + body.text : ""); }
     else if (body.event === "friend_ok") { title = "Ny vän 🌱"; text = name + " accepterade din vänförfrågan"; }
+    else if (body.event === "fb_bug") { title = "Ny felrapport 🐞"; text = name + ": " + (body.text || ""); url = APP_URL + "?tool=notif"; tag = "roothood-fb"; }
+    else if (body.event === "fb_other") { title = "Nytt förslag 💡"; text = name + ": " + (body.text || ""); url = APP_URL + "?tool=notif"; tag = "roothood-fb"; }
+    else if (body.event === "expert_q") { title = "Ny fråga till experten 🌿"; text = name + ": " + (body.text || ""); url = APP_URL + "?tool=notif"; tag = "roothood-xq"; }
     else return json({ error: "okänd händelse" }, 400);
     const { data: subs } = await db.from("push_subscriptions").select("id,endpoint,p256dh,auth").eq("user_id", body.to);
     let ok = 0;

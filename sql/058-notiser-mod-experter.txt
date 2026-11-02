@@ -1,0 +1,40 @@
+-- Roothood steg 058: notiser till moderatorer, admin och experter.
+-- Moderatorer och admin får notis när någon skickar en felrapport eller ett förslag.
+-- Experter får notis när någon ställer en fråga till experterna.
+-- Kör en gång i Supabase. Det gör inget om du kör den två gånger.
+
+-- Antal som väntar på dig: nya rapporter (mod/admin) och obesvarade frågor (expert)
+create or replace function public.inbox_counts()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'fb', case when public.is_mod()
+            then (select count(*)::int from feedback where status = 'new') else 0 end,
+    'xq', case when exists (select 1 from profiles p where p.id = auth.uid() and p.is_expert)
+            then (select count(*)::int from expert_questions q
+                  where q.answer is null and (q.expert is null or q.expert = auth.uid())) else 0 end);
+$$;
+grant execute on function public.inbox_counts() to authenticated;
+
+-- Push till mobilen när en felrapport eller ett förslag kommer in
+create or replace function public.trg_push_feedback() returns trigger language plpgsql security definer set search_path = public as $$
+declare m record;
+begin
+  for m in select id from profiles where role in ('mod', 'admin') and id <> new.user_id loop
+    perform public.push_event(case when new.kind = 'bug' then 'fb_bug' else 'fb_other' end, m.id, new.user_id, new.body);
+  end loop;
+  return new;
+end $$;
+drop trigger if exists push_feedback_t on public.feedback;
+create trigger push_feedback_t after insert on public.feedback for each row execute function public.trg_push_feedback();
+
+-- Push till experter när någon ställer en fråga (till alla experter eller till just dig)
+create or replace function public.trg_push_expert_q() returns trigger language plpgsql security definer set search_path = public as $$
+declare m record;
+begin
+  for m in select id from profiles where is_expert and id <> new.asker and (new.expert is null or id = new.expert) loop
+    perform public.push_event('expert_q', m.id, new.asker, new.body);
+  end loop;
+  return new;
+end $$;
+drop trigger if exists push_expert_q_t on public.expert_questions;
+create trigger push_expert_q_t after insert on public.expert_questions for each row execute function public.trg_push_expert_q();

@@ -288,6 +288,8 @@ input.ro{opacity:.65}
 .lcard .mut{font-size:13px}
 .ltype{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;color:#fff}
 .lbig{display:block;width:100%;max-height:360px;object-fit:cover;border-radius:18px;margin:12px 0 4px}
+.fbshot{display:block;width:100%;height:auto;max-height:70vh;object-fit:contain;border-radius:14px;margin:10px 0 4px;background:rgba(0,0,0,.06);cursor:zoom-in}
+.fbshot.big{max-height:none;cursor:zoom-out}
 .lnote{background:var(--soft);color:var(--ink);border-radius:16px;padding:10px 12px;font-size:13.5px;margin:14px 0 0}
 .seg2{display:flex;gap:6px;margin:14px 18px 0;background:var(--surf);border-radius:999px;padding:5px;box-shadow:var(--sh)}
 .seg2 button{flex:1;border:0;background:none;color:var(--ink);font:inherit;font-size:14px;font-weight:600;padding:10px 0;border-radius:999px;cursor:pointer}
@@ -1995,6 +1997,7 @@ const sbApi = {
   async modReports(st) { const { data, error } = await sb.rpc('mod_reports', { p_status: st }); if (error) throw /mod_reports/.test(error.message || '') ? new Error('MOD_NOT_READY') : error; return data || []; },
   async modAct(id, a) { const { error } = await sb.rpc('mod_act', { p_report: id, p_action: a }); if (error) throw error; },
   async modOpen() { const { data, error } = await sb.rpc('mod_open_count'); return error ? 0 : (data || 0); },
+  async inboxCounts() { const { data, error } = await sb.rpc('inbox_counts'); return error || !data ? { fb: 0, xq: 0 } : data; },
   async modFeed() { let r = await sb.rpc('mod_feed2', { p_limit: 300 }); if (r.error && /mod_feed2|function/i.test(r.error.message || '')) r = await sb.rpc('mod_feed'); if (r.error) throw r.error; return r.data || []; },
   async modHideUser(uid, on) { const { data, error } = await sb.rpc('mod_hide_user', { p_user: uid, p_hide: on }); if (error) throw /mod_hide_user|function/i.test(error.message || '') ? new Error('Det här går inte att använda just nu.') : error; return data || 0; },
   async modHide(kind, id, on) { const { error } = await sb.rpc('mod_hide', { p_kind: kind, p_id: id, p_hide: on }); if (error) throw error; },
@@ -5904,6 +5907,18 @@ function render() {
 }
 // ===== Kom ihåg var man var (och tillbaka-knappen) =====
 let curHash = null, navFromPop = false, scrollT = null;
+const TOOL_LABEL = { house: 'Ritning', people: 'Vänner', mod: 'Moderering', explore: 'Utforska', experts: 'Experter', user: 'Användarprofil', settings: 'Inställningar', notif: 'Notiser', msgs: 'Meddelanden', chat: 'Chatt', news: 'Nyheter', nearby: 'Händer nära dig', pets: 'Djur', season: 'Säsong', learn: 'Lär dig', inspo: 'Inspiration', ask: 'Snabbfråga', db: 'Växtdatabas', sow: 'Så och skörd', smart: 'Smarta förslag', perma: 'Perma', compass: 'Kompass' };
+const TAB_LABEL = { home: 'Hem', mine: 'Samling', comm: 'Gemenskap', me: 'Profil' };
+function viewName() { // läsbar text om var användaren var, t.ex. "Ritning · Rum: Kök (#t/house/kok)"
+  const hash = viewHash();
+  let name;
+  if (S.sel) { const p = (S.plants || []).find(x => String(x.id) === String(S.sel)) || (S.mine || []).find(x => String(x.id) === String(S.sel)); name = 'Växt' + (p ? ': ' + (p.custom_name || p.swedish_name || p.name || '') : ''); }
+  else if (S.tool) name = TOOL_LABEL[S.tool] || S.tool;
+  else name = TAB_LABEL[S.tab] || S.tab || 'Okänd sida';
+  if (S.tool === 'mod' && S.modTab) name += ' · ' + S.modTab;
+  if (S.tool === 'house' && S.room) name += ' · ' + S.room;
+  return name + ' (' + hash + ')';
+}
 function viewHash() {
   if (S.sel) return '#v/' + S.sel;
   if (S.tool) return '#t/' + S.tool + (S.tool === 'house' && S.room ? '/' + S.room : '') + (S.tool === 'user' && S.uid ? '/' + encodeURIComponent(S.uid) : '');
@@ -6470,8 +6485,9 @@ function followBtn(p) {
   const on = (S.pfol || []).includes(key);
   return `<div class="pad" style="padding-top:10px"><button class="btn sm line" style="width:100%" onclick="togPlantFollow(${jsArg(key)})">${ic(on ? 'ph-bell-slash' : 'ph-bell', 'currentColor', 16)} ${on ? 'Sluta följa' : 'Följ'} ${esc(p.swedish_name)} i Gemenskap</button></div>`;
 }
-async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); S.notifErr = false; } catch (e) { S.notifs = S.notifs || []; S.notifErr = true; } try { S.notifs = (S.notifs || []).filter(n => n.t !== 'follow').concat(await followHits()); } catch (e) { console.warn('Roothood:', e); } if (isMod()) { try { S.modOpen = await api.modOpen(); } catch (e) { console.warn('Roothood:', e); } } await loadInbox(); if (!S.tool && !S.modal) render(); }
-function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due + (isMod() ? (S.modOpen || 0) : 0); return `<button class="circ bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
+async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); S.notifErr = false; } catch (e) { S.notifs = S.notifs || []; S.notifErr = true; } try { S.notifs = (S.notifs || []).filter(n => n.t !== 'follow').concat(await followHits()); } catch (e) { console.warn('Roothood:', e); } if (isMod()) { try { S.modOpen = await api.modOpen(); } catch (e) { console.warn('Roothood:', e); } } try { S.inboxC = await api.inboxCounts(); } catch (e) { S.inboxC = null; }
+  await loadInbox(); if (!S.tool && !S.modal) render(); }
+function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due + (isMod() ? (S.modOpen || 0) : 0) + ((S.inboxC && S.inboxC.fb) || 0) + ((S.inboxC && S.inboxC.xq) || 0); return `<button class="circ bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
 let inboxAsked = false;
 function msgBtn() {
   if (!S.user) return '';
@@ -6615,7 +6631,7 @@ function modStatsV(D) { if (!D || !D.f) return '<p class="mut" style="margin:12p
   <div class="setcard" style="margin-top:12px;padding:14px"><b>${S.msFeat ? 'Vilka använder ' + esc(featName(S.msFeat)) : 'Mest aktiva användare'}</b>${S.msFeat ? ' <button class="link3" onclick="S.msFeat=null;S.modData=null;render();loadMod()">Visa alla</button>' : ''}
   ${D.users == null ? (S.msFeat ? '<p class="mut">Hämtar…</p>' : `<button class="btn sm line" style="margin-top:8px;display:block" onclick="S.msFeat='';S.modData=null;render();loadMod()">Visa mest aktiva</button>`) : D.users.length ? D.users.map(u => `<button class="msrow" onclick="modOpenUser(${jsArg(u.user_id)})"><span class="msn">${esc(u.display_name || 'Okänd')}</span><span class="msv">${u.uses} gånger · ${u.features} funktioner</span></button>`).join('') : '<p class="mut">Ingen än.</p>'}</div></div>`; }
 // Rapportera fel och ge förslag (för testare)
-function openFb() { if (needLogin()) return; S.fbf = S.fbf || { kind: 'bug' }; S.fbView = viewHash(); openModal('fb'); }
+function openFb() { if (needLogin()) return; S.fbf = S.fbf || { kind: 'bug' }; S.fbView = viewName(); openModal('fb'); }
 function fbPhoto(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.fbf.photo = f; S.fbf.url = URL.createObjectURL(f); keepScroll(); }
 async function fbSend() { const t = $('#fbt'), body = ((t && t.value) || '').trim(); if (body.length < 3) return toast('Beskriv kort vad som hände'); S.busy = true; render();
   try { await api.sendFb({ kind: S.fbf.kind, body: body.slice(0, 4000), view: (S.fbView || '').slice(0, 200), version: APP_VERSION, ua: navigator.userAgent.slice(0, 300) }, S.fbf.photo); S.fbf = null; S.modal = null; toast('Tack! Din rapport är skickad 🙏'); }
@@ -6624,11 +6640,11 @@ function fbV() { const F = S.fbf || { kind: 'bug' };
   return `<div class="mh"><h2>Rapportera fel eller ge förslag</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div class="chips2">${[['bug', '🐞 Något är fel'], ['idea', '💡 Förslag'], ['other', 'Annat']].map(([k, n]) => `<button class="${F.kind === k ? 'on' : ''}" aria-pressed="${F.kind === k}" onclick="S.fbf.kind='${k}';keepScroll()">${n}</button>`).join('')}</div>
   <label class="fl" for="fbt">${F.kind === 'bug' ? 'Vad hände? Vad tryckte du på och vad förväntade du dig?' : F.kind === 'idea' ? 'Vad vill du kunna göra?' : 'Berätta'}</label><textarea id="fbt" rows="5" maxlength="4000" oninput="S.fbf.body=this.value">${esc(F.body || '')}</textarea>
-  ${F.photo ? `<img class="lbig" src="${esc(F.url)}" alt="Bifogad bild"><button class="btn sm line" onclick="S.fbf.photo=null;keepScroll()">Ta bort bilden</button>` : `<label class="shot small"><span class="tic">${ic('ph-image', 'currentColor', 22)}</span><span class="grow"><b>Bifoga skärmbild</b><span>Ta en skärmbild i telefonen och välj den här</span></span><input type="file" accept="image/*" class="sr" onchange="fbPhoto(this)"></label>`}
-  <p class="mut" style="font-size:12.5px;margin:10px 0 0">Vi skickar med vilken sida du var på (${esc(S.fbView || '')}), appversion ${APP_VERSION} och vilken telefon du har, så blir felet lättare att hitta.</p>
+  ${F.photo ? `<img class="fbshot" src="${esc(F.url)}" alt="Bifogad bild" onclick="this.classList.toggle('big')"><button class="btn sm line" onclick="S.fbf.photo=null;keepScroll()">Ta bort bilden</button>` : `<label class="shot small"><span class="tic">${ic('ph-image', 'currentColor', 22)}</span><span class="grow"><b>Bifoga skärmbild${F.kind === 'bug' ? ' (rekommenderas)' : ''}</b><span>${F.kind === 'bug' ? 'En skärmbild visar oss exakt vad du ser och gör felet mycket lättare att hitta' : 'Ta en skärmbild i telefonen och välj den här'}</span></span><input type="file" accept="image/*" class="sr" onchange="fbPhoto(this)"></label>`}
+  <p class="mut" style="font-size:12.5px;margin:10px 0 0">Vi skickar med vilken sida du var på: <b>${esc(S.fbView || '')}</b>. Även appversion ${APP_VERSION} och vilken telefon du har, så blir felet lättare att hitta.</p>
   <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="fbSend()">${S.busy ? 'Skickar…' : 'Skicka'}</button>`; }
 function modFbV(D) { const st = { new: 'Ny', seen: 'Sedd', fixed: 'Fixad', wontfix: 'Görs inte' }, kd = { bug: '🐞 Fel', idea: '💡 Förslag', other: 'Annat' };
-  return `<div class="pad">${(D || []).length ? D.map(f => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">${kd[f.kind] || ''} · ${esc(f.author || '')} · ${ago(f.created_at)} · ${esc(f.version || '')}</small><p style="white-space:pre-wrap;margin:6px 0">${esc(f.body)}</p>${f.photo_url ? `<img class="lbig" src="${esc(f.photo_url)}" alt="">` : ''}<small class="mut" style="display:block;word-break:break-all">${esc(f.view || '')} · ${esc((f.ua || '').slice(0, 120))}</small>
+  return `<div class="pad">${(D || []).length ? D.map(f => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">${kd[f.kind] || ''} · ${esc(f.author || '')} · ${ago(f.created_at)} · ${esc(f.version || '')}</small><p style="white-space:pre-wrap;margin:6px 0">${esc(f.body)}</p>${f.photo_url ? `<img class="fbshot" src="${esc(f.photo_url)}" alt="Bifogad skärmbild" onclick="this.classList.toggle('big')">` : ''}<p style="margin:4px 0;font-size:14px"><b>Sida:</b> ${esc(f.view || 'okänd')}</p><small class="mut" style="display:block;word-break:break-all">${esc((f.ua || '').slice(0, 120))}</small>
     <div class="chips2 sm" style="margin-top:8px">${Object.entries(st).map(([k, n]) => `<button class="${f.status === k ? 'on' : ''}" onclick="modFbSet(${f.id},'${k}')">${n}</button>`).join('')}</div></div>`).join('') : '<p class="mut">Inga rapporter än.</p>'}</div>`; }
 async function modFbSet(id, k) { try { await api.modFbSet(id, k); const x = (S.modData || []).find(y => y.id === id); if (x) x.status = k; keepMain(); } catch (e) { toast(errMsg(e)); } }
 function modUsersV(D) {
@@ -6710,6 +6726,8 @@ function notifV() {
   ${frq.length ? `<div class="sec"><h2>Vänförfrågningar</h2></div><div class="pad nlist">${frq.join('')}</div>` : ''}
   ${(S.inbox || []).some(c => c.unread) ? `<div class="sec"><h2>Meddelanden</h2></div><div class="pad nlist">${S.inbox.filter(c => c.unread).slice(0, 5).map(c => `<button class="nrow new" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">💬</span><span class="grow"><b>${esc(c.name || 'Någon')}</b><span>${esc((c.last_body || '').slice(0, 70))}</span></span><small>${c.unread} nya</small></button>`).join('')}</div>` : ''}
   ${isMod() && S.modOpen ? `<div class="sec"><h2>Moderering</h2></div><div class="pad nlist"><button class="nrow new" onclick="openMod('open')"><span class="nic">🛡️</span><span class="grow"><b>${S.modOpen} ${S.modOpen === 1 ? 'rapport väntar' : 'rapporter väntar'}</b><span>Tryck för att granska</span></span></button></div>` : ''}
+  ${S.inboxC && S.inboxC.fb ? `<div class="sec"><h2>Felrapporter</h2></div><div class="pad nlist"><button class="nrow new" onclick="openMod('fb')"><span class="nic">🐞</span><span class="grow"><b>${S.inboxC.fb} ${S.inboxC.fb === 1 ? 'ny rapport eller förslag' : 'nya rapporter och förslag'}</b><span>Tryck för att läsa och svara</span></span></button></div>` : ''}
+  ${S.inboxC && S.inboxC.xq ? `<div class="sec"><h2>Experter</h2></div><div class="pad nlist"><button class="nrow new" onclick="openExperts()"><span class="nic">🌿</span><span class="grow"><b>${S.inboxC.xq} ${S.inboxC.xq === 1 ? 'fråga väntar på svar' : 'frågor väntar på svar'}</b><span>Tryck för att svara</span></span></button></div>` : ''}
   ${(() => { const nw = act.filter((x, i) => isN(actL[i])), old = act.filter((x, i) => !isN(actL[i]));
     return `${nw.length || todo.length ? `<div class="sec"><h2>Nytt <span class="ncount">${nw.length + todo.length}</span></h2>${nw.length ? '<button class="viewall" onclick="notifAllRead()">✓ Markera som lästa</button>' : ''}</div><div class="pad nlist">${nw.join('')}${todo.length && nw.length ? '<p class="nsub">Att göra idag</p>' : ''}${todo.join('')}</div>` : `<div class="pad"><p class="mut" style="margin:6px 0 0">Inget nytt sedan sist.</p></div>`}
     <div class="sec"><h2>Tidigare</h2></div><div class="pad nlist">${N == null ? '<p class="mut">Hämtar…</p>' : old.length ? old.join('') : '<p class="mut" style="margin:0">Inga äldre notiser. När någon svarar på dina frågor, trådar, annonser eller detektivfall syns det här.</p>'}</div>`; })()}
@@ -8732,6 +8750,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.245', '2 nov 21:30', ['Moderatorer och admin får notis när någon skickar en felrapport eller ett förslag, både i appen och i mobilen', 'Experter får notis när någon ställer en fråga till experterna', 'Skärmbilder i felrapporter visas hela, tryck på bilden för att se den större'] ],
   ['Beta 0.244', '2 nov 20:45', ['Växtjournalen ersätter Dagboken: snabba anteckningar med taggar, ett tryck för Vattnat, Gödslat, Omplanterat och Beskuret, tidslinje per månad med höjd och bladstorlek, och sök i hela journalen', 'Snabbfråga: skriv en fråga och få svar direkt från appens växtkunskap', 'Över 900 nya växter: krukväxter med sorter, 150 variegerade sorter och 105 rosor', 'Välj åt vilket håll en dörr går i Ritning: gångjärn på andra sidan och inåt eller utåt', 'Färg på en vägg i taget i 3D, mer snö på rabatterna och ingen snö inomhus', 'Egen vägg på profilen med inlägg, gilla och kommentarer', 'Tillbaka-pilen tar dig till sidan du var på senast', 'Växtdetektiverna finns under Fråga expert, och Växtdoktorn skickar till experter', 'Nytt filter och sortering i Växtbiblioteket (tidigare Växtdatabasen) och Planteringskalendern (tidigare Såkalendern)', 'Moderatorer: Alla användare, Statistik och Feedback', 'Felknapp för testare, notisfråga första gången och tydliga nya notiser', 'Rabattkanter, prickar för att flytta en vägg, vattningsråd efter substrat, regn och snö senaste veckan']],
   ['Beta 0.243', '29 okt 15:55', ['Nytt Hem: hälsning med datum och hur många växter som behöver vatten, lika stora snabbval, Mina växter som kort med bild och Händer nära dig som kort du bläddrar mellan', 'Varningar visas inte längre två gånger på Hem', 'Tryck på golvet eller en vägg i 3D för att välja golv och väggfärg. Rum med öppen planlösning väljs tillsammans', '12 golv att välja mellan: trä, kakel, klinker, betong, matta och linoleum', 'Fler väggfärger, och fristående väggar får rummets färg', 'Dubbeltryck på en växt i 3D visar hela växten, ovanför knapparna', 'Fallande löv och snö tar inte längre emot tryck i 3D']],
   ['Beta 0.242', '29 okt 15:10', ['Ritningen: välj tjocklek på väggar (10, 15, 25 eller 35 cm), syns både i ritningen och i 3D', 'Väggar och hörn fastnar på 10 cm i stället för 25 cm', 'Ångra-knapp i ritningen', 'Tryck på ett fönster, en dörr eller ett burspråk på en vägg för att göra det bredare, smalare, flytta det, byta mellan fönster och dörr eller ta bort det', 'Välj flera under Mer: markera möbler, väggar och lampor och flytta, kopiera, vrid eller ta bort dem samtidigt', 'Bygg ditt hem: fem steg ovanför ritningen som visar vad som är gjort och vad som är nästa steg', 'Hela hjälptexten i ritningen syns nu', 'Kameran i 3D hamnar lägre och närmare när du väljer en rabatt']],
@@ -9793,7 +9812,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.244';
+const APP_VERSION = 'Beta 0.245';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
