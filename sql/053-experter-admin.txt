@@ -1,0 +1,59 @@
+-- 053: Admin kan ge någon titeln Expert direkt i appen (Moderering > Alla användare > profilen).
+-- Experter svarar på Fråga expert, Växtdoktorn och Växtdetektiverna. Kör efter 051.
+
+-- Bara admin får ändra expertuppgifterna. Funktionen admin_set_expert sätter en flagga som släpper igenom ändringen.
+create or replace function public.protect_expert_flag() returns trigger language plpgsql as $$
+begin
+  if (new.is_expert is distinct from old.is_expert or new.expert_title is distinct from old.expert_title or new.expert_bio is distinct from old.expert_bio or new.expert_tags is distinct from old.expert_tags)
+     and coalesce(auth.role(), '') <> 'service_role' and auth.uid() is not null
+     and coalesce(current_setting('roothood.expert_ok', true), '') <> '1' then
+    new.is_expert := old.is_expert; new.expert_title := old.expert_title; new.expert_bio := old.expert_bio; new.expert_tags := old.expert_tags;
+  end if;
+  return new;
+end $$;
+
+create or replace function public.admin_set_expert(p_user uuid, p_on boolean, p_title text default null, p_bio text default null)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if public.my_role() <> 'admin' then raise exception 'NOT_ADMIN'; end if;
+  perform set_config('roothood.expert_ok', '1', true);
+  update profiles set is_expert = p_on,
+    expert_title = case when p_on then nullif(trim(coalesce(p_title, '')), '') else expert_title end,
+    expert_bio = case when p_on and p_bio is not null then nullif(trim(p_bio), '') else expert_bio end
+  where id = p_user;
+  perform set_config('roothood.expert_ok', '', true);
+end $$;
+grant execute on function public.admin_set_expert(uuid, boolean, text, text) to authenticated;
+
+-- Profilen i moderatorvyn visar om personen är expert
+drop function if exists public.mod_user_card(uuid);
+create function public.mod_user_card(p_id uuid)
+returns table (id uuid, display_name text, city text, interests text[], plants int, posts int, followers int, following int, share boolean, plant_list jsonb,
+  friends int, friend_status text, friend_req bigint, pets jsonb, hidden text[], role text, joined timestamptz, hidden_posts int, avatar_url text, is_expert boolean, expert_title text)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query
+  select p.id, p.display_name, p.city, p.interests,
+    (select count(*) from user_plants u where u.user_id = p.id)::int,
+    (select count(*) from posts x where x.user_id = p.id and not coalesce(x.hidden, false))::int,
+    (select count(*) from follows f where f.followee = p.id)::int,
+    (select count(*) from follows f where f.follower = p.id)::int,
+    true,
+    (select jsonb_agg(jsonb_build_object('plant_id', up.plant_id, 'name', coalesce(pl.swedish_name, up.custom_name),
+        'photo', case when array_length(up.photos, 1) > 0 and up.photos[array_length(up.photos, 1)] like 'https://%' then up.photos[array_length(up.photos, 1)] end) order by up.created_at desc)
+      from user_plants up left join plants pl on pl.id = up.plant_id where up.user_id = p.id),
+    (select count(*) from friend_requests f where f.status = 'accepted' and p.id in (f.from_user, f.to_user))::int,
+    case when p.id = auth.uid() then 'self' else 'none' end,
+    null::bigint,
+    (select d.data -> 'list' from pets d where d.owner = p.id),
+    '{}'::text[],
+    p.role,
+    nullif(to_jsonb(p) ->> 'created_at', '')::timestamptz,
+    (select count(*) from posts x where x.user_id = p.id and coalesce(x.hidden, false))::int,
+    p.avatar_url,
+    coalesce(p.is_expert, false),
+    p.expert_title
+  from profiles p where p.id = p_id;
+end $$;
+grant execute on function public.mod_user_card(uuid) to authenticated;

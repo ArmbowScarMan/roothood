@@ -1,0 +1,80 @@
+-- 054: Egen vägg för varje användare. Man skriver inlägg (med bild om man vill) på sin vägg.
+-- Andra inloggade kan gilla och kommentera. Blockerade personer ser inte varandras väggar.
+-- Moderatorer kan dölja inlägg och kommentarer.
+
+create table if not exists public.wall_posts (
+  id bigint generated always as identity primary key,
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  body text not null default '' check (char_length(body) <= 2000),
+  photo_url text,
+  hidden boolean not null default false,
+  created_at timestamptz not null default now(),
+  check (char_length(body) > 0 or photo_url is not null)
+);
+create index if not exists wall_posts_user on public.wall_posts (user_id, created_at desc);
+
+create table if not exists public.wall_comments (
+  id bigint generated always as identity primary key,
+  post_id bigint not null references public.wall_posts on delete cascade,
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  body text not null check (char_length(body) between 1 and 1000),
+  hidden boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists wall_comments_post on public.wall_comments (post_id, created_at);
+
+create table if not exists public.wall_likes (
+  post_id bigint not null references public.wall_posts on delete cascade,
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (post_id, user_id)
+);
+
+-- Är två personer blockerade från varandra?
+create or replace function public.wall_blocked(a uuid, b uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from blocks where (blocker = a and blocked = b) or (blocker = b and blocked = a));
+$$;
+grant execute on function public.wall_blocked(uuid, uuid) to authenticated;
+
+alter table public.wall_posts enable row level security;
+alter table public.wall_comments enable row level security;
+alter table public.wall_likes enable row level security;
+
+drop policy if exists wall_posts_read on public.wall_posts;
+create policy wall_posts_read on public.wall_posts for select to authenticated
+  using (user_id = auth.uid() or public.is_mod() or (not hidden and not public.wall_blocked(auth.uid(), user_id)));
+drop policy if exists wall_posts_ins on public.wall_posts;
+create policy wall_posts_ins on public.wall_posts for insert to authenticated
+  with check (user_id = auth.uid() and not hidden);
+drop policy if exists wall_posts_del on public.wall_posts;
+create policy wall_posts_del on public.wall_posts for delete to authenticated
+  using (user_id = auth.uid() or public.is_mod());
+drop policy if exists wall_posts_mod on public.wall_posts;
+create policy wall_posts_mod on public.wall_posts for update to authenticated
+  using (public.is_mod()) with check (public.is_mod());
+
+drop policy if exists wall_comments_read on public.wall_comments;
+create policy wall_comments_read on public.wall_comments for select to authenticated
+  using (user_id = auth.uid() or public.is_mod()
+    or (not hidden and not public.wall_blocked(auth.uid(), user_id)
+        and exists (select 1 from wall_posts w where w.id = post_id and not w.hidden and not public.wall_blocked(auth.uid(), w.user_id))));
+drop policy if exists wall_comments_ins on public.wall_comments;
+create policy wall_comments_ins on public.wall_comments for insert to authenticated
+  with check (user_id = auth.uid() and not hidden
+    and exists (select 1 from wall_posts w where w.id = post_id and not w.hidden and not public.wall_blocked(auth.uid(), w.user_id)));
+-- Man tar bort sina egna kommentarer. Den som äger väggen får ta bort kommentarer på sin vägg.
+drop policy if exists wall_comments_del on public.wall_comments;
+create policy wall_comments_del on public.wall_comments for delete to authenticated
+  using (user_id = auth.uid() or public.is_mod() or exists (select 1 from wall_posts w where w.id = post_id and w.user_id = auth.uid()));
+drop policy if exists wall_comments_mod on public.wall_comments;
+create policy wall_comments_mod on public.wall_comments for update to authenticated
+  using (public.is_mod()) with check (public.is_mod());
+
+drop policy if exists wall_likes_read on public.wall_likes;
+create policy wall_likes_read on public.wall_likes for select to authenticated using (true);
+drop policy if exists wall_likes_ins on public.wall_likes;
+create policy wall_likes_ins on public.wall_likes for insert to authenticated
+  with check (user_id = auth.uid() and exists (select 1 from wall_posts w where w.id = post_id and not w.hidden and not public.wall_blocked(auth.uid(), w.user_id)));
+drop policy if exists wall_likes_del on public.wall_likes;
+create policy wall_likes_del on public.wall_likes for delete to authenticated using (user_id = auth.uid());

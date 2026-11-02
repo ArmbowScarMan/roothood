@@ -1,0 +1,23 @@
+-- 056: Testare rapporterar fel och ger förslag direkt i appen. Moderatorer ser allt under Moderering > Feedback.
+create table if not exists public.feedback (
+  id bigint generated always as identity primary key,
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  kind text not null default 'bug' check (kind in ('bug', 'idea', 'other')),
+  body text not null check (char_length(body) between 3 and 4000),
+  photo_url text,
+  view text,
+  version text,
+  ua text,
+  status text not null default 'new' check (status in ('new', 'seen', 'fixed', 'wontfix')),
+  created_at timestamptz not null default now()
+);
+create index if not exists feedback_time on public.feedback (created_at desc);
+alter table public.feedback enable row level security;
+drop policy if exists feedback_ins on public.feedback;
+create policy feedback_ins on public.feedback for insert to authenticated with check (user_id = auth.uid() and status = 'new');
+drop policy if exists feedback_read on public.feedback;
+create policy feedback_read on public.feedback for select to authenticated using (user_id = auth.uid() or public.is_mod());
+drop policy if exists feedback_mod on public.feedback;
+create policy feedback_mod on public.feedback for update to authenticated using (public.is_mod()) with check (public.is_mod());
+drop policy if exists feedback_del on public.feedback;
+create policy feedback_del on public.feedback for delete to authenticated using (public.is_mod());

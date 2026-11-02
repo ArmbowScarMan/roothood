@@ -1,0 +1,58 @@
+-- 055: Statistik för moderatorer. Appen räknar hur ofta varje funktion öppnas, per användare och dag.
+-- Inget innehåll sparas, bara vilken funktion och hur många gånger.
+create table if not exists public.usage_daily (
+  user_id uuid not null references auth.users on delete cascade,
+  feature text not null check (char_length(feature) between 1 and 40),
+  day date not null default current_date,
+  uses int not null default 1,
+  primary key (user_id, feature, day)
+);
+create index if not exists usage_daily_day on public.usage_daily (day, feature);
+alter table public.usage_daily enable row level security;
+-- Ingen läser eller skriver direkt. Allt går via funktionerna nedan.
+
+create or replace function public.track_use(p_feature text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or p_feature !~ '^[a-z0-9_-]{1,40}$' then return; end if;
+  insert into usage_daily (user_id, feature, day, uses) values (auth.uid(), p_feature, current_date, 1)
+  on conflict (user_id, feature, day) do update set uses = least(usage_daily.uses + 1, 10000);
+end $$;
+grant execute on function public.track_use(text) to authenticated;
+
+-- Per funktion: antal personer och antal öppningar de senaste p_days dagarna
+create or replace function public.mod_usage(p_days int default 30)
+returns table (feature text, users int, uses int)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query select u.feature, count(distinct u.user_id)::int, sum(u.uses)::int
+    from usage_daily u where u.day > current_date - greatest(1, least(p_days, 365))
+    group by u.feature order by 3 desc;
+end $$;
+grant execute on function public.mod_usage(int) to authenticated;
+
+-- Per dag: antal aktiva personer (för grafen)
+create or replace function public.mod_usage_days(p_days int default 30)
+returns table (day date, users int, uses int)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query select u.day, count(distinct u.user_id)::int, sum(u.uses)::int
+    from usage_daily u where u.day > current_date - greatest(1, least(p_days, 365))
+    group by u.day order by u.day;
+end $$;
+grant execute on function public.mod_usage_days(int) to authenticated;
+
+-- Vilka som använder en funktion (eller alla funktioner om p_feature är tom), mest först
+create or replace function public.mod_usage_users(p_feature text default '', p_days int default 30)
+returns table (user_id uuid, display_name text, uses int, features int, last_day date)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query select u.user_id, p.display_name, sum(u.uses)::int, count(distinct u.feature)::int, max(u.day)
+    from usage_daily u left join profiles p on p.id = u.user_id
+    where u.day > current_date - greatest(1, least(p_days, 365)) and (coalesce(p_feature, '') = '' or u.feature = p_feature)
+    group by u.user_id, p.display_name order by 3 desc limit 100;
+end $$;
+grant execute on function public.mod_usage_users(text, int) to authenticated;

@@ -1,0 +1,84 @@
+-- 051: Moderatorer kan se alla användare och öppna hela profiler.
+-- mod_users: lista över alla användare (med sökning), för moderatorer. Ortsynlighet och andra val påverkar inte moderatorn.
+-- mod_user_card: hela profilen för en användare, samma form som user_card men utan dolda delar.
+-- Båda kräver att den som frågar är moderator eller admin.
+create or replace function public.mod_users(q text default '', p_limit int default 200, p_offset int default 0)
+returns table (id uuid, display_name text, city text, role text, avatar_url text, joined timestamptz, plants int, posts int, hidden_posts int)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query
+  select p.id, p.display_name, p.city, p.role, p.avatar_url,
+    nullif(to_jsonb(p) ->> 'created_at', '')::timestamptz,
+    (select count(*) from user_plants u where u.user_id = p.id)::int,
+    (select count(*) from posts x where x.user_id = p.id)::int,
+    (select count(*) from posts x where x.user_id = p.id and coalesce(x.hidden, false))::int
+  from profiles p
+  where coalesce(q, '') = '' or p.display_name ilike '%' || q || '%' or p.city ilike '%' || q || '%'
+  order by nullif(to_jsonb(p) ->> 'created_at', '')::timestamptz desc nulls last, p.display_name
+  limit least(greatest(p_limit, 1), 500) offset greatest(p_offset, 0);
+end $$;
+grant execute on function public.mod_users(text, int, int) to authenticated;
+
+create or replace function public.mod_user_count()
+returns int language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return (select count(*) from profiles)::int;
+end $$;
+grant execute on function public.mod_user_count() to authenticated;
+
+drop function if exists public.mod_user_card(uuid);
+create function public.mod_user_card(p_id uuid)
+returns table (id uuid, display_name text, city text, interests text[], plants int, posts int, followers int, following int, share boolean, plant_list jsonb,
+  friends int, friend_status text, friend_req bigint, pets jsonb, hidden text[], role text, joined timestamptz, hidden_posts int, avatar_url text)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query
+  select p.id, p.display_name, p.city, p.interests,
+    (select count(*) from user_plants u where u.user_id = p.id)::int,
+    (select count(*) from posts x where x.user_id = p.id and not coalesce(x.hidden, false))::int,
+    (select count(*) from follows f where f.followee = p.id)::int,
+    (select count(*) from follows f where f.follower = p.id)::int,
+    true,
+    (select jsonb_agg(jsonb_build_object('plant_id', up.plant_id, 'name', coalesce(pl.swedish_name, up.custom_name),
+        'photo', case when array_length(up.photos, 1) > 0 and up.photos[array_length(up.photos, 1)] like 'https://%' then up.photos[array_length(up.photos, 1)] end) order by up.created_at desc)
+      from user_plants up left join plants pl on pl.id = up.plant_id where up.user_id = p.id),
+    (select count(*) from friend_requests f where f.status = 'accepted' and p.id in (f.from_user, f.to_user))::int,
+    case when p.id = auth.uid() then 'self' else 'none' end,
+    null::bigint,
+    (select d.data -> 'list' from pets d where d.owner = p.id),
+    '{}'::text[],
+    p.role,
+    nullif(to_jsonb(p) ->> 'created_at', '')::timestamptz,
+    (select count(*) from posts x where x.user_id = p.id and coalesce(x.hidden, false))::int,
+    p.avatar_url
+  from profiles p where p.id = p_id;
+end $$;
+grant execute on function public.mod_user_card(uuid) to authenticated;
+
+-- Hem och inlägg, utan synlighetsval, för moderatorer. Dolda inlägg är markerade.
+create or replace function public.mod_user_home(p_id uuid)
+returns table (visible boolean, data jsonb)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query
+  select true,
+    (select case when jsonb_typeof(h.rooms) = 'array' then jsonb_build_object('rooms', h.rooms, 'plan', '{}'::jsonb)
+        else jsonb_build_object('rooms', coalesce(h.rooms -> 'rooms', '[]'::jsonb), 'plan', coalesce(h.rooms -> 'plan', '{}'::jsonb)) end
+      from homes h where h.user_id = p_id);
+end $$;
+grant execute on function public.mod_user_home(uuid) to authenticated;
+
+create or replace function public.mod_user_posts(p_id uuid)
+returns table (id bigint, kind text, title text, body text, category text, created_at timestamptz, hidden boolean)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query
+  select x.id::bigint, coalesce(x.kind, 'question')::text, x.title, x.body, x.category, x.created_at, coalesce(x.hidden, false)
+  from posts x where x.user_id = p_id order by x.created_at desc limit 50;
+end $$;
+grant execute on function public.mod_user_posts(uuid) to authenticated;
