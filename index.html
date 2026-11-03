@@ -1515,7 +1515,7 @@ body.hadv nav{display:none}
 .btn:not(.line):not([disabled]),.qbanner,.chips2 button.on{background-image:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,0) 60%);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 0 -2px 0 rgba(0,0,0,.14),0 2px 4px rgba(31,77,58,.16),0 8px 18px -4px rgba(31,77,58,.28)}
 .chips2 button:not(.on){box-shadow:var(--shp)}
 .btn.line{box-shadow:inset 0 0 0 2px var(--pri),var(--shp)}
-.btn,.qc,.qbanner,.chips2 button,.wxrow{transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
+.btn,.qc,.qbanner,.chips2 button,.wxrow{transition:transform var(--t-press) var(--ease-out),box-shadow var(--t-press) var(--ease-out),filter var(--t-press) var(--ease-out)}
 .btn:active,.qc:active,.qbanner:active,.chips2 button:active,.wxrow:active{transform:translateY(1px) scale(.985);filter:brightness(.97)}
 .btn:not(.line):not([disabled]):active,.qbanner:active{box-shadow:inset 0 2px 4px rgba(0,0,0,.18),0 1px 2px rgba(31,77,58,.16)}
 @media (prefers-reduced-motion:reduce){.btn,.qc,.qbanner,.chips2 button,.wxrow{transition:none}.btn:active,.qc:active,.qbanner:active,.chips2 button:active,.wxrow:active{transform:none}}
@@ -1628,6 +1628,92 @@ body.hadv nav{display:none}
 .modbar span{font-size:13.5px;color:var(--ink)}
 .modbar span:last-of-type{color:var(--mut);font-size:12.5px}
 .modbar .btn{margin-top:8px}
+
+/* ===== Rörelse (animate-skillen): gemensamma kurvor och tider ===== */
+:root{--ease-out:cubic-bezier(0.23,1,0.32,1);--ease-in-out:cubic-bezier(0.77,0,0.175,1);--ease-drawer:cubic-bezier(0.32,0.72,0,1);--t-press:160ms}
+/* Tryck: samma känsla på knappar och tryckbara rader som saknade det */
+.circ,.heart,.pillbtn,.wbtn,.seg2 button,.tab,.nrow,.viewall,.dbfb,.sortsel,nav button,.card{transition:transform var(--t-press) var(--ease-out)}
+.seg2 button:active,.tab:active,.nrow:active,.viewall:active,.dbfb:active,.sortsel:active,nav button:active{transform:scale(.97)}
+.card:has(.open:active){transform:scale(.98)}
+.btn:disabled:active,button:disabled:active{transform:none}
+/* Notisen glider in nerifrån och ut samma väg */
+.toast{transition:opacity 400ms ease,transform 400ms ease,display 400ms allow-discrete}
+.toast[hidden]{display:none;opacity:0;transform:translate(-50%,16px)}
+@starting-style{.toast:not([hidden]){opacity:0;transform:translate(-50%,16px)}}
+@media (prefers-reduced-motion:reduce){.circ,.heart,.pillbtn,.wbtn,.seg2 button,.tab,.nrow,.viewall,.dbfb,.sortsel,nav button,.card{transition:none}
+  .seg2 button:active,.tab:active,.nrow:active,.viewall:active,.dbfb:active,.sortsel:active,nav button:active,.card:has(.open:active){transform:none}
+  .toast[hidden],.toast:not([hidden]){transform:translateX(-50%)}}
+
+/* ===== Designvarianter (prototype-skillen). Bara för moderatorer, väljs i Inställningar. Påverkar bara utseendet. ===== */
+
+/* --- Lugn: luftig och minimal. Kanter i stället för skuggor, mindre rundningar, dämpade färger, nästan ingen rörelse. --- */
+html[data-ui="lugn"][data-ui]{--bg:#F5F6F3;--surf:#FFFFFF;--ink:#1B201C;--mut:#6A716B;--line:#E2E5E0;--pri:#2D5A43;--pri2:#4B7860;--onpri:#FFFFFF;--acc:#B0683F;--cop:#B0683F;--soft:#EDF1EA;--phb:#EEF0EC;--sh:0 0 0 1px var(--line);--pat:none;--t-press:120ms}
+html[data-ui="lugn"][data-ui]:not([data-theme="light"]){--bg:#111513;--surf:#181D1A;--ink:#E9ECE7;--mut:#9AA39B;--line:#29302B;--pri:#A5C9A0;--pri2:#86B086;--onpri:#111513;--acc:#D98E66;--cop:#D98E66;--soft:#1D2420;--phb:#1B211D;--sh:0 0 0 1px var(--line);--glow:transparent}
+html[data-ui="lugn"][data-ui] body{font-family:'Inter',system-ui,sans-serif;letter-spacing:-.005em}
+html[data-ui="lugn"][data-ui] h1,html[data-ui="lugn"][data-ui] h2,html[data-ui="lugn"][data-ui] h3,html[data-ui="lugn"][data-ui] .top h1{font-family:'Inter',system-ui,sans-serif;font-weight:650;letter-spacing:-.02em}
+html[data-ui="lugn"][data-ui] .sec h2{font-family:'Inter',system-ui,sans-serif;font-weight:600;letter-spacing:.04em;font-size:12px}
+html[data-ui="lugn"][data-ui] .btn{border-radius:10px;box-shadow:none;font-weight:600}
+html[data-ui="lugn"][data-ui] .btn.line{box-shadow:inset 0 0 0 1px var(--line);border:0;color:var(--ink)}
+html[data-ui="lugn"][data-ui] .chips2 button{border-radius:8px;box-shadow:inset 0 0 0 1px var(--line);font-weight:500}
+html[data-ui="lugn"][data-ui] .chips2 button.on{box-shadow:none}
+html[data-ui="lugn"][data-ui] .seg2{border-radius:10px;box-shadow:inset 0 0 0 1px var(--line);padding:3px}
+html[data-ui="lugn"][data-ui] .seg2 button{border-radius:8px;font-weight:500}
+html[data-ui="lugn"][data-ui] .setcard,html[data-ui="lugn"][data-ui] .nrow,html[data-ui="lugn"][data-ui] .idr,html[data-ui="lugn"][data-ui] .hmr,html[data-ui="lugn"][data-ui] .pt,html[data-ui="lugn"][data-ui] .sym{border-radius:12px;box-shadow:0 0 0 1px var(--line);background-image:none}
+html[data-ui="lugn"][data-ui] nav{border-radius:0;box-shadow:0 -1px 0 var(--line)}
+html[data-ui="lugn"][data-ui] .modal{border-radius:16px 16px 0 0}
+html[data-ui="lugn"][data-ui] .tab.on{border-bottom-width:2px}
+html[data-ui="lugn"][data-ui] .btn:active,html[data-ui="lugn"][data-ui] .chips2 button:active,html[data-ui="lugn"][data-ui] .seg2 button:active,html[data-ui="lugn"][data-ui] .nrow:active,html[data-ui="lugn"][data-ui] nav button:active{transform:scale(.99);filter:none}
+
+/* --- Redaktionell: som en trädgårdstidning. Krämvitt papper, serif-rubriker, mycket luft, hårfina linjer. --- */
+html[data-ui="red"][data-ui]{--bg:#F6EFE2;--surf:#FFFCF6;--ink:#231C14;--mut:#7B6D5C;--line:#E2D5BF;--pri:#24432F;--pri2:#3F6B4C;--onpri:#FFFCF6;--acc:#A9472E;--cop:#A9472E;--soft:#EEE6D4;--phb:#EFE6D6;--sh:0 1px 0 var(--line);--pat:none}
+html[data-ui="red"][data-ui]:not([data-theme="light"]){--bg:#15110C;--surf:#1D1812;--ink:#F1E7D6;--mut:#B0A28C;--line:#3A3024;--pri:#D5B47C;--pri2:#B8955E;--onpri:#15110C;--acc:#E0866A;--cop:#E0866A;--soft:#241E16;--phb:#221C15;--sh:0 1px 0 var(--line);--glow:transparent}
+html[data-ui="red"][data-ui] body{font-family:'Inter',system-ui,sans-serif}
+html[data-ui="red"][data-ui] h1,html[data-ui="red"][data-ui] h2,html[data-ui="red"][data-ui] h3,html[data-ui="red"][data-ui] .top h1,html[data-ui="red"][data-ui] .idr b,html[data-ui="red"][data-ui] .setcard>b{font-family:'Fraunces',Georgia,serif;font-weight:600;letter-spacing:-.01em}
+html[data-ui="red"][data-ui] h1{font-size:34px;line-height:1.1}
+html[data-ui="red"][data-ui] .top h1{font-size:22px}
+html[data-ui="red"][data-ui] .sec{padding:30px 22px 12px;border-bottom:1px solid var(--line);margin:0 18px 10px;padding-left:0;padding-right:0}
+html[data-ui="red"][data-ui] .sec h2{font-family:'Inter',system-ui,sans-serif;font-weight:700;letter-spacing:.16em;font-size:11px;color:var(--acc)}
+html[data-ui="red"][data-ui] .pad{padding-left:22px;padding-right:22px}
+html[data-ui="red"][data-ui] .btn{border-radius:4px;box-shadow:none;text-transform:uppercase;letter-spacing:.08em;font-size:13px;font-weight:700;padding:14px 22px}
+html[data-ui="red"][data-ui] .btn.line{box-shadow:inset 0 0 0 1px var(--ink);color:var(--ink);border:0}
+html[data-ui="red"][data-ui] .chips2 button{border-radius:2px;box-shadow:none;background:transparent;border-bottom:1px solid var(--line);font-weight:500}
+html[data-ui="red"][data-ui] .chips2 button.on{background:transparent;color:var(--ink);border-bottom:2px solid var(--acc);font-weight:700}
+html[data-ui="red"][data-ui] .seg2{border-radius:0;box-shadow:none;background:transparent;border-bottom:1px solid var(--line);padding:0}
+html[data-ui="red"][data-ui] .seg2 button{border-radius:0;font-weight:500}
+html[data-ui="red"][data-ui] .seg2 button.on{background:transparent;color:var(--ink);box-shadow:inset 0 -2px 0 var(--acc);font-weight:700}
+html[data-ui="red"][data-ui] .setcard,html[data-ui="red"][data-ui] .nrow,html[data-ui="red"][data-ui] .idr,html[data-ui="red"][data-ui] .hmr,html[data-ui="red"][data-ui] .pt,html[data-ui="red"][data-ui] .sym{border-radius:3px;box-shadow:0 0 0 1px var(--line);background-image:none}
+html[data-ui="red"][data-ui] .tab{font-family:'Fraunces',Georgia,serif;font-size:17px}
+html[data-ui="red"][data-ui] .tab.on{border-color:var(--acc)}
+html[data-ui="red"][data-ui] nav{border-radius:0;box-shadow:0 -1px 0 var(--line)}
+html[data-ui="red"][data-ui] .modal{border-radius:6px 6px 0 0}
+html[data-ui="red"][data-ui] .btn:active,html[data-ui="red"][data-ui] .chips2 button:active,html[data-ui="red"][data-ui] .seg2 button:active,html[data-ui="red"][data-ui] .nrow:active,html[data-ui="red"][data-ui] nav button:active{transform:none;opacity:.7;filter:none}
+html[data-ui="red"][data-ui] .btn,html[data-ui="red"][data-ui] .chips2 button,html[data-ui="red"][data-ui] .seg2 button,html[data-ui="red"][data-ui] .nrow,html[data-ui="red"][data-ui] nav button{transition:opacity var(--t-press) var(--ease-out)}
+
+/* --- Lekfull: färgstark och knubbig. Stora rundningar, tjocka knappar med tryckkant, tydliga färger. --- */
+html[data-ui="lek"][data-ui]{--bg:#FFF6EA;--surf:#FFFFFF;--ink:#1F2A20;--mut:#6E6A5E;--line:#F0E2CC;--pri:#239A57;--pri2:#1C7E47;--onpri:#FFFFFF;--acc:#FF6B4A;--cop:#FF6B4A;--soft:#E3F6E8;--sun:#FFB703;--phb:#FFEFD9;--sh:0 3px 0 rgba(31,42,32,.10);--pat:none;--t-press:120ms}
+html[data-ui="lek"][data-ui]:not([data-theme="light"]){--bg:#13211A;--surf:#1C3026;--ink:#F6F1E6;--mut:#AFC0AE;--line:#2A4535;--pri:#5AD68C;--pri2:#43B873;--onpri:#0F1C15;--acc:#FF8A6B;--cop:#FF8A6B;--soft:#21392C;--phb:#1F3428;--sh:0 3px 0 rgba(0,0,0,.35);--glow:transparent}
+html[data-ui="lek"][data-ui] body{font-family:'Nunito',system-ui,sans-serif;font-weight:600}
+html[data-ui="lek"][data-ui] h1,html[data-ui="lek"][data-ui] h2,html[data-ui="lek"][data-ui] h3,html[data-ui="lek"][data-ui] .top h1{font-family:'Nunito',system-ui,sans-serif;font-weight:900;letter-spacing:-.01em}
+html[data-ui="lek"][data-ui] .sec h2{font-family:'Nunito',system-ui,sans-serif;font-weight:900;letter-spacing:.02em;text-transform:none;font-size:17px;color:var(--ink)}
+html[data-ui="lek"][data-ui] .btn{border-radius:18px;box-shadow:0 4px 0 var(--pri2);font-weight:900;padding:13px 22px}
+html[data-ui="lek"][data-ui] .btn.line{box-shadow:inset 0 0 0 2.5px var(--pri),0 4px 0 var(--line);border:0}
+html[data-ui="lek"][data-ui] .chips2 button{border-radius:16px;box-shadow:0 3px 0 var(--line);font-weight:800}
+html[data-ui="lek"][data-ui] .chips2 button.on{box-shadow:0 3px 0 var(--pri2)}
+html[data-ui="lek"][data-ui] .seg2{border-radius:20px;padding:5px;box-shadow:0 3px 0 var(--line)}
+html[data-ui="lek"][data-ui] .seg2 button{border-radius:16px;font-weight:800}
+html[data-ui="lek"][data-ui] .setcard,html[data-ui="lek"][data-ui] .nrow,html[data-ui="lek"][data-ui] .idr,html[data-ui="lek"][data-ui] .hmr,html[data-ui="lek"][data-ui] .pt,html[data-ui="lek"][data-ui] .sym{border-radius:26px;box-shadow:0 4px 0 var(--line);background-image:none}
+html[data-ui="lek"][data-ui] .tab{font-weight:800}
+html[data-ui="lek"][data-ui] .tab.on{border-bottom-width:4px;border-color:var(--pri);border-radius:2px}
+html[data-ui="lek"][data-ui] nav{border-radius:28px 28px 0 0;box-shadow:0 -4px 0 var(--line)}
+html[data-ui="lek"][data-ui] nav button.on{color:var(--pri)}
+html[data-ui="lek"][data-ui] .modal{border-radius:34px 34px 0 0}
+html[data-ui="lek"][data-ui] .btn:active,html[data-ui="lek"][data-ui] .chips2 button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--pri2);filter:none}
+html[data-ui="lek"][data-ui] .setcard:active,html[data-ui="lek"][data-ui] .nrow:active{transform:translateY(2px)}
+html[data-ui="lek"][data-ui] .btn,html[data-ui="lek"][data-ui] .chips2 button,html[data-ui="lek"][data-ui] .nrow{transition:transform var(--t-press) var(--ease-out),box-shadow var(--t-press) var(--ease-out)}
+html[data-ui="lugn"][data-ui] #app,html[data-ui="red"][data-ui] #app{background:var(--bg)}
+html[data-ui="lek"][data-ui] #app{background:radial-gradient(90% 40% at 100% 0%,rgba(255,183,3,.16),transparent 60%),radial-gradient(80% 35% at 0% 0%,rgba(35,154,87,.12),transparent 60%),var(--bg)}
+html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gradient(90% 40% at 100% 0%,rgba(255,183,3,.10),transparent 60%),radial-gradient(80% 35% at 0% 0%,rgba(90,214,140,.10),transparent 60%),var(--bg)}
+@media (prefers-reduced-motion:reduce){html[data-ui][data-ui] .btn:active,html[data-ui][data-ui] .chips2 button:active,html[data-ui][data-ui] .nrow:active,html[data-ui][data-ui] .setcard:active{transform:none}}
 </style></head><body>
 <div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas inte förrän nätet är tillbaka.</div>
 <div id="app"><div id="main"></div>
@@ -2064,7 +2150,18 @@ async function run(fn, ok) {
 function go(t) { if (window.dropKb) dropKb(); stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'mine' && S.user && !S.push) refreshPush(); if (t === 'me') loadMe(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
 function openPlant(id, myId) { S.myCur = myId || null; S.sel = id; S.logForm = null; S.logAll = null; render(); $('#main').scrollTop = 0; }
 function openModal(m, prefill, latin, ap) { S.modal = m; if (m === 'add' || m === 'addp') S.addRemind = undefined; S.logForm = null; S.logAll = null; S.msg = ''; S.prefill = prefill || ''; S.prefillLatin = latin || ''; if (m === 'add' || m === 'addp') S.ap = ap || null; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
-function closeModal() { S.modal = null; S.msg = ''; S.limitHit = false; render(); }
+const RM = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+let sheetOpen = null;
+function sheetAnim() { if (!S.modal) { sheetOpen = null; return; } if (sheetOpen === S.modal) return; sheetOpen = S.modal; const o = $('#ov .ov'), m = $('#ov .modal'); if (!o || !m || !o.animate) return;
+  o.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' });
+  m.animate(RM() ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { duration: RM() ? 200 : 380, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' }); }
+// Stänger direkt som förut. En kopia av panelen glider ut och tas sedan bort, så att inget annat behöver vänta.
+function closeModal() { const o = $('#ov .ov');
+  if (o && o.animate) { const g = o.cloneNode(true); g.removeAttribute('onclick'); g.style.pointerEvents = 'none'; g.setAttribute('aria-hidden', 'true'); $('#ov').after(g); const gm = g.querySelector('.modal');
+    g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' });
+    const a = gm ? gm.animate(RM() ? [{ opacity: 1 }, { opacity: 0 }] : [{ transform: 'translateY(0)' }, { transform: 'translateY(100%)' }], { duration: 220, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' }) : null;
+    const rm = () => g.remove(); if (a) a.onfinish = rm; setTimeout(rm, 500); }
+  S.modal = null; S.msg = ''; S.limitHit = false; sheetOpen = null; render(); }
 function addPlant(id, quick) {
   if (!S.user) return openModal('login');
   if (overLimit()) { S.limitHit = true; return openModal('pro'); }
@@ -2501,7 +2598,7 @@ function roomHints(p, r, win, pd) {
   if (r.temp === 'Svalt' && p.category !== 'Kaktus' && p.light_level >= 2 && /tropi|monstera|filodendron|philodendron|alokasia|alocasia|calathea/i.test((p.swedish_name || '') + (p.latin_name || ''))) h.push(['warn', `${nm} kommer från tropikerna och vill inte ha det kallare än cirka 16 °C.`]);
   return h;
 }
-async function loadRole() { if (!S.user) return; try { S.role = await api.myRole(); S.blocks = await api.myBlocks(); if (isMod()) S.modOpen = await api.modOpen(); } catch (e) { console.warn('Roothood:', e); } try { S.pfol = await api.myPlantFollows(); } catch (e) { S.pfol = S.pfol || []; } }
+async function loadRole() { if (!S.user) return; try { S.role = await api.myRole(); applyUI(); S.blocks = await api.myBlocks(); if (isMod()) S.modOpen = await api.modOpen(); } catch (e) { console.warn('Roothood:', e); } try { S.pfol = await api.myPlantFollows(); } catch (e) { S.pfol = S.pfol || []; } }
 async function loadHome() { if (!S.user) return; loadFavs(); loadWishes(); loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
 // Ett tryck från Hem: rakt in i rabattplaneringen i ritningen
 function openBedPlan() {
@@ -5982,7 +6079,7 @@ function iconize(root) {
 function rowCenter() { document.querySelectorAll('.tabs, .scrx, .chips2.qfilt').forEach(p => { const ov = p.scrollWidth > p.clientWidth + 2; p.classList.toggle('ovf', ov); if (!ov || p.dataset.c === (p.querySelector('.on') || {}).textContent) return; const on = p.querySelector('.on'); if (!on) return; p.dataset.c = on.textContent; const a = p.getBoundingClientRect(), b = on.getBoundingClientRect(); p.scrollLeft += (b.left + b.width / 2) - (a.left + a.width / 2); });
   document.querySelectorAll('.tabs.ovf, .scrx.ovf, .chips2.qfilt.ovf').forEach(p => { if (p.dataset.sl) return; p.dataset.sl = 1; p.addEventListener('scroll', () => p.classList.toggle('end', p.scrollLeft + p.clientWidth >= p.scrollWidth - 4), { passive: true }); }); }
 function render() {
-  requestAnimationFrame(rowCenter);
+  requestAnimationFrame(rowCenter); requestAnimationFrame(uiIcons);
   HV = otherHome();
   { const fb = $('#fab'); if (fb) fb.hidden = true; }
   { const bb = $('#bugb'); if (bb) bb.hidden = !S.user || S.tool === 'chat' || !!S.modal; }
@@ -6006,7 +6103,7 @@ function render() {
   render.vk = vkey;
   $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
-  iconize($('#ov'));
+  iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
   $('#ov').insertAdjacentHTML('beforeend', instBanner());
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); idCtlInit(); }
@@ -8927,6 +9024,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.271', '3 nov 19:00', ['Mjukare rörelser: knappar, flikar, rader och menyn längst ner trycks ner lite när du trycker, panelerna glider upp och ner och notiser glider in. Om telefonen är inställd på mindre rörelse tonas de bara in', 'Moderatorer kan testa tre designvarianter under Inställningar: Lugn, Redaktionell och Lekfull'] ],
   ['Beta 0.270', '3 nov 16:00', ['3D: hem från mallen får en riktig planlösning i två rader med hallen i mitten, och fönster mot ytterväggen', '3D: rum med valt väderstreck men utan ritat fönster får ett fönster i 3D', '3D: tydligare sol och skuggor, gräs som ser ut som gräs, grus längs husväggarna och väggar med puts och mörkare krön', 'Moderering: flikarna ligger på en rad som går att skrolla, och perioderna i statistiken är en knapprad', 'Växtbiblioteket: sortering i en liten väljare i stället för sju knappar', 'Filterrader går att skrolla i sidled och tonar ut i kanten när det finns mer', 'Statistiken räknar inte admin'] ],
   ['Beta 0.269', '3 nov 13:40', ['Identifiera: ta upp till 5 bilder av blad, blomma och hela växten, så blir svaret säkrare', 'Identifiera: varje förslag märks Säker, Trolig eller Osäker, och vid osäkra svar ber appen om en bild till', 'Identifiera: jämförelsebilder från Pl@ntNet och fem förslag i stället för tre', 'Identifiera: hittar växten i appen även när det latinska namnet har bytts, till exempel Calathea och Sansevieria', 'Identifiera: Vilken sort? Appen mäter vitt, gult, rosa och silver i bladen och visar artens sorter som liknar bilden mest', 'Varningsrutor går att läsa i mörkt läge'] ],
   ['Beta 0.268', '3 nov 11:05', ['Notiser: varje notis har egen markering Ny eller Läst. Tryck på en notis för att markera den som läst, och Markera alla som lästa gör det för alla. Öppna fliken markerar inte längre allt. Olästa meddelanden visas i Notiser med antal och alla samtal, och Meddelanden visar antal olästa överst', 'Snabbfrågan: frågor om när man ska så ger såtider ur Såkalendern för din zon', 'Snabbfrågan: frågor om varför en växt inte blommar ger vanliga orsaker och särskilda råd för julkaktus, orkidé, amaryllis och pelargon', 'Engelska: notiser och snabbfrågans svar översätts, och text som börjar med För blir inte längre fel', '44 nya inomhusväxter, bland annat rumslind, rumsgran, kamelia och doftranka. Nu finns 1000 krukväxter, kaktusar och orkidéer'] ],
@@ -10106,15 +10204,26 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.270';
+const APP_VERSION = 'Beta 0.271';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
+const UI_VARS = [['', 'Nuvarande'], ['lugn', 'Lugn'], ['red', 'Redaktionell'], ['lek', 'Lekfull']];
+const UI_FONT = { lugn: 'Inter:wght@400;500;600;650;700', red: 'Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700', lek: 'Nunito:wght@600;700;800;900' };
+const UI_ICON = { lugn: 'light', red: 'thin', lek: 'fill' };
+function uiLink(id, href) { if (document.getElementById(id)) return; const l = document.createElement('link'); l.id = id; l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l); }
+function applyUI() { const v = isMod() ? store.get('ui', '') : ''; const d = document.documentElement;
+  if (v && UI_FONT[v]) { d.dataset.ui = v; delete d.dataset.pal; uiLink('uif-' + v, 'https://fonts.googleapis.com/css2?family=' + UI_FONT[v] + '&display=swap'); uiLink('uii-' + UI_ICON[v], 'https://unpkg.com/@phosphor-icons/web@2.1.1/src/' + UI_ICON[v] + '/style.css'); }
+  else delete d.dataset.ui; uiIcons(); }
+// Ikonerna får variantens vikt (tunn, lätt eller fylld). Nuvarande utseende använder vanliga ikoner.
+function uiIcons() { const w = UI_ICON[document.documentElement.dataset.ui || ''], all = ['ph-light', 'ph-thin', 'ph-fill'];
+  document.querySelectorAll('i.ph').forEach(i => { all.forEach(c => { if (c !== 'ph-' + w) i.classList.remove(c); }); if (w) i.classList.add('ph-' + w); }); }
 function applyPrefs() {
   const th = store.get('theme', 'dark'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
   const pal = store.get('pal', ''); if (pal) document.documentElement.dataset.pal = pal; else delete document.documentElement.dataset.pal;
   const app = $('#app'); if (app) app.style.zoom = ts;
+  applyUI();
 }
 function applyInterests(list) {
   const ints = list || [];
@@ -10256,6 +10365,7 @@ function settingsV() {
     <label class="fl" style="margin-top:14px">Färgtema</label>
     <div class="palrow">${[['', 'Roothood', '#1F4D3A']].concat(PALS).map(([k, n, c]) => `<button class="pal ${store.get('pal', '') === k ? 'on' : ''}" aria-pressed="${store.get('pal', '') === k}" onclick="setPref('pal','${k}')"><i style="background:${c}"></i><span>${n}</span></button>`).join('')}</div>
     <label class="fl" style="margin-top:14px">Textstorlek</label>${seg3([[1, 'Normal'], [1.1, 'Större'], [1.2, 'Störst']], ts, "(v=>setPref('textsize',v))")}
+    ${isMod() ? `<label class="fl" style="margin-top:14px">Designvariant (test)</label><div class="chips2 sm">${UI_VARS.map(([k, n]) => `<button class="${store.get('ui', '') === k ? 'on' : ''}" aria-pressed="${store.get('ui', '') === k}" onclick="setPref('ui','${k}')">${n}</button>`).join('')}</div><p class="mut" style="font-size:12.5px;margin:6px 0 0">Bara moderatorer ser det här. Det ändrar bara utseendet på den här telefonen.</p>` : ''}
   </div></div>
   <div class="sec"><h2>Trädgård</h2></div><div class="pad"><div class="setcard">
     <label class="fl" for="szone">Min odlingszon</label>
