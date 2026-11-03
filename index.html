@@ -7714,29 +7714,48 @@ async function heart(id) {
 function openAsk(pre) { if (needLogin()) return; stopLight && stopLight(); S.sel = null; S.modal = null; S.tool = 'ask'; S.ask = S.ask || { list: [] }; if (pre) S.ask.q = pre; render(); $('#main').scrollTop = 0; setTimeout(() => { const t = $('#askq'); if (t && !S.ask.list.length) t.focus(); }, 60); }
 async function askPhoto(f) { if (!f) return; try { S.ask.img = await fileShrink(f, 1024, true); } catch (e) { S.ask.err = 'Fotot gick inte att läsa.'; } keepMain(); }
 // Snabbfrågan är gratis: den svarar med appens egen kunskap (Växtdoktorn, Växtbiblioteket och Lär dig). Ingen betald AI.
-const ASK_SYM = { yellowlow: /nedersta.*gul|gul.*nedersta|nedre.*gul/, yellow: /gul/, brownTips: /brun\w* (spets|kant)|(spets|kant)\w* .*brun|torra (spetsar|kanter)/, brownSpots: /brun\w* fläck/, blackSpots: /svart\w* fläck/, stipple: /prick/, silver: /silv/, whitePowder: /mjöldagg|vitt pulver/, sticky: /klibb/, sooty: /sot/, holes: /hål|gnag/, curl: /krull|missform/, droop: /häng|slok|slapp/, drop: /tappar|faller av|ramlar/, pale: /blek/, scorch: /bränd|brännskad/, leggy: /gängl|ranglig|lång.*tunn|sträcker/, webs: /spindel|väv/, whiteFluff: /ullöss|ludd|bomull/, bumps: /sköldl|knöl/, bugs: /bladlöss|insekt|kryp/, whiteFlies: /vita flugor|mjöllöss/, gnats: /sorgmyg|flugor|knott/, larvae: /mask|larv/, jumpers: /hoppstjärt|hoppar/, greyMold: /grå ?mögel|grå ludd/, mushyStem: /mjuk\w* stam|ruttn\w* stam/, rootRot: /rotröta|rötter.*(rutt|mjuk|lukt)|ruttn/, soilMold: /mögel/, saltCrust: /skorpa|salt/, dryHard: /torr|torkat/, wetLong: /blöt|för mycket vatten|övervattn/ };
+// Vanliga namn och handelsnamn som inte är växtens svenska namn i databasen
+const ASK_ALIAS = [[/(^|[^a-zåäöé])(pothos)/, 'Gullranka'], [/(^|[^a-zåäöé])(sansevieria|svärmorstunga|ormväxt|snake plant)/, 'Svärmors tunga'], [/(^|[^a-zåäöé])(zz|zamioculcas|zamie)/, 'ZZ-planta'], [/(^|[^a-zåäöé])(fikus|ficus|benjamin)/, 'Benjaminfikus'], [/(^|[^a-zåäöé])(gummiträd)/, 'Gummifikus'], [/(^|[^a-zåäöé])(orkid|orchid)/, 'Fjärilsorkidé'], [/(^|[^a-zåäöé])(strelitzia|paradisfågel)/, 'Paradisfågelblomma'], [/(^|[^a-zåäöé])(alocasia)/, 'Elefantöra'], [/(^|[^a-zåäöé])(calathea|kalatea)/, 'Kalatea'], [/(^|[^a-zåäöé])(philodendron|filodendron)/, 'Klätterfilodendron'], [/(^|[^a-zåäöé])(ampellilja|klorofytum|chlorophytum|spider plant)/, 'Grönlilja'], [/(^|[^a-zåäöé])(fredslilja|spathiphyllum|peace lily)/, 'Fredskalla'], [/(^|[^a-zåäöé])(scindapsus)/, 'Silverranka'], [/(^|[^a-zåäöé])(hoya)/, 'Vaxblomma'], [/(^|[^a-zåäöé])(areca)/, 'Guldpalm'], [/(^|[^a-zåäöé])(kentia)/, 'Kentiapalm'], [/(^|[^a-zåäöé])(dracaena|dracena)/, 'Drakträd'], [/(^|[^a-zåäöé])(tradescantia)/, 'Vandrande jude'], [/(^|[^a-zåäöé])(crassula|jadeväxt|jade plant)/, 'Pengaträd'], [/(^|[^a-zåäöé])(schefflera)/, 'Paraplyaralia'], [/(^|[^a-zåäöé])(anthurium)/, 'Flamingoblomma']];
+const ASK_SYM = { yellowlow: /nedersta.*gul|gul.*nedersta|nedre.*gul/, yellow: /gul/, brownTips: /brun\w* (spets|kant)|(spets|kant)\w* .*brun|torra (spetsar|kanter)/, brownSpots: /brun\w* fläck/, blackSpots: /svart\w* (fläck|blad)/, stipple: /prick/, silver: /silv/, whitePowder: /mjöldagg|vitt pulver/, sticky: /klibb/, sooty: /sot/, holes: /hål|gnag/, curl: /krull|missform/, droop: /häng|slok|slapp|vissn/, drop: /tappar|faller av|ramlar/, pale: /blek/, scorch: /bränd|brännskad/, leggy: /gängl|ranglig|lång.*tunn|sträcker/, webs: /spindel|väv/, whiteFluff: /ullöss|ludd|bomull/, bumps: /sköldl|knöl/, bugs: /bladlöss|insekt|kryp/, whiteFlies: /vita flugor|mjöllöss/, gnats: /sorgmyg|flugor|knott/, larvae: /mask|larv/, jumpers: /hoppstjärt|hoppar/, greyMold: /grå ?mögel|grå ludd/, mushyStem: /mjuk\w* stam|ruttn\w* stam/, rootRot: /rotröta|rötter.*(rutt|mjuk|lukt)|ruttn/, soilMold: /mögel/, saltCrust: /skorpa|salt/, dryHard: /torr|torkat/, wetLong: /blöt|för mycket vatten|övervattn/ };
 const ASK_TOP = [['hydro', /leca|pon\b|hydro|semi|i vatten/], ['naring', /gödsl|näring|npk|gödning/], ['ljus', /ljus|lampa|lux|fönster|mörk/], ['jord', /jord|omplant|kruk|substrat|bark|perlit/]];
 function askLocal(q, mine) { const t = ' ' + (q || '').toLowerCase() + ' ', out = [];
   // Växten: din egen eller en i Växtbiblioteket som nämns i frågan
   const cand = (mine ? [mine] : []).concat(S.mine.filter(m => { const n = String(m.name || '').toLowerCase(); return n.length >= 4 && t.includes(n); }));
-  let p = cand.length ? plantOf(cand[0]) : null;
-  if (!p) { let best = null; S.plants.forEach(x => { [x.swedish_name, (x.latin_name || '').replace(/'.*$/, '').trim()].forEach(n => { n = String(n || '').toLowerCase(); if (n.length >= 4 && t.includes(n) && (!best || n.length > best[1])) best = [x, n.length]; }); }); if (best) p = best[0]; }
+  let p = cand.length ? plantOf(cand[0]) : null, pn = cand.length && !mine ? String(cand[0].name || '').toLowerCase() : '';
+  if (!p) { let best = null; S.plants.forEach(x => { [x.swedish_name, (x.latin_name || '').replace(/'.*$/, '').trim()].forEach(n => { n = String(n || '').toLowerCase(); if (n.length >= 4 && t.includes(n) && (!best || n.length > best[1])) best = [x, n.length, n]; }); }); if (best) { p = best[0]; pn = best[2]; } }
+  if (!p) { const al = ASK_ALIAS.find(([re]) => re.test(t)); if (al) { p = S.plants.find(x => x.swedish_name === al[1]) || null; if (p) pn = t.match(al[0])[2]; } }
   // Symptom → troliga orsaker från Växtdoktorn
-  const sy = Object.keys(ASK_SYM).filter(k => SYM_M[k] && ASK_SYM[k].test(t)), sc = CAUSE.map(c => [c, sy.reduce((a, k) => a + ((c.w || {})[k] || 0), 0)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 2);
-  if (sc.length) { out.push('**Troliga orsaker:** ' + sc.map(x => x[0].n).join(' eller ') + '.'); const c = sc[0][0]; out.push(c.d); out.push((c.a || []).slice(0, 3).map(x => '• ' + x).join('\n')); if (sc[1]) out.push('Om det inte stämmer: ' + sc[1][0].n.toLowerCase() + '. ' + (sc[1][0].a || [''])[0]); }
+  const tS = pn ? t.split(pn).join(' ') : t, sy = Object.keys(ASK_SYM).filter(k => SYM_M[k] && ASK_SYM[k].test(tS)), sy2 = /brun/.test(tS) && !sy.some(k => /^brown/.test(k)) ? sy.concat(['brownTips', 'brownSpots'].filter(k => SYM_M[k])) : sy, sc = CAUSE.map(c => [c, sy2.reduce((a, k) => a + ((c.w || {})[k] || 0), 0)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 2);
+  // Skadedjur eller sjukdom som nämns vid namn: visa den direkt
+  const nm = CAUSE.filter(c => /^(Spinnkvalster|Trips|Ullöss|Sköldlöss|Bladlöss|Vita flygare|Sorgmyggor|Hoppstjärtar|Mjöldagg|Gråmögel|Sotdagg|Bladfläcksjuka|Rotröta)/.test(c.n) && (w => tS.includes(w.length > 6 ? w.slice(0, -2) : w))(c.n.toLowerCase().split(' ')[0]));
+  if (nm.length) { const c = nm[0]; out.push('**' + c.n + '**'); out.push(c.d); out.push((c.a || []).slice(0, 4).map(x => '• ' + x).join('\n')); }
+  else if (sc.length) { out.push('**Troliga orsaker:** ' + sc.map(x => x[0].n).join(' eller ') + '.'); const c = sc[0][0]; out.push(c.d); out.push((c.a || []).slice(0, 3).map(x => '• ' + x).join('\n')); if (sc[1]) out.push('Om det inte stämmer: ' + sc[1][0].n.toLowerCase() + '. ' + (sc[1][0].a || [''])[0]); }
   if (p) out.push(`**${p.swedish_name}** (${(p.latin_name || '').replace(/'.*$/, '')})\n• Ljus: ${p.light_text || LIGHT[(p.light_level || 2) - 1]}\n• Vatten: ${p.water_text || ''}${p.soil ? '\n• Jord: ' + p.soil : ''}${p.common_problems ? '\n• Vanliga problem: ' + p.common_problems : ''}${p.toxicity_text ? '\n• Djur: ' + p.toxicity_text : ''}${p.tips ? '\n• Tips: ' + p.tips : ''}`);
   // Fönsterfrågor: ett besked för just växten i stället för en allmän lista över väderstreck
   let won = false;
-  if (p && /fönster|väderstreck|norr|söder|öster|väster|vilken sida/.test(t)) {
+  if (p && /fönster|väderstreck|norr|söder|öster|väster|vilken sida|ljus|mörk|\bsol\b|skugg/.test(t)) {
     const L = p.light_level || 2;
     const rec = L >= 3 ? 'Söderfönster är bäst. Västerfönster går också bra om den får sol på eftermiddagen.' : L === 2 ? 'Öster- eller västerfönster passar bäst, de ger mild sol. Söderfönster går bra om du skuggar mitt på dagen.' : 'Norrfönster eller ett ställe längre in i rummet. Söderfönster kan bli för starkt.';
-    out.push(`**Fönster för ${p.swedish_name}:** ${rec}`); won = true;
+    out.unshift(`**Ljus för ${p.swedish_name}:** ${p.light_text ? p.light_text.replace(/[.\s]+$/, '') + '. ' : ''}${rec}`); won = true;
+  }
+  // Kaktusar och suckulenter som grupp, när ingen särskild art nämns
+  if (!p && /kaktus|suckulent/.test(t)) { out.push('**Kaktusar och suckulenter**\n• Ljus: så mycket som möjligt, gärna söderfönster.\n• Vatten: vattna ordentligt och låt jorden torka helt innan nästa gång. På vintern räcker en gång i månaden eller mindre.\n• Jord: kaktusjord med sand eller grus.\n• Vanligaste felet: för mycket vatten, som ger mjuka, ruttna stammar.'); won = true; }
+  // Omplantering: när och hur, med rätt jord om växten är känd
+  if (/planter\w*( [a-zåäö]+){0,2} om\b|omplant|byta kruka|byt kruka|ny kruka|större kruka/.test(t)) {
+    out.unshift('**Plantera om**\nBästa tiden är på våren, mars till maj, när växten börjar växa igen.\n• Byt kruka när rötterna växer ut genom hålen i botten, eller när jorden torkar ut mycket snabbt.\n• De flesta krukväxter behöver ny kruka vartannat år. Långsamma växter som kaktusar klarar 3–4 år.\n• Välj en kruka som är 2–4 cm bredare än den gamla, med hål i botten.\n• Vattna dagen före, så lossnar rotklumpen lättare.\n• Vänta med gödning i 4–6 veckor efteråt.' + (p && p.soil ? '\n• Jord för ' + p.swedish_name + ': ' + p.soil : ''));
+    won = true;
   }
   // Ämne från Lär dig
   const top = ASK_TOP.find(([, re]) => re.test(t));
   if (top && out.length < 3 && !won) { const L = LEARN[top[0]], words = t.split(/[^a-zåäö]+/).filter(w => w.length >= 4 && !/^(mycket|behöver|växt|växten|växter|vilken|vilket|varför|hur|ska|kan|man|min|mina|mitt|jag|vattnar|vattna)$/.test(w)).map(w => w.slice(0, 4)); const card = L[3].map(c => [c, words.reduce((n, w) => n + 4 * (c[1].toLowerCase().split(w).length - 1) + Math.min(2, (c[2] + ' ' + c[3].join(' ')).toLowerCase().split(w).length - 1), 0)]).sort((a, b) => b[1] - a[1])[0][0]; out.push(`**${card[1]}**\n${card[2]}\n${card[3].map(x => '• ' + x).join('\n')}`); }
+  // Giftfrågor om husdjur: ett tydligt besked först
+  if (/giftig|\bgift\b|farlig|katt|hund|husdjur|kanin|marsvin|valp/.test(t)) {
+    const dot = x => x && !/[.!?]$/.test(x.trim()) ? x.trim() + '.' : x;
+    if (p) out.unshift(p.pet_safe ? `**Är ${p.swedish_name} giftig för djur?** Nej. ${dot(p.toxicity_text) || 'Den räknas som ofarlig för katter och hundar.'}` : `**Är ${p.swedish_name} giftig för djur?** Ja. ${dot(p.toxicity_text) || 'Den är giftig för katter och hundar.'} Ställ den utom räckhåll, och kontakta veterinär om djuret har ätit av den.`);
+    else if (!out.length) return { a: 'Jag vet inte vilken växt du menar. Skriv växtens svenska namn, till exempel "Är gullranka giftig för katter?". I Växtbiblioteket kan du också filtrera på Säker för husdjur.', miss: true };
+  }
   if (!out.length) return { a: 'Jag hittade inget säkert svar i appens kunskap. Skriv gärna vilken växt det gäller och vad du ser, till exempel "gula blad på min monstera", eller fråga andra odlare i Gemenskap.', miss: true };
-  return { a: out.join('\n\n'), plant: p, cause: sc.length ? sc[0][0] : null }; }
+  return { a: out.join('\n\n'), plant: p, cause: nm[0] || (sc.length ? sc[0][0] : null) }; }
 async function askSend() {
   const A = S.ask, tx = $('#askq'), q = ((tx && tx.value) || '').trim(); A.q = q; A.err = null;
   if (!q) { A.err = 'Skriv en fråga.'; return keepMain(); }
@@ -8823,6 +8842,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.262', '3 nov 10:00', ['Snabbfråga: tydligt svar på om en växt är giftig för katter och hundar', 'Snabbfråga: känner igen vanliga namn som pothos, sansevieria, zz och fikus', 'Snabbfråga: skadedjur som spinnkvalster, trips och bladlöss ger svar direkt', 'Snabbfråga: bättre svar om bruna blad, omplantering, ljus och kaktusar'] ],
   ['Beta 0.261', '3 nov 06:30', ['Väggar: markera en vägg för att dra i dess ändar, eller tryck på + mitt på väggen för att dela den och forma den', 'Växtbiblioteket: sortering visas som knappar under sökfältet i stället för en rullista'] ],
   ['Beta 0.260', '2 nov 23:15', ['Fix: byta månad i 3D-vyn ger inte längre fel när det finns rabatter (snön i rabatterna)'] ],
   ['Beta 0.259', '2 nov 23:06', ['Fix: byta månad i 3D-vyn ger inte längre fel när en växt står i ett borttaget rum'] ],
@@ -9901,7 +9921,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.261';
+const APP_VERSION = 'Beta 0.262';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
