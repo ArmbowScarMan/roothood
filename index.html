@@ -7584,7 +7584,10 @@ async function loadMe() { if (!S.user) return;
   // Hämtar allt samtidigt i stället för ett efter ett, så att Profil blir klar snabbare
   const one = (f, d) => Promise.resolve().then(f).catch(e => { console.warn('Roothood:', e); return d; });
   const [prof, card, posts, friends] = await Promise.all([one(() => api.getProfile(), undefined), one(() => api.userCard(S.user.id), undefined), one(() => api.userPosts(S.user.id), []), one(() => api.myFriends(), S.friends || [])]);
-  S.friends = friends; S.meCard = { prof, card, posts }; if (S.tab === 'me' && !S.tool && !S.sel) render(); }
+  const same = JSON.stringify(friends) === JSON.stringify(S.friends) && JSON.stringify({ prof, card, posts }) === JSON.stringify(S.meCard);
+  S.friends = friends; S.meCard = { prof, card, posts };
+  // Rita bara om när något faktiskt har ändrats, annars blir Profil ritad två gånger varje gång man öppnar den
+  if (!same && S.tab === 'me' && !S.tool && !S.sel) render(); }
 async function openUser(id, fromHash, asMod) {
   if (needLogin()) return; if (asMod && !isMod()) return; stopLight(); S.sel = null; S.modal = null; S.uMod = !!asMod; S.uBack = asMod ? 'mod' : fromHash ? null : (S.tool === 'people' ? 'people' : S.tab === 'comm' ? 'comm' : null);
   S.tool = 'user'; S.uid = id; S.ucard = null; S.uposts = null; S.uhome = null; render(); $('#main').scrollTop = 0;
@@ -9094,6 +9097,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.279', '4 nov', ['Profil hämtas i förväg när appen startar, så att den öppnas direkt första gången', 'Profil ritas inte om i onödan när inget har ändrats']],
   ['Beta 0.278', '4 nov', ['Designvarianten Städad: emojier bredvid text tas bort så att orden får tala, och den gröna färgen används bara där den betyder något, inte på rubriker, ramar och menyn']],
   ['Beta 0.277', '4 nov', ['Växtsidan visar alltid samma skötselrutor. Saknas ett värde står det ett grått streck i stället för att rutan försvinner', 'Storleken visas nu även för växter som saknar planteringsavstånd, till exempel de nya krukväxterna', 'Växter där giftigheten inte är känd står som Okänt i stället för Giftig']],
   ['Beta 0.276', '4 nov', ['Moderatorer kan testa designvarianten Städad under Inställningar: fyra hörnradier i stället för tolv, sex textstorlekar i stället för trettio, och inga versaletiketter']],
@@ -10281,7 +10285,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.278';
+const APP_VERSION = 'Beta 0.279';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -10677,6 +10681,8 @@ async function init() {
   $('#main').addEventListener('scroll', () => { navY = $('#main').scrollTop; clearTimeout(scrollT); scrollT = setTimeout(saveView, 400); }, { passive: true });
   checkUpdate();
   if (S.user) refreshPush();
+  // Hämta Profil i förväg när appen är igång, så att den är klar första gången man öppnar den
+  if (S.user) setTimeout(() => { if (S.meCard === undefined) { S.meCard = null; loadMe(); } if (!S.feed) api.feed('question').then(f => { if (!S.feed) S.feed = f; }).catch(() => {}); }, 2500);
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.modal) closeModal(); });
 // Tangentbordsförslagen (de små orden längst ner) ska försvinna när man är klar med sökningen
