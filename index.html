@@ -4759,6 +4759,8 @@ function planInner() {
     a.pts.forEach((q, i) => { const q2 = a.pts[(i + 1) % n], mx = (q[0] + q2[0]) / 2, my = (q[1] + q2[1]) / 2;
       if (Math.hypot(q2[0] - q[0], q2[1] - q[1]) * z > 46) out += `<g data-k="mid" data-id="${a.id}" data-i="${i}" transform="translate(${X(mx)},${Y(my)})"><circle r="16" fill="transparent"/><circle r="9" fill="var(--surf)" stroke="var(--pri)" stroke-width="2"/><path d="M-4 0h8M0 -4v8" stroke="var(--pri)" stroke-width="2" stroke-linecap="round"/></g>`; });
     a.pts.forEach((q, i) => { out += `<g data-k="vtx" data-id="${a.id}" data-i="${i}" transform="translate(${X(q[0])},${Y(q[1])})"><circle r="18" fill="transparent"/><circle r="10" fill="${P.vsel === i ? 'var(--acc)' : 'var(--pri)'}" stroke="#fff" stroke-width="3"/></g>`; }); } }
+  if (sel.k === 'fwall') { const wl = planWallsAll().find(x => x.id === sel.id); if (wl && wl.h !== 'hedge') { const hd = (hx, hy, e) => `<g data-k="wend" data-id="${wl.id}" data-e="${e}" transform="translate(${X(hx)},${Y(hy)})"><circle r="18" fill="transparent"/><circle r="10" fill="${P.wsel === e ? 'var(--acc)' : 'var(--pri)'}" stroke="#fff" stroke-width="3"/></g>`; out += hd(wl.x1, wl.y1, 1) + hd(wl.x2, wl.y2, 2);
+    if (Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1) * z > 46) { const mx = (wl.x1 + wl.x2) / 2, my = (wl.y1 + wl.y2) / 2; out += `<g data-k="wmid" data-id="${wl.id}" transform="translate(${X(mx)},${Y(my)})"><circle r="16" fill="transparent"/><circle r="9" fill="var(--surf)" stroke="var(--pri)" stroke-width="2"/><path d="M-4 0h8M0 -4v8" stroke="var(--pri)" stroke-width="2" stroke-linecap="round"/></g>`; } } }
   out += bedLayer(X, Y, z);
   if (P.wstart) out += `<circle cx="${X(P.wstart.x)}" cy="${Y(P.wstart.y)}" r="9" fill="var(--acc)" stroke="#fff" stroke-width="3" pointer-events="none"/>`;
   out += labs + '</g>';
@@ -4904,6 +4906,8 @@ function planDown(e) {
   if (P.mode === 'place') { P.drag = { k: 'tapplace', pt }; return; }
   const k = t && t.dataset.k, id = t && t.dataset.id;
   if (P.mode === 'multi' && ['furn', 'fwall', 'dev'].includes(k)) { multiToggle(k, id); return; }
+  if (k === 'wmid') { const sn0 = snapState(); const nid = wallSplit(id); if (!nid) return; pushUndo(sn0); P.sel = { k: 'fwall', id: nid }; P.drag = { k: 'wend', id: nid, e: 2, pt, snap: null, moved: false }; return; }
+  if (k === 'wend') { P.wsel = +t.dataset.e; P.drag = { k: 'wend', id, e: +t.dataset.e, pt, snap: snapState(), moved: false }; return; }
   if (k === 'vtx' || k === 'mid') { const a = planAreas().find(x => x.id === id), i = +t.dataset.i, sn = snapState(); if (k === 'mid') { const p0 = a.pts[i], p1 = a.pts[(i + 1) % a.pts.length]; a.pts.splice(i + 1, 0, [(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2]); } P.drag = { k: 'vtx', a, i: k === 'mid' ? i + 1 : i, pt, snap: sn, moved: k === 'mid' }; return; }
   if (P.mode === 'room' && !['room', 'handle'].includes(k)) { P.drag = { k: 'pan', sx: e.clientX, sy: e.clientY, ox: P.ox, oy: P.oy, moved: false }; return; }
   const sk = { room: 'room', plant: 'plant', dev: 'dev', furn: 'furn', area: 'area', gitem: 'gitem' }[k], isSel = sk && P.sel && P.sel.k === sk && String(P.sel.id) === String(id);
@@ -4936,6 +4940,7 @@ function planMove(e) {
   if (d.k === 'draw') { P.draft.x1 = snap(pt.x); P.draft.y1 = snap(pt.y); }
   else if (d.k === 'utepoly') { if (d.moved) P.draft = { x0: d.x0, y0: d.y0, x1: snap(pt.x), y1: snap(pt.y) }; }
   else if (d.k === 'vtx') { d.a.pts[d.i] = [Math.round(pt.x * 4) / 4, Math.round(pt.y * 4) / 4]; d.moved = true; }
+  else if (d.k === 'wend') { const wl = planWallsAll().find(w => w.id === d.id); if (wl) { const ox = d.e === 1 ? wl.x1 : wl.x2, oy = d.e === 1 ? wl.y1 : wl.y2, nx = Math.round(pt.x * 4) / 4, ny = Math.round(pt.y * 4) / 4; planWallsAll().forEach(w => { if (Math.hypot(w.x1 - ox, w.y1 - oy) < 0.01) { w.x1 = nx; w.y1 = ny; } if (Math.hypot(w.x2 - ox, w.y2 - oy) < 0.01) { w.x2 = nx; w.y2 = ny; } }); d.moved = true; } }
   else if (d.k === 'area' && d.moved) { d.a.pts = d.o.map(q => [r1(q[0] + dx), r1(q[1] + dy)]); const ddx = d.a.pts[0][0] - d.o[0][0], ddy = d.a.pts[0][1] - d.o[0][1]; if (d.os && d.os.length) d.a.spots = d.os.map(q => ({ ...q, x: Math.round((q.x + ddx) * 100) / 100, y: Math.round((q.y + ddy) * 100) / 100 })); }
   else if (d.k === 'gitem' && d.moved) { d.g.x = r1(d.o.x + dx); d.g.y = r1(d.o.y + dy); }
   else if (d.k === 'dragopen') { P.ldraft.x1 = pt.x; P.ldraft.y1 = pt.y; }
@@ -4976,6 +4981,7 @@ async function planUp(e) {
   if (d.k === 'tapute') { const uk = P.ukind || 'tree', ty = UK_M[uk][2];
     if (ty === 'pt') { pushUndo(); S.hplan = S.hplan || {}; const g = { id: 'g' + Date.now().toString(36), t: uk, x: r1(pt.x), y: r1(pt.y), r: GR[uk] }; S.hplan.garden = planGarden().concat(g); saveHomeSoon(); return planMsg(UK_M[uk][1] + ' utplacerad. Ändra storlek på kronan under Flytta.'); }
     pushUndo(); S.hplan = S.hplan || {}; const F = FURN_M[uk], f = { id: 'f' + Date.now().toString(36), t: uk, x: r1(pt.x), y: r1(pt.y), w: F[2], h: F[3], rot: 0 }; if (!OUTF.has(f.t)) f.fl = curFl(); S.hplan.furn = planFurnAll().concat(f); saveHomeSoon(); return planMsg(F[1] + ' utplacerat. Ändra storlek under Flytta.'); }
+  if (d.k === 'wend') { if (d.moved) { if (d.snap) pushUndo(d.snap); saveHomeSoon(); } render(); return; }
   if (d.k === 'vtx') { if (d.moved) { pushUndo(d.snap); saveHomeSoon(); P.vsel = d.i; } else P.vsel = d.i; render(); return; }
   if (d.k === 'area' || d.k === 'gitem') { if (d.moved) { pushUndo(d.snap); saveHomeSoon(); } render(); return; }
   if (d.k === 'dragopen') { P.ldraft = null; if (d.moved) addWin(d.pt, pt); else addWin(pt); return; }
@@ -5097,6 +5103,9 @@ function removeFreeWall(pt, pt2) {
 }
 function insideSeg(pt, g, m) { const dx = g[2] - g[0], dy = g[3] - g[1], L = Math.hypot(dx, dy) || 1, t = ((pt.x - g[0]) * dx + (pt.y - g[1]) * dy) / L; return t > m && t < L - m; }
 // Fönster och dörrar på fria väggar: wl.ops = [{k:'win'|'door', p, l}] där p är avståndet från väggens början
+function wallSplit(id) { const wl = planWallsAll().find(w => w.id === id); if (!wl) return null; if ((wl.ops && wl.ops.length) || (wl.bays && wl.bays.length)) { toast('Ta bort fönster och dörrar i väggen först'); return null; }
+  const mx = Math.round((wl.x1 + wl.x2) / 2 * 4) / 4, my = Math.round((wl.y1 + wl.y2) / 2 * 4) / 4, c = JSON.parse(JSON.stringify(wl)); c.id = 'w' + Date.now().toString(36); c.x1 = mx; c.y1 = my;
+  wl.x2 = mx; wl.y2 = my; S.hplan.walls = planWallsAll().concat(c); saveHomeSoon(); return wl.id; }
 function fwLen(wl) { return Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1); }
 function fwSeg(wl, p, l) { const L = fwLen(wl) || 1, ux = (wl.x2 - wl.x1) / L, uy = (wl.y2 - wl.y1) / L; return [wl.x1 + ux * p, wl.y1 + uy * p, wl.x1 + ux * (p + l), wl.y1 + uy * (p + l)]; }
 function fwNorm(wl) { const L = fwLen(wl) || 1; return [-(wl.y2 - wl.y1) / L, (wl.x2 - wl.x1) / L]; }
@@ -6146,10 +6155,12 @@ function dbV() {
     <button class="dbfb ${n ? 'on' : ''}" onclick="openModal('dbf')" aria-label="Filter${n ? ', ' + n + ' valda' : ''}">${ic('ph-sliders-horizontal', 'currentColor', 20)}${n ? `<em>${n}</em>` : ''}</button></div>
   <div class="seg2 dbenv" role="tablist">${[['all', 'Alla'], ['in', 'Inomhus'], ['out', 'Utomhus']].map(([k, t]) => `<button class="${S.env === k ? 'on' : ''}" role="tab" aria-selected="${S.env === k}" onclick="setEnv('${k}')">${t}</button>`).join('')}</div>
   <div class="dbact">${dbChips()}</div>
-  <div class="sec"><h2 id="count">Växter</h2><label class="dbsort">${ic('ph-sort-ascending', 'currentColor', 16)}<select onchange="S.dsort=this.value;renderList()" aria-label="Sortera">${DB_SORT.map(([k, t]) => `<option value="${k}" ${(S.dsort || 'az') === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
+  <div class="sec"><h2 id="count">Växter</h2></div>
+  <div class="chips2 sm dbsortc" role="group" aria-label="Sortera">${DB_SORT.map(([k, t]) => `<button class="${(S.dsort || 'az') === k ? 'on' : ''}" aria-pressed="${(S.dsort || 'az') === k}" data-k="${k}" onclick="setDsort('${k}')">${t}</button>`).join('')}</div>
   <div class="grid" id="list"></div>`;
 }
 // Filter och sortering i Växtbiblioteket: en filterknapp, valda filter som chips som går att ta bort
+function setDsort(k) { S.dsort = k; document.querySelectorAll('.dbsortc button').forEach(b => { const on = b.dataset.k === k; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); renderList(); }
 const DB_SORT = [['az', 'A–Ö'], ['za', 'Ö–A'], ['pop', 'Populärast'], ['easy', 'Lättast att sköta'], ['sun', 'Mest ljus'], ['shade', 'Tål skugga'], ['pet', 'Husdjursvänliga först']];
 function dbFilterN() { return (S.cat && S.cat !== 'Alla' && S.cat !== 'zon' ? 1 : 0) + (S.ptypes || []).length + (S.fzon || S.cat === 'zon' ? 1 : 0) + (S.fpet ? 1 : 0) + (S.feasy ? 1 : 0) + (S.flight ? 1 : 0); }
 function dbChips() { const L = [];
@@ -8812,6 +8823,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.261', '3 nov 06:30', ['Väggar: markera en vägg för att dra i dess ändar, eller tryck på + mitt på väggen för att dela den och forma den', 'Växtbiblioteket: sortering visas som knappar under sökfältet i stället för en rullista'] ],
   ['Beta 0.260', '2 nov 23:15', ['Fix: byta månad i 3D-vyn ger inte längre fel när det finns rabatter (snön i rabatterna)'] ],
   ['Beta 0.259', '2 nov 23:06', ['Fix: byta månad i 3D-vyn ger inte längre fel när en växt står i ett borttaget rum'] ],
   ['Beta 0.258', '2 nov 23:55', ['3D: monsteror ser olika ut beroende på sort: Thai Constellation, Albo, Aurea och Mint har egna färger, och Hålmonstera, Silvermonstera och pinnatipartita har egna hål och klyvningar'] ],
@@ -9889,7 +9901,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.260';
+const APP_VERSION = 'Beta 0.261';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
