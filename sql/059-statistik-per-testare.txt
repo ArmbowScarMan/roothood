@@ -1,0 +1,13 @@
+-- 059: Statistik per testare. Vilka funktioner en viss användare har använt.
+-- Bara moderatorer och admin kan anropa den, precis som de andra statistikfunktionerna.
+create or replace function public.mod_usage_user_features(p_user uuid, p_days int default 30)
+returns table (feature text, uses int, last_day date)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query select u.feature::text, sum(u.uses)::int, max(u.day)
+    from usage_daily u
+    where u.user_id = p_user and u.day > current_date - greatest(1, least(p_days, 365))
+    group by u.feature order by 2 desc;
+end $$;
+grant execute on function public.mod_usage_user_features(uuid, int) to authenticated;
