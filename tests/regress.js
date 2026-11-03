@@ -28,8 +28,8 @@ ok('Inga dubbla funktioner eller const', dupes === '', dupes);
 fs.unlinkSync(tmp);
 
 // 2. Versionen i koden matchar senaste raden i ändringsloggen
-const ver = (html.match(/const APP_VERSION = '([\d.]+)'/) || [])[1];
-const logVer = (html.match(/const NEWS = \[\s*\['([\d.]+)'/) || [])[1];
+const ver = (html.match(/const APP_VERSION = '([^']+)'/) || [])[1];
+const logVer = (html.match(/const NEWS = \[\s*\['([^']+)'/) || [])[1];
 ok('APP_VERSION matchar ändringsloggen', ver && ver === logVer, `${ver} / ${logVer}`);
 
 // Lokal server
