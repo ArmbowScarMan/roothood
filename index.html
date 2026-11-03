@@ -4107,7 +4107,7 @@ function area3d(a, THREE, M, sc, slab, shape, y) {
     for (let t = a0; ; t = Math.min(a1, t + 0.05)) { const out = !inR(uu[0] * t + v[0] * c, uu[1] * t + v[1] * c); if (out && s0 == null) s0 = t; if (s0 != null && (!out || t >= a1)) { stripBox(THREE, M, sc, uu, c, s0, t, y0, h, wd, col, o); s0 = null; } if (t >= a1) break; } };
   // Snötäcke på rabatten: tjockt och bulligt, eftersom man ofta skottar upp snö på rabatterna
   // Snö: en mjuk, ojämn yta som sluttar ner mot kanterna, i stället för staplade block
-  const snowMound = (pts, y0) => { const [x0, z0, x1, z1] = bbox(pts), N = 36, dx = (x1 - x0) / N, dz = (z1 - z0) / N, rp = RP0.map(roomPoly);
+  const snowMound = (pts, y0) => { const [x0, z0, x1, z1] = bbox(pts), N = 36, dx = (x1 - x0) / N, dz = (z1 - z0) / N, rp = RP0;
     const H = (x, z) => { const s = Math.min(1, edgeDist(x, z, pts) / 0.45), e = s * s * (3 - 2 * s); return y0 + 0.02 + 0.1 * e * (0.8 + 0.2 * Math.sin(x * 3.1 + z * 1.7) * Math.cos(z * 2.3 - x * 0.9)) + 0.012 * Math.sin(x * 9.3) * Math.cos(z * 8.1); };
     const pos = [], idx = [], vmap = new Map();
     const vid = (i, j) => { const k = i + ',' + j; if (!vmap.has(k)) { const x = x0 + i * dx, z = z0 + j * dz; vmap.set(k, pos.length / 3); pos.push(x, H(x, z), z); } return vmap.get(k); };
@@ -8812,6 +8812,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.260', '2 nov 23:15', ['Fix: byta månad i 3D-vyn ger inte längre fel när det finns rabatter (snön i rabatterna)'] ],
   ['Beta 0.259', '2 nov 23:06', ['Fix: byta månad i 3D-vyn ger inte längre fel när en växt står i ett borttaget rum'] ],
   ['Beta 0.258', '2 nov 23:55', ['3D: monsteror ser olika ut beroende på sort: Thai Constellation, Albo, Aurea och Mint har egna färger, och Hålmonstera, Silvermonstera och pinnatipartita har egna hål och klyvningar'] ],
   ['Beta 0.257', '2 nov 23:40', ['Rabatter: ta bort alla växter som står för tätt med ett tryck, den som sattes ut först behålls'] ],
@@ -9888,7 +9889,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.259';
+const APP_VERSION = 'Beta 0.260';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
