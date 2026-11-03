@@ -79,7 +79,7 @@ const server = http.createServer((req, res) => {
   const octx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const op = await octx.newPage();
   await op.goto(url); await op.waitForTimeout(2500);
-  const swOk = await op.evaluate(() => navigator.serviceWorker.ready.then(() => true).catch(() => false));
+  const swOk = await op.evaluate(() => Promise.race([navigator.serviceWorker.ready.then(() => true).catch(() => false), new Promise(r => setTimeout(() => r(false), 8000))]));
   ok('Service worker är aktiv', swOk);
   await octx.setOffline(true);
   await op.reload().catch(() => {}); await op.waitForTimeout(1500);
