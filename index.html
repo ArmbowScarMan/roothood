@@ -7521,7 +7521,11 @@ async function toggleFollow(id) {
 function meCardNow() { const r = S.meCard || {}, c = r.card || {}, pr = r.prof || {};
   return { id: S.user.id, avatar_url: pr.avatar_url || null, display_name: S.user.name + (S.pro ? '' : ''), city: pr.city || S.city || c.city || '', interests: pr.interests || c.interests || [], plants: S.mine.length, posts: r.posts ? r.posts.length : (c.posts || 0), followers: c.followers || 0, following: c.following || (S.follows || []).length,
     plant_list: S.mine.slice().reverse().map(m => ({ name: m.name, plant_id: m.plant_id, photo: m.photo || null, mid: m.id, latin: m.latin, d: m.details || {}, interval: m.interval })) }; }
-async function loadMe() { if (!S.user) return; const out = {}; try { out.prof = await api.getProfile(); } catch (e) { console.warn('Roothood:', e); } try { out.card = await api.userCard(S.user.id); } catch (e) { console.warn('Roothood:', e); } try { out.posts = await api.userPosts(S.user.id); } catch (e) { out.posts = []; } try { S.friends = await api.myFriends(); } catch (e) { S.friends = S.friends || []; } S.meCard = out; if (S.tab === 'me' && !S.tool && !S.sel) render(); }
+async function loadMe() { if (!S.user) return;
+  // Hämtar allt samtidigt i stället för ett efter ett, så att Profil blir klar snabbare
+  const one = (f, d) => Promise.resolve().then(f).catch(e => { console.warn('Roothood:', e); return d; });
+  const [prof, card, posts, friends] = await Promise.all([one(() => api.getProfile(), undefined), one(() => api.userCard(S.user.id), undefined), one(() => api.userPosts(S.user.id), []), one(() => api.myFriends(), S.friends || [])]);
+  S.friends = friends; S.meCard = { prof, card, posts }; if (S.tab === 'me' && !S.tool && !S.sel) render(); }
 async function openUser(id, fromHash, asMod) {
   if (needLogin()) return; if (asMod && !isMod()) return; stopLight(); S.sel = null; S.modal = null; S.uMod = !!asMod; S.uBack = asMod ? 'mod' : fromHash ? null : (S.tool === 'people' ? 'people' : S.tab === 'comm' ? 'comm' : null);
   S.tool = 'user'; S.uid = id; S.ucard = null; S.uposts = null; S.uhome = null; render(); $('#main').scrollTop = 0;
@@ -10455,7 +10459,7 @@ async function testPush() {
     if (DEMO) {
       const names = S.mine.filter(m => left(m) === 0).map(m => m.name);
       const reg = await swReady();
-      await reg.showNotification(tr('Notiserna fungerar! 🌱'), { body: tr(names.length ? 'Just nu behöver ' + names.join(', ') + ' vattnas.' : 'Inga växter behöver vattnas just nu.'), icon: 'icon-192.png', tag: 'roothood-water', data: { url: './?tab=mine' } });
+      await reg.showNotification(tr('Notiserna fungerar! 🌱'), { body: tr(names.length ? 'Just nu behöver ' + names.join(', ') + ' vattnas.' : 'Inga växter behöver vattnas just nu.'), icon: 'icon-192.png', badge: 'badge-96.png', tag: 'roothood-water', data: { url: './?tab=mine' } });
       toast('Testnotis visad (demoläge)');
       return;
     }

@@ -24,7 +24,7 @@ self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : '' }; }
   e.waitUntil(self.registration.showNotification(d.title || 'Roothood', {
-    body: d.body || '', icon: 'icon-192.png', tag: d.tag || 'roothood-water', renotify: true,
+    body: d.body || '', icon: 'icon-192.png', badge: 'badge-96.png', tag: d.tag || 'roothood-water', renotify: true,
     data: { url: d.url || './?tab=mine', tool: d.tool || null }
   }));
 });
