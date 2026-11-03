@@ -5928,7 +5928,7 @@ function iconize(root) {
 function render() {
   HV = otherHome();
   { const fb = $('#fab'); if (fb) fb.hidden = true; }
-  { const bb = $('#bugb'); if (bb) bb.hidden = !S.user || store.get('bugBtn', true) === false || S.tool === 'chat' || !!S.modal; }
+  { const bb = $('#bugb'); if (bb) bb.hidden = !S.user || S.tool === 'chat' || !!S.modal; }
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tab));
   document.getElementById('app').classList.toggle('nochat', S.tool === 'chat');
   document.body.classList.toggle('hadv', S.tool === 'house' && !S.room && !S.wz && hMode() === 'adv');
@@ -7599,7 +7599,7 @@ const QUICK = () => [
   ['ask', 'Snabbfråga', 'ph-sparkle', 'xp', 'openAsk()'], ['db', 'Sök växter', I.search, 'db', 'openDb()'], ['id', 'Identifiera', CAM, '', "openTool('id')", 1], ['doc', 'Växtdoktorn', DOCI, 'doc', 'openDoc()', 1], ['expert', 'Fråga expert', XPI, 'xp', 'openExperts()', 1],
   ['house', 'Mitt hem', DOORI, 'house', 'openHouse()', 1], ['bed', 'Planera rabatt', BEDI, 'db', "openBedPlan()", 1], ['light', 'Ljusmätare', I.sun, 'sun', "openTool('light')", 1], ['nearby', 'Trädgårdar nära dig', 'ph-map-pin', 'inspo', 'openNearby()', 1], ['compass', 'Kompass', 'ph-compass', 'sun', 'openCompass()'], ['pets', 'Mina djur', I.paw, 'pets', 'openPets()', 1], ['smart', 'Smarta hemmet', HOMEI, 'smart', 'openSmart()', 1],
   ['comm', 'Frågor', CHATI, 'db', "go('comm');setCtab('q')"], ['forum', 'Forum', CHATI, 'xp', "go('comm');setCtab('forum')"], ['swap', 'Byt & ge bort', SWAPI, 'inspo', "go('comm');setCtab('swap')"], ['detect', 'Växtdetektiver', I.search, 'sun', 'openDetect()', 1],
-  ['people', 'Hitta vänner', PEOPLEI, 'xp', 'openPeople()'], ['inspo', 'Odlare att följa', INSPI, 'inspo', 'openInspo()'], ['season', 'Säsongstips', I.leaf, 'sun', 'openSeason()'], ['sow', 'Planteringskalender', SOWI, 'db', 'openSow()', 1], ['perma', 'Permakultur', I.leaf, 'inspo', 'openPerma()', 1], ['jord', 'Jord och substrat', 'ph-shovel', 'db', "openLearn('jord')", 1], ['hydro', 'Hydroponi', 'ph-drop', 'xp', "openLearn('hydro')", 1], ['naring', 'Gödsel och näring', 'ph-flask', 'sun', "openLearn('naring')", 1], ['ljuslara', 'Ljus', I.sun, 'sun', "openLearn('ljus')", 1],
+  ['people', 'Hitta vänner', PEOPLEI, 'xp', 'openPeople()'], ['inspo', 'Odlare att följa', INSPI, 'inspo', 'openInspo()'], ['season', 'Säsongstips', I.leaf, 'sun', 'openSeason()'], ['sow', 'Såkalender', SOWI, 'db', 'openSow()', 1], ['perma', 'Permakultur', I.leaf, 'inspo', 'openPerma()', 1], ['jord', 'Jord och substrat', 'ph-shovel', 'db', "openLearn('jord')", 1], ['hydro', 'Hydroponi', 'ph-drop', 'xp', "openLearn('hydro')", 1], ['naring', 'Gödsel och näring', 'ph-flask', 'sun', "openLearn('naring')", 1], ['ljuslara', 'Ljus', I.sun, 'sun', "openLearn('ljus')", 1],
   ['mine', 'Min samling', I.plant || I.leaf, 'db', "S.mtab='mine';go('mine')"], ['care', 'Växtjournalen', CALI, 'sun', 'openCare()'], ['notif', 'Notiser', BELLI, 'house', 'openNotif()'], ['cfg', 'Anpassa Hem', PEN, 'smart', "go('home');openHomeCfg()"],
 ];
 const QGROUPS = [['Växter', ['db', 'id', 'care', 'season', 'sow']], ['Verktyg', ['light', 'compass', 'nearby']], ['Hjälp med växterna', ['ask', 'doc', 'expert', 'detect']], ['Gemenskap', ['comm', 'forum', 'swap', 'people', 'inspo']], ['Mitt', ['mine']], ['Fördjupning: hem och trädgård', ['house', 'bed', 'smart']], ['Fördjupning: djur', ['pets']], ['Fördjupning: lär dig', ['jord', 'hydro', 'naring', 'ljuslara', 'perma']]];
@@ -7607,7 +7607,7 @@ const favs = () => { const f = store.get('favQuick', null); if (Array.isArray(f)
 function qBtn(q, edit) { const [k, n, icon, cls, act, pro] = q, on = favs().includes(k); return `<button class="qbtn q-${cls || 'cam'} ${edit ? 'editing' : ''}" onclick="${edit ? `togFav('${k}')` : act}"><span class="tic ${cls}">${ic(icon, 'currentColor', 22)}${pro && !S.pro ? '<em>PRO</em>' : ''}${edit ? `<i class="fav ${on ? 'on' : ''}">${on ? '★' : '☆'}</i>` : ''}</span><span>${n}</span></button>`; }
 const SEEDLING = '<path d="M12 21v-9"/><path d="M12 12c0-4 3-6.5 7.5-6.5 0 4.5-3 6.5-7.5 6.5z"/><path d="M12 14.5c0-3.5-2.5-5.5-6.5-5.5 0 3.5 2.5 5.5 6.5 5.5z"/><path d="M7 21h10"/>';
 const WATER_CAN = '<path d="M3 10h12v7a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M15 13l5-7"/><path d="M7 10V7a3 3 0 0 1 6 0"/><path d="M19.5 4.5l1.5-1.5"/><path d="M6 21.5v.5M10 21.5v.5"/>';
-const QPH = { jord: ['ph-shovel', 'Jord och substrat'], hydro: ['ph-drop', 'Hydroponi'], naring: ['ph-flask', 'Gödsel och näring'], ljuslara: ['ph-sun', 'Ljus'], ask: ['ph-sparkle', 'Snabbfråga'], bed: ['ph-flower-tulip', 'Planera rabatt'], db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-notebook', 'Växtjournalen'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-seal-check', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Mina djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: [SEEDLING, 'Planteringskalender'], perma: ['ph-recycle', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Detektiver'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
+const QPH = { jord: ['ph-shovel', 'Jord och substrat'], hydro: ['ph-drop', 'Hydroponi'], naring: ['ph-flask', 'Gödsel och näring'], ljuslara: ['ph-sun', 'Ljus'], ask: ['ph-sparkle', 'Snabbfråga'], bed: ['ph-flower-tulip', 'Planera rabatt'], db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-notebook', 'Växtjournalen'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-seal-check', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Mina djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: [SEEDLING, 'Såkalender'], perma: ['ph-recycle', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Detektiver'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
 // Mina växter på Hem: kort med bild, de som behöver vatten först
 function mineStrip(sz) { const n = { s: 4, m: 8, l: 14 }[sz || 'm'], L = S.mine.slice().sort((a, b) => { const x = left(a), y = left(b); return (x === null ? 99 : x) - (y === null ? 99 : y); }).slice(0, n);
   return `<div class="sec cap2"><h2>Mina växter</h2><button class="viewall" onclick="go('mine')">Alla ${S.mine.length}</button></div><div class="hscroll">${L.map(m => { const d = left(m), w = d === null ? 'Vid torka' : d <= 0 ? 'Vattna idag' : d === 1 ? 'I morgon' : 'Om ' + d + ' dagar';
@@ -7929,10 +7929,10 @@ function meV() {
   if (!S.user) return `${topbar('Profil', null, gearBtn())}<div class="prof"><img src="${LOGO}" alt="" width="96" height="96" style="display:block;margin:0 auto 12px;border-radius:24px"><h2>Välkommen till Roothood</h2><p class="mut">Skapa ett konto för att spara växter och vara med i communityn.</p><button class="btn" onclick="openModal('login')">Logga in eller skapa konto</button></div>${installCard()}${settingsRow()}`;
   if (S.meCard === undefined) { S.meCard = null; setTimeout(loadMe); }
   return `${topbar('Profil', null, gearBtn())}${userBody(meCardNow(), S.meCard ? S.meCard.posts : null, true)}${DEMO ? '<p class="mut" style="margin:0 18px">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}
+  ${isMod() ? `<div class="sec"><h2>Moderering</h2></div><div class="pad"><button class="setrow" onclick="openMod('open')"><span class="tic">🛡️</span><span class="grow"><b>Moderering${S.modOpen ? ' (' + S.modOpen + ')' : ''}</b><span>${isAdmin() ? 'Du är admin. Granska rapporter och hantera moderatorer.' : 'Du är moderator. Granska rapporter och community.'}</span></span></button></div>` : ''}
   <div class="sec"><h2>Konto och inställningar</h2></div>
   ${S.user ? proCard() : ''}
-  ${S.user ? `<button class="setcard fbcard" onclick="openFb()"><span class="tic">${ic('ph-bug', 'currentColor', 22)}</span><span class="grow"><b>Rapportera fel eller ge förslag</b><span>Hjälp oss göra Roothood bättre. Skärmbild går bra att bifoga.</span></span></button>
-  <label class="tog" style="margin:0 18px 10px"><input type="checkbox" ${store.get('bugBtn', true) !== false ? 'checked' : ''} onchange="store.set('bugBtn',this.checked);render()"><span><b>Visa felknappen</b> nere i hörnet på alla sidor</span></label>` : ''}
+  ${S.user ? `<button class="setcard fbcard" onclick="openFb()"><span class="tic">${ic('ph-bug', 'currentColor', 22)}</span><span class="grow"><b>Rapportera fel eller ge förslag</b><span>Hjälp oss göra Roothood bättre. Skärmbild går bra att bifoga.</span></span></button>` : ''}
   ${installCard()}
   ${settingsRow()}
   <div class="pad" style="padding-top:12px"><button class="setrow" onclick="openPeople()"><span class="tic">${ic('ph-users', 'currentColor', 20)}</span><span class="grow"><b>Hitta användare</b><span>Sök på namn eller ort och följ andra växtvänner</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
@@ -8573,7 +8573,7 @@ function proV() {
     [BEDI, 'Planera rabatt', 'Rita rabatter, få växtförslag för platsen och se hur de växer i 3D.'],
     [DOCI, 'Växtdoktorn', 'Välj vad du ser på växten och få troliga orsaker och vad du kan göra.'],
     [I.search, 'Växtdetektiverna', 'Få hjälp att ta reda på vad en okänd växt heter.'],
-    [SOWI, 'Planteringskalendern', 'Se vad du ska så och plantera varje månad där du bor.'],
+    [SOWI, 'Såkalendern', 'Se vad du ska så och plantera varje månad där du bor.'],
     ['ph-map-pin', 'Nära dig', 'Trädgårdar, parker och handelsträdgårdar i närheten.'],
     [HOMEI, 'Smarta hemmet', 'Växtlampor, luftfuktare och bevattning som styrs efter dina växter.'],
     [I.paw, 'Mina djur', 'Lägg till dina djur och få varning för växter som är giftiga för dem.'],
@@ -8832,7 +8832,7 @@ function seasonV() {
   const groups = Object.keys(SEASON_T).map(k => [k, tips.filter(t => t[0] === k)]).filter(g => g[1].length);
   return `${topbar('Säsongstips', 'closeTool()')}
   <p class="mut" style="text-align:center;margin:0 18px">${z ? 'Anpassat för zon ' + z : 'Visar tips för mellersta Sverige'} · <button class="link3" onclick="openSettings()">${z ? 'Ändra zon' : 'Välj din zon'}</button></p>
-  <div class="pad" style="margin-top:8px"><button class="btn sm line" onclick="openSow()">Öppna Planteringskalendern</button></div>
+  <div class="pad" style="margin-top:8px"><button class="btn sm line" onclick="openSow()">Öppna Såkalendern</button></div>
   <div class="mchips" role="tablist">${MONTH_NAMES.map((n, i) => `<button class="${m === i + 1 ? 'on' : ''}" role="tab" aria-selected="${m === i + 1}" onclick="S.smonth=${i + 1};render()">${n.charAt(0).toUpperCase() + n.slice(1, 3)}</button>`).join('')}</div>
   <div class="sec"><h2>${MONTH_NAMES[m - 1].charAt(0).toUpperCase() + MONTH_NAMES[m - 1].slice(1)}</h2></div>
   ${groups.map(([k, ts]) => `<div class="sec" style="padding-top:6px"><h2 style="font-size:16px">${SEASON_T[k][0]}</h2></div><div class="scard">${ts.map(t => stipV(t)).join('')}</div>`).join('') || '<p class="mut" style="margin:0 18px">Inga tips för den här månaden.</p>'}
@@ -8841,6 +8841,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.264', '3 nov 10:25', ['Moderering finns nu under Profil i stället för Inställningar, för moderatorer och admin', 'Planteringskalendern heter Såkalendern igen', 'Kryssrutan för felknappen under Profil är borttagen, felknappen visas alltid'] ],
   ['Beta 0.263', '3 nov 10:15', ['Engelska: planteringskalendern, hjälpknappen i Mitt hem och uppdateringsrutan är översatta', 'Uppdateringsrutan visar nyheterna på svenska i stället för en blandning av svenska och engelska'] ],
   ['Beta 0.262', '3 nov 10:00', ['Snabbfråga: tydligt svar på om en växt är giftig för katter och hundar', 'Snabbfråga: känner igen vanliga namn som pothos, sansevieria, zz och fikus', 'Snabbfråga: skadedjur som spinnkvalster, trips och bladlöss ger svar direkt', 'Snabbfråga: bättre svar om bruna blad, omplantering, ljus och kaktusar'] ],
   ['Beta 0.261', '3 nov 06:30', ['Väggar: markera en vägg för att dra i dess ändar, eller tryck på + mitt på väggen för att dela den och forma den', 'Växtbiblioteket: sortering visas som knappar under sökfältet i stället för en rullista'] ],
@@ -9063,7 +9064,7 @@ function updV() { const norm = v => String(v).replace(/^Beta 0\./, '1.'), from =
   return `<div class="mh"><h2>Nytt i version ${APP_VERSION}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div><p style="margin:10px 0 4px;font-size:14.5px;line-height:1.5">Kul att du testar Roothood! Kolla gärna vad som är nytt nedan och testa det. Säg gärna till om något ska fixas, ändras, tas bort eller läggas till.</p>${LANG === 'en' ? '<p class="mut" style="margin:0 0 8px;font-size:13.5px">Uppdateringarna nedan är på svenska.</p>' : ''}<div data-notr style="max-height:60vh;overflow:auto">${items.map(n => `<div class="setcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b>Version ${n[0]}</b><span class="mut" style="font-size:13px">${n[1]}</span></div><ul style="margin:8px 0 0;padding-left:18px;font-size:14.5px;line-height:1.5">${n[2].map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div><div class="cta" style="padding:12px 0 0;display:flex;gap:8px"><button class="btn" onclick="closeModal()">Klart</button><button class="btn line" onclick="closeModal();openNews()">Hela loggen</button></div>`; }
 function checkUpdate() { let seen = '1.202'; try { seen = store.get('seenVer', '1.202'); } catch (e) {} if (seen === APP_VERSION) return; store.set('seenVer', APP_VERSION); S.updFrom = seen; S.modal = 'upd'; render(); }
 function newsV() { return `${topbar('Uppdateringar', 'closeTool()')}<div class="pad">${LANG === 'en' ? '<p class="mut" style="margin:0 0 12px">Uppdateringarna nedan är på svenska.</p>' : ''}<div data-notr>${NEWS.map(n => `<div class="setcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b>Version ${n[0]}</b><span class="mut" style="font-size:13px">${n[1]}</span></div><ul style="margin:8px 0 0;padding-left:18px;font-size:14.5px;line-height:1.5">${n[2].map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div></div><div style="height:24px"></div>`; }
-// ===== Planteringskalender =====
+// ===== Såkalender =====
 // Sista vårfrost och första höstfrost per odlingszon (ungefär, 70 % sannolikhet). Zon 1 är mildast (Skåne), zon 8 kallast (fjällen).
 const FROST = { 1: [5, 1], 2: [5, 10], 3: [5, 20], 4: [5, 25], 5: [6, 1], 6: [6, 5], 7: [6, 12], 8: [6, 18] };
 const AFROST = { 1: [10, 20], 2: [10, 10], 3: [10, 1], 4: [9, 25], 5: [9, 15], 6: [9, 10], 7: [9, 1], 8: [8, 25] };
@@ -9288,7 +9289,7 @@ function sowCropV() {
   const facts = [['Sådjup', c.ljus ? 'Täck inte' : c.d], ['Groningstemperatur', c.t], ['Grotid', c.gd ? c.gd[0] + '–' + c.gd[1] + ' dagar' : ''], ['Avstånd', c.sp], ['Tid till skörd', c.bl ? '' : c.dt], ['Frost', frTxt(c)], ['Omplantering', c.tp ? 'Tål omplantering' : 'Så i egen kruka eller direkt'], ['Så igen', c.su ? 'var ' + c.su + ':e vecka' : '']].filter(x => x[1]);
   const fam = SOWFAM[c.f], rot = !['kryd', 'blom'].includes(c.f);
   return `<div class="mh"><h2>${esc(c.n)}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
-  <p class="mut" style="margin:0 0 10px;font-size:13.5px">${SOWG[c.g]} · ${frTxt(c)} · Zon ${sowZE()}${sowZ() ? '' : ' (välj din zon i Planteringskalendern)'}</p>
+  <p class="mut" style="margin:0 0 10px;font-size:13.5px">${SOWG[c.g]} · ${frTxt(c)} · Zon ${sowZE()}${sowZ() ? '' : ' (välj din zon i Såkalendern)'}</p>
   ${ybar(c, true)}
   <div class="yleg">${['inne', 'forgro', 'ute', 'sat', 'plant'].filter(t => c.s.some(st => st[0] === t)).map(t => `<span><i style="background:${SOWC[t]}"></i>${SOWL[t]}</span>`).join('')}<span><i style="background:${SOWC.h}"></i>${c.bl ? 'Blommar' : 'Skörd'}</span></div>
   ${ls && c.fr === 0 ? `<div class="sowwarn">⏳ Sista säkra dag att ${c.s.some(s => s[0] === 'plant') ? 'plantera ut' : 'så'} för att hinna ${c.bl ? 'blomma' : 'skörda'} före höstfrosten: <b>${dTxt(ls)}</b></div>` : ''}
@@ -9308,7 +9309,7 @@ function sowAddV() {
   <label class="fl" for="swd">Datum</label><input id="swd" type="date" max="${dIso(dDays(d0(), 1))}" value="${v.d}" onchange="S.sowNew.d=this.value;sowKeep()">
   ${c && v.w && v.d && !sowInWindow(c, v.w, dParse(v.d)) ? `<div class="sowwarn">⚠️ Det här är utanför den vanliga tiden för zon ${sowZE()}: ${esc(c.s.filter(x => x[0] === v.w).map(x => stepSpan(x, sowF(dParse(v.d).getFullYear())).txt).join(' och '))}. ${v.w === 'inne' ? 'Det kan gå inomhus under växtlampa, men plantorna hinner inte planteras ut i år.' : 'Det kan gå, men räkna med sämre resultat eller att det inte hinner bli någon skörd.'}</div>` : ''}
   <label class="fl" for="swn">Anteckning (valfritt)</label><input id="swn" maxlength="80" placeholder="t.ex. sort, antal frön" value="${esc(v.n || '')}" oninput="S.sowNew.n=this.value">
-  <p class="mut" style="font-size:13px;margin:10px 0 0">Du får påminnelser om att kolla groningen, skola om, härda av, plantera ut och skörda. De syns i Planteringskalendern och under Att göra på Hem.</p>
+  <p class="mut" style="font-size:13px;margin:10px 0 0">Du får påminnelser om att kolla groningen, skola om, härda av, plantera ut och skörda. De syns i Såkalendern och under Att göra på Hem.</p>
   <button class="btn wide formbtn" onclick="sowAddSave()">Spara</button>`;
 }
 function sowRow(c, sub, badge, cls) { const i = CROPS.indexOf(c); return `<button class="sowr ${cls || ''}" onclick="S.sowc=${i};openModal('sowc')"><span class="grow"><b>${esc(c.n)}${sowPlan().includes(c.n) ? ' <em class="star">★</em>' : ''}</b>${sub ? `<span>${sub}</span>` : ''}</span>${badge ? `<em class="sowb ${badge[1]}">${badge[0]}</em>` : ''}<i class="ph ph-caret-right" aria-hidden="true"></i></button>`; }
@@ -9365,7 +9366,7 @@ function sowV() {
       <div class="sowchk">${st.map(x => `<button class="${(L.done || {})[x.k] ? 'on' : ''}" onclick="sowDone(${L.id},'${x.k}')"><span>${(L.done || {})[x.k] ? '✓' : '○'}</span>${esc({ gro: 'Grott', skola: 'Skolat om', harda: 'Härdat av', plant: 'Utplanterad', gallra: 'Gallrat', nasta: 'Nästa omgång', skord: c && c.bl ? 'Blommar' : 'Skörd', sat: 'Satt', kupa: 'Kupat' }[x.k])}<small>${dTxt(x.d)}</small></button>`).join('')}</div>
       ${c ? `<button class="link3" onclick="S.sowc=${CROPS.indexOf(c)};openModal('sowc')">Så odlar du ${esc(c.n.toLowerCase())}</button>` : ''}</div>`; }).join('') : '<p class="mut" style="margin:12px 18px">Här sparar du det du har sått. Du får påminnelser om varje steg, från groning till skörd.</p>'}`;
   }
-  return `${topbar('Planteringskalender', 'closeTool()')}
+  return `${topbar('Såkalender', 'closeTool()')}
   <div class="pad">${zone}${sowFrostV()}</div>
   <div class="pad" style="margin-top:12px"><div class="chips2 sowtabs">${[['nu', 'Nu'], ['m', 'Per månad'], ['a', 'Alla grödor'], ['mina', 'Mina sådder' + (sowLog().length ? ' ' + sowLog().length : '')]].map(([k, n]) => `<button class="${tab === k ? 'on' : ''}" onclick="S.sowTab='${k}';render()">${n}</button>`).join('')}</div></div>
   ${body}
@@ -9594,7 +9595,7 @@ function permaV() {
   return `${topbar('Permakultur och design', 'closeTool()')}
   <p class="mut" style="margin:0 18px 10px">Lär dig planera en trädgård som sköter sig själv. Tryck på ett kort för att läsa.</p>
   <div class="pad">${PERMA.map((s, i) => `<details class="acc" ${i === 0 ? 'open' : ''}><summary><span class="aem">${s[0]}</span><span class="grow"><b>${s[1]}</b></span></summary><div class="accb"><p>${s[2]}</p><ul>${s[3].map(x => `<li>${x}</li>`).join('')}</ul></div></details>`).join('')}
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn sm" onclick="openBedPlan()">Planera en rabatt</button><button class="btn sm line" onclick="openSow()">Planteringskalender</button><button class="btn sm line" onclick="openDb()">Växtbiblioteket</button></div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn sm" onclick="openBedPlan()">Planera en rabatt</button><button class="btn sm line" onclick="openSow()">Såkalender</button><button class="btn sm line" onclick="openDb()">Växtbiblioteket</button></div></div>
   <div style="height:24px"></div>`;
 }
 
@@ -9921,7 +9922,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.263';
+const APP_VERSION = 'Beta 0.264';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -10078,7 +10079,6 @@ function settingsV() {
     <p class="mut" style="margin:8px 0 0;font-size:13px">Sverige delas in i odlingszoner från 1 (mildast) till 8. Växtsidorna visar då om en trädgårdsväxt klarar vintern där du bor.</p>
   </div></div>
   <div class="sec"><h2>Påminnelser</h2></div><div class="pad">${pushCard()}</div>
-  ${isMod() ? `<div class="sec"><h2>Moderering</h2></div><div class="pad"><button class="setrow" onclick="openMod('open')"><span class="tic">🛡️</span><span class="grow"><b>Moderering${S.modOpen ? ' (' + S.modOpen + ')' : ''}</b><span>${isAdmin() ? 'Du är admin. Granska rapporter och hantera moderatorer.' : 'Du är moderator. Granska rapporter och community.'}</span></span></button></div>` : ''}
   ${S.user ? `<div class="sec"><h2>Blockerade</h2></div><div class="pad"><div class="setcard">${S.blockedL == null ? (loadBlocked(), '<p class="mut" style="margin:0">Hämtar…</p>') : S.blockedL.length ? S.blockedL.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b></span><button class="btn sm line" onclick="blockUser(${jsArg(u.id)},false)">Avblockera</button></div>`).join('') : '<p class="mut" style="margin:0">Du har inte blockerat någon.</p>'}</div></div>` : ''}
   ${famV()}
   ${account}
