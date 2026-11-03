@@ -1720,6 +1720,8 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 
 /* Designvarianten Städad: <small> utan egen storlek får närmaste steg */
 :root[data-ui=stad] small{font-size:var(--fs-2)}:root[data-ui=stad] button small,:root[data-ui=stad] .chips2 small{font-size:var(--fs-1)}
+
+.ti b.na{color:var(--mut);font-weight:600}
 </style></head><body>
 <div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas inte förrän nätet är tillbaka.</div>
 <div id="app"><div id="main"></div>
@@ -8078,8 +8080,11 @@ function favV() {
 function mtabBar() { const t = S.mtab || 'mine'; return `<div class="seg2 four" role="tablist">${[['mine', 'Samling'], ['care', 'Journal'], ['fav', 'Favoriter'], ['wish', 'Önskelista']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="S.mtab='${k}';render()">${n}</button>`).join('')}</div>`; }
 function shortTemp(t) { const m = /\d+\s*–\s*\d+\s*°C/.exec(t || ''); return m ? m[0] : (t || '').split(',')[0]; }
 function tile(label, value, desc, icon, color, bad) {
-  return `<div class="ti">${ic(icon, color)}<small>${label}</small><b class="${bad ? 'bad' : ''}">${esc(value)}</b>${desc ? `<p>${esc(desc)}</p>` : ''}</div>`;
+  // Saknat värde: rutan finns kvar med ett grått streck, så att skötselrutorna alltid har samma form
+  const na = value == null || value === '';
+  return `<div class="ti">${ic(icon, na ? 'var(--mut)' : color)}<small>${label}</small><b class="${na || value === 'Okänt' ? 'na' : bad ? 'bad' : ''}">${na ? '–' : esc(value)}</b>${na ? '<p>Inte känt ännu</p>' : desc ? `<p>${esc(desc)}</p>` : ''}</div>`;
 }
+const cmM = n => n >= 100 ? fmtM(n / 100) : n + ' cm';
 function detail() {
   const p = S.plants.find(x => x.id === S.sel), copies = S.mine.filter(m => m.plant_id === p.id), my = copies.find(m => m.id === S.myCur) || copies[0];
   const d = my ? left(my) : null;
@@ -8097,7 +8102,7 @@ function detail() {
     <div><small>Ljus</small><b>${LIGHT[p.light_level - 1]}</b></div>
     <div><small>Vatten</small><b>${water}</b></div>
     ${p.humidity ? `<div><small>Luftfuktighet</small><b>${esc(p.humidity)}</b></div>` : ''}
-    <div><small>Husdjur</small><b class="${p.pet_safe ? '' : 'bad'}">${petWord(p)}</b></div>
+    <div><small>Husdjur</small><b class="${petWord(p) === 'Giftig' ? 'bad' : ''}">${petWord(p)}</b></div>
   </div></div>${credit}
   ${copies.length > 1 ? `<div class="pad" style="margin:10px 0"><small class="mut">Du har ${copies.length} av den här. Välj vilken du ändrar:</small><div class="chips2 sm" style="margin-top:6px">${copies.map((c, i) => `<button class="${c.id === my.id ? 'on' : ''}" onclick="S.myCur=${c.id};keepMain()">Nr ${i + 1}${c.details && c.details.nick ? ' · ' + esc(c.details.nick) : ''}</button>`).join('')}</div></div>` : ''}
   ${my ? galleryV(my) : ''}
@@ -8114,11 +8119,11 @@ function detail() {
   <div class="tiles">
   ${tile('Ljus', LIGHT[p.light_level - 1], p.light_text, I.sun, 'var(--sun)')}
   ${tile('Vatten', water, p.water_text, I.drop, 'var(--wat)')}
-  ${p.temperature ? tile('Temperatur', shortTemp(p.temperature), p.temperature, I.temp, 'var(--acc)') : ''}
-  ${p.humidity ? tile('Luftfuktighet', p.humidity, '', I.mist, 'var(--pri2)') : ''}
-  ${p.soil ? tile('Jord', p.soil.split(',')[0], p.soil, I.soil, '#A0703F') : ''}
-  ${p.spacing_cm ? tile('Storlek', (p.height_cm >= 100 ? fmtM(p.height_cm / 100) : p.height_cm + ' cm') + ' hög', `Blir ungefär ${p.height_cm >= 100 ? fmtM(p.height_cm / 100) : p.height_cm + ' cm'} hög och ${p.width_cm >= 100 ? fmtM(p.width_cm / 100) : p.width_cm + ' cm'} bred. Plantera ${p.spacing_cm} cm mellan plantorna${p.row_cm ? ' och ' + p.row_cm + ' cm mellan raderna' : ''}.${p.spreads ? ' Sprider sig, plantera gärna med rotspärr.' : ''}`, I.leaf, 'var(--pri2)') : ''}
-  ${tile('Husdjur', petWord(p), p.toxicity_text, I.paw, p.pet_safe ? 'var(--pri2)' : 'var(--acc)', !p.pet_safe)}
+  ${tile('Temperatur', p.temperature ? shortTemp(p.temperature) : null, p.temperature, I.temp, 'var(--acc)')}
+  ${tile('Luftfuktighet', p.humidity || null, '', I.mist, 'var(--pri2)')}
+  ${tile('Jord', p.soil ? p.soil.split(',')[0] : null, p.soil, I.soil, '#A0703F')}
+  ${tile('Storlek', p.height_cm ? cmM(p.height_cm) + ' hög' : null, p.height_cm ? `Blir ungefär ${cmM(p.height_cm)} hög${p.width_cm ? ' och ' + cmM(p.width_cm) + ' bred' : ''}.${p.spacing_cm ? ` Plantera ${p.spacing_cm} cm mellan plantorna${p.row_cm ? ' och ' + p.row_cm + ' cm mellan raderna' : ''}.` : ''}${p.spreads ? ' Sprider sig, plantera gärna med rotspärr.' : ''}` : '', I.leaf, 'var(--pri2)')}
+  ${tile('Husdjur', petWord(p), p.toxicity_text, I.paw, p.pet_safe ? 'var(--pri2)' : petWord(p) === 'Okänt' ? 'var(--mut)' : 'var(--acc)', petWord(p) === 'Giftig')}
   </div>
   ${S.pets ? `<div class="pad" style="padding-top:10px">${plantPetNote(p)}</div>` : ''}
   ${tips.length ? `<div class="sec"><h2>Skötseltips</h2></div><div class="tips">${tips.map(t => `<div class="tipr"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>${t[0]}</b><span>${esc(t[1])}</span></div></div>`).join('')}</div>` : ''}
@@ -8276,7 +8281,7 @@ async function apAddDb(id) {
   S.ap = null; photoWarnCheck(); afterAdd();
 }
 function photoWarnCheck() { if (S.photoWarn) { S.photoWarn = false; toast('Växten sparades, men fotot kunde inte sparas.'); } }
-const petWord = p => p.pet_safe ? 'Ofarlig' : /^Okänt/.test(p.toxicity_text || '') ? 'Okänt' : 'Giftig';
+const petWord = p => p.pet_safe ? 'Ofarlig' : /^Okänt|inte känd/i.test(p.toxicity_text || '') ? 'Okänt' : 'Giftig';
 function plantPh(p) { return p.photo_url ? `<div class="ph has-img" style="--h:0"><img src="${esc(p.photo_url)}" alt="" loading="lazy"></div>` : ph(p.latin_name, p.category, p.swedish_name); }
 function myPh(m) { return m.photo ? `<div class="ph has-img" style="--h:0"><img src="${esc(m.photo)}" alt="" loading="lazy"></div>` : ph(m.latin, m.category, m.name); }
 async function insertUP(row) {
@@ -9080,6 +9085,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.277', '4 nov', ['Växtsidan visar alltid samma skötselrutor. Saknas ett värde står det ett grått streck i stället för att rutan försvinner', 'Storleken visas nu även för växter som saknar planteringsavstånd, till exempel de nya krukväxterna', 'Växter där giftigheten inte är känd står som Okänt i stället för Giftig']],
   ['Beta 0.276', '4 nov', ['Moderatorer kan testa designvarianten Städad under Inställningar: fyra hörnradier i stället för tolv, sex textstorlekar i stället för trettio, och inga versaletiketter']],
   ['Beta 0.275', '4 nov', ['Ritning: knappen Mät med kompassen i rumsrutan. Håll telefonen platt med toppen mot fönstret, så väljs väderstrecket åt dig']],
   ['Beta 0.274', '4 nov', ['Tillbaka-knappen och tillbaka-svepet på Android fungerar likadant överallt: ett steg tillbaka i taget, i rätt ordning', 'Tillbaka med en ruta öppen stänger bara rutan', 'Laddar du om sidan djupt inne i appen hamnar du kvar där, och tillbaka fungerar fortfarande', 'Öppnar du appen från en notis eller genväg tar tillbaka dig till Start i stället för att stänga appen']],
@@ -10265,7 +10271,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.276';
+const APP_VERSION = 'Beta 0.277';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
