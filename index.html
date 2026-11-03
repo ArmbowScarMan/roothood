@@ -6122,7 +6122,7 @@ function render() {
   trackView();
 }
 // ===== Kom ihåg var man var (och tillbaka-knappen) =====
-let curHash = null, navFromPop = false, scrollT = null;
+let curHash = null, scrollT = null;
 const TOOL_LABEL = { house: 'Ritning', people: 'Vänner', mod: 'Moderering', explore: 'Utforska', experts: 'Experter', user: 'Användarprofil', settings: 'Inställningar', notif: 'Notiser', msgs: 'Meddelanden', chat: 'Chatt', news: 'Nyheter', nearby: 'Händer nära dig', pets: 'Djur', season: 'Säsong', learn: 'Lär dig', inspo: 'Inspiration', ask: 'Snabbfråga', db: 'Växtdatabas', sow: 'Så och skörd', smart: 'Smarta förslag', perma: 'Perma', compass: 'Kompass' };
 const TAB_LABEL = { home: 'Start', mine: 'Samling', comm: 'Gemenskap', me: 'Profil' };
 function viewName() { // läsbar text om var användaren var, t.ex. "Ritning · Rum: Kök (#t/house/kok)"
@@ -6141,28 +6141,44 @@ function viewHash() {
   if (S.tab === 'comm') return '#c/' + S.ctab + (S.forum ? '/f/' + encodeURIComponent(S.forum) : '') + (S.post ? '/p/' + S.post : '') + (S.newL || S.newCase ? '/new' : '');
   return '#' + S.tab;
 }
-let modalPushed = false, skipPop = false;
-// Tillbaka-pilen: varje vy man lämnar sparas, så att pilen tar en till sidan man såg senast (inte alltid Hem)
+// Tillbaka: webbläsarens historik är den enda listan över var man varit.
+// Varje vy är en post i historiken. Posten har vyns hash, dess underläge (flik i Samling, rum i Ritning ...) i st,
+// hur långt ner man scrollat i y, och hur djupt in i appen man är i d (0 = första vyn, där bakåt lämnar appen).
+// En öppen ruta (S.modal) är en egen post med m: 1, så att bakåt stänger rutan och inget annat.
 const NAVK = ['tab', 'tool', 'sel', 'ctab', 'mtab', 'post', 'forum', 'uid', 'room', 'hview', 'xmode', 'modTab', 'uMod', 'uBack', 'myCur'];
-let navStack = [], navSnap = null, navY = 0;
+let navY = 0; // var man är i den aktuella vyn, sparas i posten när man lämnar den
+let navReady = false;
 // Statistik: räkna att en funktion öppnades (högst en gång per funktion och 10 minuter)
 const trackSent = {};
 function featOf(h) { const a = String(h || '').replace(/^#/, '').split('/'); if (a[0] === 't') return a[1] === 'experts' && S.xmode === 'detect' ? 'detect' : a[1]; if (a[0] === 'c') return 'comm-' + (a[1] || 'q'); if (a[0] === 'v') return 'vaxt'; return { home: 'hem', mine: 'samling', me: 'profil' }[a[0]] || null; }
 function trackUse(h) { const f = featOf(h); if (!f || !S.user || DEMO || !sb || isAdmin()) return; const now = Date.now(); if (trackSent[f] && now - trackSent[f] < 6e5) return; trackSent[f] = now; try { sb.rpc('track_use', { p_feature: f.slice(0, 40).toLowerCase().replace(/[^a-z0-9_-]/g, '') }).then(() => {}, () => {}); } catch (e) { } }
 function navTake() { const o = {}; NAVK.forEach(k => o[k] = S[k]); return o; }
-function navBack() { if (S.tool === 'house' && S.hDirty) saveHomeNow(true); stopLight(); if (navStack.length) { try { history.back(); return; } catch (e) { } } S.tool = null; S.sel = null; S.post = null; if (S.tab === 'home') render(); else go('home'); }
+function navBack() { if (S.tool === 'house' && S.hDirty) saveHomeNow(true); stopLight(); if (((history.state || {}).d || 0) > 0) { try { history.back(); return; } catch (e) { } } S.tool = null; S.sel = null; S.post = null; if (S.tab === 'home') render(); else go('home'); }
 function trackView() {
   if (S.loading || S.err) return;
   const h = viewHash();
-  // En öppen ruta får en egen plats i historiken, så att bakåt stänger rutan i stället för att lämna appen.
-  let replace = false;
-  if (S.modal && !modalPushed && curHash !== null) { try { history.pushState({ m: 1 }, '', curHash); modalPushed = true; } catch (e) { console.warn('Roothood:', e); } }
-  else if (!S.modal && modalPushed) { modalPushed = false; if (h === curHash) { skipPop = true; try { history.back(); } catch (e) { skipPop = false; } return; } replace = true; }
-  if (h !== curHash) {
-    try { if (navFromPop || curHash === null || replace) history.replaceState(null, '', h); else { history.pushState(null, '', h); if (navSnap) { navStack.push({ h: curHash, st: navSnap, y: navY }); if (navStack.length > 40) navStack.shift(); } } } catch (e) { console.warn('Roothood:', e); }
-    curHash = h; navFromPop = false; navY = 0; saveView(); trackUse(h);
-  }
-  navSnap = navTake();
+  try {
+    let hs = history.state || {};
+    // Efter omladdning kan posten fortfarande säga att en ruta var öppen. Rutan är stängd nu, så posten blir en vanlig vy.
+    if (!navReady) { navReady = true; if (hs.m) { history.replaceState(Object.assign({}, hs, { m: 0 }), '', location.hash || h); hs = history.state; } }
+    // Första vyn (eller efter omstart): skriv över posten i stället för att lägga till en
+    if (curHash === null) { history.replaceState({ d: 0, st: navTake(), y: 0 }, '', h); curHash = h; saveView(); trackUse(h); hs = history.state; }
+    // En ruta har stängts med knappen i appen: gå tillbaka en post så att historiken stämmer
+    if (!S.modal && hs.m) {
+      if (h === curHash) { history.back(); return; }
+      history.replaceState({ d: hs.d || 0, st: navTake(), y: 0 }, '', h); curHash = h; navY = 0; saveView(); trackUse(h); return;
+    }
+    // Ny vy: spara var man var i den gamla posten och lägg till exakt en ny post
+    if (h !== curHash) {
+      history.replaceState(Object.assign({}, hs, { y: navY }), '', curHash);
+      history.pushState({ d: (hs.d || 0) + 1, st: navTake(), y: 0 }, '', h);
+      curHash = h; navY = 0; saveView(); trackUse(h); hs = history.state;
+    }
+    // En ruta öppnas: egen post med samma hash
+    if (S.modal && !hs.m) { history.replaceState(Object.assign({}, hs, { y: navY }), '', h); history.pushState({ d: (hs.d || 0) + 1, st: navTake(), y: navY, m: 1 }, '', h); return; }
+    // Samma vy men nytt underläge (t.ex. annan flik i Samling): uppdatera posten
+    const st = navTake(); if (JSON.stringify(st) !== JSON.stringify(hs.st)) history.replaceState(Object.assign({}, hs, { st }), '', h);
+  } catch (e) { console.warn('Roothood:', e); curHash = h; }
 }
 function saveView() { store.set('lastView', { h: curHash, y: ($('#main') || {}).scrollTop || 0, q: S.q, cat: S.cat, mt: S.mtab || null, hv: S.hview || null, t: Date.now() }); }
 function applyView(h) {
@@ -6186,15 +6202,19 @@ function applyView(h) {
   else return false;
   return true;
 }
-window.addEventListener('popstate', () => {
-  if (skipPop) { skipPop = false; return; }
-  if (modalPushed) { modalPushed = false; if (typeof tlStop === 'function') tlStop(); S.modal = null; S.msg = ''; render(); return; }
-  if (S.modal) { S.modal = null; }
+window.addEventListener('popstate', e => {
+  // Bakåt med en ruta öppen stänger bara rutan
+  if (S.modal) { if (typeof tlStop === 'function') tlStop(); S.modal = null; S.msg = ''; render(); return; }
+  // Rutan stängdes redan i appen och historiken har nu hunnit ikapp
+  if (location.hash === curHash) return;
   if (document.getElementById('psheet') && !document.getElementById('psheet').hidden) closePick();
-  const top = navStack[navStack.length - 1];
-  if (top && top.h === location.hash) { navStack.pop(); stopLight(); NAVK.forEach(k => S[k] = top.st[k]); S.del = null; S.newL = false; S.newCase = false; navFromPop = true; curHash = location.hash; render(); const y = top.y || 0; $('#main').scrollTop = y; navY = y;
-    if (S.tab === 'comm' && !S.tool) loadFeed(); if (S.tool === 'experts') loadExperts(); if (S.tool === 'mod') loadMod(); return; }
-  navStack = []; navFromPop = true; curHash = location.hash; applyView(location.hash); render(); $('#main').scrollTop = 0;
+  const st = e.state || {};
+  stopLight(); S.del = null; S.newL = false; S.newCase = false;
+  if (st.st) { NAVK.forEach(k => S[k] = st.st[k]); if (S.tab === 'comm' && !S.tool) loadFeed(); if (S.tool === 'experts') loadExperts(); if (S.tool === 'mod') loadMod(); }
+  else applyView(location.hash);
+  const h = viewHash(); if (h !== location.hash) { try { history.replaceState(Object.assign({}, st, { st: navTake() }), '', h); } catch (x) { } }
+  curHash = h; navY = st.y || 0;
+  render(); $('#main').scrollTop = navY;
 });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && curHash) saveView(); });
 function isReload() { try { const n = performance.getEntriesByType && performance.getEntriesByType('navigation')[0]; if (n) return n.type === 'reload'; return !!(performance.navigation && performance.navigation.type === 1); } catch (e) { return false; } }
@@ -9035,6 +9055,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.274', '4 nov', ['Tillbaka-knappen och tillbaka-svepet på Android fungerar likadant överallt: ett steg tillbaka i taget, i rätt ordning', 'Tillbaka med en ruta öppen stänger bara rutan', 'Laddar du om sidan djupt inne i appen hamnar du kvar där, och tillbaka fungerar fortfarande', 'Öppnar du appen från en notis eller genväg tar tillbaka dig till Start i stället för att stänga appen']],
   ['Beta 0.273', '3 nov 23:15', ['Växtdatabasen öppnas mycket snabbare: bara korten som syns på skärmen ritas direkt', 'Den engelska översättningen laddas bara ner om du väljer engelska', 'Notiser på Android visar ett vitt löv i statusraden', 'Ikonerna och inloggningen laddas från appen själv i stället för från andra webbplatser, så starten går snabbare']],
   ['Beta 0.272', '3 nov 22:30', ['Snabbare flikbyte: menyn längst ner markerar den nya fliken direkt när du trycker, innan innehållet har ritats', 'Profil hämtar profil, inlägg och vänner samtidigt i stället för ett i taget']],
   ['Beta 0.271', '3 nov 19:00', ['Mjukare rörelser: knappar, flikar, rader och menyn längst ner trycks ner lite när du trycker, panelerna glider upp och ner och notiser glider in. Om telefonen är inställd på mindre rörelse tonas de bara in', 'Moderatorer kan testa tre designvarianter under Inställningar: Lugn, Redaktionell och Lekfull'] ],
@@ -10217,7 +10238,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.273';
+const APP_VERSION = 'Beta 0.274';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -10582,6 +10603,7 @@ async function init() {
   const startTool = new URLSearchParams(location.search).get('tool');
   if (startTool === 'msgs' || startTool === 'notif') { try { history.replaceState(null, '', location.pathname); } catch (e) { console.warn('Roothood:', e); } setTimeout(() => { if (S.user) startTool === 'msgs' ? openMsgs() : openNotif(); }, 600); }
   if (startTool === 'id') { try { history.replaceState(null, '', location.pathname); } catch (e) { console.warn('Roothood:', e); } setTimeout(() => { openTool('id'); if (S.tool === 'id') startIdCam(); }); }
+  if (startTab === 'mine' || ['msgs', 'notif', 'id'].includes(startTool)) { try { history.replaceState({ d: 0, st: Object.assign(navTake(), { tab: 'home', tool: null, sel: null }), y: 0 }, '', '#home'); curHash = '#home'; } catch (e) { console.warn('Roothood:', e); } }
   render();
   if (restoreY) setTimeout(() => { const m = $('#main'); if (m) m.scrollTop = restoreY; }, 350);
   $('#main').addEventListener('scroll', () => { navY = $('#main').scrollTop; clearTimeout(scrollT); scrollT = setTimeout(saveView, 400); }, { passive: true });
