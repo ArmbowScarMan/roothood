@@ -423,6 +423,10 @@ button.shot{cursor:pointer}
 .idr b{display:block}
 .idr i{display:block;color:var(--mut);font-size:13px}
 .idr small{color:var(--pri);font-weight:700;font-size:12px}
+.idband{display:inline-block;padding:0 8px;border-radius:99px;font-size:11px;font-weight:800;font-style:normal;line-height:18px;color:#fff;background:var(--pri)}.idband.mid{background:#c98a12}.idband.low{background:var(--cop)}
+.idref{display:flex;gap:6px;margin-top:8px}.idref img{width:56px;height:56px;object-fit:cover;border-radius:10px;background:rgba(127,127,127,.15)}.idr small.idcred{display:block;color:var(--mut);font-weight:600;font-size:11px;margin-top:3px}
+.idshots{display:flex;gap:8px;overflow-x:auto;margin-top:10px;padding-bottom:2px}.idsh{position:relative;flex:none;width:76px}.idsh img{width:76px;height:76px;object-fit:cover;border-radius:12px;display:block}.idsh .idx{all:unset;box-sizing:border-box;text-align:center;cursor:pointer;position:absolute;top:2px;right:2px;width:24px;height:24px;border-radius:99px;background:rgba(0,0,0,.55);color:#fff;border:0;font-size:16px;line-height:22px;padding:0}.idsh select{width:76px;margin-top:4px;font-size:11.5px;padding:3px 2px;border-radius:8px}
+.idsort{margin-top:14px}.idsort .nrow{box-shadow:none;border:1px solid rgba(127,127,127,.18)}
 .lightbox{position:relative;background:var(--surf);border-radius:28px;padding:18px;box-shadow:var(--sh);overflow:hidden}
 .lightbox video{transform:scaleX(-1);width:100%;height:110px;object-fit:cover;border-radius:18px;display:block;margin-bottom:14px}
 .luxv b{display:block;font-size:30px;font-weight:800;color:var(--pri)}
@@ -512,7 +516,7 @@ button,[role=tab],.nrow,.prow,.setrow,.upl,label.tog{-webkit-user-select:none;us
 .pdgrid b{display:block;font-size:14.5px;margin-top:2px;overflow-wrap:anywhere}
 .pdgrid em{display:block;font-style:normal;color:var(--pri);font-size:12.5px;font-weight:700;margin-top:2px}
 .pdhint{display:flex;gap:10px;align-items:flex-start;background:var(--soft);border-radius:16px;padding:10px 12px;margin-top:8px;font-size:14px;line-height:1.45}
-.pdhint.warn{background:#FCEBE5}
+.pdhint.warn{background:rgba(227,139,99,.17)}
 .pdhint .ck{flex:none;margin-top:1px}
 .pdbox{padding:0 18px}
 .pdbox.inm{padding:0;margin-top:18px}
@@ -1646,7 +1650,7 @@ const DEMO_PLANTS = [{"id": 1, "swedish_name": "Monstera", "latin_name": "Monste
 const CATS = ['Krukväxt','Köksträdgård','Trädgård','Orkidé','Kaktus','Akvarieväxt'];
 const LIGHT = ['Skugga','Halvskugga','Full sol'], WATER = ['Lite','Måttligt','Mycket'];
 const S = {smonth:new Date().getMonth() + 1, listings:null, newL:false, lf:'Alla', lcity:null, lt:'Ge bort', lti:'', lbo:'', lphoto:null, others:{}, lb:null, log:{}, logForm:null, loading:true, err:null, tab:'home', sel:null, cat:'Alla', q:'', modal:null, prefill:'',
-  authMode:'in', env:'all', ctab:'q', pro:false, tool:null, idImg:null, idFile:null, idOrgan:'auto', idRes:null, idErr:null, idBusy:false, idDemo:false, light:null, lsrc:'sun', lhours:12, lhold:false, limitHit:false, prefillLatin:'', threads:null, forum:null, newThread:false, tt:'', tb:'', msg:'', feed:null, feedErr:null, post:null, draft:'', adraft:'', qcat:'', rep:null, msgOk:false, busy:false, del:null, liked:{}, plants:[], user:null, mine:[]};
+  authMode:'in', env:'all', ctab:'q', pro:false, tool:null, idImg:null, idFile:null, idShots:[], idVar:null, idSingle:false, idOrgan:'auto', idRes:null, idErr:null, idBusy:false, idDemo:false, light:null, lsrc:'sun', lhours:12, lhold:false, limitHit:false, prefillLatin:'', threads:null, forum:null, newThread:false, tt:'', tb:'', msg:'', feed:null, feedErr:null, post:null, draft:'', adraft:'', qcat:'', rep:null, msgOk:false, busy:false, del:null, liked:{}, plants:[], user:null, mine:[]};
 
 // ===== Hjälpfunktioner =====
 const $ = s => document.querySelector(s);
@@ -8883,6 +8887,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.269', '3 nov 13:40', ['Identifiera: ta upp till 5 bilder av blad, blomma och hela växten, så blir svaret säkrare', 'Identifiera: varje förslag märks Säker, Trolig eller Osäker, och vid osäkra svar ber appen om en bild till', 'Identifiera: jämförelsebilder från Pl@ntNet och fem förslag i stället för tre', 'Identifiera: hittar växten i appen även när det latinska namnet har bytts, till exempel Calathea och Sansevieria', 'Identifiera: Vilken sort? Appen mäter vitt, gult, rosa och silver i bladen och visar artens sorter som liknar bilden mest', 'Varningsrutor går att läsa i mörkt läge'] ],
   ['Beta 0.268', '3 nov 11:05', ['Notiser: varje notis har egen markering Ny eller Läst. Tryck på en notis för att markera den som läst, och Markera alla som lästa gör det för alla. Öppna fliken markerar inte längre allt. Olästa meddelanden visas i Notiser med antal och alla samtal, och Meddelanden visar antal olästa överst', 'Snabbfrågan: frågor om när man ska så ger såtider ur Såkalendern för din zon', 'Snabbfrågan: frågor om varför en växt inte blommar ger vanliga orsaker och särskilda råd för julkaktus, orkidé, amaryllis och pelargon', 'Engelska: notiser och snabbfrågans svar översätts, och text som börjar med För blir inte längre fel', '44 nya inomhusväxter, bland annat rumslind, rumsgran, kamelia och doftranka. Nu finns 1000 krukväxter, kaktusar och orkidéer'] ],
   ['Beta 0.267', '3 nov 10:50', ['Statistik: välj senaste 12, 24 eller 48 timmar, med en graf per timme'] ],
   ['Beta 0.266', '3 nov 10:40', ['Statistik: tryck på antal gånger och funktioner för en testare för att se vilka funktioner den har använt', 'Statistik: 1 gång och 1 funktion i stället för 1 gånger och 1 funktioner, och Nyheter i stället för news'] ],
@@ -9646,37 +9651,108 @@ function permaV() {
 }
 
 // --- Identifiering (Pl@ntNet) ---
+const ID_MAX = 5;
 function idV() {
-  const organs = [['auto', 'Automatiskt'], ['leaf', 'Blad'], ['flower', 'Blomma'], ['fruit', 'Frukt']];
+  const organs = [['auto', 'Automatiskt'], ['leaf', 'Blad'], ['flower', 'Blomma'], ['fruit', 'Frukt'], ['bark', 'Stam']];
   let res = '';
   if (S.idBusy) res = '<p class="mut" style="text-align:center">Identifierar…</p>';
   else if (S.idErr) res = `<div class="formmsg">${esc(S.idErr)}</div>`;
-  else if (S.idRes) res = `${S.idDemo ? '<div class="pdhint warn" style="margin:12px 0"><span class="ck">⚠️</span><span><b>Det här är bara ett exempel.</b> Identifieringen är inte kopplad till Pl@ntNet än, så appen visar alltid samma växter oavsett vad du fotar.</span></div>' : ''}<div class="flist">${S.idRes.map(idRow).join('')}</div>`;
+  else if (S.idRes) res = `${S.idDemo ? '<div class="pdhint warn" style="margin:12px 0"><span class="ck">⚠️</span><span><b>Det här är bara ett exempel.</b> Identifieringen är inte kopplad till Pl@ntNet än, så appen visar alltid samma växter oavsett vad du fotar.</span></div>' : ''}${S.idSingle ? '<div class="pdhint warn" style="margin:12px 0"><span class="ck">⚠️</span><span>Bara den första bilden kunde skickas. Funktionen i Supabase behöver uppdateras för att flera bilder ska användas.</span></div>' : ''}${!S.idDemo && (S.idRes[0].score || 0) < .2 ? `<div class="pdhint warn" style="margin:12px 0"><span class="ck">📷</span><span><b>Osäkert svar.</b> Ta en bild till, nära ett blad eller en blomma, så blir svaret säkrare.${S.idShots.length < ID_MAX ? ` <button class="link3" onclick="startIdCam()">Ta en bild till</button>` : ''}</span></div>` : ''}<div class="flist">${idRow(S.idRes[0])}</div>${idSortV()}${S.idRes.length > 1 ? `<p class="nsub" style="margin:16px 2px 8px">Andra möjliga växter</p><div class="flist">${S.idRes.slice(1).map(idRow).join('')}</div>` : ''}`;
   const gal = `<label class="btn sm line" style="display:inline-flex;gap:8px;align-items:center;cursor:pointer">${ic(GALLERY, 'currentColor', 18)} Välj från galleriet<input type="file" accept="image/*" onchange="pickPhoto(this)" class="sr"></label>`;
   const top = S.idLive ? `<div class="idcam"><video id="idvid" autoplay playsinline muted></video><span class="idframe"></span><div class="idctl" id="idctl"></div>
       <div class="idbar"><button class="x" style="color:#fff" onclick="stopIdCam();render()">Avbryt</button><button class="shutter" onclick="snapIdCam()" aria-label="Ta foto"></button><span style="width:60px"></span></div></div>
       <p class="mut" style="text-align:center;margin:10px 0 0">Håll kameran nära ett blad eller en blomma</p>`
-    : S.idImg ? `<div class="shot has"><img src="${S.idImg}" alt="Ditt foto"></div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"><button class="btn sm line" onclick="startIdCam()">${ic(CAM, 'currentColor', 18)} Ta nytt foto</button>${gal}</div>`
+    : S.idShots.length ? `<div class="shot has"><img src="${S.idShots[S.idShots.length - 1].img}" alt="Ditt foto"></div>
+      <div class="idshots">${S.idShots.map((x, i) => `<div class="idsh"><img src="${x.img}" alt="Bild ${i + 1}"><button class="idx" onclick="idDelShot(${i})" aria-label="Ta bort bild ${i + 1}">×</button><select onchange="idOrganSet(${i},this.value)" aria-label="Vad visar bild ${i + 1}">${organs.map(([k, t]) => `<option value="${k}"${x.organ === k ? ' selected' : ''}>${t}</option>`).join('')}</select></div>`).join('')}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">${S.idShots.length < ID_MAX ? `<button class="btn sm line" onclick="startIdCam()">${ic(CAM, 'currentColor', 18)} Ta en bild till</button>${gal}` : ''}<button class="btn sm line" onclick="idReset()">Börja om</button></div>
+      <p class="mut" style="font-size:12.5px;margin:8px 0 0">${S.idShots.length}/${ID_MAX} bilder. Fler bilder av olika delar, till exempel blad, blomma och hela växten, ger säkrare svar.</p>`
     : `<button class="shot" style="width:100%;font:inherit;color:inherit" onclick="startIdCam()"><span class="tic big">${ic(CAM, 'currentColor', 34)}</span><b>Öppna kameran</b><span>Fota ett blad eller en blomma, nära och skarpt</span></button>
       <div style="text-align:center;margin-top:12px">${gal}</div>`;
   return `${topbar('Identifiera växt', 'closeTool()')}<div class="pad">
   ${top}
-  ${S.idImg ? `<p class="mut" style="margin:14px 0 8px">Vad är på bilden?</p><div class="chips2">${organs.map(([k, t]) => `<button class="${S.idOrgan === k ? 'on' : ''}" onclick="S.idOrgan='${k}';render()">${t}</button>`).join('')}</div>
-  <div class="cta" style="padding:16px 0 4px"><button class="btn" ${S.idBusy ? 'disabled' : ''} onclick="identify()">Identifiera</button></div>` : ''}
+  ${S.idShots.length && !S.idRes ? `<div class="cta" style="padding:16px 0 4px"><button class="btn" ${S.idBusy ? 'disabled' : ''} onclick="identify()">Identifiera</button></div>` : ''}
   ${res}
   ${(S.idRes || S.idErr) && !S.idBusy ? `<div class="setcard" style="margin-top:14px;text-align:center"><b style="display:block;font-size:16px">Är det ingen av de här?</b><p class="mut" style="margin:4px 0 12px">Lägg till växten själv med ditt foto. Den hamnar i din samling och i databasen.</p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn sm" onclick="addFromId('','')">+ Lägg till växten själv</button><button class="btn sm cop" onclick="caseFromId()">Fråga Detektiver</button></div></div>` : ''}
   ${!S.idImg && !S.idLive ? `<div class="pdhint" style="margin-top:18px"><span class="ck">💡</span><span><b>Snabbare nästa gång:</b> installera Roothood som app, håll fingret på Roothood-ikonen på startskärmen och dra ut <b>Identifiera växt</b> som en egen genväg. Då öppnas kameran direkt.</span></div>` : ''}</div>`;
 }
+const ID_BAND = s => s >= .6 ? ['Säker', 'ok'] : s >= .2 ? ['Trolig', 'mid'] : ['Osäker', 'low'];
 function idRow(r) {
-  const p = matchPlant(r.latin, r.genus);
-  return `<div class="idr"><div class="grow"><b>${esc(r.common || r.latin)}</b><i>${esc(r.latin)}</i>${(() => { const hf = p ? homeFit(p).filter(x => x.tone !== 'd')[0] : null; return hf ? `<small style="color:var(--pri2);font-weight:700">Trivs i ${esc(hf.r.name)}. ${esc(hf.tip)}</small>` : ''; })()}${S.idDemo ? '<small style="color:var(--mut)">Exempel, inte ditt foto</small>' : `<div class="bar"><i style="width:${Math.round(r.score * 100)}%"></i></div><small>${Math.round(r.score * 100)} % säker</small>`}</div>
-  ${p ? `<div style="display:flex;flex-direction:column;gap:8px"><button class="btn sm" onclick="S.tool=null;openPlant(${p.id})">Skötselråd</button><button class="btn sm line" onclick="addPlant(${p.id})">Lägg till i samling</button></div>` : `<button class="btn sm line" onclick="addFromIdx(${S.idRes.indexOf(r)})">Lägg till</button>`}</div>`;
+  const p = matchPlant(r.latin, r.genus), i = S.idRes.indexOf(r), [bt, bc] = ID_BAND(r.score || 0);
+  const name = p && !/'/.test(p.latin_name) ? p.swedish_name : (r.common || (p ? p.swedish_name : r.latin));
+  return `<div class="idr"><div class="grow"><b>${esc(name)}</b><i>${esc(r.latin)}</i>${(() => { const hf = p ? homeFit(p).filter(x => x.tone !== 'd')[0] : null; return hf ? `<small style="color:var(--pri2);font-weight:700">Trivs i ${esc(hf.r.name)}. ${esc(hf.tip)}</small>` : ''; })()}${S.idDemo ? '<small style="color:var(--mut)">Exempel, inte ditt foto</small>' : `<div class="bar"><i style="width:${Math.round(r.score * 100)}%"></i></div><small><span class="idband ${bc}">${bt}</span> ${Math.round(r.score * 100)} %</small>`}
+  ${(r.imgs || []).length ? `<div class="idref">${r.imgs.map(im => `<img src="${esc(im.u)}" alt="Jämförelsebild" loading="lazy" title="${esc(im.c)}">`).join('')}</div><small class="idcred">Jämförelsebilder från Pl@ntNet</small>` : ''}</div>
+  ${p ? `<div style="display:flex;flex-direction:column;gap:8px"><button class="btn sm" onclick="S.tool=null;openPlant(${p.id})">Skötselråd</button><button class="btn sm line" onclick="addPlant(${p.id})">Lägg till i samling</button></div>` : `<button class="btn sm line" onclick="addFromIdx(${i})">Lägg till</button>`}</div>`;
 }
+// 5: färg och mönster i bladen, räknat i telefonen
+function idAnalyze(shots) {
+  const one = sh => new Promise(ok => { const im = new Image(); im.onload = () => { try {
+    const N = 160, c = document.createElement('canvas'); c.width = N; c.height = N; const g = c.getContext('2d', { willReadFrequently: true });
+    const s0 = Math.min(im.naturalWidth, im.naturalHeight) * .8; g.drawImage(im, (im.naturalWidth - s0) / 2, (im.naturalHeight - s0) / 2, s0, s0, 0, 0, N, N);
+    const d = g.getImageData(0, 0, N, N).data, K = new Uint8Array(N * N); let hueSum = 0, hueN = 0;
+    // 1 grönt blad, 2 vitt/krämvitt, 3 gult, 4 rosa/rött, 5 mörkt/lila, 6 silver
+    for (let k = 0; k < N * N; k++) { const r = d[k * 4] / 255, gg = d[k * 4 + 1] / 255, b = d[k * 4 + 2] / 255, mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), v = mx, sat = mx ? (mx - mn) / mx : 0;
+      let h = 0; if (mx !== mn) { h = mx === r ? 60 * (((gg - b) / (mx - mn)) % 6) : mx === gg ? 60 * ((b - r) / (mx - mn) + 2) : 60 * ((r - gg) / (mx - mn) + 4); if (h < 0) h += 360; }
+      K[k] = (h >= 70 && h <= 170 && sat > .22 && v > .14) ? 1 : (sat < .16 && v > .78) ? 2 : (h >= 38 && h < 70 && sat > .35 && v > .5) ? 3 : ((h < 18 || h > 320) && sat > .3 && v > .3) ? 4 : (v < .22 || (h > 250 && h <= 320 && sat > .2)) ? 5 : (sat < .18 && v > .5 && v <= .78) ? 6 : 0;
+      if (K[k] === 1) { hueSum += h; hueN++; } }
+    // Bara färger som har blad på båda sidor räknas som en del av bladet, så att en vit vägg runt bladet inte blir variegering
+    const D = N, hit = (x, y, dx, dy) => { for (let i = 1; i <= D; i++) { const xx = x + dx * i, yy = y + dy * i; if (xx < 0 || yy < 0 || xx >= N || yy >= N) return false; if (K[yy * N + xx] === 1) return true; } return false; };
+    const near = k => { const x = k % N, y = (k - x) / N; return (hit(x, y, -1, 0) && hit(x, y, 1, 0)) || (hit(x, y, 0, -1) && hit(x, y, 0, 1)); };
+    const cnt = [0, 0, 0, 0, 0, 0, 0], V = new Uint8Array(N * N);
+    for (let k = 0; k < N * N; k++) { if (K[k] === 1) cnt[1]++; else if (K[k] > 1 && near(k)) { cnt[K[k]]++; if (K[k] === 2 || K[k] === 3) V[k] = 1; } }
+    // Mönster: storleken på de ljusa fälten
+    const seen = new Uint8Array(N * N), sizes = [];
+    for (let k = 0; k < N * N; k++) { if (!V[k] || seen[k]) continue; let n = 0; const st = [k]; seen[k] = 1; while (st.length) { const q = st.pop(); n++; const x = q % N; [x > 0 ? q - 1 : -1, x < N - 1 ? q + 1 : -1, q - N, q + N].forEach(z => { if (z >= 0 && z < N * N && V[z] && !seen[z]) { seen[z] = 1; st.push(z); } }); } sizes.push(n); }
+    ok({ cnt, hue: hueN ? hueSum / hueN : 0, sizes });
+  } catch (e) { ok(null); } }; im.onerror = () => ok(null); im.src = sh.img; });
+  return Promise.all(shots.map(one)).then(L => {
+    L = L.filter(Boolean); if (!L.length) return null;
+    const c = [0, 0, 0, 0, 0, 0, 0]; L.forEach(x => x.cnt.forEach((v, i) => c[i] += v));
+    const tot = c.slice(1).reduce((a, b) => a + b, 0); if (tot < 1100) return null;
+    const f = i => c[i] / tot, sz = L.flatMap(x => x.sizes).filter(n => n >= 2), big = sz.filter(n => n >= 110).length, small = sz.filter(n => n < 28).length;
+    const hue = L.reduce((a, x) => a + x.hue, 0) / L.length;
+    return { white: f(2), yellow: f(3), pink: f(4), dark: f(5), silver: f(6), lime: hue && hue < 95 ? 1 : 0,
+      pattern: !sz.length ? null : big >= 1 && big * 4 >= sz.length ? 'sektioner' : small >= 6 && small >= sz.length * .7 ? 'prickar' : 'marmor' };
+  });
+}
+const ID_TR = { white: /\bvit|krämvit|kräm|albo|alba|white|snow|marble|marmor|frost|pearl|constellation|panda|n'joy|glacier|brokig|variegat/, yellow: /\bgul|guld|aurea|gold|yellow|lemon|citron|marilyn|hi-color|sunshine/, pink: /rosa|pink|\bröd|\bred\b|blush|tricolor|valentine|painted|strawberry/, dark: /mörk|svart|black|dark|velvet|burgundy|chocolate|noir|onyx/, silver: /silver|platinum|satin|exotica|argyr|\bgrå/, lime: /lime|neon|limegrön|mint|ljusgrön/ };
+const ID_PAT = { prickar: /prick|fräkn|stänk|constellation|splash/, marmor: /marmor|marble|marmorer/, sektioner: /sektion|halvt|stora vita fält|half/ };
+function idSorts(p, an) {
+  const key = p.latin_name.toLowerCase().replace(/ var\..*$| '.*$/, '').split(' ').slice(0, 2).join(' ');
+  const L = S.plants.filter(x => { const l = x.latin_name.toLowerCase(); return l === key || l.startsWith(key + ' '); });
+  if (L.length < 2) return null;
+  const has = k => an && an[k] > (k === 'lime' ? .5 : .02), any = an && ['white', 'yellow', 'pink', 'silver'].some(has);
+  const out = L.map(x => { const t = (((x.latin_name.match(/'([^']+)'/) || [])[1] || '') + ' ' + (x.tips || '')).toLowerCase(); let sc = 0; const why = [];
+    for (const k in ID_TR) { const tx = ID_TR[k].test(t), im = has(k);
+      if (tx && im) { sc += 2 + (k === 'lime' ? 1 : 10 * an[k]); why.push(k); } else if (tx && !im && an) sc -= k === 'white' || k === 'yellow' ? 2 : 1; else if (!tx && im && (k === 'white' || k === 'yellow' || k === 'pink')) sc -= 1; }
+    if (an && an.pattern && ID_PAT[an.pattern].test(t)) { sc += 1.5; why.push(an.pattern); }
+    if (an && !any && !has('lime') && !Object.values(ID_TR).some(re => re.test(t))) sc += 2;
+    if (!/'/.test(x.latin_name)) sc += .3;
+    return { p: x, sc, why }; });
+  return out.sort((a, b) => b.sc - a.sc).slice(0, 6);
+}
+const ID_WORD = { white: 'vitt', yellow: 'gult', pink: 'rosa eller rött', dark: 'mörkt', silver: 'silver', lime: 'limegrönt', prickar: 'prickar', marmor: 'marmorering', sektioner: 'stora fält' };
+function idVarText(an) {
+  if (!an) return 'Bilden gick inte att mäta. Välj sorten själv.';
+  const parts = ['white', 'yellow', 'pink', 'silver'].filter(k => an[k] > .02).map(k => `${ID_WORD[k]} ${Math.round(an[k] * 100)} %`);
+  return parts.length ? `I din bild: ${parts.join(', ')} av bladytan${an.pattern ? ', som ' + ID_WORD[an.pattern] : ''}.` : `I din bild: gröna blad utan brokiga partier${an.dark > .15 ? ', ganska mörka' : ''}${an.lime ? ', ljust limegröna' : ''}.`;
+}
+function idSortV() {
+  const top = S.idRes && S.idRes[0]; if (!top || S.idDemo && !top || (top.score || 0) < .2) return '';
+  const p = matchPlant(top.latin, top.genus); if (!p) return '';
+  const L = idSorts(p, S.idVar); if (!L) return '';
+  return `<div class="setcard idsort"><b style="display:block;font-size:16px">Vilken sort?</b><p class="mut" style="margin:4px 0 10px"><span>${esc(idVarText(S.idVar))}</span> <span>Sorterna som liknar bilden mest står först. Det är förslag, jämför gärna med bilderna på växtens sida.</span></p>
+  <div class="nlist">${L.map((x, i) => `<button class="nrow" onclick="S.tool=null;openPlant(${x.p.id})"><span class="grow"><b>${esc(x.p.swedish_name)}${i === 0 && x.sc > 0 ? ' <em class="idband ok">Mest lik</em>' : ''}</b><span>${esc(x.p.latin_name)}${x.why.length ? ' · ' + esc(x.why.map(w => ID_WORD[w]).join(', ')) : ''}</span></span></button>`).join('')}</div>
+  <p class="mut" style="font-size:12.5px;margin:10px 0 0">Vet du inte? Välj <b>${esc(p.swedish_name)}</b> ovan, sorten kan ändras senare på växten.</p></div>`;
+}
+const ID_SYN = [[/^calathea /, 'goeppertia '], [/^sansevieria /, 'dracaena '], [/^(plectranthus|solenostemon) scutellarioides/, 'coleus scutellarioides'], [/^senecio (rowleyanus|radicans|herreanus|ficoides|serpens|articulatus|citriformis)/, 'curio $1'], [/^schefflera elegantissima/, 'plerandra elegantissima'], [/^philodendron (bipinnatifidum|selloum)/, 'thaumatophyllum bipinnatifidum'], [/^philodendron xanadu/, 'thaumatophyllum xanadu'], [/^aloe aristata/, 'aristaloe aristata'], [/^haworthia (attenuata|fasciata|limifolia|coarctata|reinwardtii|viscosa)/, 'haworthiopsis $1'], [/^chrysalidocarpus /, 'dypsis '], [/^epipremnum pinnatum aureum/, 'epipremnum aureum'], [/^scindapsus aureus/, 'epipremnum aureum'], [/^rhoeo /, 'tradescantia '], [/^zebrina /, 'tradescantia '], [/^setcreasea /, 'tradescantia ']];
+function idCanon(l) { l = String(l || '').toLowerCase().replace(/×\s*/g, '× ').trim(); for (const [re, to] of ID_SYN) if (re.test(l)) return l.replace(re, to); return l; }
 function matchPlant(latin, genus) {
-  const l = (latin || '').toLowerCase(), g = (genus || '').toLowerCase();
-  return S.plants.find(p => p.latin_name.toLowerCase() === l)
-    || S.plants.find(p => l.startsWith(p.latin_name.toLowerCase() + ' '))
-    || S.plants.find(p => p.latin_name.toLowerCase() === g);
+  const L = [String(latin || '').toLowerCase().trim(), idCanon(latin)], g = String(genus || '').toLowerCase(), gc = idCanon(g + ' x').split(' ')[0];
+  const ln = p => p.latin_name.toLowerCase();
+  for (const l of L) { const p = S.plants.find(x => ln(x) === l); if (p) return p; }
+  for (const l of L) { const p = S.plants.find(x => l.startsWith(ln(x) + ' ')) || S.plants.find(x => ln(x).startsWith(l + ' ') && !/'/.test(x.latin_name)); if (p) return p; }
+  for (const l of L) { const p = S.plants.find(x => ln(x).startsWith(l + ' ')); if (p) return p; }
+  return S.plants.find(x => ln(x) === g) || S.plants.find(x => ln(x) === gc);
 }
 function taxOf(r) {
   const latin = (r.latin || '').trim(), genus = r.genus || latin.split(' ')[0] || '';
@@ -9686,10 +9762,11 @@ function taxOf(r) {
 function addFromIdx(i) { const r = S.idRes[i]; if (!r) return; S.prefillTax = taxOf(r); addFromId(r.common || r.latin, r.latin, true); }
 function addFromId(name, latin, keepTax) { if (!keepTax) S.prefillTax = null; if (overLimit()) { S.limitHit = true; return openModal('pro'); } openModal('add', name, latin, S.idFile ? { file: S.idFile, img: S.idImg } : null); }
 function pickPhoto(inp) {
-  const f = inp.files && inp.files[0]; if (!f) return;
-  S.idFile = f; S.idRes = null; S.idErr = null;
-  if (S.idImg) URL.revokeObjectURL(S.idImg);
-  S.idImg = URL.createObjectURL(f); render();
+  const f = inp.files && inp.files[0]; if (!f) return; inp.value = '';
+  const had = !!S.idRes;
+  if (!idAddShot(f, URL.createObjectURL(f))) return;
+  S.idErr = null;
+  if (had) identify(); else { S.idRes = null; render(); }
 }
 function shrinkUrl(url, max, asDataUrl) {
   return new Promise(ok => {
@@ -9710,31 +9787,53 @@ async function fileShrink(file, max, asDataUrl) {
   try { return await shrinkUrl(u, max, asDataUrl); } finally { URL.revokeObjectURL(u); }
 }
 async function plantnetIdentify(file, organ) {
+  const files = Array.isArray(file) ? file : [file], organs = files.map((f, i) => (Array.isArray(organ) ? organ[i] : organ) || 'auto');
   if (DEMO) {
     await new Promise(r => setTimeout(r, 700));
-    return { demo: true, res: [{ latin: 'Monstera deliciosa', genus: 'Monstera', family: 'Araceae', common: 'Monstera', score: .91 }, { latin: 'Epipremnum aureum', genus: 'Epipremnum', family: 'Araceae', common: 'Gullranka', score: .05 }] };
+    return { demo: true, res: [{ latin: 'Monstera deliciosa', genus: 'Monstera', family: 'Araceae', common: 'Monstera', score: .91, imgs: [] }, { latin: 'Epipremnum aureum', genus: 'Epipremnum', family: 'Araceae', common: 'Gullranka', score: .05, imgs: [] }] };
   }
-  const fd = new FormData();
-  fd.append('images', (await fileShrink(file, 1280)) || file, 'foto.jpg'); fd.append('organs', organ || 'auto');
-  const sess = (await sb.auth.getSession()).data.session;
-  const r = await fetch(SUPABASE_URL + '/functions/v1/plantnet-identify', { method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + (sess ? sess.access_token : SUPABASE_ANON_KEY) }, body: fd });
+  const send = async (fs, os) => {
+    const fd = new FormData();
+    for (let i = 0; i < fs.length; i++) { fd.append('images', (await fileShrink(fs[i], 1280)) || fs[i], 'foto' + i + '.jpg'); fd.append('organs', os[i]); }
+    const sess = (await sb.auth.getSession()).data.session;
+    return fetch(SUPABASE_URL + '/functions/v1/plantnet-identify', { method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + (sess ? sess.access_token : SUPABASE_ANON_KEY) }, body: fd });
+  };
+  let r = await send(files, organs), single = false;
+  // Blandade delar godtas inte alltid: försök med Automatiskt på alla bilder
+  if (r.status === 400 && files.length > 1 && organs.some(o => o !== organs[0])) r = await send(files, files.map(() => 'auto'));
+  // Äldre version av funktionen klarar bara en bild: försök igen med den första
+  if (r.status === 400 && files.length > 1) { r = await send([files[0]], [organs[0]]); single = true; }
+  if (r.status === 400 && organs[0] !== 'auto') r = await send([files[0]], ['auto']);
   if (r.status === 404) throw new Error('Ingen växt hittades. Prova en skarpare bild, nära ett blad eller en blomma.');
   if (r.status === 401) throw new Error('Pl@ntNet känner inte igen nyckeln (fel 401). Kontrollera att hela nyckeln är rätt.');
   if (r.status === 403) throw new Error('Pl@ntNet godkänner inte den här adressen (fel 403). Kontrollera "Expose my API key" och godkända domäner.');
   if (r.status === 429) throw new Error('Dagens gräns för identifieringar är nådd. Försök igen i morgon.');
   if (!r.ok) throw new Error('Identifieringen misslyckades (fel ' + r.status + '). Försök igen.');
   const j = await r.json();
-  const res = (j.results || []).slice(0, 3).map(x => ({ latin: x.species.scientificNameWithoutAuthor, genus: x.species.genus && x.species.genus.scientificNameWithoutAuthor, family: x.species.family && x.species.family.scientificNameWithoutAuthor, common: (x.species.commonNames || [])[0], score: x.score }));
+  const res = (j.results || []).slice(0, 5).map(x => ({ latin: x.species.scientificNameWithoutAuthor, genus: x.species.genus && x.species.genus.scientificNameWithoutAuthor, family: x.species.family && x.species.family.scientificNameWithoutAuthor, common: (x.species.commonNames || [])[0], score: x.score,
+    imgs: (x.images || []).slice(0, 3).map(im => ({ u: im.url && (im.url.s || im.url.m), c: im.citation || '' })).filter(im => im.u) }));
   if (!res.length) throw new Error('Ingen växt hittades. Prova en annan bild.');
-  return { demo: false, res };
+  return { demo: false, res, single };
 }
 const idErrText = e => /fetch|network/i.test(e.message) ? 'Ingen kontakt med identifieringstjänsten. Kontrollera internetanslutningen.' : e.message;
 async function identify() {
-  S.idBusy = true; S.idErr = null; S.idRes = null; render();
-  try { const r = await plantnetIdentify(S.idFile, S.idOrgan); S.idDemo = r.demo; S.idRes = r.res; }
+  if (!S.idShots.length && S.idFile) S.idShots = [{ file: S.idFile, img: S.idImg, organ: S.idOrgan || 'auto' }];
+  if (!S.idShots.length) return;
+  S.idBusy = true; S.idErr = null; S.idRes = null; S.idVar = null; render();
+  try { const r = await plantnetIdentify(S.idShots.map(x => x.file), S.idShots.map(x => x.organ)); S.idDemo = r.demo; S.idRes = r.res; S.idSingle = !!r.single; }
   catch (e) { S.idErr = idErrText(e); }
+  if (S.idRes) { try { S.idVar = await idAnalyze(S.idShots.filter(x => x.organ !== 'flower' && x.organ !== 'fruit')); } catch (e) { console.warn('Roothood:', e); S.idVar = null; } }
   S.idBusy = false; render();
 }
+// Bilderna: första bilden är också S.idFile/S.idImg så att Lägg till och Detektiver får ett foto
+function idSync() { const f = S.idShots[0]; S.idFile = f ? f.file : null; S.idImg = f ? f.img : null; }
+function idAddShot(file, url) {
+  if (S.idShots.length >= ID_MAX) { toast('Du kan ha högst ' + ID_MAX + ' bilder'); return false; }
+  S.idShots.push({ file, img: url, organ: 'auto' }); idSync(); return true;
+}
+function idDelShot(i) { const x = S.idShots.splice(i, 1)[0]; if (x && x.img) URL.revokeObjectURL(x.img); idSync(); S.idRes = null; S.idVar = null; S.idErr = null; render(); }
+function idReset() { S.idShots.forEach(x => x.img && URL.revokeObjectURL(x.img)); S.idShots = []; idSync(); S.idRes = null; S.idVar = null; S.idErr = null; render(); }
+function idOrganSet(i, v) { if (S.idShots[i]) S.idShots[i].organ = v; if (S.idRes) identify(); else render(); }
 
 // --- Ljusmätare ---
 let lightStream = null, lightSensor = null, lightTimer = null, lightTrack = null;
@@ -9948,9 +10047,7 @@ function snapIdCam() {
   c.toBlob(b => {
     if (!b) return toast('Kunde inte ta fotot, försök igen.');
     stopIdCam();
-    S.idFile = new File([b], 'vaxt.jpg', { type: 'image/jpeg' });
-    if (S.idImg) URL.revokeObjectURL(S.idImg);
-    S.idImg = URL.createObjectURL(b); S.idOrgan = 'auto';
+    if (!idAddShot(new File([b], 'vaxt.jpg', { type: 'image/jpeg' }), URL.createObjectURL(b))) return render();
     identify();
   }, 'image/jpeg', 0.9);
 }
@@ -9968,7 +10065,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.268';
+const APP_VERSION = 'Beta 0.269';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
