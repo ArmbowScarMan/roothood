@@ -2853,6 +2853,27 @@ function roomV(r) {
 function newRoom(back, rect) { S.rf = { id: null, name: '', type: '', dirs: [], lamp: false, temp: 'Normalt', hum: 'Normal' }; if (rect) S.rf.rect = rect; S.rfBack = back || null; if (back === 'pdet') S.pdKeep = JSON.parse(JSON.stringify(S.pd)); openModal('room'); }
 function editRoom(id) { const r = S.home.find(x => x.id === id); S.rf = JSON.parse(JSON.stringify(r)); S.rf.dirs = S.rf.dirs || []; S.rfBack = null; openModal('room'); }
 function rfType(t) { const was = S.rf.type; S.rf.type = was === t ? '' : t; if (!S.rf.name || S.rf.name === was) S.rf.name = S.rf.type; if (t === 'Badrum' && !S.rf.id) S.rf.hum = 'Fuktig'; keepScroll(); }
+// Kompassen i rumsrutan: håll telefonen platt med toppen mot fönstret, så väljs det väderstreck fönstret vetter mot
+let rfCmp = null;
+async function rfCompass() {
+  if (rfCmp) return;
+  try { if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function' && await DeviceOrientationEvent.requestPermission() !== 'granted') return toast('Kompassen behöver tillåtelse'); } catch (e) { return toast('Kompassen gick inte att starta'); }
+  if (!('ondeviceorientationabsolute' in window) && !('ondeviceorientation' in window)) return toast('Telefonen har ingen kompass som appen kan läsa');
+  toast('Håll telefonen platt med toppen mot fönstret…');
+  const xs = [], ys = [];
+  const h = e => { let hd = null;
+    if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) hd = e.webkitCompassHeading;
+    else if (e.alpha != null && (e.absolute || e.type === 'deviceorientationabsolute')) hd = (360 - e.alpha) % 360;
+    if (hd == null) return; const r = hd * Math.PI / 180; xs.push(Math.sin(r)); ys.push(Math.cos(r)); };
+  const stop = () => { window.removeEventListener('deviceorientationabsolute', h, true); window.removeEventListener('deviceorientation', h, true); rfCmp = null; };
+  window.addEventListener('deviceorientationabsolute', h, true); window.addEventListener('deviceorientation', h, true);
+  rfCmp = setTimeout(() => { stop();
+    if (!xs.length) return toast('Kompassen svarade inte. Välj håll själv.');
+    const sx = xs.reduce((a, b) => a + b, 0), sy = ys.reduce((a, b) => a + b, 0), deg = (Math.atan2(sx, sy) * 180 / Math.PI + 360) % 360;
+    const [k, n] = DIRS[Math.round(deg / 45) % 8];
+    if (!S.rf) return; if (!S.rf.dirs.includes(k)) rfDir(k); else keepScroll();
+    toast('Fönstret vetter mot ' + String(n).toLowerCase() + ' (' + Math.round(deg) + '°)'); }, 1500);
+}
 function rfDir(d) { const a = S.rf.dirs; S.rf.dirs = a.includes(d) ? a.filter(x => x !== d) : a.concat(d).sort((x, y) => DIRS.findIndex(z => z[0] === x) - DIRS.findIndex(z => z[0] === y)); keepScroll(); }
 function roomFormV() {
   const f = S.rf; if (!f) return '';
@@ -2865,9 +2886,10 @@ function roomFormV() {
   <label class="fl" for="rfname">Namn</label><input id="rfname" maxlength="30" placeholder="t.ex. Vardagsrummet" value="${esc(f.name)}" oninput="S.rf.name=this.value">
   ${floors().length > 1 ? `<label class="fl">Våning</label><div class="chips2">${floors().map(x => `<button class="${(Number.isFinite(f.fl) ? f.fl : (f.id ? 0 : curFl())) === x.l ? 'on' : ''}" onclick="S.rf.fl=${x.l};keepScroll()">${esc(x.name)}</button>`).join('')}</div>` : ''}
   <label class="fl">Åt vilket håll vetter fönstren?</label>
-  <p class="mut" style="font-size:13px;margin:-2px 0 8px">${(f.wins || []).length || (f.bays || []).length ? 'Räknas fram från fönstren du ritat. Du kan ändra här, men det skrivs över när du ändrar fönstren.' : 'Tryck på ett eller flera väderstreck. Osäker? Öppna kompassen i mobilen och peka ut genom fönstret.' + (f.rect ? ' Du kan också rita in fönster i ritningen.' : '')}</p>
+  <p class="mut" style="font-size:13px;margin:-2px 0 8px">${(f.wins || []).length || (f.bays || []).length ? 'Räknas fram från fönstren du ritat. Du kan ändra här, men det skrivs över när du ändrar fönstren.' : 'Tryck på ett eller flera väderstreck. Osäker? Tryck på Mät med kompassen och håll telefonen platt med toppen mot fönstret.' + (f.rect ? ' Du kan också rita in fönster i ritningen.' : '')}</p>
   <div class="cpick"><div class="cring"></div><div class="cmid">${f.dirs.length ? f.dirs.join(' + ') : 'Inget<br>fönster'}</div>${pts}</div>
   <p class="mut" style="text-align:center;font-size:14px;margin:4px 0 0"><b style="color:var(--ink)">${esc(roomLightWord(f))}</b> · ${esc(dirTxt(f))}</p>
+  <div style="text-align:center;margin:10px 0 0"><button class="btn sm" onclick="rfCompass()">🧭 Mät med kompassen</button></div>
   <label class="tog"><input type="checkbox" ${f.lamp ? 'checked' : ''} onchange="S.rf.lamp=this.checked;keepScroll()"><span><b>Växtlampa i rummet</b></span></label>
   <div class="two"><div><label class="fl">Temperatur</label><div class="chips2 sm">${TEMPS.map(t => `<button class="${f.temp === t ? 'on' : ''}" onclick="S.rf.temp='${t}';keepScroll()">${t}</button>`).join('')}</div></div>
   <div><label class="fl">Luften</label><div class="chips2 sm">${HUMS.map(t => `<button class="${f.hum === t ? 'on' : ''}" onclick="S.rf.hum='${t}';keepScroll()">${t}</button>`).join('')}</div></div></div>
@@ -9055,6 +9077,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.275', '4 nov', ['Ritning: knappen Mät med kompassen i rumsrutan. Håll telefonen platt med toppen mot fönstret, så väljs väderstrecket åt dig']],
   ['Beta 0.274', '4 nov', ['Tillbaka-knappen och tillbaka-svepet på Android fungerar likadant överallt: ett steg tillbaka i taget, i rätt ordning', 'Tillbaka med en ruta öppen stänger bara rutan', 'Laddar du om sidan djupt inne i appen hamnar du kvar där, och tillbaka fungerar fortfarande', 'Öppnar du appen från en notis eller genväg tar tillbaka dig till Start i stället för att stänga appen']],
   ['Beta 0.273', '3 nov 23:15', ['Växtdatabasen öppnas mycket snabbare: bara korten som syns på skärmen ritas direkt', 'Den engelska översättningen laddas bara ner om du väljer engelska', 'Notiser på Android visar ett vitt löv i statusraden', 'Ikonerna och inloggningen laddas från appen själv i stället för från andra webbplatser, så starten går snabbare']],
   ['Beta 0.272', '3 nov 22:30', ['Snabbare flikbyte: menyn längst ner markerar den nya fliken direkt när du trycker, innan innehållet har ritats', 'Profil hämtar profil, inlägg och vänner samtidigt i stället för ett i taget']],
@@ -10238,7 +10261,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.274';
+const APP_VERSION = 'Beta 0.275';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
