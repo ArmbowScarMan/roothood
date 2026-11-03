@@ -417,6 +417,12 @@ button.shot{cursor:pointer}
 .gwrow .sw2{width:40px;height:40px;border-radius:10px;border:2.5px solid transparent;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
 .gwrow button.on .sw2{border-color:var(--acc)}
 .gwrow button.on{color:var(--acc)}
+.chips2.scrx{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:2px 2px 6px;scroll-snap-type:x proximity}.chips2.scrx::-webkit-scrollbar{display:none}.chips2.scrx button{flex:none;scroll-snap-align:start}
+.ovf:not(.end){-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 36px),transparent)}
+.tab .tabn{font-style:normal;display:inline-block;min-width:18px;margin-left:5px;padding:0 6px;border-radius:99px;background:var(--acc);color:#fff;font-size:11.5px;line-height:18px;text-align:center;vertical-align:1px}
+.seg2.msper,.seg2.sowtabs{gap:2px;padding:4px}.seg2.msper button,.seg2.sowtabs button{font-size:13px;padding:8px 0;white-space:nowrap}
+.sortsel{display:inline-flex;align-items:center;gap:6px;background:var(--surf);color:var(--ink);border-radius:999px;padding:6px 10px 6px 12px;box-shadow:var(--sh);font-size:13.5px;font-weight:600;cursor:pointer;position:relative}
+.sortsel select{-webkit-appearance:none;appearance:none;border:0;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right center;color:inherit;font:inherit;padding:0 16px 0 0;cursor:pointer;outline:none}
 .chips2.qfilt{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:4px}.chips2.qfilt::-webkit-scrollbar{display:none}.chips2.qfilt button{flex:none}
 .idr{display:flex;gap:12px;align-items:center;background:var(--surf);border-radius:20px;padding:14px;box-shadow:var(--sh)}
 .idr .grow{flex:1;min-width:0}
@@ -2590,14 +2596,20 @@ function wzLayout(rooms) {
   const need = rooms.filter(r => !r.rect && !WZ_OUT.includes(r.type)); if (!need.length) return;
   const placed = rooms.filter(r => r.rect), x0 = placed.length ? Math.max(...placed.map(r => r.rect.x + r.rect.w)) + 1 : 0, y0 = placed.length ? Math.min(...placed.map(r => r.rect.y)) : 0;
   const sz = r => WZ_SIZE[r.type] || [3, 3], d = r => (r.dirs || [])[0] || '', side = dd => ['t', 'r', 'b', 'l'].find(s => winDir(s) === dd);
-  const W = need.filter(r => d(r) === 'V'), E = need.filter(r => d(r) === 'O'), Sx = need.filter(r => d(r) === 'S' || d(r) === 'SO' || d(r) === 'SV'), Nx = need.filter(r => !W.includes(r) && !E.includes(r) && !Sx.includes(r));
+  const W = need.filter(r => d(r) === 'V'), E = need.filter(r => d(r) === 'O'), Sx = need.filter(r => d(r) === 'S' || d(r) === 'SO' || d(r) === 'SV'), Nx = need.filter(r => d(r) && !W.includes(r) && !E.includes(r) && !Sx.includes(r));
+  // Rum utan valt väderstreck fördelas på två rader så att hemmet blir kompakt, med hallen i mitten
+  const U = need.filter(r => !d(r)).sort((a, b) => sz(b)[0] - sz(a)[0]), wsum = L => L.reduce((a, r) => a + sz(r)[0], 0);
+  U.forEach(r => (wsum(Nx) <= wsum(Sx) ? Nx : Sx).push(r));
+  const mid = L => { const i = L.findIndex(r => r.type === 'Hall'); if (i < 0 || L.length < 3) return; const [h] = L.splice(i, 1); L.splice(Math.floor(L.length / 2), 0, h); };
+  mid(Nx); mid(Sx);
   const topH = Math.max(3, ...Nx.map(r => sz(r)[1])), botH = Math.max(3.5, ...Sx.map(r => sz(r)[1])), H = topH + botH, colW = 3.5;
   const xm = x0 + (W.length ? colW : 0); let wT = 0, wB = 0; Nx.forEach(r => wT += sz(r)[0]); Sx.forEach(r => wB += sz(r)[0]); const MW = Math.max(wT, wB, 4);
   const row = (L, y, h) => { let x = xm; const tot = L.reduce((a, r) => a + sz(r)[0], 0) || 1; L.forEach(r => { const w = sz(r)[0] * MW / tot; r.rect = { x: r1(x), y: r1(y), w: r1(w), h: r1(h) }; x += w; }); };
   row(Nx, y0, topH); row(Sx, y0 + topH, botH);
   const col = (L, x) => { let y = y0; L.forEach(r => { const h = H / L.length; r.rect = { x: r1(x), y: r1(y), w: colW, h: r1(h) }; y += h; }); };
   col(W, x0); col(E, xm + MW);
-  need.forEach(r => { const s = d(r) && side(d(r)); if (!s) return; const L = ['t', 'b'].includes(s) ? r.rect.w : r.rect.h, l = Math.min(1.6, Math.max(0.8, L - 0.8)); r.wins = [{ s, p: r1((L - l) / 2), l }]; });
+  // Fönster: mot valt väderstreck, annars på ytterväggen (inte i badrum och hall)
+  need.forEach(r => { const s = (d(r) && side(d(r))) || (['Badrum', 'Hall'].includes(r.type) ? '' : W.includes(r) ? 'l' : E.includes(r) ? 'r' : Sx.includes(r) ? 'b' : 't'); if (!s) return; const L = ['t', 'b'].includes(s) ? r.rect.w : r.rect.h, l = Math.min(1.6, Math.max(0.8, L - 0.8)); r.wins = [{ s, p: r1((L - l) / 2), l }]; });
 }
 async function wzSave() {
   const W = S.wz, rooms = S.home = S.home || []; S.busy = true; render();
@@ -3180,7 +3192,7 @@ function pick3pt(sx, sy) { if (!T3 || !T3.camera) return null; const THREE = T3.
 // Zooma mot en punkt: punkten stannar under fingrarna medan kameran åker mot den
 // Mjuk kontaktskugga (ser ut som att saker står på golvet)
 let blobTex = null;
-function blob3(THREE, d, dz) { if (!blobTex) { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 2, 32, 32, 31); g.addColorStop(0, 'rgba(0,0,0,0.45)'); g.addColorStop(0.6, 'rgba(0,0,0,0.18)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); blobTex = new THREE.CanvasTexture(c); }
+function blob3(THREE, d, dz) { if (!blobTex) { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 2, 32, 32, 31); g.addColorStop(0, 'rgba(0,0,0,0.62)'); g.addColorStop(0.55, 'rgba(0,0,0,0.26)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); blobTex = new THREE.CanvasTexture(c); }
   const m = new THREE.Mesh(new THREE.PlaneGeometry(d, dz || d), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, toneMapped: false })); m.rotation.x = -Math.PI / 2; m.renderOrder = 1; m.userData.nohit = 1; return m; }
 function zoom3(f, P) { const st = T3.st, d0 = st.dist, d1 = Math.max(0.3, Math.min(400, d0 * f)), k = 1 - d1 / d0, th = st.th != null ? st.th : 0.6;
   if (P && isFinite(P.x)) { st.tx += (P.x - st.tx) * k; st.tz += (P.z - st.tz) * k; st.th = Math.max(0.02, Math.min(6, th + (P.y - (T3.ty || 0) - th) * k)); }
@@ -3274,17 +3286,34 @@ function floorTex3d(THREE, kind, col) { return canvasTex3d(THREE, 512, 512, (x, 
 function aoTex3d(THREE) { return canvasTex3d(THREE, 4, 64, (x, w, h) => { const g = x.createLinearGradient(0, h, 0, 0); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.35, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, w, h); }); }
 function groundMat3d(THREE, span, dark, o) {
   const tex = canvasTex3d(THREE, 512, 512, (x, w, h) => {
-    const base = dark ? '#355A41' : '#AFC893'; x.fillStyle = base; x.fillRect(0, 0, w, h);
-    // stora mjuka fläckar så att gräset inte ser likformigt ut
-    for (let i = 0; i < 26; i++) { const px = Math.random() * w, py = Math.random() * h, r = 40 + Math.random() * 110, c = mixHex(base, Math.random() < 0.5 ? (dark ? '#335A3F' : '#B5CE96') : (dark ? '#1A2E22' : '#D8E5C6'), 0.6);
+    const base = dark ? '#355A41' : '#9EBF7E'; x.fillStyle = base; x.fillRect(0, 0, w, h);
+    // små tuvor (stora fläckar ligger i ett eget lager som inte upprepas)
+    for (let i = 0; i < 0; i++) { const px = Math.random() * w, py = Math.random() * h, r = 40 + Math.random() * 110, c = mixHex(base, Math.random() < 0.5 ? (dark ? '#335A3F' : '#B5CE96') : (dark ? '#1A2E22' : '#D8E5C6'), 0.6);
       [0, -w, w].forEach(ox => [0, -h, h].forEach(oy => { const g = x.createRadialGradient(px + ox, py + oy, 0, px + ox, py + oy, r); g.addColorStop(0, c + '88'); g.addColorStop(1, c + '00'); x.fillStyle = g; x.fillRect(px + ox - r, py + oy - r, r * 2, r * 2); })); }
     // fina grässtrån i nästan samma färg
-    for (let i = 0; i < 2600; i++) { const px = Math.random() * w, py = Math.random() * h; x.strokeStyle = mixHex(base, Math.random() < 0.5 ? '#000000' : (dark ? '#4E7A5A' : '#FFFFFF'), 0.12 + Math.random() * 0.14); x.lineWidth = 1; x.beginPath(); x.moveTo(px, py); x.lineTo(px + (Math.random() - 0.5) * 3, py - 2 - Math.random() * 4); x.stroke(); }
+    for (let i = 0; i < 260; i++) { const px = Math.random() * w, py = Math.random() * h, r = 3 + Math.random() * 9; x.fillStyle = mixHex(base, Math.random() < 0.55 ? (dark ? '#20382A' : '#7E9E5E') : (dark ? '#4E7A5A' : '#D3E2B4'), 0.25 + Math.random() * 0.2); x.globalAlpha = 0.5; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill(); x.globalAlpha = 1; }
+    for (let i = 0; i < 9000; i++) { const px = Math.random() * w, py = Math.random() * h; x.strokeStyle = mixHex(base, Math.random() < 0.5 ? '#000000' : (dark ? '#5E8C66' : '#F4FBE8'), 0.1 + Math.random() * 0.22); x.lineWidth = 1; x.beginPath(); x.moveTo(px, py); x.lineTo(px + (Math.random() - 0.5) * 2.5, py - 2 - Math.random() * 5); x.stroke(); }
   });
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(span * 3, span * 3);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(span * 4, span * 4);
   return new THREE.MeshStandardMaterial(Object.assign({ color: '#ffffff', map: tex, roughness: 0.95 }, o || {}));
 }
+// Grus, puts och stora variationer i gräset (ritas en gång och återanvänds)
+let gravelMat3, plasterTex3, grassVarMat3 = {};
+function gravel3d(THREE) { if (gravelMat3) return gravelMat3; const t = canvasTex3d(THREE, 256, 256, (x, w, h) => { x.fillStyle = '#A59E92'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 2600; i++) { const px = Math.random() * w, py = Math.random() * h, r = 1 + Math.random() * 3.2, v = 120 + Math.random() * 110 | 0; x.fillStyle = `rgb(${v},${v - 6},${v - 16})`; x.beginPath(); x.ellipse(px, py, r, r * (0.6 + Math.random() * 0.4), Math.random() * 3, 0, 7); x.fill(); } });
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; return (gravelMat3 = new THREE.MeshStandardMaterial({ map: t, roughness: 1, envMapIntensity: 0.4 })); }
+function plaster3d(THREE) { if (plasterTex3) return plasterTex3; plasterTex3 = canvasTex3d(THREE, 256, 256, (x, w, h) => { const d = x.createImageData(w, h); let n = 0;
+    for (let i = 0; i < w * h; i++) { n = n * 0.55 + (Math.random() - 0.5) * 0.45; const v = 244 + n * 22 + (Math.random() - 0.5) * 6 | 0; d.data[i * 4] = d.data[i * 4 + 1] = d.data[i * 4 + 2] = Math.max(0, Math.min(255, v)); d.data[i * 4 + 3] = 255; } x.putImageData(d, 0, 0); });
+  plasterTex3.wrapS = plasterTex3.wrapT = THREE.RepeatWrapping; plasterTex3.repeat.set(3, 1.5); return plasterTex3; }
+function grassVar3d(THREE, dark) { const k = dark ? 'd' : 'l'; if (grassVarMat3[k]) return grassVarMat3[k]; const t = canvasTex3d(THREE, 512, 512, (x, w, h) => { x.clearRect(0, 0, w, h);
+    for (let i = 0; i < 70; i++) { const px = Math.random() * w, py = Math.random() * h, r = 20 + Math.random() * 70, lt = Math.random() < 0.5, g = x.createRadialGradient(px, py, 0, px, py, r);
+      const c = lt ? (dark ? '120,160,110' : '226,236,190') : (dark ? '10,24,14' : '70,98,50'); g.addColorStop(0, `rgba(${c},${lt ? 0.22 : 0.28})`); g.addColorStop(1, `rgba(${c},0)`); x.fillStyle = g; x.fillRect(px - r, py - r, r * 2, r * 2); } });
+  return (grassVarMat3[k] = new THREE.MeshStandardMaterial({ map: t, transparent: true, depthWrite: false, roughness: 1, envMapIntensity: 0.4, polygonOffset: true, polygonOffsetFactor: -1 })); }
 function build3d(first) { ALLFL = true; try { build3dInner(first); } finally { ALLFL = false; } env3d(); }
+// Rum med väderstreck men utan ritat fönster får ett fönster i 3D (det sparade hemmet ändras inte)
+function winFill3d(r) { if (!r || !r.rect || (r.wins || []).some(w => !w.k) || !(r.dirs || []).length || ['Badrum', 'Hall'].includes(r.type)) return r;
+  const s = ['t', 'r', 'b', 'l'].find(x => winDir(x) === r.dirs[0]); if (!s) return r; const L = ['t', 'b'].includes(s) ? r.rect.w : r.rect.h, l = Math.min(1.6, Math.max(0.8, L - 0.8));
+  return Object.assign({}, r, { wins: (r.wins || []).concat([{ s, p: r1((L - l) / 2), l, auto: 1 }]) }); }
 function build3dInner(first) {
   if (!T3) return; const THREE = T3.THREE, sc = T3.scene, dark = document.documentElement.getAttribute('data-theme') === 'dark' || (document.documentElement.getAttribute('data-theme') !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
   sc.children.slice().forEach(o => o.traverse(x => { if (x.geometry) x.geometry.dispose(); if (x.material) { (Array.isArray(x.material) ? x.material : [x.material]).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); }); } })); sc.clear();
@@ -3296,26 +3325,34 @@ function build3dInner(first) {
         x.fillStyle = dark ? 'rgba(255,240,210,0.25)' : 'rgba(255,250,235,0.9)'; x.beginPath(); x.ellipse(w * 0.3, h * 0.22, 14, 9, 0, 0, Math.PI * 2); x.fill(); });
       et.mapping = THREE.EquirectangularReflectionMapping; if (THREE.SRGBColorSpace) et.colorSpace = THREE.SRGBColorSpace; T3.envm[k] = pm.fromEquirectangular(et).texture; et.dispose(); pm.dispose(); }
     sc.environment = T3.envm[k]; } else sc.environment = null;
-  const WH = S.low3d ? 1.0 : 2.5, TH = 0.12, mats = {}, M = (col, o) => mats[col + JSON.stringify(o || {})] || (mats[col + JSON.stringify(o || {})] = new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.85 }, o || {})));
+  const WH = S.low3d ? 1.0 : 2.5, TH = 0.12, mats = {}, M = (col, o) => mats[col + JSON.stringify(o || {})] || (mats[col + JSON.stringify(o || {})] = new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.85, envMapIntensity: 0.55 }, o || {})));
   const FLH = WH + 0.25, G = {}, F3 = floors(), fyOf = l => { const f = F3.find(x => x.l === l) || {}; return l >= 0 ? l * FLH : l * FLH + (f.sub ? 1.4 : 0); }, floorVis = l => S.f3 == null || l <= S.f3;
   T3.fyOf = fyOf; let cur = null; const grp = l => G[l] || (G[l] = (() => { const g = new THREE.Group(); g.position.y = fyOf(l); sc.add(g); return g; })());
   const add = (m, cast, recv) => { m.castShadow = cast !== false; m.receiveShadow = recv !== false; (cur || sc).add(m); return m; };
   let WF = null; const box = (x1, z1, x2, z2, y0, h, th, col, o) => { const L = Math.hypot(x2 - x1, z2 - z1); if (L < 0.01 || h <= 0) return; const g = new THREE.BoxGeometry(L + (o && o.noext ? 0 : th), h, th);
     let mt = M(col, o && o.mat); const wf = WF && !(o && o.mat) ? WF : null;
     if (wf) { const nx = -(z2 - z1) / L, nz = (x2 - x1) / L, mx = (x1 + x2) / 2, mz = (z1 + z2) / 2, cp = wallFaceCol(wf, mx, mz, nx, nz, 1), cn = wallFaceCol(wf, mx, mz, nx, nz, -1), b0 = M(cp === cn ? cp : col); mt = cp === cn ? M(cp) : [b0, b0, b0, b0, M(cp), M(cn)]; }
+    // Puts på väggarna och ett mörkare krön. Krönets färg ligger i geometrin, så väggen ritas fortfarande med ett enda material.
+    if (h >= 0.5 && !(o && o.mat) && !S.low3d) { const pm = c => mats['puts' + c] || (mats['puts' + c] = new THREE.MeshStandardMaterial({ color: c, roughness: 0.93, envMapIntensity: 0.5, map: plaster3d(THREE), vertexColors: true }));
+      mt = Array.isArray(mt) ? mt.map(x => pm('#' + x.color.getHexString())) : pm('#' + mt.color.getHexString());
+      const vc = new Float32Array(g.attributes.position.count * 3).fill(1); for (let i = 8; i < 12; i++) vc[i * 3] = vc[i * 3 + 1] = vc[i * 3 + 2] = 0.58; g.setAttribute('color', new THREE.BufferAttribute(vc, 3)); }
     const m = new THREE.Mesh(g, mt); if (wf) m.userData.wall = wf; m.position.set((x1 + x2) / 2, y0 + h / 2, (z1 + z2) / 2); m.rotation.y = -Math.atan2(z2 - z1, x2 - x1); return add(m, !(o && o.mat && o.mat.transparent)); };
   const shape = (pts, y, col, o) => { const sh = new THREE.Shape(pts.map(q => new THREE.Vector2(q[0], -q[1]))), m = new THREE.Mesh(new THREE.ShapeGeometry(sh), M(col, o)); m.rotation.x = -Math.PI / 2; m.position.y = y; return add(m, false, true); };
   // Golv: trägolv i de flesta rum, kakel i kök, badrum och hall. Golvlister och en mjuk skugga där golv möter vägg.
   const ftex = {}, fmat = (kind, col) => { const k = kind + col; if (ftex[k]) return ftex[k];
       const tex = floorTex3d(THREE, kind, col); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(1 / 1.2, 1 / 1.2); if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
       if (T3.renderer && T3.renderer.capabilities) tex.anisotropy = Math.min(8, T3.renderer.capabilities.getMaxAnisotropy());
-      return (ftex[k] = new THREE.MeshStandardMaterial({ map: tex, roughness: kind === 'tile' ? 0.45 : kind === 'plain' ? 0.9 : 0.62 })); };
+      return (ftex[k] = new THREE.MeshStandardMaterial({ map: tex, roughness: kind === 'tile' ? 0.45 : kind === 'plain' ? 0.9 : 0.62, envMapIntensity: 0.6 })); };
   const floor3 = (pts, y, col, kind) => { const sh = new THREE.Shape(pts.map(q => new THREE.Vector2(q[0], -q[1]))), m = new THREE.Mesh(new THREE.ShapeGeometry(sh), fmat(kind, col)); m.rotation.x = -Math.PI / 2; m.position.y = y; return add(m, false, true); };
   const aoMat = new THREE.MeshBasicMaterial({ map: aoTex3d(THREE), transparent: true, depthWrite: false, color: '#000000', opacity: 0.32 });
   const edge3 = (q, c, outer) => { const L = Math.hypot(q[2] - q[0], q[3] - q[1]); if (L < 0.05) return; let nx = -(q[3] - q[1]) / L, nz = (q[2] - q[0]) / L; if ((c[0] - (q[0] + q[2]) / 2) * nx + (c[1] - (q[1] + q[3]) / 2) * nz < 0) { nx = -nx; nz = -nz; }
     const o = TH / 2 + 0.009; box(q[0] + nx * o, q[1] + nz * o, q[2] + nx * o, q[3] + nz * o, 0.01, 0.075, 0.018, '#FBF9F4', { noext: 1 });
     const mx = (q[0] + q[2]) / 2 - nx * (TH / 2 + 0.2), mz = (q[1] + q[3]) / 2 - nz * (TH / 2 + 0.2);
-    if (outer && !roomAt(mx, mz)) { const e = TH / 2 + 0.015; box(q[0] - nx * e, q[1] - nz * e, q[2] - nx * e, q[3] - nz * e, -0.02, 0.32, 0.03, '#77726B', { noext: 0 }); }
+    if (outer && !roomAt(mx, mz)) { const e = TH / 2 + 0.015; box(q[0] - nx * e, q[1] - nz * e, q[2] - nx * e, q[3] - nz * e, -0.02, 0.32, 0.03, '#77726B', { noext: 0 });
+      const gw = 0.5, a0 = TH / 2 + 0.03, G0 = [[q[0] - nx * a0, q[1] - nz * a0], [q[2] - nx * a0, q[3] - nz * a0], [q[2] - nx * (a0 + gw), q[3] - nz * (a0 + gw)], [q[0] - nx * (a0 + gw), q[1] - nz * (a0 + gw)]];
+      const gg = new THREE.BufferGeometry(), L2 = Math.hypot(q[2] - q[0], q[3] - q[1]) / 0.6; gg.setAttribute('position', new THREE.BufferAttribute(new Float32Array([G0[0][0], 0.0015, G0[0][1], G0[1][0], 0.0015, G0[1][1], G0[2][0], 0.0015, G0[2][1], G0[3][0], 0.0015, G0[3][1]]), 3));
+      gg.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([0, 0, L2, 0, L2, 1, 0, 1]), 2)); gg.setIndex([0, 1, 2, 0, 2, 3]); gg.computeVertexNormals(); if (gg.attributes.normal.array[1] < 0) gg.setIndex([0, 2, 1, 0, 3, 2]); gg.computeVertexNormals();
+      const gm = new THREE.Mesh(gg, gravel3d(THREE)); gm.receiveShadow = true; (cur || sc).add(gm); }
     const w = 0.38, a = TH / 2, P = [[q[0] + nx * a, q[1] + nz * a], [q[2] + nx * a, q[3] + nz * a], [q[2] + nx * (a + w), q[3] + nz * (a + w)], [q[0] + nx * (a + w), q[1] + nz * (a + w)]];
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([P[0][0], 0.013, P[0][1], P[1][0], 0.013, P[1][1], P[2][0], 0.013, P[2][1], P[3][0], 0.013, P[3][1]]), 3));
     geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]), 2)); geo.setIndex([0, 2, 1, 0, 3, 2]); geo.computeVertexNormals();
@@ -3325,15 +3362,16 @@ function build3dInner(first) {
   const all = [].concat(...planRooms().map(roomPoly), ...planAreas().map(a => a.pts), ...planGarden().map(t => [[t.x - (t.r || 1), t.y - (t.r || 1)], [t.x + (t.r || 1), t.y + (t.r || 1)]]), ...planFurn().map(f => [[f.x, f.y]]), ...planWalls().map(wl => [[wl.x1, wl.y1], [wl.x2, wl.y2]])); const xs = all.map(q => q[0]), zs = all.map(q => q[1]);
   const b = T3.bounds = [Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs)], cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2, span = Math.max(10, b[2] - b[0], b[3] - b[1]);
   const g = new THREE.Mesh(new THREE.PlaneGeometry(span * 6, span * 6), groundMat3d(THREE, span, dark, F3.some(f3 => f3.l < 0 && !f3.sub) && floorVis(-1) ? { transparent: true, opacity: 0.4, depthWrite: false } : null)); g.rotation.x = -Math.PI / 2; g.position.set(cx, -0.02, cz); add(g, false, true);
-  sc.add(new THREE.HemisphereLight(dark ? '#9fb7c8' : '#ffffff', dark ? '#1b2a20' : '#cbd6c2', (dark ? 0.7 : 1.0) * HEMI3));
-  const th = northDeg() * Math.PI / 180, sx = -Math.sin(th), sz = Math.cos(th), sun = new THREE.DirectionalLight('#fff4e0', (dark ? 1.0 : 1.6) * SUN3);
+  if (!S.low3d) { const ov = new THREE.Mesh(new THREE.PlaneGeometry(span * 6, span * 6), grassVar3d(THREE, dark)); ov.rotation.x = -Math.PI / 2; ov.position.set(cx, -0.019, cz); ov.renderOrder = 0; add(ov, false, true); }
+  sc.add(new THREE.HemisphereLight(dark ? '#9fb7c8' : '#f4f8ff', dark ? '#1b2a20' : '#b9c6ae', (dark ? 0.7 : 0.68) * HEMI3));
+  const th = northDeg() * Math.PI / 180, sx = -Math.sin(th), sz = Math.cos(th), sun = new THREE.DirectionalLight('#fff1d8', (dark ? 1.0 : 1.85) * SUN3);
   sunPlace3d(sun, cx, cz, span); sun.target.position.set(cx, 0, cz); sun.castShadow = true;
   Object.assign(sun.shadow.camera, { left: -span, right: span, top: span, bottom: -span, near: 0.5, far: span * 4 }); sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02; sc.add(sun); sc.add(sun.target);
   // tomt och ytor
   planAreas().slice().sort((a, c) => (c.t === 'lot') - (a.t === 'lot')).forEach((a, i) => { const y = 0.002 + i * 0.001, col = AREA3[a.t] || '#7FB35B';
     if (a.t === 'lot') shape(a.pts, -0.01, col); else area3d(a, THREE, M, sc, slab, shape, y); });
   // rum: golv och väggar
-  planRooms().filter(r => floorVis(flOf(r))).forEach(r => {
+  planRooms().filter(r => floorVis(flOf(r))).map(winFill3d).forEach(r => {
     cur = grp(flOf(r)); const v = roomSun(r), wc = r.wall || '#F4EFE6'; if (flOf(r) > 0) slab(roomPoly(r), -0.22, 0.22, '#B9AD98'); const fcol = r.floor || (v >= 2.5 ? '#E3C99D' : v >= 1.7 ? '#DCC7A6' : '#CDBCA3'), fkind = floorKindOf(r);
     if (S.low3d) shape(roomPoly(r), 0.01, fcol); else floor3(roomPoly(r), 0.01, fcol, fkind);
     const rc0 = roomPoly(r).reduce((a2, q) => [a2[0] + q[0], a2[1] + q[1]], [0, 0]).map(v2 => v2 / roomPoly(r).length);
@@ -3447,7 +3485,7 @@ function env3d() { try { if (!T3 || !T3.scene) return; const THREE = T3.THREE, s
     sc.background = canvasTex3d(THREE, 4, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, cols[0]); g.addColorStop(0.6, cols[1]); g.addColorStop(1, cols[2]); x.fillStyle = g; x.fillRect(0, 0, w, h); }); mid = cols[1]; }
   else sc.background = skyTex3d(THREE, true);
   sc.fog = (rainy || foggy) ? new THREE.Fog(mid, foggy ? 6 : 25, foggy ? 55 : 140) : null;
-  sc.children.forEach(o => { if (o.isDirectionalLight) { o.intensity = (dark ? 1.0 : 1.6) * SUN3 * (SUNF3[season] || 1) * wf * v3br(dark); o.castShadow = S.v3sh !== false; } if (o.isHemisphereLight) o.intensity = (dark ? 0.7 : 1.0) * HEMI3 * v3br(dark); });
+  sc.children.forEach(o => { if (o.isDirectionalLight) { o.intensity = (dark ? 1.0 : 1.85) * SUN3 * (SUNF3[season] || 1) * wf * v3br(dark); o.castShadow = S.v3sh !== false; } if (o.isHemisphereLight) o.intensity = (dark ? 0.7 : 0.68) * HEMI3 * v3br(dark); });
   sc.traverse(o => { if (o.userData && o.userData.lbl) o.visible = S.v3lab !== false; });
   if (T3.snowG) { sc.remove(T3.snowG); T3.snowG.geometry.dispose(); T3.snowG = null; }
   if (snowing && T3.bounds) { const b = T3.bounds, span = Math.max(12, b[2] - b[0], b[3] - b[1]) + 12, cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2, H2 = span * 1.5;
@@ -5750,7 +5788,7 @@ function diaryV(m, inModal) {
     <div class="jrow"><input id="jd${m.id}" type="date" value="${today()}" max="${today()}" aria-label="Datum"><button class="btn sm" onclick="jNote(${m.id})">Spara</button></div></div>
   ${m.interval ? `<label class="remrow"><input type="checkbox" ${m.remind !== false ? 'checked' : ''} onchange="setRemind(${m.id}, this.checked)"><span><b>Påminn mig när den behöver vatten</b><span class="mut">${m.remind !== false ? 'Var ' + m.interval + ':e dag, i appen och som notis' : 'Av. Du sköter vattningen själv'}</span></span></label>` : ''}
   ${nextStepsV(m)}
-  <div class="chips2 sm jfilt" role="tablist">${[['all', 'Allt'], ['care', 'Skötsel'], ['note', 'Anteckningar'], ['mat', 'Mått']].map(([k, n]) => `<button class="${f === k ? 'on' : ''}" role="tab" aria-selected="${f === k}" onclick="S.jf=S.jf||{};S.jf[${m.id}]='${k}';keepMain()">${n}</button>`).join('')}<button onclick="openDetails(${m.id})">${ic('ph-ruler', 'currentColor', 14)} Mät</button></div>
+  <div class="chips2 sm jfilt scrx" role="tablist">${[['all', 'Allt'], ['care', 'Skötsel'], ['note', 'Anteckningar'], ['mat', 'Mått']].map(([k, n]) => `<button class="${f === k ? 'on' : ''}" role="tab" aria-selected="${f === k}" onclick="S.jf=S.jf||{};S.jf[${m.id}]='${k}';keepMain()">${n}</button>`).join('')}<button onclick="openDetails(${m.id})">${ic('ph-ruler', 'currentColor', 14)} Mät</button></div>
   ${items}</div>`;
 }
 
@@ -5941,7 +5979,10 @@ function iconize(root) {
     n.parentNode.replaceChild(frag, n);
   }
 }
+function rowCenter() { document.querySelectorAll('.tabs, .scrx, .chips2.qfilt').forEach(p => { const ov = p.scrollWidth > p.clientWidth + 2; p.classList.toggle('ovf', ov); if (!ov || p.dataset.c === (p.querySelector('.on') || {}).textContent) return; const on = p.querySelector('.on'); if (!on) return; p.dataset.c = on.textContent; const a = p.getBoundingClientRect(), b = on.getBoundingClientRect(); p.scrollLeft += (b.left + b.width / 2) - (a.left + a.width / 2); });
+  document.querySelectorAll('.tabs.ovf, .scrx.ovf, .chips2.qfilt.ovf').forEach(p => { if (p.dataset.sl) return; p.dataset.sl = 1; p.addEventListener('scroll', () => p.classList.toggle('end', p.scrollLeft + p.clientWidth >= p.scrollWidth - 4), { passive: true }); }); }
 function render() {
+  requestAnimationFrame(rowCenter);
   HV = otherHome();
   { const fb = $('#fab'); if (fb) fb.hidden = true; }
   { const bb = $('#bugb'); if (bb) bb.hidden = !S.user || S.tool === 'chat' || !!S.modal; }
@@ -6003,7 +6044,7 @@ let navStack = [], navSnap = null, navY = 0;
 // Statistik: räkna att en funktion öppnades (högst en gång per funktion och 10 minuter)
 const trackSent = {};
 function featOf(h) { const a = String(h || '').replace(/^#/, '').split('/'); if (a[0] === 't') return a[1] === 'experts' && S.xmode === 'detect' ? 'detect' : a[1]; if (a[0] === 'c') return 'comm-' + (a[1] || 'q'); if (a[0] === 'v') return 'vaxt'; return { home: 'hem', mine: 'samling', me: 'profil' }[a[0]] || null; }
-function trackUse(h) { const f = featOf(h); if (!f || !S.user || DEMO || !sb) return; const now = Date.now(); if (trackSent[f] && now - trackSent[f] < 6e5) return; trackSent[f] = now; try { sb.rpc('track_use', { p_feature: f.slice(0, 40).toLowerCase().replace(/[^a-z0-9_-]/g, '') }).then(() => {}, () => {}); } catch (e) { } }
+function trackUse(h) { const f = featOf(h); if (!f || !S.user || DEMO || !sb || isAdmin()) return; const now = Date.now(); if (trackSent[f] && now - trackSent[f] < 6e5) return; trackSent[f] = now; try { sb.rpc('track_use', { p_feature: f.slice(0, 40).toLowerCase().replace(/[^a-z0-9_-]/g, '') }).then(() => {}, () => {}); } catch (e) { } }
 function navTake() { const o = {}; NAVK.forEach(k => o[k] = S[k]); return o; }
 function navBack() { if (S.tool === 'house' && S.hDirty) saveHomeNow(true); stopLight(); if (navStack.length) { try { history.back(); return; } catch (e) { } } S.tool = null; S.sel = null; S.post = null; if (S.tab === 'home') render(); else go('home'); }
 function trackView() {
@@ -6171,8 +6212,7 @@ function dbV() {
     <button class="dbfb ${n ? 'on' : ''}" onclick="openModal('dbf')" aria-label="Filter${n ? ', ' + n + ' valda' : ''}">${ic('ph-sliders-horizontal', 'currentColor', 20)}${n ? `<em>${n}</em>` : ''}</button></div>
   <div class="seg2 dbenv" role="tablist">${[['all', 'Alla'], ['in', 'Inomhus'], ['out', 'Utomhus']].map(([k, t]) => `<button class="${S.env === k ? 'on' : ''}" role="tab" aria-selected="${S.env === k}" onclick="setEnv('${k}')">${t}</button>`).join('')}</div>
   <div class="dbact">${dbChips()}</div>
-  <div class="sec"><h2 id="count">Växter</h2></div>
-  <div class="chips2 sm dbsortc" role="group" aria-label="Sortera">${DB_SORT.map(([k, t]) => `<button class="${(S.dsort || 'az') === k ? 'on' : ''}" aria-pressed="${(S.dsort || 'az') === k}" data-k="${k}" onclick="setDsort('${k}')">${t}</button>`).join('')}</div>
+  <div class="sec"><h2 id="count">Växter</h2><label class="sortsel">${ic('ph-sort-ascending', 'currentColor', 16)}<select aria-label="Sortera" onchange="setDsort(this.value)">${DB_SORT.map(([k, t]) => `<option value="${k}"${(S.dsort || 'az') === k ? ' selected' : ''}>${t}</option>`).join('')}</select></label></div>
   <div class="grid" id="list"></div>`;
 }
 // Filter och sortering i Växtbiblioteket: en filterknapp, valda filter som chips som går att ta bort
@@ -6681,7 +6721,7 @@ function modFeedV(D) {
   const FIL = [['all', 'Alla', () => true], ['photo', 'Med bild', r => r.has_photo], ['off', 'Kanske inte om växter', r => notPlanty(r.excerpt)], ['rep', 'Rapporterade', r => (r.reports || 0) > 0], ['hid', 'Dolda', r => r.hidden]];
   const ff = (FIL.find(x => x[0] === f) || FIL[0])[2];
   const L = D.filter(r => ff(r) && (ty === 'all' || r.kind === ty) && (!city || r.city === city) && (!q || (r.excerpt || '').toLowerCase().includes(q) || (r.author || '').toLowerCase().includes(q)));
-  return `<div class="pad" style="padding-top:10px"><div class="chips2 mfilt">${FIL.map(([k, n, fn]) => `<button class="${f === k ? 'on' : ''}" onclick="S.mf='${k}';S.modSel=[];keepMain()">${n} <small>${cnt(fn)}</small></button>`).join('')}</div>
+  return `<div class="pad" style="padding-top:10px"><div class="chips2 mfilt scrx">${FIL.map(([k, n, fn]) => `<button class="${f === k ? 'on' : ''}" onclick="S.mf='${k}';S.modSel=[];keepMain()">${n} <small>${cnt(fn)}</small></button>`).join('')}</div>
   <div class="mtools"><select aria-label="Typ" onchange="S.mty=this.value;keepMain()">${[['all', 'Inlägg och svar'], ['post', 'Bara inlägg'], ['answer', 'Bara svar']].map(([k, n]) => `<option value="${k}" ${ty === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
   <select aria-label="Ort" onchange="S.mcity=this.value;keepMain()"><option value="">Alla orter</option>${cities.map(c => `<option ${c === city ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
   <input type="search" placeholder="Sök text eller namn" value="${esc(S.mq2 || '')}" oninput="S.mq2=this.value;clearTimeout(window.__mqT);window.__mqT=setTimeout(keepMain,250)"></div>
@@ -6703,12 +6743,12 @@ const FEAT_EXTRA = { 'hem': 'Start', 'samling': 'Min samling', 'profil': 'Profil
 function featName(f) { return FEAT_EXTRA[f] || (QPH[f] && QPH[f][1]) || TOOL_LABEL[f] || f; }
 async function msUserToggle(id) { if (S.msUser === id) { S.msUser = null; return keepMain(); } S.msUser = id; S.msUF = S.msUF || {}; keepMain(); if (S.msUF[id]) return;
   const P = msPer(); try { S.msUF[id] = await (P.h ? api.modUsageUserFeaturesH(id, P.h) : api.modUsageUserFeatures(id, P.d)); } catch (e) { S.msUF[id] = { err: e.message === 'STATS_NOT_READY' ? (P.h ? 'Kör SQL-filen 060-statistik-per-timme i Supabase först.' : 'Kör SQL-filen 059-statistik-per-testare i Supabase först.') : errMsg(e) }; } keepMain(); }
-const MS_PER = [['h12', '12 tim'], ['h24', '24 tim'], ['h48', '48 tim'], ['d7', '7 dagar'], ['d30', '30 dagar'], ['d90', '90 dagar']];
+const MS_PER = [['h12', '12 t'], ['h24', '24 t'], ['h48', '48 t'], ['d7', '7 d'], ['d30', '30 d'], ['d90', '90 d']];
 function msPer() { const k = S.msP || 'd30', n = +k.slice(1); return k[0] === 'h' ? { h: n } : { d: n }; }
 function msHourRows(rows, h) { const m = new Map((rows || []).map(r => [new Date(r.hour).getTime(), r])), now = new Date(); now.setMinutes(0, 0, 0); const out = [];
   for (let i = h - 1; i >= 0; i--) { const t = now.getTime() - i * 36e5, r = m.get(t); out.push({ day: new Date(t).toLocaleString('sv-SE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }), users: r ? r.users : 0, uses: r ? r.uses : 0 }); } return out; }
 function modStatsV(D) { if (!D || !D.f) return '<p class="mut" style="margin:12px 18px">Hämtar…</p>'; const P = msPer(), pk = S.msP || 'd30', per = P.h ? 'timme' : 'dag', mx = Math.max(1, ...D.f.map(x => x.users)), md = Math.max(1, ...D.days.map(x => x.users)), tot = D.f.reduce((a, x) => a + x.uses, 0);
-  return `<div class="pad"><div class="chips2 sm">${MS_PER.map(([k, n]) => `<button class="${pk === k ? 'on' : ''}" onclick="S.msP='${k}';S.modData=null;render();loadMod()">${n}</button>`).join('')}</div>
+  return `<div class="pad"><div class="seg2 inset msper" role="tablist" aria-label="Period">${MS_PER.map(([k, n]) => `<button class="${pk === k ? 'on' : ''}" role="tab" aria-selected="${pk === k}" onclick="S.msP='${k}';S.modData=null;render();loadMod()">${n}</button>`).join('')}</div>
   <div class="setcard" style="margin-top:12px;padding:14px"><b>Aktiva personer per ${per}</b><div class="msday" role="img" aria-label="Aktiva personer per ${per}">${D.days.map(x => `<span title="${x.day}: ${x.users} personer" style="height:${Math.round(x.users / md * 100)}%"></span>`).join('')}</div><small class="mut">${D.days.length ? D.days[0].day + ' till ' + D.days[D.days.length - 1].day + ' · högst ' + md + ' personer på en ' + per : 'Ingen aktivitet än'}</small></div>
   <div class="setcard" style="margin-top:12px;padding:14px"><b>Funktioner</b><small class="mut" style="display:block;margin:2px 0 10px">Antal personer som använt funktionen. Tryck för att se vilka. Totalt ${tot} öppningar.</small>
   ${D.f.map(x => `<button class="msrow ${S.msFeat === x.feature ? 'on' : ''}" onclick="S.msFeat=S.msFeat===${jsArg(x.feature)}?null:${jsArg(x.feature)};S.modData=Object.assign({},S.modData,{users:null});render();loadMod()"><span class="msn">${esc(featName(x.feature))}</span><span class="msb"><i style="width:${Math.round(x.users / mx * 100)}%"></i></span><span class="msv">${x.users} <small>(${x.uses})</small></span></button>`).join('') || '<p class="mut">Ingen statistik än. Den fylls på när folk använder appen.</p>'}</div>
@@ -6787,7 +6827,7 @@ function modV() {
     ${S.modRes && !S.modRes.length ? '<p class="mut">Ingen hittades.</p>' : ''}<p class="mut" style="font-size:13px">Moderatorer kan granska rapporter och dölja inlägg och svar. Bara du som admin kan lägga till eller ta bort moderatorer.</p></div>`;
   }
   return `${topbar('Moderering', 'S.tool=null;render()')}
-  <div class="pad" style="padding-top:8px"><div class="chips2">${tabs.map(([k, l]) => `<button class="${t === k ? 'on' : ''}" onclick="modTab('${k}')">${l}</button>`).join('')}</div></div>${body}
+  <div class="tabs" role="tablist" style="margin-top:6px">${tabs.map(([k, l]) => `<button class="tab ${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="modTab('${k}')">${l.replace(/ \((\d+)\)$/, ' <em class="tabn">$1</em>')}</button>`).join('')}</div>${body}
   <p class="mut" style="font-size:12.5px;margin:14px 18px 24px">Ett inlägg eller svar döljs automatiskt när tre olika personer har rapporterat det. Du kan välja att behålla det eller dölja det.</p>`;
 }
 // ===== Blockera =====
@@ -8887,6 +8927,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.270', '3 nov 16:00', ['3D: hem från mallen får en riktig planlösning i två rader med hallen i mitten, och fönster mot ytterväggen', '3D: rum med valt väderstreck men utan ritat fönster får ett fönster i 3D', '3D: tydligare sol och skuggor, gräs som ser ut som gräs, grus längs husväggarna och väggar med puts och mörkare krön', 'Moderering: flikarna ligger på en rad som går att skrolla, och perioderna i statistiken är en knapprad', 'Växtbiblioteket: sortering i en liten väljare i stället för sju knappar', 'Filterrader går att skrolla i sidled och tonar ut i kanten när det finns mer', 'Statistiken räknar inte admin'] ],
   ['Beta 0.269', '3 nov 13:40', ['Identifiera: ta upp till 5 bilder av blad, blomma och hela växten, så blir svaret säkrare', 'Identifiera: varje förslag märks Säker, Trolig eller Osäker, och vid osäkra svar ber appen om en bild till', 'Identifiera: jämförelsebilder från Pl@ntNet och fem förslag i stället för tre', 'Identifiera: hittar växten i appen även när det latinska namnet har bytts, till exempel Calathea och Sansevieria', 'Identifiera: Vilken sort? Appen mäter vitt, gult, rosa och silver i bladen och visar artens sorter som liknar bilden mest', 'Varningsrutor går att läsa i mörkt läge'] ],
   ['Beta 0.268', '3 nov 11:05', ['Notiser: varje notis har egen markering Ny eller Läst. Tryck på en notis för att markera den som läst, och Markera alla som lästa gör det för alla. Öppna fliken markerar inte längre allt. Olästa meddelanden visas i Notiser med antal och alla samtal, och Meddelanden visar antal olästa överst', 'Snabbfrågan: frågor om när man ska så ger såtider ur Såkalendern för din zon', 'Snabbfrågan: frågor om varför en växt inte blommar ger vanliga orsaker och särskilda råd för julkaktus, orkidé, amaryllis och pelargon', 'Engelska: notiser och snabbfrågans svar översätts, och text som börjar med För blir inte längre fel', '44 nya inomhusväxter, bland annat rumslind, rumsgran, kamelia och doftranka. Nu finns 1000 krukväxter, kaktusar och orkidéer'] ],
   ['Beta 0.267', '3 nov 10:50', ['Statistik: välj senaste 12, 24 eller 48 timmar, med en graf per timme'] ],
@@ -9419,7 +9460,7 @@ function sowV() {
   }
   return `${topbar('Såkalender', 'closeTool()')}
   <div class="pad">${zone}${sowFrostV()}</div>
-  <div class="pad" style="margin-top:12px"><div class="chips2 sowtabs">${[['nu', 'Nu'], ['m', 'Per månad'], ['a', 'Alla grödor'], ['mina', 'Mina sådder' + (sowLog().length ? ' ' + sowLog().length : '')]].map(([k, n]) => `<button class="${tab === k ? 'on' : ''}" onclick="S.sowTab='${k}';render()">${n}</button>`).join('')}</div></div>
+  <div class="pad" style="margin-top:12px"><div class="seg2 inset sowtabs" role="tablist">${[['nu', 'Nu'], ['m', 'Per månad'], ['a', 'Alla grödor'], ['mina', 'Mina sådder' + (sowLog().length ? ' ' + sowLog().length : '')]].map(([k, n]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" onclick="S.sowTab='${k}';render()">${n}</button>`).join('')}</div></div>
   ${body}
   <p class="mut" style="margin:16px 18px 0;font-size:12.5px">Datumen räknas från ungefärlig sista vårfrost och första höstfrost i din zon. Ett år kan vara två veckor tidigare eller senare, och läget i trädgården spelar roll. Följ väderprognosen innan du planterar ut frostkänsliga växter. Uppgifterna kommer från svenska fröföretag, koloniträdgårdsförbundet och SMHI:s frostdata.</p>
   <div style="height:24px"></div>`;
@@ -10065,7 +10106,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.269';
+const APP_VERSION = 'Beta 0.270';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];

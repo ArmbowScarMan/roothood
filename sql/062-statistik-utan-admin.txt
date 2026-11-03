@@ -1,0 +1,17 @@
+-- Roothood 062: konton med rollen admin räknas inte i statistiken.
+-- Kör en gång i Supabase SQL Editor. Tidigare rader för admin tas bort, och nya sparas inte.
+create or replace function public.track_use(p_feature text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or p_feature !~ '^[a-z0-9_-]{1,40}$' then return; end if;
+  if exists (select 1 from profiles where id = auth.uid() and role = 'admin') then return; end if;
+  insert into usage_daily (user_id, feature, day, uses) values (auth.uid(), p_feature, current_date, 1)
+  on conflict (user_id, feature, day) do update set uses = least(usage_daily.uses + 1, 10000);
+  insert into usage_hourly (user_id, feature, hour, uses) values (auth.uid(), p_feature, date_trunc('hour', now()), 1)
+  on conflict (user_id, feature, hour) do update set uses = least(usage_hourly.uses + 1, 10000);
+  if random() < 0.02 then delete from usage_hourly where hour < now() - interval '8 days'; end if;
+end $$;
+grant execute on function public.track_use(text) to authenticated;
+
+delete from usage_daily where user_id in (select id from profiles where role = 'admin');
+delete from usage_hourly where user_id in (select id from profiles where role = 'admin');
