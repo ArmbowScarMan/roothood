@@ -2147,7 +2147,11 @@ async function run(fn, ok) {
   catch (e) { toast(errMsg(e)); }
   render();
 }
-function go(t) { if (window.dropKb) dropKb(); stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; render(); $('#main').scrollTop = 0; if (t === 'comm') loadFeed(); if (t === 'mine' && S.user && !S.push) refreshPush(); if (t === 'me') loadMe(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
+function go(t) { if (window.dropKb) dropKb(); stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null;
+  // Flikmarkeringen byts direkt så att trycket syns på en gång. Innehållet ritas i nästa bildruta.
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  requestAnimationFrame(() => { render(); $('#main').scrollTop = 0; });
+  if (t === 'comm') loadFeed(); if (t === 'mine' && S.user && !S.push) refreshPush(); if (t === 'me') loadMe(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
 function openPlant(id, myId) { S.myCur = myId || null; S.sel = id; S.logForm = null; S.logAll = null; render(); $('#main').scrollTop = 0; }
 function openModal(m, prefill, latin, ap) { S.modal = m; if (m === 'add' || m === 'addp') S.addRemind = undefined; S.logForm = null; S.logAll = null; S.msg = ''; S.prefill = prefill || ''; S.prefillLatin = latin || ''; if (m === 'add' || m === 'addp') S.ap = ap || null; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
 const RM = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -9024,6 +9028,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.272', '3 nov 22:30', ['Snabbare flikbyte: menyn längst ner markerar den nya fliken direkt när du trycker, innan innehållet har ritats', 'Flikbyte ritar bara innehållet i rutan, inte om hela sidan']],
   ['Beta 0.271', '3 nov 19:00', ['Mjukare rörelser: knappar, flikar, rader och menyn längst ner trycks ner lite när du trycker, panelerna glider upp och ner och notiser glider in. Om telefonen är inställd på mindre rörelse tonas de bara in', 'Moderatorer kan testa tre designvarianter under Inställningar: Lugn, Redaktionell och Lekfull'] ],
   ['Beta 0.270', '3 nov 16:00', ['3D: hem från mallen får en riktig planlösning i två rader med hallen i mitten, och fönster mot ytterväggen', '3D: rum med valt väderstreck men utan ritat fönster får ett fönster i 3D', '3D: tydligare sol och skuggor, gräs som ser ut som gräs, grus längs husväggarna och väggar med puts och mörkare krön', 'Moderering: flikarna ligger på en rad som går att skrolla, och perioderna i statistiken är en knapprad', 'Växtbiblioteket: sortering i en liten väljare i stället för sju knappar', 'Filterrader går att skrolla i sidled och tonar ut i kanten när det finns mer', 'Statistiken räknar inte admin'] ],
   ['Beta 0.269', '3 nov 13:40', ['Identifiera: ta upp till 5 bilder av blad, blomma och hela växten, så blir svaret säkrare', 'Identifiera: varje förslag märks Säker, Trolig eller Osäker, och vid osäkra svar ber appen om en bild till', 'Identifiera: jämförelsebilder från Pl@ntNet och fem förslag i stället för tre', 'Identifiera: hittar växten i appen även när det latinska namnet har bytts, till exempel Calathea och Sansevieria', 'Identifiera: Vilken sort? Appen mäter vitt, gult, rosa och silver i bladen och visar artens sorter som liknar bilden mest', 'Varningsrutor går att läsa i mörkt läge'] ],
@@ -10204,7 +10209,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.271';
+const APP_VERSION = 'Beta 0.272';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
