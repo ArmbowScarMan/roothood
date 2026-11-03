@@ -1,0 +1,70 @@
+-- 060: Statistik per timme, för valen 12, 24 och 48 timmar.
+-- Appen räknar fortfarande per dag som förut. Nu räknas också per timme i en egen tabell,
+-- som rensar sig själv efter 8 dagar. Inget innehåll sparas, bara vilken funktion och hur många gånger.
+create table if not exists public.usage_hourly (
+  user_id uuid not null references auth.users on delete cascade,
+  feature text not null check (char_length(feature) between 1 and 40),
+  hour timestamptz not null default date_trunc('hour', now()),
+  uses int not null default 1,
+  primary key (user_id, feature, hour)
+);
+create index if not exists usage_hourly_hour on public.usage_hourly (hour, feature);
+alter table public.usage_hourly enable row level security;
+
+create or replace function public.track_use(p_feature text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or p_feature !~ '^[a-z0-9_-]{1,40}$' then return; end if;
+  insert into usage_daily (user_id, feature, day, uses) values (auth.uid(), p_feature, current_date, 1)
+  on conflict (user_id, feature, day) do update set uses = least(usage_daily.uses + 1, 10000);
+  insert into usage_hourly (user_id, feature, hour, uses) values (auth.uid(), p_feature, date_trunc('hour', now()), 1)
+  on conflict (user_id, feature, hour) do update set uses = least(usage_hourly.uses + 1, 10000);
+  if random() < 0.02 then delete from usage_hourly where hour < now() - interval '8 days'; end if;
+end $$;
+grant execute on function public.track_use(text) to authenticated;
+
+create or replace function public.mod_usage_h(p_hours int default 24)
+returns table (feature text, users int, uses int)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query select u.feature, count(distinct u.user_id)::int, sum(u.uses)::int
+    from usage_hourly u where u.hour > now() - make_interval(hours => greatest(1, least(p_hours, 168)))
+    group by u.feature order by 3 desc;
+end $$;
+grant execute on function public.mod_usage_h(int) to authenticated;
+
+create or replace function public.mod_usage_hours(p_hours int default 24)
+returns table (hour timestamptz, users int, uses int)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query select u.hour, count(distinct u.user_id)::int, sum(u.uses)::int
+    from usage_hourly u where u.hour > now() - make_interval(hours => greatest(1, least(p_hours, 168)))
+    group by u.hour order by u.hour;
+end $$;
+grant execute on function public.mod_usage_hours(int) to authenticated;
+
+create or replace function public.mod_usage_users_h(p_feature text default '', p_hours int default 24)
+returns table (user_id uuid, display_name text, uses int, features int, last_day date)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query select u.user_id, p.display_name, sum(u.uses)::int, count(distinct u.feature)::int, max(u.hour)::date
+    from usage_hourly u left join profiles p on p.id = u.user_id
+    where u.hour > now() - make_interval(hours => greatest(1, least(p_hours, 168))) and (coalesce(p_feature, '') = '' or u.feature = p_feature)
+    group by u.user_id, p.display_name order by 3 desc limit 100;
+end $$;
+grant execute on function public.mod_usage_users_h(text, int) to authenticated;
+
+create or replace function public.mod_usage_user_features_h(p_user uuid, p_hours int default 24)
+returns table (feature text, uses int, last_day date)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query select u.feature::text, sum(u.uses)::int, max(u.hour)::date
+    from usage_hourly u
+    where u.user_id = p_user and u.hour > now() - make_interval(hours => greatest(1, least(p_hours, 168)))
+    group by u.feature order by 2 desc;
+end $$;
+grant execute on function public.mod_usage_user_features_h(uuid, int) to authenticated;
