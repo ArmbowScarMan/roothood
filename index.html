@@ -1722,6 +1722,12 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 :root[data-ui=stad] small{font-size:var(--fs-2)}:root[data-ui=stad] button small,:root[data-ui=stad] .chips2 small{font-size:var(--fs-1)}
 
 .ti b.na{color:var(--mut);font-weight:600}
+
+/* Städad: färgen sitter på det som betyder något. Ramar, rubriker, märket och menyn är neutrala. */
+:root[data-ui=stad] .hbrand,:root[data-ui=stad] #main h1{color:var(--ink)}
+:root[data-ui=stad] .welc,:root[data-ui=stad] .frcard{border-color:var(--line)}
+:root[data-ui=stad] nav button.on{color:var(--ink)}
+:root[data-ui=stad] .ti b:not(.bad):not(.na){color:var(--ink)}
 </style></head><body>
 <div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas inte förrän nätet är tillbaka.</div>
 <div id="app"><div id="main"></div>
@@ -6095,6 +6101,9 @@ function iconize(root) {
     if (!p || p.namespaceURI === 'http://www.w3.org/2000/svg' || /^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(p.nodeName) || (p.closest && p.closest('.petc,.petr,.petwarn,.pchip,.pw,.pem'))) continue;
     if (!EMO_RE.test(txt)) { EMO_RE.lastIndex = 0; continue; }
     EMO_RE.lastIndex = 0;
+    // Städad: står emojin bredvid ord tas den bort, så att orden får bära betydelsen. En ensam emoji blir fortfarande en ikon.
+    if (tidyOn) { const rest = txt.replace(EMO_RE, '').replace(/\uFE0F/g, ''); EMO_RE.lastIndex = 0;
+      if (/\p{L}{2}/u.test(rest)) { n.nodeValue = (/^\s/.test(txt) ? ' ' : '') + rest.trim().replace(/\s{2,}/g, ' ') + (/\s$/.test(txt) ? ' ' : ''); continue; } }
     const frag = document.createDocumentFragment();
     let last = 0;
     txt.replace(EMO_RE, (m, g, off) => {
@@ -9085,6 +9094,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.278', '4 nov', ['Designvarianten Städad: emojier bredvid text tas bort så att orden får tala, och den gröna färgen används bara där den betyder något, inte på rubriker, ramar och menyn']],
   ['Beta 0.277', '4 nov', ['Växtsidan visar alltid samma skötselrutor. Saknas ett värde står det ett grått streck i stället för att rutan försvinner', 'Storleken visas nu även för växter som saknar planteringsavstånd, till exempel de nya krukväxterna', 'Växter där giftigheten inte är känd står som Okänt i stället för Giftig']],
   ['Beta 0.276', '4 nov', ['Moderatorer kan testa designvarianten Städad under Inställningar: fyra hörnradier i stället för tolv, sex textstorlekar i stället för trettio, och inga versaletiketter']],
   ['Beta 0.275', '4 nov', ['Ritning: knappen Mät med kompassen i rumsrutan. Håll telefonen platt med toppen mot fönstret, så väljs väderstrecket åt dig']],
@@ -10271,7 +10281,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.277';
+const APP_VERSION = 'Beta 0.278';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
