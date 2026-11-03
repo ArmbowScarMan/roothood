@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="sv"><head><meta charset="utf-8">
-<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="./phosphor/style.css">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Roothood</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -1714,6 +1714,9 @@ html[data-ui="lugn"][data-ui] #app,html[data-ui="red"][data-ui] #app{background:
 html[data-ui="lek"][data-ui] #app{background:radial-gradient(90% 40% at 100% 0%,rgba(255,183,3,.16),transparent 60%),radial-gradient(80% 35% at 0% 0%,rgba(35,154,87,.12),transparent 60%),var(--bg)}
 html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gradient(90% 40% at 100% 0%,rgba(255,183,3,.10),transparent 60%),radial-gradient(80% 35% at 0% 0%,rgba(90,214,140,.10),transparent 60%),var(--bg)}
 @media (prefers-reduced-motion:reduce){html[data-ui][data-ui] .btn:active,html[data-ui][data-ui] .chips2 button:active,html[data-ui][data-ui] .nrow:active,html[data-ui][data-ui] .setcard:active{transform:none}}
+
+/* Långa växtlistor: kort utanför skärmen ritas inte förrän man scrollar dit. Höjden är ungefär ett kort så att scrollen inte hoppar. */
+#list>.card{content-visibility:auto;contain-intrinsic-size:auto 160px}
 </style></head><body>
 <div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas inte förrän nätet är tillbaka.</div>
 <div id="app"><div id="main"></div>
@@ -9032,7 +9035,8 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
-  ['Beta 0.272', '3 nov 22:30', ['Snabbare flikbyte: menyn längst ner markerar den nya fliken direkt när du trycker, innan innehållet har ritats', 'Flikbyte ritar bara innehållet i rutan, inte om hela sidan']],
+  ['Beta 0.273', '3 nov 23:15', ['Växtdatabasen öppnas mycket snabbare: bara korten som syns på skärmen ritas direkt', 'Den engelska översättningen laddas bara ner om du väljer engelska', 'Notiser på Android visar ett vitt löv i statusraden', 'Ikonerna och inloggningen laddas från appen själv i stället för från andra webbplatser, så starten går snabbare']],
+  ['Beta 0.272', '3 nov 22:30', ['Snabbare flikbyte: menyn längst ner markerar den nya fliken direkt när du trycker, innan innehållet har ritats', 'Profil hämtar profil, inlägg och vänner samtidigt i stället för ett i taget']],
   ['Beta 0.271', '3 nov 19:00', ['Mjukare rörelser: knappar, flikar, rader och menyn längst ner trycks ner lite när du trycker, panelerna glider upp och ner och notiser glider in. Om telefonen är inställd på mindre rörelse tonas de bara in', 'Moderatorer kan testa tre designvarianter under Inställningar: Lugn, Redaktionell och Lekfull'] ],
   ['Beta 0.270', '3 nov 16:00', ['3D: hem från mallen får en riktig planlösning i två rader med hallen i mitten, och fönster mot ytterväggen', '3D: rum med valt väderstreck men utan ritat fönster får ett fönster i 3D', '3D: tydligare sol och skuggor, gräs som ser ut som gräs, grus längs husväggarna och väggar med puts och mörkare krön', 'Moderering: flikarna ligger på en rad som går att skrolla, och perioderna i statistiken är en knapprad', 'Växtbiblioteket: sortering i en liten väljare i stället för sju knappar', 'Filterrader går att skrolla i sidled och tonar ut i kanten när det finns mer', 'Statistiken räknar inte admin'] ],
   ['Beta 0.269', '3 nov 13:40', ['Identifiera: ta upp till 5 bilder av blad, blomma och hela växten, så blir svaret säkrare', 'Identifiera: varje förslag märks Säker, Trolig eller Osäker, och vid osäkra svar ber appen om en bild till', 'Identifiera: jämförelsebilder från Pl@ntNet och fem förslag i stället för tre', 'Identifiera: hittar växten i appen även när det latinska namnet har bytts, till exempel Calathea och Sansevieria', 'Identifiera: Vilken sort? Appen mäter vitt, gult, rosa och silver i bladen och visar artens sorter som liknar bilden mest', 'Varningsrutor går att läsa i mörkt läge'] ],
@@ -10213,7 +10217,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.272';
+const APP_VERSION = 'Beta 0.273';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -10550,7 +10554,7 @@ async function init() {
   render();
   try {
     if (!DEMO) {
-      await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js');
+      await loadScript('./supabase.js?v=2.45.4');
       // Skickar headers som ett vanligt objekt, så att appen även fungerar i förhandsvisningar som inte klarar Headers-objekt
       const plainFetch = (input, init = {}) => {
         const opts = { ...init };
