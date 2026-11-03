@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--gl:155 199 122;--gl2:130 100 255;--bg:#F3ECE1;--surf:#FBF8F3;--ink:#16261D;--mut:#776F63;--line:#E4DCCE;--pri:#1F4D3A;--pri2:#3E7A4F;--onpri:#F3ECE1;--acc:#C2643F;--soft:#E3EAD8;--sun:#D49A2E;--wat:#3B8DB0;--cop:#C2643F;--gold:#D9A441;--leaf:#9BC77A;--glow:rgba(217,164,65,.20);--sh:0 8px 24px rgba(70,52,28,.09);--phb:#E9E2D4;--card:#1F4D3A}
+:root{--r:18px;--r-sm:10px;--r-pill:999px;--r-circ:50%;--fs-1:11px;--fs-2:13px;--fs-3:15px;--fs-4:17px;--fs-5:22px;--fs-6:28px;--gl:155 199 122;--gl2:130 100 255;--bg:#F3ECE1;--surf:#FBF8F3;--ink:#16261D;--mut:#776F63;--line:#E4DCCE;--pri:#1F4D3A;--pri2:#3E7A4F;--onpri:#F3ECE1;--acc:#C2643F;--soft:#E3EAD8;--sun:#D49A2E;--wat:#3B8DB0;--cop:#C2643F;--gold:#D9A441;--leaf:#9BC77A;--glow:rgba(217,164,65,.20);--sh:0 8px 24px rgba(70,52,28,.09);--phb:#E9E2D4;--card:#1F4D3A}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0D1C15;--surf:#14281E;--ink:#F3ECE1;--mut:#A9B8A4;--line:#24402F;--pri:#9BC77A;--pri2:#7FB35E;--onpri:#0D1C15;--acc:#E0865F;--soft:#1A3427;--sun:#F5C65A;--wat:#4CC9F0;--cop:#E0865F;--gold:#D9A441;--leaf:#9BC77A;--glow:rgb(var(--gl) / .16);--sh:0 0 0 1px rgb(var(--gl) / .13),0 10px 28px rgba(0,0,0,.55),0 0 22px rgb(var(--gl) / .05);--phb:#183226;--card:#1F4D3A}}
 :root[data-theme="dark"]{color-scheme:dark;--bg:#0D1C15;--surf:#14281E;--ink:#F3ECE1;--mut:#A9B8A4;--line:#24402F;--pri:#9BC77A;--pri2:#7FB35E;--onpri:#0D1C15;--acc:#E0865F;--soft:#1A3427;--sun:#F5C65A;--wat:#4CC9F0;--cop:#E0865F;--gold:#D9A441;--leaf:#9BC77A;--glow:rgb(var(--gl) / .16);--sh:0 0 0 1px rgb(var(--gl) / .13),0 10px 28px rgba(0,0,0,.55),0 0 22px rgb(var(--gl) / .05);--phb:#183226;--card:#1F4D3A}
 *{box-sizing:border-box}
@@ -1717,6 +1717,9 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 
 /* Långa växtlistor: kort utanför skärmen ritas inte förrän man scrollar dit. Höjden är ungefär ett kort så att scrollen inte hoppar. */
 #list>.card{content-visibility:auto;contain-intrinsic-size:auto 160px}
+
+/* Designvarianten Städad: <small> utan egen storlek får närmaste steg */
+:root[data-ui=stad] small{font-size:var(--fs-2)}:root[data-ui=stad] button small,:root[data-ui=stad] .chips2 small{font-size:var(--fs-1)}
 </style></head><body>
 <div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas inte förrän nätet är tillbaka.</div>
 <div id="app"><div id="main"></div>
@@ -9077,6 +9080,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.276', '4 nov', ['Moderatorer kan testa designvarianten Städad under Inställningar: fyra hörnradier i stället för tolv, sex textstorlekar i stället för trettio, och inga versaletiketter']],
   ['Beta 0.275', '4 nov', ['Ritning: knappen Mät med kompassen i rumsrutan. Håll telefonen platt med toppen mot fönstret, så väljs väderstrecket åt dig']],
   ['Beta 0.274', '4 nov', ['Tillbaka-knappen och tillbaka-svepet på Android fungerar likadant överallt: ett steg tillbaka i taget, i rätt ordning', 'Tillbaka med en ruta öppen stänger bara rutan', 'Laddar du om sidan djupt inne i appen hamnar du kvar där, och tillbaka fungerar fortfarande', 'Öppnar du appen från en notis eller genväg tar tillbaka dig till Start i stället för att stänga appen']],
   ['Beta 0.273', '3 nov 23:15', ['Växtdatabasen öppnas mycket snabbare: bara korten som syns på skärmen ritas direkt', 'Den engelska översättningen laddas bara ner om du väljer engelska', 'Notiser på Android visar ett vitt löv i statusraden', 'Ikonerna och inloggningen laddas från appen själv i stället för från andra webbplatser, så starten går snabbare']],
@@ -10261,19 +10265,44 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.275';
+const APP_VERSION = 'Beta 0.276';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
-const UI_VARS = [['', 'Nuvarande'], ['lugn', 'Lugn'], ['red', 'Redaktionell'], ['lek', 'Lekfull']];
+const UI_VARS = [['', 'Nuvarande'], ['stad', 'Städad'], ['lugn', 'Lugn'], ['red', 'Redaktionell'], ['lek', 'Lekfull']];
 const UI_FONT = { lugn: 'Inter:wght@400;500;600;650;700', red: 'Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700', lek: 'Nunito:wght@600;700;800;900' };
 const UI_ICON = { lugn: 'light', red: 'thin', lek: 'fill' };
 function uiLink(id, href) { if (document.getElementById(id)) return; const l = document.createElement('link'); l.id = id; l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l); }
 function applyUI() { const v = isMod() ? store.get('ui', '') : ''; const d = document.documentElement;
-  if (v && UI_FONT[v]) { d.dataset.ui = v; delete d.dataset.pal; uiLink('uif-' + v, 'https://fonts.googleapis.com/css2?family=' + UI_FONT[v] + '&display=swap'); uiLink('uii-' + UI_ICON[v], 'https://unpkg.com/@phosphor-icons/web@2.1.1/src/' + UI_ICON[v] + '/style.css'); }
+  tidyCSS(v === 'stad'); if (v === 'stad') { d.dataset.ui = v; }
+  else if (v && UI_FONT[v]) { d.dataset.ui = v; delete d.dataset.pal; uiLink('uif-' + v, 'https://fonts.googleapis.com/css2?family=' + UI_FONT[v] + '&display=swap'); uiLink('uii-' + UI_ICON[v], 'https://unpkg.com/@phosphor-icons/web@2.1.1/src/' + UI_ICON[v] + '/style.css'); }
   else delete d.dataset.ui; uiIcons(); }
 // Ikonerna får variantens vikt (tunn, lätt eller fylld). Nuvarande utseende använder vanliga ikoner.
-function uiIcons() { const w = UI_ICON[document.documentElement.dataset.ui || ''], all = ['ph-light', 'ph-thin', 'ph-fill'];
+// Designvarianten Städad: samma app, men med fyra hörnradier och sex textstorlekar.
+// Stilreglerna skrivs om medan varianten är vald och återställs när man byter tillbaka. Inget sparas i koden för Nuvarande.
+const TIDY_FS = [11, 13, 15, 17, 22, 28], TIDY_ORIG = new Map(); let tidyOn = false;
+function tidyR(v) { return String(v).replace(/(\d+(?:\.\d+)?)(px|%)/g, (m, n, u) => { n = +n; if (u === '%') return n >= 50 ? 'var(--r-circ)' : m;
+  if (n >= 40) return 'var(--r-pill)'; if (n >= 14) return 'var(--r)'; if (n >= 8) return 'var(--r-sm)'; return m; }); }
+function tidyFs(v, sel) { v = String(v); const em = v.match(/^(\d*\.?\d+)em$/); if (em) return +em[1] < 0.9 ? 'var(--fs-1)' : v;
+  if (/clamp|vw|min\(|max\(/.test(v)) { const ns = (v.match(/\d+(?:\.\d+)?px/g) || []).map(parseFloat); if (ns.length) v = Math.max(...ns) + 'px'; }
+  return v.replace(/(\d+(?:\.\d+)?)px/, (m, n) => { n = +n; let b = TIDY_FS.reduce((a, x) => Math.abs(x - n) <= Math.abs(a - n) ? x : a, TIDY_FS[0]);
+  if (b > 22 && !/num|stat|big|count|val|score|emoji|ico|logo/i.test(sel || '')) b = 22; return 'var(--fs-' + (TIDY_FS.indexOf(b) + 1) + ')'; }); }
+function tidyRules(list, fn) { for (const r of list) { if (r.cssRules && !r.style) tidyRules(r.cssRules, fn); else if (r.style) fn(r); } }
+function tidyCSS(on) {
+  if (on === tidyOn) return; tidyOn = on;
+  if (!on) { TIDY_ORIG.forEach((props, r) => props.forEach(([p, v, pr]) => r.style.setProperty(p, v, pr))); TIDY_ORIG.clear(); return; }
+  for (const sh of document.styleSheets) { if (sh.href && !sh.href.startsWith(location.origin)) continue; if (sh.href && /phosphor/.test(sh.href)) continue; let rules; try { rules = sh.cssRules; } catch (e) { continue; }
+    tidyRules(rules, r => { const st = r.style, keep = [], set = (p, v) => { keep.push([p, st.getPropertyValue(p), st.getPropertyPriority(p)]); st.setProperty(p, v, st.getPropertyPriority(p)); };
+      const br = st.getPropertyValue('border-radius'); if (br && /px|%/.test(br)) { const n = tidyR(br); if (n !== br) set('border-radius', n); }
+      const fs = st.getPropertyValue('font-size'); if (fs && /px/.test(fs)) set('font-size', tidyFs(fs, r.selectorText));
+      if (st.getPropertyValue('text-transform') === 'uppercase') { set('text-transform', 'none'); if (st.getPropertyValue('letter-spacing')) set('letter-spacing', 'normal'); }
+      if (keep.length) TIDY_ORIG.set(r, keep); }); }
+}
+function tidyInline() { if (!tidyOn) return; document.querySelectorAll('#app [style], #ov [style]').forEach(el => { const st = el.style;
+  if (st.borderRadius && /px|%/.test(st.borderRadius)) st.borderRadius = tidyR(st.borderRadius);
+  if (st.fontSize && /px/.test(st.fontSize)) st.fontSize = tidyFs(st.fontSize, el.className);
+  if (st.textTransform === 'uppercase') { st.textTransform = 'none'; st.letterSpacing = 'normal'; } }); }
+function uiIcons() { tidyInline(); const w = UI_ICON[document.documentElement.dataset.ui || ''], all = ['ph-light', 'ph-thin', 'ph-fill'];
   document.querySelectorAll('i.ph').forEach(i => { all.forEach(c => { if (c !== 'ph-' + w) i.classList.remove(c); }); if (w) i.classList.add('ph-' + w); }); }
 function applyPrefs() {
   const th = store.get('theme', 'dark'), ts = store.get('textsize', 1);
