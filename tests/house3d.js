@@ -21,7 +21,7 @@ const srv = http.createServer((q, r) => { const p = path.join(dir, q.url.split('
     const oldHome = S.home; S.home = [room];
     try {
       // Alla detaljerade möbler byggs utan fel och består av flera delar
-      out.mobler = Object.keys(FURN3).every(t => { const g = new Obj(), F = FURN_M[t]; FURN3[t](kit3(THREE, M, g, 3), F[2], F[3], FH[t] || 0.8, { t }); return g.children.length >= 2; });
+      out.mobler = Object.keys(FURN3).filter(t => FURN_M[t]).every(t => { const g = new Obj(), F = FURN_M[t]; FURN3[t](kit3(THREE, M, g, 3), F[2], F[3], FH[t] || 0.8, { t }); return g.children.length >= 2; });
       // Smarta saker: sensorn i krukan, termometern på väggen, växtlampan ovanför växten
       { const oldP = S.hplan; S.hplan = { items: ['sensor', 'thermo', 'grow', 'plug', 'lamp', 'humid', 'speaker', 'pump'].map((t, i) => ({ id: 'i' + i, t, x: t === 'thermo' || t === 'plug' ? 0.4 : 2.1, y: 1.5 })) };
         const sc = new Obj(); devices3d(THREE, M, sc, [{ x: 2, z: 1.5, y: 0, fl: 0 }], () => 0); const P = sc.children.map(g => g.position);
