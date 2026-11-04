@@ -1197,6 +1197,7 @@ button.pw{cursor:pointer}
 
 .h3card{margin:0 18px;background:var(--surf);border-radius:26px;box-shadow:var(--sh);overflow:hidden}
 .h3card .planbox.home3d{margin:0;height:250px;border-radius:0;box-shadow:none}
+.h3start{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:100%;border:0;background:var(--surf2,rgba(127,127,127,.08));color:var(--ink);font:inherit;cursor:pointer}.h3start b{font-size:16px}.h3start span{font-size:13px}
 .h3bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px 12px 16px;font-size:13px}
 .h3empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:22px 20px}
 .h3empty b{font-size:17px}.h3empty>span:not(:first-child){font-size:13.5px;color:var(--mut);max-width:290px}.h3empty .btn{margin-top:6px}
@@ -2962,6 +2963,8 @@ const FC = { sofa: '#8FA9B8', chair2: '#8FA9B8', bed2: '#E6DED2', bed1: '#E6DED2
 const ROUNDS = new Set(['round', 'pond', 'tramp', 'firepit', 'plamp', 'clock', 'petbed']), FLAT = new Set(['rug', 'runner', 'deck', 'pool', 'pond', 'sandpit']), WALLF = new Set(['ucab', 'hood', 'plamp', 'art', 'clock']), GLASS = new Set(['shower', 'ghouse', 'pcab']);
 const AREA3 = { lot: '#A9C98C', lawn: '#7FB35B', bed: '#8A5A34', veg: '#6B4A2A', path: '#BDB6A8', patio: '#B98E62', pond: '#5CA6D6' };
 
+// 3D-hemmet på Start och Profil startar först när man trycker. Annars ritar telefonen om 3D-scenen hela tiden och blir seg.
+function h3off(sz) { return `<button class="planbox home3d h3start sz-${sz}" onclick="S.h3on=true;keepMain()" aria-label="Visa hemmet i 3D">${ic('ph-cube', 'var(--pri)', 34)}<b>Visa i 3D</b><span class="mut">Tryck för att se ditt hem i 3D</span></button>`; }
 function home3dV(sz) {
   sz = sz || 'm';
   if (!S.user) return '';
@@ -2971,7 +2974,7 @@ function home3dV(sz) {
   if (!has) return `<div class="sec cap2"><h2>Mitt hem</h2></div><div class="h3card"><div class="h3empty">${ic('ph-house-line', 'var(--pri)', 40)}<b>Rita ditt hem</b><span>Rita rum, fönster och trädgård, så ser du hemmet i 3D här och får tips om var växterna trivs.</span><button class="btn sm" onclick="openHouse();S.hview='plan';render()">Börja rita</button></div></div>`;
   const n = S.mine.filter(m => m.details && m.details.pos).length;
   return `<div class="sec cap2"><h2>Mitt hem</h2><button class="viewall" onclick="openHouse();S.hview='3d';render()">Visa stort</button></div>
-  <div class="h3card"><div class="planbox home3d sz-${sz}" id="box3d"><p class="l3">Laddar 3D…</p></div>
+  <div class="h3card">${S.h3on ? `<div class="planbox home3d sz-${sz}" id="box3d"><p class="l3">Laddar 3D…</p></div>` : h3off(sz)}
     <div class="h3bar"><span class="mut">${planRoomsAll().length} rum${n ? ' · ' + n + (n === 1 ? ' växt utplacerad' : ' växter utplacerade') : ''}</span><button class="btn sm" onclick="openHouse();S.hview='plan';render()">${ic(PEN, 'currentColor', 15)} Mitt hem</button></div></div>`;
 }
 // ===== Krukor och substrat i 3D, efter växtens uppgifter (material, storlek, självvattnande, plats och jord) =====
@@ -6933,7 +6936,7 @@ async function loadMod() {
     else if (t === 'best') S.modData = await api.modBest();
     else if (t === 'plants') S.modData = await api.modPlants();
     else if (t === 'team') { S.modData = await api.listStaff(); }
-    else if (t === 'fb') { S.modData = await api.modFb(); }
+    else if (t === 'fb' || t === 'err') { const all = await api.modFb(); S.modData = all.filter(f => (f.kind === 'bug') === (t === 'err')); }
     else if (t === 'stats') { const P = msPer(); S.msUF = {}; S.msUser = null; const [f, days] = await Promise.all(P.h ? [api.modUsageH(P.h), api.modUsageHours(P.h).then(r => msHourRows(r, P.h))] : [api.modUsage(P.d), api.modUsageDays(P.d)]); S.modData = { f, days, users: S.msFeat != null ? await (P.h ? api.modUsageUsersH(S.msFeat, P.h) : api.modUsageUsers(S.msFeat, P.d)) : null }; }
     else if (t === 'users') { S.modData = await api.modUsers(S.modUQ || '', 0); S.modUMore = S.modData.length >= (DEMO ? 1e9 : 100); S.modUN = await api.modUserCount().catch(() => null); }
     S.modErr = null; S.modOpen = await api.modOpen(); S.modBestN = await api.modBestCount();
@@ -7019,9 +7022,9 @@ function fbV() { const F = S.fbf || { kind: 'bug' };
   ${F.photo ? `<img class="fbshot" src="${esc(F.url)}" alt="Bifogad bild" onclick="this.classList.toggle('big')" onerror="fbBroken(this)"><button class="btn sm line" onclick="S.fbf.photo=null;keepScroll()">Ta bort bilden</button>` : `<label class="shot small"><span class="tic">${ic('ph-image', 'currentColor', 22)}</span><span class="grow"><b>Bifoga skärmbild${F.kind === 'bug' ? ' (rekommenderas)' : ''}</b><span>${F.kind === 'bug' ? 'En skärmbild visar oss exakt vad du ser och gör felet mycket lättare att hitta' : 'Ta en skärmbild i telefonen och välj den här'}</span></span><input type="file" accept="image/*" class="sr" onchange="fbPhoto(this)"></label>`}
   <p class="mut" style="font-size:12.5px;margin:10px 0 0">Vi skickar med vilken sida du var på: <b>${esc(S.fbView || '')}</b>. Även appversion ${APP_VERSION} och vilken telefon du har, så blir felet lättare att hitta.</p>
   <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="fbSend()">${S.busy ? 'Skickar…' : 'Skicka'}</button>`; }
-function modFbV(D) { const st = { new: 'Ny', seen: 'Sedd', fixed: 'Fixad', wontfix: 'Görs inte' }, kd = { bug: '🐞 Fel', idea: '💡 Förslag', other: 'Annat' };
+function modFbV(D, t) { const st = { new: 'Ny', seen: 'Sedd', fixed: 'Fixad', wontfix: 'Görs inte' }, kd = { bug: '🐞 Fel', idea: '💡 Förslag', other: 'Annat' };
   return `<div class="pad">${(D || []).length ? D.map(f => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">${kd[f.kind] || ''} · ${esc(f.author || '')} · ${ago(f.created_at)} · ${esc(f.version || '')}</small><p style="white-space:pre-wrap;margin:6px 0">${esc(f.body)}</p>${f.photo_url ? `<img class="fbshot" src="${esc(f.photo_url)}" alt="Bifogad skärmbild" onclick="this.classList.toggle('big')" onerror="fbBroken(this)">` : ''}<p style="margin:4px 0;font-size:14px"><b>Sida:</b> ${esc(f.view || 'okänd')}</p><small class="mut" style="display:block;word-break:break-all">${esc((f.ua || '').slice(0, 120))}</small>
-    <div class="chips2 sm" style="margin-top:8px">${Object.entries(st).map(([k, n]) => `<button class="${f.status === k ? 'on' : ''}" onclick="modFbSet(${f.id},'${k}')">${n}</button>`).join('')}</div></div>`).join('') : '<p class="mut">Inga rapporter än.</p>'}</div>`; }
+    <div class="chips2 sm" style="margin-top:8px">${Object.entries(st).map(([k, n]) => `<button class="${f.status === k ? 'on' : ''}" onclick="modFbSet(${f.id},'${k}')">${n}</button>`).join('')}</div></div>`).join('') : `<p class="mut">${t === 'err' ? 'Inga felrapporter än.' : 'Inga förslag eller annan feedback än.'}</p>`}</div>`; }
 async function modFbSet(id, k) { try { await api.modFbSet(id, k); const x = (S.modData || []).find(y => y.id === id); if (x) x.status = k; keepMain(); } catch (e) { toast(errMsg(e)); } }
 function modUsersV(D) {
   const q = S.modUQ || '', n = S.modUN, roleTag = r => r === 'admin' ? '<span class="tag lime">Admin</span>' : r === 'mod' ? '<span class="tag lime">Moderator</span>' : '';
@@ -7047,7 +7050,7 @@ async function modHideUserFromCard(uid, name) {
   render();
 }
 function modV() {
-  const t = S.modTab || 'open', D = S.modData, tabs = [['open', 'Rapporter' + (S.modOpen ? ' (' + S.modOpen + ')' : '')], ['best', 'Bästa svar' + (S.modBestN ? ' (' + S.modBestN + ')' : '')], ['plants', 'Växter'], ['done', 'Hanterade'], ['feed', 'Gemenskap'], ['users', 'Alla användare'], ['stats', 'Statistik'], ['fb', 'Feedback']].concat(isAdmin() ? [['team', 'Team']] : []);
+  const t = S.modTab || 'open', D = S.modData, tabs = [['open', 'Rapporter' + (S.modOpen ? ' (' + S.modOpen + ')' : '')], ['best', 'Bästa svar' + (S.modBestN ? ' (' + S.modBestN + ')' : '')], ['plants', 'Växter'], ['done', 'Hanterade'], ['feed', 'Gemenskap'], ['users', 'Alla användare'], ['stats', 'Statistik'], ['err', 'Felrapporter'], ['fb', 'Feedback']].concat(isAdmin() ? [['team', 'Team']] : []);
   let body;
   if (S.modErr) body = `<p class="formmsg" style="margin:16px 18px">${esc(S.modErr)}</p>`;
   else if (D == null) body = '<p class="mut" style="margin:16px 18px">Hämtar…</p>';
@@ -7064,8 +7067,8 @@ function modV() {
     body = D.length ? `<div class="pad">${D.map(p => `<div class="card modc" style="padding:14px;margin-bottom:12px"><b>${esc(p.swedish_name || 'Okänd växt')}</b><small class="mut" style="display:block">${esc(p.latin_name || '')}${p.category ? ' · ' + esc(p.category) : ''}</small>${p.toxicity_text ? `<p style="margin:8px 0 0;font-size:14px">${esc(p.toxicity_text)}</p>` : ''}${p.tips ? `<p class="mut" style="margin:6px 0 0;font-size:13px;white-space:pre-line">${esc(p.tips)}</p>` : ''}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="modPlantAct(${+p.id},true)">Godkänn</button><button class="btn sm line" onclick="modPlantAct(${+p.id},false)">Avvisa</button></div></div>`).join('')}</div>` : '<p class="mut" style="margin:16px 18px">Inga växter väntar på granskning.</p>';
   } else if (t === 'stats') {
     body = modStatsV(D);
-  } else if (t === 'fb') {
-    body = modFbV(D);
+  } else if (t === 'fb' || t === 'err') {
+    body = modFbV(D, t);
   } else if (t === 'users') {
     body = modUsersV(D);
   } else if (t === 'feed') {
@@ -7103,7 +7106,7 @@ function notifV() {
   ${frq.length ? `<div class="sec"><h2>Vänförfrågningar</h2></div><div class="pad nlist">${frq.join('')}</div>` : ''}
   ${unreadChats.length ? `<div class="sec"><h2>Olästa meddelanden <span class="ncount">${msgUnread()}</span></h2></div><div class="pad nlist">${unreadChats.slice(0, 5).map(c => `<button class="nrow new" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">💬</span><span class="grow"><b>${esc(c.name || 'Någon')}</b><span>${esc((c.last_body || '').slice(0, 70))}</span></span><small>${c.unread} ${c.unread === 1 ? 'ny' : 'nya'}</small></button>`).join('')}${unreadChats.length > 5 ? `<button class="viewall" onclick="openMsgs()">Visa alla ${unreadChats.length} samtal</button>` : ''}</div>` : ''}
   ${isMod() && S.modOpen ? `<div class="sec"><h2>Moderering</h2></div><div class="pad nlist"><button class="nrow new" onclick="openMod('open')"><span class="nic">🛡️</span><span class="grow"><b>${S.modOpen} ${S.modOpen === 1 ? 'rapport väntar' : 'rapporter väntar'}</b><span>Tryck för att granska</span></span></button></div>` : ''}
-  ${S.inboxC && S.inboxC.fb ? `<div class="sec"><h2>Felrapporter</h2></div><div class="pad nlist"><button class="nrow new" onclick="openMod('fb')"><span class="nic">🐞</span><span class="grow"><b>${S.inboxC.fb} ${S.inboxC.fb === 1 ? 'ny rapport eller förslag' : 'nya rapporter och förslag'}</b><span>Tryck för att läsa och svara</span></span></button></div>` : ''}
+  ${S.inboxC && S.inboxC.fb ? `<div class="sec"><h2>Felrapporter</h2></div><div class="pad nlist"><button class="nrow new" onclick="openMod('err')"><span class="nic">🐞</span><span class="grow"><b>${S.inboxC.fb} ${S.inboxC.fb === 1 ? 'ny rapport eller förslag' : 'nya rapporter och förslag'}</b><span>Tryck för att läsa och svara</span></span></button></div>` : ''}
   ${S.inboxC && S.inboxC.xq ? `<div class="sec"><h2>Experter</h2></div><div class="pad nlist"><button class="nrow new" onclick="openExperts()"><span class="nic">🌿</span><span class="grow"><b>${S.inboxC.xq} ${S.inboxC.xq === 1 ? 'fråga väntar på svar' : 'frågor väntar på svar'}</b><span>Tryck för att svara</span></span></button></div>` : ''}
   ${(() => { const nw = act.filter((x, i) => isN(actL[i])), old = act.filter((x, i) => !isN(actL[i]));
     return `${nw.length || todo.length ? `<div class="sec"><h2>Nya <span class="ncount">${nw.length + todo.length}</span></h2>${nw.length ? '<button class="viewall" onclick="notifAllRead()">✓ Markera alla som lästa</button>' : ''}</div><div class="pad nlist">${nw.join('')}${todo.length && nw.length ? '<p class="nsub">Att göra idag</p>' : ''}${todo.join('')}</div>` : `<div class="pad"><p class="mut" style="margin:6px 0 0">Inga nya notiser.</p></div>`}
@@ -7706,7 +7709,7 @@ function profHome(c, self) {
   const h = S.uhome; if (!h || h.off || h.uid !== S.uid) return '';
   if (!h.visible) return `<div class="sec"><h2>Hem</h2></div><div class="pad"><p class="mut" style="margin:0;font-size:14px">${esc(c.display_name)} visar inte sitt hem för dig.</p></div>`;
   const n = ((h.data || {}).rooms || []).length; if (!n) return '';
-  return `<div class="sec cap2"><h2>Hem</h2></div><div class="h3card"><div class="planbox home3d sz-s" id="box3d"><p class="l3">Laddar 3D…</p></div><div class="h3bar"><span class="mut">${n} rum</span></div></div>`;
+  return `<div class="sec cap2"><h2>Hem</h2></div><div class="h3card">${S.h3on ? '<div class="planbox home3d sz-s" id="box3d"><p class="l3">Laddar 3D…</p></div>' : h3off('s')}<div class="h3bar"><span class="mut">${n} rum</span></div></div>`;
 }
 function profPets(c, self) {
   if (self && !S.pets && !S.petsLoading) { S.petsLoading = true; loadPets().then(() => { S.petsLoading = false; if (S.tab === 'me' && !S.tool && !S.sel) render(); }); }
@@ -9198,6 +9201,8 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.289', '4 nov', ['Moderering: alla felrapporter, både från nyckelpigan och de automatiska frysrapporterna, ligger nu i en egen flik som heter Felrapporter. Förslag och annat ligger kvar under Feedback']],
+  ['Beta 0.288', '4 nov', ['Start och Profil: 3D-hemmet startar först när du trycker på Visa i 3D. Tidigare ritades det om hela tiden, vilket gjorde appen seg eller frusen på vissa telefoner']],
   ['Beta 0.287', '4 nov', ['Snabbare på äldre telefoner: bakgrundsmönstret är nu en färdig bild i stället för ett filter som räknades om vid varje scroll', 'Lätt grafik slås på automatiskt på telefoner med lite minne: inga skuggor eller animationer', 'Frysrapporten upptäcker nu även när skärmen slutar uppdateras']],
   ['Beta 0.286', '4 nov', ['Om appen fryser i mer än 2 sekunder skickas en automatisk felrapport, så att vi kan hitta vad som gör appen långsam på äldre telefoner']],
   ['Beta 0.285', '4 nov', ['Växtbiblioteket: knapp bredvid sorteringen växlar mellan rutnät med bilder och en detaljerad lista utan bilder med ljus, vatten, zon, höjd och om växten är farlig för djur']],
@@ -10417,7 +10422,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.287';
+const APP_VERSION = 'Beta 0.289';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
