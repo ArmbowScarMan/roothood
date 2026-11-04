@@ -1,0 +1,38 @@
+-- 067: rosor omgång 3, kända och gamla sorter (32 sorter). Går att köra flera gånger.
+insert into plants (swedish_name, latin_name, category, light_level, water_level, light_text, water_text, water_interval_days, soil, temperature, humidity, pet_safe, toxicity_text, propagation, common_problems, tips, hardiness_zone, family, height_cm, width_cm, spacing_cm, plant_type)
+select v.sv, v.la, 'Trädgård', 3, 2, 'Sol', 'Vattna vid längre torka. Vattna ordentligt första året', null, 'Näringsrik, väldränerad jord', 'Ros, härdig i zon ' || v.z, 'Normal', true, 'Ofarlig för katter och hundar', 'Sticklingar', 'Svartfläcksjuka och bladlöss', v.tip, v.z, 'Rosaceae', v.h, v.w, round(v.w * 0.8)::int, 'ros'
+from (values
+('Ros Zéphirine Drouhin', 'Rosa ''Zéphirine Drouhin''', 300, 150, '1–3', 'Klätterros med rosa blommor'),
+('Ros Jeanne Moreau', 'Rosa ''Jeanne Moreau''', 80, 60, '1–3', 'Rabattros med vita blommor'),
+('Ros Black Perfumella', 'Rosa ''Black Perfumella''', 80, 60, '1–3', 'Rabattros med röda blommor'),
+('Ros Nahema', 'Rosa ''Nahema''', 300, 150, '1–4', 'Klätterros med rosa blommor'),
+('Ros Carte d''Or', 'Rosa ''Carte d''Or''', 80, 60, '1–3', 'Rabattros'),
+('Ros Julio Iglesias', 'Rosa ''Julio Iglesias''', 80, 60, '1–3', 'Rabattros'),
+('Ros Domaine de Chantilly', 'Rosa ''Domaine de Chantilly''', 120, 100, '1–4', 'Buskros'),
+('Ros La France', 'Rosa ''La France''', 80, 60, '1–2', 'Rabattros med rosa blommor'),
+('Ros Stella Polaris', 'Rosa ''Stella Polaris''', 120, 100, '1–5', 'Buskros med vita blommor'),
+('Ros Rödhätte', 'Rosa ''Rödhätte''', 80, 60, '1–3', 'Rabattros med röda blommor'),
+('Ros Else Poulsen', 'Rosa ''Else Poulsen''', 80, 60, '1–3', 'Rabattros med rosa blommor'),
+('Ros Tausendschön', 'Rosa ''Tausendschön''', 300, 150, '1–3', 'Klätterros med rosa blommor'),
+('Ros Persiana', 'Rosa foetida ''Persiana''', 120, 100, '1–4', 'Buskros med gula blommor'),
+('Ros Madame Georges Bruant', 'Rosa ''Madame Georges Bruant''', 120, 100, '1–5', 'Buskros med vita blommor'),
+('Ros Old Blush', 'Rosa ''Old Blush''', 120, 100, '1–2', 'Buskros med rosa blommor'),
+('Ros Clothilde Soupert', 'Rosa ''Clothilde Soupert''', 80, 60, '1–2', 'Rabattros'),
+('Ros Amadis', 'Rosa ''Amadis''', 300, 150, '1–4', 'Klätterros'),
+('Ros Mme Sancy de Parabère', 'Rosa ''Mme Sancy de Parabère''', 300, 150, '1–4', 'Klätterros med rosa blommor'),
+('Ros Great Western', 'Rosa ''Great Western''', 120, 100, '1–3', 'Buskros'),
+('Ros Boule de Neige', 'Rosa ''Boule de Neige''', 120, 100, '1–3', 'Buskros med vita blommor'),
+('Ros Hermosa', 'Rosa ''Hermosa''', 120, 100, '1–2', 'Buskros med rosa blommor'),
+('Ros Maxima', 'Rosa × alba ''Maxima''', 120, 100, '1–5', 'Buskros med vita blommor'),
+('Ros Suaveolens', 'Rosa × alba ''Suaveolens''', 120, 100, '1–5', 'Buskros med vita blommor'),
+('Ros Kazanlik', 'Rosa × damascena ''Kazanlik''', 120, 100, '1–4', 'Buskros med rosa blommor'),
+('Ros Blush Damask', 'Rosa ''Blush Damask''', 120, 100, '1–4', 'Buskros med rosa blommor'),
+('Ros Rêve d''Or', 'Rosa ''Rêve d''Or''', 300, 150, '1–2', 'Klätterros med gula blommor'),
+('Ros Aimée Vibert', 'Rosa ''Aimée Vibert''', 300, 150, '1–2', 'Klätterros med vita blommor'),
+('Ros Solfatare', 'Rosa ''Solfatare''', 300, 150, '1–2', 'Klätterros med gula blommor'),
+('Ros Mrs John Laing', 'Rosa ''Mrs John Laing''', 120, 100, '1–3', 'Buskros med rosa blommor'),
+('Ros Ulrich Brunner Fils', 'Rosa ''Ulrich Brunner Fils''', 120, 100, '1–3', 'Buskros'),
+('Ros Mme Butterfly', 'Rosa ''Mme Butterfly''', 80, 60, '1–2', 'Rabattros med rosa blommor'),
+('Ros Turner''s Crimson Rambler', 'Rosa ''Turner''s Crimson Rambler''', 300, 150, '1–3', 'Klätterros med röda blommor')
+) as v(sv, la, h, w, z, tip)
+where not exists (select 1 from plants p where lower(p.latin_name) = lower(v.la) or lower(p.swedish_name) = lower(v.sv));
