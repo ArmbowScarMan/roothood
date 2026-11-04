@@ -1,0 +1,25 @@
+-- 064: vildrosor. Alla 17 rosor som växer vilt i Sverige (de som saknas) plus några kända vildrosor från andra länder. Går att köra flera gånger.
+update plants set hardiness_zone = '1–3', temperature = 'Ros, härdig i zon 1–3' where plant_type = 'ros' and hardiness_zone = '5–8';
+update plants set swedish_name = 'Kinesisk gulros' where latin_name = 'Rosa hugonis';
+update plants set swedish_name = 'Plommonros' where latin_name = 'Rosa villosa';
+insert into plants (swedish_name, latin_name, category, light_level, water_level, light_text, water_text, water_interval_days, soil, temperature, humidity, pet_safe, toxicity_text, propagation, common_problems, tips, hardiness_zone, family, height_cm, width_cm, spacing_cm, plant_type)
+select v.sv, v.la, 'Trädgård', 3, 1, 'Sol till halvskugga', 'Klarar sig oftast utan vattning när den har rotat sig', null, 'Vanlig trädgårdsjord, gärna mager', 'Vildros, härdig i zon ' || v.z, 'Normal', true, 'Ofarlig för katter och hundar', 'Frö, rotskott eller sticklingar', 'Få problem', v.tip, v.z, 'Rosaceae', v.h, v.w, round(v.w * 0.8)::int, 'ros'
+from (values
+('Finnros', 'Rosa acicularis', 150, 120, '1–8', 'Svensk vildros som växer i norra Sverige. Rosa blommor och avlånga nypon'),
+('Åkerros', 'Rosa agrestis', 200, 150, '1–3', 'Sällsynt svensk vildros med små ljusa blommor'),
+('Västkustros', 'Rosa inodora', 200, 150, '1–3', 'Svensk vildros som främst finns på västkusten'),
+('Ryssros', 'Rosa jundzillii', 150, 120, '1–3', 'Sällsynt svensk vildros med rosa blommor'),
+('Flikros', 'Rosa balsamica', 200, 150, '1–4', 'Svensk vildros med ljusrosa blommor'),
+('Filtros', 'Rosa tomentosa', 200, 150, '1–4', 'Svensk vildros med filtluddiga blad'),
+('Nyponros', 'Rosa dumalis', 250, 200, '1–6', 'Vanligaste vildrosen i stora delar av Sverige. Rosa blommor och röda nypon'),
+('Tyskros', 'Rosa elliptica', 200, 150, '1–3', 'Sällsynt svensk vildros med doftande blad'),
+('Luddros', 'Rosa sherardii', 200, 150, '1–5', 'Svensk vildros med mjuka, luddiga blad och mörkrosa blommor'),
+('Hartsros', 'Rosa mollis', 150, 120, '1–5', 'Svensk vildros med mörkrosa blommor och doftande blad'),
+('Plommonros', 'Rosa villosa', 200, 150, '1–4', 'Vildros med stora, plommonliknande nypon'),
+('Sydäppelros', 'Rosa micrantha', 200, 150, '1–2', 'Sällsynt svensk vildros i södra Sverige med små blommor'),
+('Kinesisk gulros', 'Rosa hugonis', 200, 150, '1–5', 'Gul vildros från Kina som blommar tidigt'),
+('Vingros', 'Rosa sericea f. pteracantha', 250, 200, '1–4', 'Vildros från Kina med stora röda taggar som lyser i motljus'),
+('Mumieros', 'Rosa × richardii', 120, 120, '1–3', 'Gammal ros från Etiopien, hittad i egyptiska gravar'),
+('Bukettros', 'Rosa majalis ''Foecundissima''', 150, 120, '1–7', 'Kanelros med fyllda rosa blommor, gammal bondgårdsros')
+) as v(sv, la, h, w, z, tip)
+where not exists (select 1 from plants p where lower(p.latin_name) = lower(v.la) or lower(p.swedish_name) = lower(v.sv));
