@@ -1,0 +1,54 @@
+-- 074: ätbart, del 3: kryddor och örter (28 växter). Går att köra flera gånger.
+with m(id, ll, wl, lt, wt, wi, soil, temp, pet, tox, prop, prob, zone, fam, h, w, sp, rw, typ) as (values
+(1, 3, 2, 'Ljust och varmt', 'Vattna när ytan är torr, inte på bladen', 3, 'Näringsrik jord', 'Över 15 °C, tål inte kyla', true, 'Ofarlig för katter och hundar', 'Frö eller sticklingar i vatten', 'Ruttnar vid kyla och blöt jord', null, 'Lamiaceae', 40, 30, 25, 30, 'krydda'),
+(2, 2, 3, 'Sol till halvskugga', 'Jämn fuktighet', 3, 'Fuktig, näringsrik jord', 'Härdig perenn', false, 'Kan ge magbesvär hos katter och hundar', 'Frö, delning eller plantor', 'Få problem', '1–5', 'Lamiaceae', 50, 60, 40, 40, 'krydda'),
+(3, 3, 2, 'Ljust och varmt', 'Vattna när ytan är torr, inte på bladen', 3, 'Näringsrik jord', 'Sås inomhus eller ute efter sista frosten', true, 'Ofarlig för katter och hundar', 'Frö', 'Få problem', null, 'Lamiaceae', 40, 30, 25, 30, 'krydda'),
+(4, 3, 2, 'Ljust och varmt', 'Vattna när ytan är torr, inte på bladen', 3, 'Näringsrik jord', 'Sås inomhus eller ute efter sista frosten', false, 'Kan ge magbesvär hos katter och hundar', 'Frö', 'Få problem', null, 'Lamiaceae', 40, 30, 25, 30, 'krydda'),
+(5, 3, 1, 'Ljust och varmt', 'Vattna sparsamt, tål torka', 3, 'Väldränerad, mager jord', 'Härdig perenn', false, 'Kan ge magbesvär hos katter och hundar', 'Frö, delning eller plantor', 'Få problem', '1–5', 'Lamiaceae', 40, 30, 25, 30, 'krydda'),
+(6, 2, 3, 'Sol till halvskugga', 'Jämn fuktighet', 2, 'Lucker, näringsrik jord', 'Sås inomhus eller ute efter sista frosten', false, 'Okänt om den är giftig för katter och hundar', 'Frö', 'Få problem', null, 'Apiaceae', 25, 30, 25, 30, 'krydda'),
+(7, 3, 2, 'Ljust och varmt', 'Vattna när ytan är torr, inte på bladen', 3, 'Näringsrik jord', 'Sås inomhus eller ute efter sista frosten', false, 'Okänt om den är giftig för katter och hundar', 'Frö', 'Få problem', null, 'Lamiaceae', 40, 30, 25, 30, 'krydda'),
+(8, 3, 1, 'Ljust och varmt', 'Vattna sparsamt, tål torka', 3, 'Väldränerad, mager jord', 'Härdig perenn', false, 'Okänt om den är giftig för katter och hundar', 'Frö, delning eller plantor', 'Få problem', '1–5', 'Lamiaceae', 40, 30, 25, 30, 'krydda'),
+(9, 2, 3, 'Sol till halvskugga', 'Jämn fuktighet', 2, 'Lucker, näringsrik jord', 'Sås inomhus eller ute efter sista frosten', true, 'Ofarlig för katter och hundar', 'Frö', 'Få problem', null, 'Brassicaceae', 25, 30, 25, 30, 'krydda'),
+(10, 3, 2, 'Full sol', 'Jämn fuktighet', 5, 'Djup, lucker jord', 'Sås inomhus eller ute efter sista frosten', false, 'Okänt om den är giftig för katter och hundar', 'Frö', 'Få problem', null, 'Apiaceae', 40, 20, 10, 40, 'krydda'),
+(11, 3, 2, 'Ljust och varmt', 'Vattna när ytan är torr, inte på bladen', 3, 'Näringsrik jord', 'Sås inomhus eller ute efter sista frosten', true, 'Ofarlig för katter och hundar', 'Frö', 'Få problem', null, 'Apiaceae', 40, 30, 25, 30, 'krydda'),
+(12, 2, 3, 'Sol till halvskugga', 'Jämn fuktighet', 2, 'Lucker, näringsrik jord', 'Sås inomhus eller ute efter sista frosten', false, 'Okänt om den är giftig för katter och hundar', 'Frö', 'Få problem', null, 'Fabaceae', 25, 30, 25, 30, 'krydda'),
+(13, 2, 3, 'Sol till halvskugga', 'Jämn fuktighet', 2, 'Lucker, näringsrik jord', 'Sås inomhus eller ute efter sista frosten', false, 'Okänt om den är giftig för katter och hundar', 'Frö', 'Få problem', null, 'Ranunculaceae', 25, 30, 25, 30, 'krydda'),
+(14, 3, 2, 'Ljust och varmt', 'Vattna när ytan är torr, inte på bladen', 3, 'Näringsrik jord', 'Sås inomhus eller ute efter sista frosten', false, 'Kan ge magbesvär hos djur', 'Frö', 'Få problem', null, 'Verbenaceae', 40, 30, 25, 30, 'krydda'),
+(15, 3, 2, 'Ljust och varmt', 'Vattna när ytan är torr, inte på bladen', 3, 'Näringsrik jord', 'Sås inomhus eller ute efter sista frosten', true, 'Ofarlig för katter och hundar', 'Frö', 'Få problem', null, 'Asteraceae', 40, 30, 25, 30, 'krydda'),
+(16, 2, 3, 'Sol till halvskugga', 'Jämn fuktighet', 3, 'Fuktig, näringsrik jord', 'Sås inomhus eller ute efter sista frosten', false, 'Kan ge magbesvär hos katter och hundar', 'Frö', 'Få problem', '1–6', 'Polygonaceae', 50, 60, 40, 40, 'krydda'),
+(17, 2, 3, 'Sol till halvskugga', 'Jämn fuktighet', 2, 'Lucker, näringsrik jord', 'Sås inomhus eller ute efter sista frosten', false, 'Giftig för katter och hundar', 'Frö', 'Få problem', null, 'Asteraceae', 25, 30, 25, 30, 'krydda'),
+(18, 3, 1, 'Full sol', 'Vattna sparsamt', 7, 'Väldränerad jord', 'Härdig perenn', false, 'Kan ge magbesvär hos djur', 'Frö, delning eller plantor', 'Få problem', '1–5', 'Iridaceae', 50, 15, 15, 30, 'krydda')
+), v(sv, la, tips, id) as (values
+('Basilika Genovese', 'Ocimum basilicum ''Genovese''', 'Klassisk basilika för pesto. Nyp toppen så blir plantan buskig', 1),
+('Basilika Red Rubin', 'Ocimum basilicum ''Red Rubin''', 'Röd basilika. Nyp toppen så blir plantan buskig', 1),
+('Pepparmynta', 'Mentha × piperita', 'Stark mentolsmak', 2),
+('Äppelmynta', 'Mentha suaveolens', 'Mild mynta med fruktig doft', 2),
+('Chokladmynta', 'Mentha × piperita ''Chocolate''', 'Mynta med doft av choklad', 2),
+('Marockansk mynta', 'Mentha spicata ''Moroccan''', 'Mynta till te', 2),
+('Thaibasilika', 'Ocimum basilicum var. thyrsiflora', 'Smakar anis', 3),
+('Citronbasilika', 'Ocimum × citriodorum', 'Smakar citron', 3),
+('Busbasilika', 'Ocimum minimum', 'Liten basilika med små blad', 3),
+('Helig basilika', 'Ocimum tenuiflorum', 'Kryddig basilika, kallas tulsi', 3),
+('Mejram', 'Origanum majorana', 'Mild släkting till oregano', 4),
+('Grekisk oregano', 'Origanum vulgare subsp. hirtum', 'Kraftig oregano', 5),
+('Ananassalvia', 'Salvia elegans', 'Doftar ananas, röda blommor', 3),
+('Körvel', 'Anthriscus cerefolium', 'Mild anissmak', 6),
+('Kyndel', 'Satureja hortensis', 'Krydda till bönor', 7),
+('Vinterkyndel', 'Satureja montana', 'Perenn kyndel', 8),
+('Vitsenap', 'Sinapis alba', 'Fröna blir senap', 9),
+('Kummin', 'Carum carvi', 'Fröna används i bröd och brännvin', 10),
+('Anis', 'Pimpinella anisum', 'Frön med söt anissmak', 6),
+('Spiskummin', 'Cuminum cyminum', 'Behöver värme', 11),
+('Bockhornsklöver', 'Trigonella foenum-graecum', 'Frön och blad till curry', 12),
+('Svartkummin', 'Nigella sativa', 'Svarta frön till bröd', 13),
+('Citronverbena', 'Aloysia citrodora', 'Stark citrondoft, till te', 14),
+('Stevia', 'Stevia rebaudiana', 'Bladen är mycket söta', 15),
+('Vietnamesisk koriander', 'Persicaria odorata', 'Smakar koriander, tål värme', 16),
+('Shiso', 'Perilla frutescens', 'Japansk krydda med grön eller röd blad', 7),
+('Kamomill', 'Matricaria chamomilla', 'Blommorna till te', 17),
+('Saffran', 'Crocus sativus', 'Plocka de röda pistillerna på hösten', 18)
+)
+insert into plants (swedish_name, latin_name, category, light_level, water_level, light_text, water_text, water_interval_days, soil, temperature, humidity, pet_safe, toxicity_text, propagation, common_problems, tips, hardiness_zone, family, height_cm, width_cm, spacing_cm, row_cm, plant_type)
+select v.sv, v.la, 'Köksträdgård', m.ll, m.wl, m.lt, m.wt, m.wi::int, m.soil, m.temp, 'Normal', m.pet, m.tox, m.prop, m.prob, v.tips, m.zone, m.fam, m.h, m.w, m.sp, m.rw::int, m.typ
+from v join m on m.id = v.id
+where not exists (select 1 from plants p where lower(p.latin_name) = lower(v.la) or lower(p.swedish_name) = lower(v.sv));

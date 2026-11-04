@@ -1,0 +1,38 @@
+-- 075: ätbart, del 4: ätbara perenner, vilda växter och ätbara blommor (17 växter). Går att köra flera gånger.
+with m(id, ll, wl, lt, wt, wi, soil, temp, pet, tox, prop, prob, zone, fam, h, w, sp, rw, typ) as (values
+(1, 2, 3, 'Sol till halvskugga', 'Jämn fuktighet', 2, 'Lucker, näringsrik jord', 'Härdig perenn', true, 'Ofarlig för katter och hundar', 'Frö, delning eller plantor', 'Få problem', '1–5', 'Brassicaceae', 25, 30, 25, 30, 'perenn'),
+(2, 2, 3, 'Sol till halvskugga', 'Jämn fuktighet', 2, 'Lucker, näringsrik jord', 'Sås inomhus eller ute efter sista frosten', true, 'Ofarlig för katter och hundar', 'Frö', 'Få problem', null, 'Caprifoliaceae', 25, 30, 25, 30, 'gron'),
+(3, 3, 1, 'Full sol', 'Vattna sparsamt', 7, 'Väldränerad jord', 'Härdig perenn', false, 'Giftig för katter och hundar, även i små mängder', 'Frö, delning eller plantor', 'Få problem', '1–5', 'Amaryllidaceae', 50, 15, 15, 30, 'perenn'),
+(4, 3, 2, 'Sol till halvskugga', 'Vattna vid torka', 7, 'Mycket näringsrik jord', 'Härdig perenn', true, 'Ofarlig för katter och hundar', 'Frö, delning eller plantor', 'Få problem', '1–5', 'Brassicaceae', 80, 120, 100, 120, 'perenn'),
+(5, 2, 3, 'Sol till halvskugga', 'Jämn fuktighet', 2, 'Lucker, näringsrik jord', 'Sås inomhus eller ute efter sista frosten', true, 'Ofarlig för katter och hundar', 'Frö', 'Få problem', null, 'Montiaceae', 25, 30, 25, 30, 'gron'),
+(6, 2, 3, 'Sol till halvskugga', 'Jämn fuktighet', 2, 'Lucker, näringsrik jord', 'Sås inomhus eller ute efter sista frosten', false, 'Giftig för katter och hundar', 'Frö', 'Få problem', null, 'Portulacaceae', 25, 30, 25, 30, 'gron'),
+(7, 3, 2, 'Sol till halvskugga', 'Vattna vid torka', 7, 'Mycket näringsrik jord', 'Härdig perenn', false, 'Innehåller oxalsyra som kan ge magbesvär', 'Frö, delning eller plantor', 'Få problem', '1–5', 'Polygonaceae', 80, 120, 100, 120, 'perenn'),
+(8, 3, 2, 'Sol till halvskugga', 'Vattna vid torka', 7, 'Mycket näringsrik jord', 'Härdig perenn', true, 'Ofarlig när den är kokt, färska brännhår irriterar', 'Frö, delning eller plantor', 'Få problem', '1–5', 'Urticaceae', 80, 120, 100, 120, 'perenn'),
+(9, 3, 2, 'Sol till halvskugga', 'Vattna vid torka', 7, 'Mycket näringsrik jord', 'Härdig perenn', true, 'Ofarlig för katter och hundar', 'Frö, delning eller plantor', 'Få problem', '1–5', 'Apiaceae', 80, 120, 100, 120, 'perenn'),
+(10, 2, 3, 'Sol till halvskugga', 'Jämn fuktighet', 2, 'Lucker, näringsrik jord', 'Härdig perenn', true, 'Ofarlig för katter och hundar', 'Frö, delning eller plantor', 'Få problem', '1–5', 'Asteraceae', 25, 30, 25, 30, 'perenn'),
+(11, 3, 2, 'Sol till halvskugga', 'Vattna vid torka', 7, 'Mycket näringsrik jord', 'Härdig perenn', false, 'Okänt om den är giftig för katter och hundar', 'Frö, delning eller plantor', 'Få problem', '1–5', 'Apiaceae', 80, 120, 100, 120, 'perenn'),
+(12, 3, 1, 'Ljust och varmt', 'Vattna sparsamt, tål torka', 3, 'Väldränerad, mager jord', 'Härdig perenn', false, 'Okänt om den är giftig för katter och hundar', 'Frö, delning eller plantor', 'Få problem', '1–5', 'Lamiaceae', 40, 30, 25, 30, 'perenn'),
+(13, 2, 3, 'Sol till halvskugga', 'Jämn fuktighet', 2, 'Lucker, näringsrik jord', 'Sås inomhus eller ute efter sista frosten', false, 'Okänt om den är giftig för katter och hundar', 'Frö', 'Få problem', null, 'Boraginaceae', 25, 30, 25, 30, 'gron')
+), v(sv, la, tips, id) as (values
+('Vild ruccola', 'Diplotaxis tenuifolia', 'Perenn ruccola med stark smak', 1),
+('Machesallat', 'Valerianella locusta', 'Tål kyla, sås på hösten', 2),
+('Kinesisk gräslök', 'Allium tuberosum', 'Smakar mild vitlök', 3),
+('Piplök', 'Allium fistulosum', 'Perenn lök, ät de ihåliga bladen', 3),
+('Luftlök', 'Allium × proliferum', 'Små lökar bildas i toppen', 3),
+('Strandkål', 'Crambe maritima', 'Perenn kål, ät de blekta skotten', 4),
+('Vinterportlak', 'Claytonia perfoliata', 'Tål kyla, sås på hösten', 5),
+('Portlak', 'Portulaca oleracea', 'Saftiga blad med syrlig smak', 6),
+('Matsyra', 'Rumex acetosa', 'Syrliga blad till soppa och sallad', 7),
+('Blodsyra', 'Rumex sanguineus', 'Gröna blad med röda nerver', 7),
+('Nässla', 'Urtica dioica', 'Plocka unga skott på våren, koka dem', 8),
+('Kirskål', 'Aegopodium podagraria', 'Unga blad smakar persilja', 9),
+('Maskros', 'Taraxacum officinale', 'Unga blad till sallad, blommor till sirap', 10),
+('Kvanne', 'Angelica archangelica', 'Gammal nordisk köksväxt', 11),
+('Spansk körvel', 'Myrrhis odorata', 'Perenn med söt anissmak', 11),
+('Isop', 'Hyssopus officinalis', 'Perenn krydda med blå blommor', 12),
+('Gurkört', 'Borago officinalis', 'Blå ätbara blommor som smakar gurka', 13)
+)
+insert into plants (swedish_name, latin_name, category, light_level, water_level, light_text, water_text, water_interval_days, soil, temperature, humidity, pet_safe, toxicity_text, propagation, common_problems, tips, hardiness_zone, family, height_cm, width_cm, spacing_cm, row_cm, plant_type)
+select v.sv, v.la, 'Köksträdgård', m.ll, m.wl, m.lt, m.wt, m.wi::int, m.soil, m.temp, 'Normal', m.pet, m.tox, m.prop, m.prob, v.tips, m.zone, m.fam, m.h, m.w, m.sp, m.rw::int, m.typ
+from v join m on m.id = v.id
+where not exists (select 1 from plants p where lower(p.latin_name) = lower(v.la) or lower(p.swedish_name) = lower(v.sv));
