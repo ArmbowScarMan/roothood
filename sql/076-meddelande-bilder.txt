@@ -1,0 +1,12 @@
+-- 076: bilder i meddelanden. Kör hela filen en gång i SQL-editorn. Går att köra flera gånger.
+alter table public.messages add column if not exists photo_url text;
+
+-- Tomt textfält tillåts när det finns en bild, men annars krävs text
+alter table public.messages drop constraint if exists messages_body_check;
+alter table public.messages drop constraint if exists messages_body_or_photo_check;
+alter table public.messages add constraint messages_body_or_photo_check
+  check (char_length(body) <= 1000 and (char_length(body) > 0 or photo_url is not null));
+
+-- Pushnotisen säger "📷 Bild" när meddelandet bara har en bild
+create or replace function public.trg_push_message() returns trigger language plpgsql security definer set search_path = public as $$
+begin perform public.push_event('message', new.to_user, new.from_user, coalesce(nullif(new.body, ''), '📷 Bild')); return new; end $$;
