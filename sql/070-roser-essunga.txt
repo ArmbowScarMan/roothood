@@ -1,0 +1,11 @@
+-- 070: rosor från Essunga plantskola (5 sorter som inte fanns). Går att köra flera gånger.
+insert into plants (swedish_name, latin_name, category, light_level, water_level, light_text, water_text, water_interval_days, soil, temperature, humidity, pet_safe, toxicity_text, propagation, common_problems, tips, hardiness_zone, family, height_cm, width_cm, spacing_cm, plant_type)
+select v.sv, v.la, 'Trädgård', 3, 2, 'Sol', 'Vattna vid längre torka. Vattna ordentligt första året', null, 'Näringsrik, väldränerad jord', 'Ros, härdig i zon ' || v.z, 'Normal', true, 'Ofarlig för katter och hundar', 'Sticklingar', 'Svartfläcksjuka och bladlöss', v.tip, v.z, 'Rosaceae', v.h, v.w, round(v.w * 0.8)::int, 'ros'
+from (values
+('Ros Elmshorn', 'Rosa ''Elmshorn''', 150, 150, '1–4', 'Modern buskros med små, tätt fyllda rosa blommor'),
+('Ros Centifolia Major', 'Rosa ''Centifolia Major''', 150, 120, '1–4', 'Gammaldags buskros som blommar en gång per sommar'),
+('Ros Super Star', 'Rosa ''Super Star''', 80, 60, '1–3', 'Tehybrid, rabattros'),
+('Ros Karen Blixen', 'Rosa ''Karen Blixen''', 80, 60, '1–3', 'Tehybrid, rabattros med vita blommor'),
+('Ros Peer Gynt', 'Rosa ''Peer Gynt''', 80, 60, '1–3', 'Tehybrid, rabattros med gula blommor')
+) as v(sv, la, h, w, z, tip)
+where not exists (select 1 from plants p where lower(p.latin_name) = lower(v.la) or lower(p.swedish_name) = lower(v.sv));
