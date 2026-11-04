@@ -3119,17 +3119,18 @@ function walkStep(dist, turn) { const w = T3 && T3.walk; if (!w) return; w.yaw +
   if (dist) { const nx = w.x + Math.sin(w.yaw) * dist, nz = w.z + Math.cos(w.yaw) * dist; if (walkFree(w, nx, nz)) { w.x = nx; w.z = nz; } else if (walkFree(w, nx, w.z)) w.x = nx; else if (walkFree(w, w.x, nz)) w.z = nz; }
   T3.dirty = true; }
 // Quake-liknande rörelse: fart, friktion på marken, luftstyrning (strafe) och bunnyhop
-const WS = 1.3, WAIR = 0.3, WACC = 10, WJV = 6.6, WG = 22, WBMAX = 4, WFRIC = 6;
+const WS = 1.3, WAIR = 0.3, WACC = 10, WJV = 6.6, WG = 22, WBMAX = 4, WFRIC = 6, WCOMBO_ADD = 0.2, WCOMBO_MAX = 5;
 function walkMove(w, dx, dz) { if (walkFree(w, w.x + dx, w.z + dz)) { w.x += dx; w.z += dz; } else if (walkFree(w, w.x + dx, w.z)) { w.x += dx; w.vz = 0; } else if (walkFree(w, w.x, w.z + dz)) { w.z += dz; w.vx = 0; } else { w.vx = 0; w.vz = 0; } }
 function walkPhys(w, dt, k, jump) {
+  if (!jump && w.g) w.combo = 0;
   if (k === 'tl' || k === 'tr') w.yaw += (k === 'tl' ? -2 : 2) * dt;
   const fx = Math.sin(w.yaw), fz = Math.cos(w.yaw), rx = fz, rz = -fx;
   let ix = 0, iz = 0; if (k === 'f') { ix = fx; iz = fz; } else if (k === 'b') { ix = -fx; iz = -fz; } else if (k === 'l') { ix = -rx; iz = -rz; } else if (k === 'r') { ix = rx; iz = rz; }
-  if (w.g && jump) { w.vy = WJV; w.g = false; }
+  if (w.g && jump) { w.vy = WJV; w.g = false; if (w.landed && (ix || iz)) { w.combo = Math.min(WCOMBO_MAX, (w.combo || 0) + WCOMBO_ADD); w.vx += ix * WCOMBO_ADD; w.vz += iz * WCOMBO_ADD; } }
   if (w.g) { const sp = Math.hypot(w.vx, w.vz); if (sp > 0) { const ns = Math.max(0, sp - sp * WFRIC * dt) / sp; w.vx *= ns; w.vz *= ns; } }
   if (ix || iz) { const cap = w.g ? WS : WAIR, add = cap - (w.vx * ix + w.vz * iz); if (add > 0) { const a = Math.min(add, WACC * dt * WS); w.vx += ix * a; w.vz += iz * a; } }
-  const sp2 = Math.hypot(w.vx, w.vz); if (sp2 > WBMAX) { w.vx *= WBMAX / sp2; w.vz *= WBMAX / sp2; }
-  if (!w.g) { w.vy -= WG * dt; w.jy += w.vy * dt; if (w.jy <= 0) { w.jy = 0; w.vy = 0; w.g = true; } }
+  const cap = WBMAX + (w.combo || 0), sp2 = Math.hypot(w.vx, w.vz); if (sp2 > cap) { w.vx *= cap / sp2; w.vz *= cap / sp2; }
+  if (!w.g) { w.vy -= WG * dt; w.jy += w.vy * dt; if (w.jy <= 0) { w.jy = 0; w.vy = 0; w.g = true; w.landed = true; } }
   walkMove(w, w.vx * dt, w.vz * dt);
 }
 function walkHold(k) { if (!T3 || !T3.walk) return; T3.wmove = k; T3.wlast = performance.now(); }
@@ -9337,6 +9338,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.299', '4 nov', ['Gå-läget: ju fler hopp i rad, desto snabbare går du framåt. Farten återställs när du slutar hoppa']],
   ['Beta 0.298', '4 nov', ['Tempel → Gör Keops pyramid till ett hus att gå in i: ingång i norr, korridor, stora galleriet, kungakammaren med sarkofag och ett hemligt ufoskattrum. Pyramiden döljs när du står inne i den']],
   ['Beta 0.297', '4 nov', ['Gå-läget: hoppa med mellanslag eller knappen Hoppa. Fart i luften: styr med A och D medan du svänger för bunnyhop, som i Quake', 'Tempel → Bygg Giza-platån: pyramiderna, sfinxen, dalgångstemplet och mastaborna i verklig skala, med enkel grafik. Gå in i mastaborna. Färg: ursprunglig eller nu, i 3D-menyn']],
   ['Beta 0.296', '4 nov', ['Moderering: knappen ligger nu uppe i profilens övre rad, bredvid inställningarna. Den gamla raden längre ner är borttagen']],
@@ -10567,7 +10569,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.298';
+const APP_VERSION = 'Beta 0.299';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
