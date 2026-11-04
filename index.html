@@ -5835,7 +5835,7 @@ async function signOut() { await api.signOut(); resetUserState(); render(); toas
 
 // ===== Foton från Wikipedia (illustration visas om inget foto finns) =====
 const IMG = store.get('imgs', {});
-const imgTried = new Set();
+const imgTried = new Set(), IMGC = new Set(store.get('imgc', []));
 let imgBusy = false;
 function ph(latin, cat, name, cls) {
   return `<div class="ph ${cls || ''}" data-latin="${esc(latin || '')}" style="--h:${hueOf(name)}">${art(cat, name)}</div>`;
@@ -5853,9 +5853,9 @@ function showPhotos() {
 async function loadPhotos() {
   showPhotos();
   if (imgBusy) return;
-  const want = [...new Set([...document.querySelectorAll('.ph[data-latin]')].map(e => e.dataset.latin))]
-    .filter(l => l && !(l in IMG) && !imgTried.has(l));
-  if (!want.length) return;
+  const onPage = [...new Set([...document.querySelectorAll('.ph[data-latin]')].map(e => e.dataset.latin))];
+  const want = onPage.filter(l => l && !(l in IMG) && !imgTried.has(l));
+  if (!want.length && !onPage.some(l => l && IMG[l] === null && !IMGC.has(l))) return;
   imgBusy = true; want.forEach(l => imgTried.add(l));
   try {
     for (let i = 0; i < want.length; i += 40) {
@@ -5872,8 +5872,30 @@ async function loadPhotos() {
     }
     store.set('imgs', IMG);
   } catch (e) { /* inget nät till Wikipedia: illustrationerna visas */ }
+  // Saknas en artikel på Wikipedia (vanligt för rossorter): sök en fri bild på Wikimedia Commons.
+  // Bilden används bara om filnamnet innehåller sortnamnet, så att vi inte visar fel växt.
+  try {
+    const miss = onPage.filter(l => l && IMG[l] === null && !IMGC.has(l)).slice(0, 12);
+    for (const l of miss) {
+      IMGC.add(l);
+      const key = commonsKey(l); if (!key) continue;
+      const r = await fetch('https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrlimit=8&gsrsearch=' + encodeURIComponent('"' + key.q + '"') + '&prop=imageinfo&iiprop=url&iiurlwidth=640&format=json&origin=*');
+      const pages = Object.values(((await r.json()).query || {}).pages || {}).sort((a, b) => (a.index || 0) - (b.index || 0));
+      const hit = pages.find(x => /\.(jpe?g|png|webp)$/i.test(x.title) && key.ok(x.title) && x.imageinfo && x.imageinfo[0] && x.imageinfo[0].thumburl);
+      if (hit) IMG[l] = { src: hit.imageinfo[0].thumburl, page: hit.imageinfo[0].descriptionurl, by: 'Wikimedia Commons' };
+    }
+    store.set('imgs', IMG); store.set('imgc', [...IMGC].slice(-3000));
+  } catch (e) { /* inget nät till Commons */ }
   imgBusy = false;
   showPhotos();
+}
+// Söknyckel för Commons: sortnamnet inom citattecken ("Rosa 'Santana'" → Santana), annars hela latinska namnet.
+function commonsKey(latin) {
+  const norm = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const m = latin.match(/^(\S+).*?'([^']+)'/);
+  if (m) { const g = norm(m[1]), c = norm(m[2]); if (c.length < 3) return null; return { q: m[1] + ' ' + m[2], ok: t => { const n = norm(t); return n.includes(c) && (n.includes(g) || n.includes('rose') || n.includes('ros')); } }; }
+  const sp = norm(latin.replace(/×/g, ' ')); if (sp.split(' ').length < 2) return null;
+  return { q: latin.replace(/×/g, '').replace(/\s+/g, ' '), ok: t => norm(t).includes(sp) };
 }
 
 // ===== Ikoner =====
@@ -8161,7 +8183,7 @@ function detail() {
   const d = my ? left(my) : null;
   const water = p.water_interval_days ? `Var ${p.water_interval_days}${ord(p.water_interval_days)} dag` : WATER[p.water_level - 1];
   const tips = [['Tips', p.tips], ['Vanliga problem', p.common_problems], ['Förökning', p.propagation], ['Odlingszon', p.hardiness_zone && 'Härdig i zon ' + p.hardiness_zone]].filter(t => t[1]);
-  const credit = my && my.photo ? '' : IMG[p.latin_name] ? `<span class="credit">Foto: <a href="${esc(IMG[p.latin_name].page)}" target="_blank" rel="noopener">Wikipedia</a></span>` : '';
+  const credit = my && my.photo ? '' : IMG[p.latin_name] ? `<span class="credit">Foto: <a href="${esc(IMG[p.latin_name].page)}" target="_blank" rel="noopener">${esc(IMG[p.latin_name].by || 'Wikipedia')}</a></span>` : '';
   const similar = S.plants.filter(x => x.category === p.category && x.id !== p.id).slice(0, 8);
   const status = my ? `<span class="tag green">${d === null ? 'I din samling' : d === 0 ? 'Vattna idag' : 'Vattnas om ' + d + (d === 1 ? ' dag' : ' dagar')}</span>` : '';
   const fv = `<button class="btn line" onclick="heart(${p.id})" aria-pressed="${isFav(p.id)}">${isFav(p.id) ? '♥ Favorit' : '♡ Favorit'}</button>`;
@@ -9156,6 +9178,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.284', '4 nov', ['Fler foton: växter som saknar bild på Wikipedia, till exempel många rossorter, får nu en fri bild från Wikimedia Commons om det finns en med sortens namn']],
   ['Beta 0.283', '4 nov', ['Ny fördjupning under Lär dig: Rosor. Sorter, plats, plantering, beskärning, vatten och näring, vinterskydd, sjukdomar och nypon', 'Snabbfrågan känner igen frågor om rosor och visar fördjupningen']],
   ['Beta 0.282', '4 nov', ['Ny rubrik: Trädgårdar, parker och handelsträdgårdar nära dig']],
   ['Beta 0.281', '4 nov', ['Trädgårdar nära dig: om appen inte får din plats visas tydligare texten och du kan skriva in en ort i stället', 'Texten nämner inte längre bara Chrome, eftersom behörigheten kan saknas i Roothood eller i Chrome']],
@@ -10371,7 +10394,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.283';
+const APP_VERSION = 'Beta 0.284';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
