@@ -2958,6 +2958,10 @@ async function delRoom() {
 
 // ===== Mitt hem i 3D (three.js laddas först när man öppnar vyn) =====
 let T3 = null;
+// Enkel 3D-grafik: ingen väderanimation, inga mjuka skuggor och lägre upplösning. Slås på automatiskt om telefonen inte hinner rita.
+const lite3 = () => !!store.get('slow3d', false) || document.documentElement.classList.contains('lite');
+function setLite3(on, auto) { store.set('slow3d', on); if (T3 && T3.renderer) { T3.renderer.setPixelRatio(on ? 1 : Math.min(devicePixelRatio || 1, 2)); T3.renderer.shadowMap.type = on ? T3.THREE.BasicShadowMap : T3.THREE.PCFSoftShadowMap; T3.scene && T3.scene.traverse(o => { if (o.material) [].concat(o.material).forEach(m => m.needsUpdate = true); }); const b = $('#box3d'); if (b && b.clientWidth) T3.renderer.setSize(b.clientWidth, b.clientHeight, false); env3d(); T3.dirty = true; }
+  if (auto) toast('3D gick tungt på den här telefonen, så grafiken är nu enklare'); else render(); }
 const FH = { sofa: 0.8, chair2: 0.9, bed2: 0.5, bed1: 0.5, table: 0.45, dtable: 0.75, chair: 0.9, desk: 0.75, shelf: 1.9, pshelf: 1.5, dresser: 0.9, ward: 2.1, tv: 0.5, counter: 0.9, stove: 0.9, fridge: 1.8, bath: 0.6, shower: 2.0, wc: 0.8, sink: 0.85, rug: 0.02, round: 0.75, ghouse: 2.3, rbed: 0.4, shed: 2.2, compost: 0.9, garage: 2.6, carport: 2.4, pergola: 2.3, deck: 0.12, pool: 0.3, pond: 0.05, tramp: 0.9, sandpit: 0.25, playhouse: 2.0, firepit: 0.4, grill: 1.0, obench: 0.8, otable: 0.75, hive: 0.9, pcab: 1.9, ksink: 0.9, hobc: 0.9, ucab: 2.15, tallcab: 2.1, ovencol: 2.1, hood: 1.45, freezer: 1.85, dishw: 0.85, plamp: 2.4, runner: 0.02, etag: 1.9, sbench: 0.5, terr: 1.12, art: 2.0, clock: 2.1, pstand: 1.75, petbed: 0.4, aqua: 0.98, cage: 1.2 };
 const FC = { sofa: '#8FA9B8', chair2: '#8FA9B8', bed2: '#E6DED2', bed1: '#E6DED2', table: '#B98E62', dtable: '#B98E62', chair: '#A47B52', desk: '#C9A57D', shelf: '#C9A57D', pshelf: '#A47B52', dresser: '#D9C3A5', ward: '#E8E2D8', tv: '#4A4A4A', counter: '#EDEBE6', stove: '#3D3D3D', fridge: '#F2F2F0', bath: '#FAFAFA', shower: '#CFE6F2', wc: '#FAFAFA', sink: '#FAFAFA', rug: '#B6A3CF', round: '#B98E62', ghouse: '#DDEFE8', rbed: '#8A6440', shed: '#B5523B', compost: '#6B4A2A', garage: '#CFC7BA', carport: '#8C7B66', pergola: '#A47B52', deck: '#B98E62', pool: '#6FB6D6', pond: '#5C9DB8', tramp: '#3E4A5A', sandpit: '#E3CF9A', playhouse: '#C4604A', firepit: '#5A5048', grill: '#2E2E2E', obench: '#A47B52', otable: '#B98E62', hive: '#E0B84A', pcab: '#B58AD8', ksink: '#EDEBE6', hobc: '#EDEBE6', ucab: '#F4F0E8', tallcab: '#F4F0E8', ovencol: '#F4F0E8', hood: '#E4E0D8', freezer: '#F4F4F2', dishw: '#F4F4F2', plamp: '#E8E1D3', runner: '#3E4A44', etag: '#2A2A2A', sbench: '#F4F0E8', terr: '#CFE8F2', art: '#2F5E34', clock: '#FFFFFF', pstand: '#F4F0E8', petbed: '#D99A9A', aqua: '#6FB6D6', cage: '#BDBDBD' };
 const ROUNDS = new Set(['round', 'pond', 'tramp', 'firepit', 'plamp', 'clock', 'petbed']), FLAT = new Set(['rug', 'runner', 'deck', 'pool', 'pond', 'sandpit']), WALLF = new Set(['ucab', 'hood', 'plamp', 'art', 'clock']), GLASS = new Set(['shower', 'ghouse', 'pcab']);
@@ -3296,7 +3300,7 @@ async function mount3d() {
     try { const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js'); T3 = { THREE, st: { az: 0.75, el: 0.85, dist: 0, tx: 0, tz: 0 }, ptr: new Map() }; }
     catch (e) { S.t3load = false; const l = $('#box3d .l3'); if (l) l.textContent = '3D kunde inte laddas. Kontrollera internet och försök igen.'; return; }
     const THREE = T3.THREE, r = T3.renderer = new THREE.WebGLRenderer({ antialias: true });
-    r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = TONE3;
+    r.setPixelRatio(lite3() ? 1 : Math.min(devicePixelRatio || 1, 2)); r.shadowMap.enabled = true; r.shadowMap.type = lite3() ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = TONE3;
     T3.scene = new THREE.Scene(); T3.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 2000);
     const c = r.domElement; c.style.touchAction = 'none'; c.style.display = 'block';
     c.addEventListener('contextmenu', e => { if (c.style.touchAction !== 'pan-y') e.preventDefault(); });
@@ -3325,7 +3329,7 @@ async function mount3d() {
   fitPlanBox(); requestAnimationFrame(() => { if ($('#box3d') === box) { fitPlanBox(); if (T3 && T3.renderer) { const w = box.clientWidth, h = box.clientHeight; if (w && h) { T3.renderer.setSize(w, h, false); T3.camera.aspect = w / h; T3.camera.updateProjectionMatrix(); T3.dirty = true; } } } });
   const W = box.clientWidth, H = box.clientHeight; if (!W || !H) { setTimeout(() => { if ($('#box3d') === box) mount3d(); }, 200); return; } T3.renderer.setSize(W, H, false); T3.renderer.domElement.style.width = '100%'; T3.renderer.domElement.style.height = '100%';
   T3.camera.aspect = W / H; T3.camera.updateProjectionMatrix(); T3.dirty = true;
-  if (!T3.loop) { const tick = () => { if (!document.body.contains(T3.renderer.domElement)) { T3.loop = null; return; } if (T3.auto) { T3.st.az += 0.0035; T3.dirty = true; } spin3Tick(); walkTick(); envTick(); if (T3.dirty) { place3dCam(); T3.renderer.render(T3.scene, T3.camera); T3.dirty = false; } T3.loop = requestAnimationFrame(tick); }; T3.loop = requestAnimationFrame(tick); }
+  if (!T3.loop) { const tick = () => { if (!document.body.contains(T3.renderer.domElement)) { T3.loop = null; return; } if (T3.auto) { T3.st.az += 0.0035; T3.dirty = true; } spin3Tick(); walkTick(); envTick(); if (T3.dirty) { place3dCam(); T3.renderer.render(T3.scene, T3.camera); T3.dirty = false; perf3(); } else T3.pf = null; T3.loop = requestAnimationFrame(tick); }; T3.loop = requestAnimationFrame(tick); }
 }
 // Från Planera rabatt till 3D: kameran går nära den rabatt man planerar
 function focusBed3d() { const id = S.focusBed; S.focusBed = null; if (!T3 || !T3.st) return; const a = planAreas().find(x => x.id === id); if (!a || !a.pts || a.pts.length < 3) return;
@@ -3372,7 +3376,7 @@ function cam3(k) { if (!T3) return; const st = T3.st; if (k === 'top') { st.el =
 function v3FurnHtml() { return FURN_GROUPS.map(([g, ks]) => [g, ks.map(k => FURN_M[k]).filter(Boolean)]).concat([['Ute', FURN_OUT]]).map(([g, L]) => `<span class="fl">${g}</span><div class="v3g">${L.map(([k, n, w, h, e]) => `<button onclick="v3pick('furn','${k}')">${e} ${n}</button>`).join('')}</div>`).join(''); }
 function v3PlantHtml() { const list = S.mine.slice(); return list.length ? `<span class="fl">Din samling</span><div class="v3g v3l">${list.map(m => `<button onclick="v3pick('plant','${m.id}')">${esc(m.name)}</button>`).join('')}</div>` : '<p class="mut" style="margin:6px 2px">Lägg först till växter i din samling.</p>'; }
 function v3AddHtml(sub) { return `<div class="v3tabs"><button class="${sub === 'furn' ? 'on' : ''}" onclick="v3pop('add','furn')">Möbler</button><button class="${sub === 'plant' ? 'on' : ''}" onclick="v3pop('add','plant')">Växter</button></div>` + (sub === 'plant' ? v3PlantHtml() : v3FurnHtml()); }
-function v3ViewHtml() { return `<button onclick="v3done();cam3('top')">Uppifrån</button><button onclick="v3done();cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="v3done();S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button>${floors().length > 1 ? `<button onclick="v3done();cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}`; }
+function v3ViewHtml() { return `<button onclick="v3done();cam3('top')">Uppifrån</button><button onclick="v3done();cam3('iso')">Snett</button><button class="${S.low3d ? 'on' : ''}" onclick="v3done();S.low3d=!S.low3d;build3d()">${S.low3d ? 'Höga väggar' : 'Låga väggar'}</button><button class="${lite3() ? 'on' : ''}" onclick="v3done();setLite3(!lite3())" aria-pressed="${lite3()}">Enkel grafik</button>${floors().length > 1 ? `<button onclick="v3done();cycleFl3()">${S.f3 == null ? 'Alla våningar' : 'Upp till ' + esc(flLabel(S.f3))}</button>` : ''}`; }
 function v3BedsHtml() { const L = bedsList(), cur = curBed(); return (L.length ? L.map(x => `<button class="${cur && cur.id === x.id ? 'on' : ''}" onclick="v3bed('${x.id}')">${esc(bedNameOf(x))}</button>`).join('') : '<p class="mut" style="margin:6px 2px">Du har inga rabatter än.</p>') + '<button onclick="v3newBed()">＋ Ny rabatt</button><p class="mut" style="font-size:12.5px;margin:6px 2px 0">En orange ring runt en växt betyder att den får för lite eller för mycket sol där.</p>'; }
 function v3bed(id) { v3done(); bedSwitch(id); }
 function v3newBed() { v3done(); PL().bname = ''; S.focusBed = null; S.hview = 'plan'; render(); setTimeout(() => { if (S.tool === 'house') { planMode('bed'); PL().bnew = true; render(); } }, 60); }
@@ -3624,6 +3628,9 @@ function wxKind3d() { const c = S.wx && S.wx.cur; if (!c || S.wx.none) return nu
   if ((k >= 71 && k <= 77) || k === 85 || k === 86 || (frozen && ((k >= 51 && k <= 67) || (k >= 80 && k <= 82)))) return 'snow';
   if ((k >= 51 && k <= 67) || (k >= 80 && k <= 82) || k >= 95) return 'rain'; if (k === 45 || k === 48) return 'fog'; if (k >= 2) return 'cloud'; return 'clear'; }
 function wx3Text() { if (!S.wx) return 'Hämtar väder…'; const c = S.wx.cur; if (!c || S.wx.none) return seas3() + ' · lägg in din plats under Mitt hem för vädret just nu'; return `${esc(S.wx.name || '')} · ${esc((WX[c.weather_code] || ['Väder'])[0])} ${Math.round(c.temperature_2m)}°`; }
+// Mäter hur snabbt 3D ritas när den ritas om flera bilder i rad. Under cirka 22 bilder per sekund slås enkel grafik på.
+function perf3() { const t = performance.now(), P = T3.pf; if (!P) { T3.pf = { t, n: 0, sum: 0 }; return; } P.sum += t - P.t; P.t = t; P.n++;
+  if (P.n >= 30 || (P.n >= 5 && P.sum > 1500)) { const avg = P.sum / P.n; T3.pf = null; T3.fps = Math.round(1000 / avg); if (avg > 45 && !lite3()) setLite3(true, true); } }
 function envTick() { const E = T3 && T3.envK, pts = T3 && T3.envPts; if (!E || !pts) return; const a = pts.geometry.attributes.position.array, t = performance.now() / 1000;
   for (let i = 0; i < E.cnt; i++) { a[i * 3 + 1] -= E.speed * 0.016; if (E.kind === 'snow') a[i * 3] += Math.sin(t + i) * 0.003; if (E.kind === 'leaf') a[i * 3] += Math.sin(t * 1.3 + i) * 0.01;
     if (a[i * 3 + 1] < 0) { a[i * 3 + 1] += E.box[4]; }
@@ -3649,7 +3656,7 @@ function env3d() { try { if (!T3 || !T3.scene) return; const THREE = T3.THREE, s
   // Golv i hallar som byggts med fristående väggar lyfts över snön så att det aldrig snöar inne
   sc.traverse(o => { if (o.userData && o.userData.gapf) o.position.y = snowing ? 0.045 : 0.01; });
   if (T3.envPts) { sc.remove(T3.envPts); T3.envPts.geometry.dispose(); T3.envPts.material.dispose(); T3.envPts = null; T3.envK = null; }
-  const pk = rainy ? 'rain' : snowing ? 'snow' : leaves ? 'leaf' : null;
+  const pk = lite3() ? null : rainy ? 'rain' : snowing ? 'snow' : leaves ? 'leaf' : null;
   if (pk) { const k = 1, cnt = Math.round(k * { rain: 900, snow: 700, leaf: 80 }[pk]), b = T3.bounds || [-10, -10, 10, 10], X0 = b[0] - 6, X1 = b[2] + 6, Z0 = b[1] - 6, Z1 = b[3] + 6, H = 14;
     const pos = new Float32Array(cnt * 3); for (let i = 0; i < cnt; i++) { pos[i * 3] = X0 + Math.random() * (X1 - X0); pos[i * 3 + 1] = Math.random() * H; pos[i * 3 + 2] = Z0 + Math.random() * (Z1 - Z0); }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -9201,6 +9208,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.290', '4 nov', ['3D: om telefonen inte hinner rita slås Enkel grafik på automatiskt. Då stängs väderanimationen (löv, regn och snö) av och skuggor och upplösning blir enklare', 'Ny knapp Enkel grafik bland 3D-vyns knappar']],
   ['Beta 0.289', '4 nov', ['Moderering: alla felrapporter, både från nyckelpigan och de automatiska frysrapporterna, ligger nu i en egen flik som heter Felrapporter. Förslag och annat ligger kvar under Feedback']],
   ['Beta 0.288', '4 nov', ['Start och Profil: 3D-hemmet startar först när du trycker på Visa i 3D. Tidigare ritades det om hela tiden, vilket gjorde appen seg eller frusen på vissa telefoner']],
   ['Beta 0.287', '4 nov', ['Snabbare på äldre telefoner: bakgrundsmönstret är nu en färdig bild i stället för ett filter som räknades om vid varje scroll', 'Lätt grafik slås på automatiskt på telefoner med lite minne: inga skuggor eller animationer', 'Frysrapporten upptäcker nu även när skärmen slutar uppdateras']],
@@ -10422,7 +10430,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.289';
+const APP_VERSION = 'Beta 0.290';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
