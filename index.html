@@ -4509,8 +4509,16 @@ const GIZA = { ursprunglig: { pyr: '#F3EDDC', top: '#D9B44A', sfinx: '#D2B98C', 
 const gizaCol = () => GIZA[(S.hplan && S.hplan.gizaCol) || 'ursprunglig'] || GIZA.ursprunglig;
 const FURN3 = {
   // Egyptiskt: pyramiden har Keops proportioner (höjd ≈ 0,64 × sidan) och en förgylld topp
-  pyramid: (K, W, D) => { const g = gizaCol(), h = Math.min(W, D) * 0.636, r = W / Math.SQRT2, m = K.cyl(0, r, h, g.pyr, 0, h / 2, 0, 4, { roughness: 0.9 }); m.geometry.rotateY && m.geometry.rotateY(Math.PI / 4); m.scale.z = D / W;
-    const tp = h * 0.07, t = K.cyl(0, r * 0.075, tp, g.top, 0, h - tp / 2 + 0.02, 0, 4, { metalness: 0.6, roughness: 0.35 }); t.geometry.rotateY && t.geometry.rotateY(Math.PI / 4); t.scale.z = D / W; },
+  pyramid: (K, W, D, H, f) => { const g = gizaCol(), h = Math.min(W, D) * 0.636, r = W / Math.SQRT2, m = K.cyl(0, r, h, g.pyr, 0, h / 2, 0, 4, { roughness: 0.9 }); m.geometry.rotateY && m.geometry.rotateY(Math.PI / 4); m.scale.z = D / W;
+    const tp = h * 0.07, t = K.cyl(0, r * 0.075, tp, g.top, 0, h - tp / 2 + 0.02, 0, 4, { metalness: 0.6, roughness: 0.35 }); t.geometry.rotateY && t.geometry.rotateY(Math.PI / 4); t.scale.z = D / W;
+    if (f && f.hollow) { // ingång i norra sidan: mörk dörr som följer pyramidens lutning, och en stig fram till den
+      const T = K.THREE, k = (W / 2) / h, L = Math.hypot(1, k), y0 = 3 / L, z0 = -W / 2 + y0 * k;
+      const door = new T.Mesh(new T.BoxGeometry(3, 6, 0.3), K.M('#1E1A16', { roughness: 0.9 }));
+      const yA = new T.Vector3(0, 1 / L, k / L), zA = new T.Vector3(0, k / L, -1 / L), xA = new T.Vector3(-1, 0, 0);
+      door.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(xA, yA, zA));
+      door.position.set(0, y0, z0).addScaledVector(zA, 0.1); K.g.add(door);
+      K.box(4, 0.05, 40, '#D8CCAE', 0, 0.03, -W / 2 - 20);
+    } },
   gpillar: (K, W, D, H) => { K.box(W, 0.15, D, '#7E4A40', 0, 0.075, 0); K.box(W * 0.85, H - 0.3, D * 0.85, '#9A5A4E', 0, H / 2, 0, { roughness: 0.55 }); K.box(W, 0.15, D, '#7E4A40', 0, H - 0.075, 0); },
   obelisk: (K, W, D, H) => { K.box(W * 1.4, 0.4, D * 1.4, '#8A7A60', 0, 0.2, 0); const sh = H * 0.9, m = K.cyl(W * 0.28, W * 0.45, sh, '#9A5A4E', 0, 0.4 + sh / 2, 0, 4, { roughness: 0.55 }); m.geometry.rotateY && m.geometry.rotateY(Math.PI / 4);
     const t = K.cyl(0, W * 0.3, H * 0.07, '#D9B44A', 0, 0.4 + sh + H * 0.035, 0, 4, { metalness: 0.6, roughness: 0.35 }); t.geometry.rotateY && t.geometry.rotateY(Math.PI / 4); },
@@ -9338,6 +9346,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.300', '4 nov', ['Tempel → Keops pyramid i 3D har nu en synlig ingång i norra sidan, med en stig fram till den']],
   ['Beta 0.299', '4 nov', ['Gå-läget: ju fler hopp i rad, desto snabbare går du framåt. Farten återställs när du slutar hoppa']],
   ['Beta 0.298', '4 nov', ['Tempel → Gör Keops pyramid till ett hus att gå in i: ingång i norr, korridor, stora galleriet, kungakammaren med sarkofag och ett hemligt ufoskattrum. Pyramiden döljs när du står inne i den']],
   ['Beta 0.297', '4 nov', ['Gå-läget: hoppa med mellanslag eller knappen Hoppa. Fart i luften: styr med A och D medan du svänger för bunnyhop, som i Quake', 'Tempel → Bygg Giza-platån: pyramiderna, sfinxen, dalgångstemplet och mastaborna i verklig skala, med enkel grafik. Gå in i mastaborna. Färg: ursprunglig eller nu, i 3D-menyn']],
@@ -10569,7 +10578,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.299';
+const APP_VERSION = 'Beta 0.300';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
