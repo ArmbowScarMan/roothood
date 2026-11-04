@@ -9196,6 +9196,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.286', '4 nov', ['Om appen fryser i mer än 2 sekunder skickas en automatisk felrapport, så att vi kan hitta vad som gör appen långsam på äldre telefoner']],
   ['Beta 0.285', '4 nov', ['Växtbiblioteket: knapp bredvid sorteringen växlar mellan rutnät med bilder och en detaljerad lista utan bilder med ljus, vatten, zon, höjd och om växten är farlig för djur']],
   ['Beta 0.284', '4 nov', ['Fler foton: växter som saknar bild på Wikipedia, till exempel många rossorter, får nu en fri bild från Wikimedia Commons om det finns en med sortens namn']],
   ['Beta 0.283', '4 nov', ['Ny fördjupning under Lär dig: Rosor. Sorter, plats, plantering, beskärning, vatten och näring, vinterskydd, sjukdomar och nypon', 'Snabbfrågan känner igen frågor om rosor och visar fördjupningen']],
@@ -10413,7 +10414,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.285';
+const APP_VERSION = 'Beta 0.286';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -10767,6 +10768,31 @@ const showOffline = () => { const el = document.getElementById('offline'); if (e
 window.addEventListener('online', showOffline); window.addEventListener('offline', showOffline); showOffline();
 
 // ===== Start =====
+// ===== Frysvakt: om appen fryser i minst 2 sekunder skickas en automatisk rapport till Moderering → Feedback =====
+const FRZ = { last: 'inget ännu', at: 0, sent: 0, prev: -1e9, rend: 0, rendMax: 0 };
+document.addEventListener('pointerdown', e => { const t = e.target && e.target.closest && e.target.closest('button,a,[onclick],input,select,label'); FRZ.last = 'tryck på ' + ((t && (t.getAttribute('aria-label') || t.textContent || t.tagName)) || 'sidan').replace(/\s+/g, ' ').trim().slice(0, 60); FRZ.at = performance.now(); }, true);
+document.addEventListener('scroll', () => { if (performance.now() - FRZ.at > 500) { FRZ.last = 'scroll på ' + (location.hash || '#home'); FRZ.at = performance.now(); } }, { capture: true, passive: true });
+{ const R = render; render = function () { const t = performance.now(); try { return R.apply(this, arguments); } finally { FRZ.rend = Math.round(performance.now() - t); FRZ.rendMax = Math.max(FRZ.rendMax, FRZ.rend); } }; }
+function frzReport(ms, how) {
+  const now = performance.now();
+  if (ms < 2000 || FRZ.sent >= 3 || now - FRZ.prev < 8000) return;
+  FRZ.sent++; FRZ.prev = now;
+  const n = (x, d) => x == null ? '?' : x;
+  const body = ['[Automatisk frysrapport] Appen frös i ' + (ms / 1000).toFixed(1).replace('.', ',') + ' s (' + how + ').',
+    'Sida: ' + (location.hash || '#home') + (S.tool ? ' / ' + S.tool : '') + (S.modal ? ' / ruta ' + S.modal : ''),
+    'Senast: ' + FRZ.last + ' (' + String(Math.round((now - FRZ.at) / 100) / 10).replace('.', ',') + ' s före)',
+    'Senaste ritning: ' + FRZ.rend + ' ms, längsta: ' + FRZ.rendMax + ' ms',
+    'Växter i biblioteket: ' + (S.plants || []).length + ', i samlingen: ' + (S.mine || []).length + ', bilder på sidan: ' + document.images.length + ', element: ' + document.getElementsByTagName('*').length,
+    'Minne: ' + n(navigator.deviceMemory) + ' GB, kärnor: ' + n(navigator.hardwareConcurrency) + ', skärm: ' + screen.width + '×' + screen.height + ' @' + devicePixelRatio,
+    'Språk: ' + LANG + ', design: ' + (document.documentElement.dataset.ui || 'standard') + ', appläge: ' + (matchMedia('(display-mode: standalone)').matches ? 'installerad' : 'webbläsare'),
+    'Tid sedan start: ' + Math.round(now / 1000) + ' s'].join('\n');
+  const q = store.get('frzQ', []); q.push({ kind: 'bug', body, view: ((location.hash || '#home') + ' frys').slice(0, 200), version: APP_VERSION, ua: navigator.userAgent.slice(0, 300) }); store.set('frzQ', q.slice(-5));
+  setTimeout(frzFlush, 3000);
+}
+async function frzFlush() { if (!S.user || !api) return; const q = store.get('frzQ', []); if (!q.length) return; store.set('frzQ', []); for (const f of q) { try { await api.sendFb(f); } catch (e) { console.warn('Roothood:', e); } } }
+try { new PerformanceObserver(l => l.getEntries().forEach(e => { if (e.duration >= 2000) frzReport(e.duration, 'lång uppgift'); })).observe({ entryTypes: ['longtask'] }); } catch (e) { /* stöds inte i alla webbläsare */ }
+{ let hb = performance.now(); setInterval(() => { const t = performance.now(), gap = t - hb - 1000; hb = t; if (gap >= 2000 && !document.hidden) frzReport(gap, 'appen svarade inte'); }, 1000);
+  document.addEventListener('visibilitychange', () => { hb = performance.now(); }); }
 function loadScript(src) { return new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fail(new Error('Kunde inte ladda ' + src)); document.head.appendChild(s); }); }
 async function init() {
   applyPrefs();
@@ -10809,6 +10835,7 @@ async function init() {
   $('#main').addEventListener('scroll', () => { navY = $('#main').scrollTop; clearTimeout(scrollT); scrollT = setTimeout(saveView, 400); }, { passive: true });
   checkUpdate();
   if (S.user) refreshPush();
+  if (S.user) setTimeout(frzFlush, 5000);
   // Hämta Profil i förväg när appen är igång, så att den är klar första gången man öppnar den
   if (S.user) setTimeout(() => { if (S.meCard === undefined) { S.meCard = null; loadMe(); } if (!S.feed) api.feed('question').then(f => { if (!S.feed) S.feed = f; }).catch(() => {}); }, 2500);
 }
