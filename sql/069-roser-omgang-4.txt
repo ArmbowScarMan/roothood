@@ -1,0 +1,43 @@
+-- 069: rosor omgång 4 från Hornbach, Plantagen, Bygghemma, Zetas, Genbäcks, Granngården och Sveriges Trädgårdsbutik, plus rättade zoner (34 sorter). Går att köra flera gånger.
+update plants set hardiness_zone = '1–6', temperature = 'Ros, härdig i zon 1–6' where latin_name in ('Rosa ''Jens Munk''', 'Rosa ''Henry Hudson''', 'Rosa ''Winnipeg Parks''', 'Rosa ''John Franklin''', 'Rosa ''Champlain''', 'Rosa ''Therese Bugnet''', 'Rosa ''Captain Samuel Holland''', 'Rosa ''Alexander MacKenzie''', 'Rosa ''Frontenac''', 'Rosa ''Prairie Joy''', 'Rosa ''Adelaide Hoodless''', 'Rosa ''Carmenetta''', 'Rosa gallica ''Versicolor''');
+update plants set hardiness_zone = '1–7', temperature = 'Ros, härdig i zon 1–7' where latin_name in ('Rosa ''Morden Centennial''', 'Rosa ''Louise Bugnet''');
+update plants set tips = 'Storblommig klätterros med vita blommor', height_cm = 300, width_cm = 150, spacing_cm = 120 where latin_name = 'Rosa ''Schneewalzer''';
+insert into plants (swedish_name, latin_name, category, light_level, water_level, light_text, water_text, water_interval_days, soil, temperature, humidity, pet_safe, toxicity_text, propagation, common_problems, tips, hardiness_zone, family, height_cm, width_cm, spacing_cm, plant_type)
+select v.sv, v.la, 'Trädgård', 3, 2, 'Sol', 'Vattna vid längre torka. Vattna ordentligt första året', null, 'Näringsrik, väldränerad jord', 'Ros, härdig i zon ' || v.z, 'Normal', true, 'Ofarlig för katter och hundar', 'Sticklingar', 'Svartfläcksjuka och bladlöss', v.tip, v.z, 'Rosaceae', v.h, v.w, round(v.w * 0.8)::int, 'ros'
+from (values
+('Ros Marzipan', 'Rosa spinosissima ''Marzipan''', 60, 60, '1–8', 'Låg pimpinellros med mörkrosa blommor som bleknar till ljusrosa'),
+('Honungsros', 'Rosa helenae', 400, 250, '1–5', 'Klätterros med gräddvita, doftande blommor i stora klasar'),
+('Ros Cutie Pie', 'Rosa ''Cutie Pie''', 40, 40, '1–3', 'Miniatyrros med rosa blommor'),
+('Ros Minerva', 'Rosa ''Minerva''', 80, 60, '1–3', 'Rabattros med lila blommor'),
+('Ros Sugar Candy', 'Rosa ''Sugar Candy''', 80, 60, '1–3', 'Rabattros med orange blommor'),
+('Ros Pirouette', 'Rosa ''Pirouette''', 300, 150, '1–4', 'Klätterros med rosa blommor'),
+('Ros Zepeti', 'Rosa ''Zepeti''', 80, 60, '1–3', 'Rabattros med röda blommor'),
+('Ros Newsflash', 'Rosa ''Newsflash''', 300, 150, '1–4', 'Klätterros med orange blommor'),
+('Ros Lichtkönigin Lucia', 'Rosa ''Lichtkönigin Lucia''', 300, 150, '1–4', 'Klätterros med gula blommor'),
+('Ros Lampion', 'Rosa ''Lampion''', 80, 60, '1–3', 'Rabattros med gula blommor'),
+('Ros Red Meilove', 'Rosa ''Red Meilove''', 80, 60, '1–3', 'Rabattros med röda blommor'),
+('Ros Störtebeker', 'Rosa ''Störtebeker''', 80, 60, '1–3', 'Rabattros med röda blommor'),
+('Ros Bailando', 'Rosa ''Bailando''', 80, 60, '1–3', 'Rabattros'),
+('Ros Apricot Meilove', 'Rosa ''Apricot Meilove''', 80, 60, '1–3', 'Rabattros med orange blommor'),
+('Ros Lovely Fairy', 'Rosa ''Lovely Fairy''', 50, 100, '1–4', 'Marktäckande ros med rosa blommor'),
+('Ros Annapurna', 'Rosa ''Annapurna''', 120, 100, '1–4', 'Buskros med vita blommor'),
+('Ros Melrose', 'Rosa ''Melrose''', 80, 60, '1–3', 'Rabattros med rosa blommor'),
+('Ros Lavender Flower Circus', 'Rosa ''Lavender Flower Circus''', 80, 60, '1–3', 'Rabattros med lila blommor'),
+('Ros Yellow Meilove', 'Rosa ''Yellow Meilove''', 80, 60, '1–3', 'Rabattros med gula blommor'),
+('Ros Belles Rives', 'Rosa ''Belles Rives''', 120, 100, '1–4', 'Buskros med rosa blommor'),
+('Ros Cicero', 'Rosa ''Cicero''', 40, 40, '1–3', 'Miniatyrros med rosa blommor'),
+('Ros Crazy in Love Red', 'Rosa ''Crazy in Love Red''', 300, 150, '1–4', 'Klätterros med röda blommor'),
+('Ros Brilliant', 'Rosa ''Brilliant''', 300, 150, '1–4', 'Klätterros'),
+('Ros James Galway', 'Rosa ''James Galway''', 120, 100, '1–4', 'Buskros med rosa blommor'),
+('Ros Morden Fireglow', 'Rosa ''Morden Fireglow''', 150, 120, '1–6', 'Parkros med orange blommor'),
+('Ros Morden Sunrise', 'Rosa ''Morden Sunrise''', 150, 120, '1–6', 'Parkros med orange blommor'),
+('Ros Fresia', 'Rosa ''Fresia''', 80, 60, '1–2', 'Rabattros med gula blommor'),
+('Ros Piccolo', 'Rosa ''Piccolo''', 80, 60, '1–3', 'Rabattros'),
+('Ros Lac Majeau', 'Rosa ''Lac Majeau''', 150, 120, '1–6', 'Parkros med vita blommor'),
+('Ros Perla de Alcañada', 'Rosa ''Perla de Alcañada''', 40, 40, '1–3', 'Miniatyrros med röda blommor'),
+('Ros Venusta Pendula', 'Rosa ''Venusta Pendula''', 300, 150, '1–4', 'Klätterros med vita blommor'),
+('Ros Royal Estelle', 'Rosa ''Royal Estelle''', 80, 60, '1–3', 'Rabattros med rosa blommor'),
+('Ros Valdemar', 'Rosa ''Valdemar''', 120, 100, '1–4', 'Buskros med rosa blommor'),
+('Ros Wasagaming', 'Rosa ''Wasagaming''', 150, 120, '1–6', 'Parkros med rosa blommor')
+) as v(sv, la, h, w, z, tip)
+where not exists (select 1 from plants p where lower(p.latin_name) = lower(v.la) or lower(p.swedish_name) = lower(v.sv));
