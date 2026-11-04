@@ -23,7 +23,7 @@ const srv = http.createServer((q, r) => { const p = path.join(dir, decodeURIComp
       return out; });
     list.forEach(t => { if (!found.has(t)) found.set(t, where); }); };
   const lang = await pg.evaluate(() => [LANG, document.documentElement.lang, TR.map ? TR.map.size : 0]);
-  for (const t of ['Home', 'Collection', 'Community', 'Profile']) { const btn = pg.locator('nav button', { hasText: t }).first(); if (await btn.count()) { await btn.click().catch(() => {}); await scan('flik ' + t); } else found.set('(saknar flik ' + t + ')', 'nav'); }
+  for (const t of ['Start', 'Collection', 'Community', 'Profile']) { const btn = pg.locator('nav button', { hasText: t }).first(); if (await btn.count()) { await btn.click().catch(() => {}); await scan('flik ' + t); } else found.set('(saknar flik ' + t + ')', 'nav'); }
   const tools = ['db', 'doc', 'experts', 'explore', 'house', 'inspo', 'nearby', 'news', 'notif', 'people', 'perma', 'pets', 'season', 'settings', 'smart', 'sow', 'msgs', 'id', 'light', 'compass'];
   for (const t of tools) { await pg.evaluate(t => { try { S.modal = null; S.tool = t; render(); } catch (e) {} }, t); await scan('verktyg ' + t); }
   await pg.evaluate(() => { S.tool = null; render(); });
