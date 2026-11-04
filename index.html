@@ -421,6 +421,13 @@ button.shot{cursor:pointer}
 .ovf:not(.end){-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 36px),transparent)}
 .tab .tabn{font-style:normal;display:inline-block;min-width:18px;margin-left:5px;padding:0 6px;border-radius:99px;background:var(--acc);color:#fff;font-size:11.5px;line-height:18px;text-align:center;vertical-align:1px}
 .seg2.msper,.seg2.sowtabs{gap:2px;padding:4px}.seg2.msper button,.seg2.sowtabs button{font-size:13px;padding:8px 0;white-space:nowrap}
+.dbvbtn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:999px;background:var(--surf);color:var(--ink);box-shadow:var(--sh);border:0;cursor:pointer;margin-left:8px;flex:0 0 auto}
+.dbrows{display:flex;flex-direction:column;gap:8px;padding:12px 18px 0}
+.drow{display:flex;align-items:center;gap:8px;background:var(--surf);border-radius:16px;box-shadow:var(--sh);content-visibility:auto;contain-intrinsic-size:auto 76px}
+.drow .open{flex:1;min-width:0;text-align:left;background:none;border:0;color:inherit;padding:12px 4px 12px 14px;cursor:pointer;font:inherit}
+.drow .open b{display:block;font-size:15px}.drow .open i{display:block;color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drow .dd{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:12.5px;color:var(--mut)}.drow .dd span{white-space:nowrap}
+.drow .heart{position:static;margin-right:10px;flex:0 0 auto}
 .sortsel{display:inline-flex;align-items:center;gap:6px;background:var(--surf);color:var(--ink);border-radius:999px;padding:6px 10px 6px 12px;box-shadow:var(--sh);font-size:13.5px;font-weight:600;cursor:pointer;position:relative}
 .sortsel select{-webkit-appearance:none;appearance:none;border:0;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right center;color:inherit;font:inherit;padding:0 16px 0 0;cursor:pointer;outline:none}
 .chips2.qfilt{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:4px}.chips2.qfilt::-webkit-scrollbar{display:none}.chips2.qfilt button{flex:none}
@@ -6453,8 +6460,8 @@ function dbV() {
     <button class="dbfb ${n ? 'on' : ''}" onclick="openModal('dbf')" aria-label="Filter${n ? ', ' + n + ' valda' : ''}">${ic('ph-sliders-horizontal', 'currentColor', 20)}${n ? `<em>${n}</em>` : ''}</button></div>
   <div class="seg2 dbenv" role="tablist">${[['all', 'Alla'], ['in', 'Inomhus'], ['out', 'Utomhus']].map(([k, t]) => `<button class="${S.env === k ? 'on' : ''}" role="tab" aria-selected="${S.env === k}" onclick="setEnv('${k}')">${t}</button>`).join('')}</div>
   <div class="dbact">${dbChips()}</div>
-  <div class="sec"><h2 id="count">Växter</h2><label class="sortsel">${ic('ph-sort-ascending', 'currentColor', 16)}<select aria-label="Sortera" onchange="setDsort(this.value)">${DB_SORT.map(([k, t]) => `<option value="${k}"${(S.dsort || 'az') === k ? ' selected' : ''}>${t}</option>`).join('')}</select></label></div>
-  <div class="grid" id="list"></div>`;
+  <div class="sec"><h2 id="count">Växter</h2><label class="sortsel">${ic('ph-sort-ascending', 'currentColor', 16)}<select aria-label="Sortera" onchange="setDsort(this.value)">${DB_SORT.map(([k, t]) => `<option value="${k}"${(S.dsort || 'az') === k ? ' selected' : ''}>${t}</option>`).join('')}</select></label><button class="dbvbtn" onclick="setDview()" aria-label="${dbRows() ? 'Visa som rutnät med bilder' : 'Visa som lista utan bilder'}">${ic(dbRows() ? 'ph-squares-four' : 'ph-list', 'currentColor', 20)}</button></div>
+  <div class="${dbRows() ? 'dbrows' : 'grid'}" id="list"></div>`;
 }
 // Filter och sortering i Växtbiblioteket: en filterknapp, valda filter som chips som går att ta bort
 function setDsort(k) { S.dsort = k; document.querySelectorAll('.dbsortc button').forEach(b => { const on = b.dataset.k === k; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); renderList(); }
@@ -7981,17 +7988,28 @@ function homeCfgV() {
 const TYPE_G = { trad: 'Träd', frukt: 'Fruktträd', barr: 'Barrväxter', buske: 'Buskar', ros: 'Rosor', bar: 'Bär och bärbuskar', perenn: 'Perenner', lok: 'Lökar och knölar', gras: 'Gräs', klatter: 'Klätterväxter', marktack: 'Marktäckare', ormbunke: 'Ormbunkar', sommar: 'Sommarblommor', gron: 'Grönsaker', rot: 'Rotfrukter', krydda: 'Kryddor' };
 const TYPE_ORDER = ['Träd', 'Fruktträd', 'Barrväxter', 'Buskar', 'Rosor', 'Bär och bärbuskar', 'Perenner', 'Lökar och knölar', 'Gräs', 'Klätterväxter', 'Marktäckare', 'Ormbunkar', 'Sommarblommor', 'Grönsaker', 'Rotfrukter', 'Kryddor'];
 const typeOf = p => OUTDOOR.includes(p.category) ? TYPE_G[guessType(p)] || null : null;
+// Växtbiblioteket som rutnät med bilder eller som detaljerad lista utan bilder. Valet sparas på telefonen.
+const dbRows = () => (S.dview || store.get('dview', 'grid')) === 'list';
+function setDview() { S.dview = dbRows() ? 'grid' : 'list'; store.set('dview', S.dview); keepMain(); }
+function dbRow(p, has) {
+  const L = ['', 'Skugga', 'Halvskugga', 'Sol'][p.light_level] || '', W = ['', 'Lite vatten', 'Måttligt vatten', 'Mycket vatten'][p.water_level] || '';
+  const bits = [p.category, L && '☀ ' + L, W && '💧 ' + W, p.hardiness_zone && 'Zon ' + p.hardiness_zone, p.height_cm && 'Höjd ' + (p.height_cm >= 100 ? (Math.round(p.height_cm / 10) / 10).toString().replace('.', ',') + ' m' : p.height_cm + ' cm'), 'Djur: ' + petWord(p)].filter(Boolean);
+  return `<div class="drow"><button class="open" onclick="openPlant(${p.id})"><b>${esc(p.swedish_name)}</b><i>${esc(p.latin_name)}</i><span class="dd">${bits.map(b => `<span>${esc(b)}</span>`).join('')}</span></button>
+    <button class="heart ${has ? 'on' : ''}" onclick="heart(${p.id})" aria-pressed="${has}" aria-label="${has ? 'Ta bort från Favoriter' : 'Spara som favorit'}">${ic(I.heart, 'currentColor', 20).replace('fill="none"', has ? 'fill="currentColor"' : 'fill="none"')}</button></div>`;
+}
 function renderList() {
   if (!$('#list')) return;
   const so = S.dsort || 'az', nm = (a, b) => (a.swedish_name || '').localeCompare(b.swedish_name || '', 'sv');
   const r = dbBase().slice().sort(so === 'za' ? (a, b) => nm(b, a) : so === 'pop' ? (a, b) => ((S.popMap || {})[String(b.id)] || 0) - ((S.popMap || {})[String(a.id)] || 0) || nm(a, b) : so === 'easy' ? (a, b) => (a.water_level || 2) - (b.water_level || 2) || nm(a, b) : so === 'sun' ? (a, b) => (b.light_level || 2) - (a.light_level || 2) || nm(a, b) : so === 'shade' ? (a, b) => (a.light_level || 2) - (b.light_level || 2) || nm(a, b) : so === 'pet' ? (a, b) => (b.pet_safe ? 1 : 0) - (a.pet_safe ? 1 : 0) || nm(a, b) : nm);
   $('#count').textContent = r.length + (r.length === 1 ? ' växt' : ' växter');
+  const rows = dbRows();
   $('#list').innerHTML = r.map(p => {
     const has = isFav(p.id);
+    if (rows) return dbRow(p, has);
     return `<div class="card"><button class="open" onclick="openPlant(${p.id})">${plantPh(p)}<h3>${esc(p.swedish_name)}</h3><i>${esc(p.latin_name)}</i></button>
     <button class="heart ${has ? 'on' : ''}" onclick="heart(${p.id})" aria-pressed="${has}" aria-label="${has ? 'Ta bort från Favoriter' : 'Spara som favorit'}">${ic(I.heart, 'currentColor', 20).replace('fill="none"', has ? 'fill="currentColor"' : 'fill="none"')}</button></div>`;
   }).join('') + `<div class="empty"><p>${r.length ? 'Saknas din växt?' : 'Ingen växt matchar sökningen.'} Lägg till den själv och föreslå den till databasen.</p><button class="btn sm" onclick="addCustomStart()">Lägg till egen växt</button></div>`;
-  loadPhotos();
+  if (!rows) loadPhotos();
 }
 function dupV() {
   const p = plantById(S.dupId) || {}, n = S.mine.filter(m => m.plant_id === S.dupId).length;
@@ -9178,6 +9196,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.285', '4 nov', ['Växtbiblioteket: knapp bredvid sorteringen växlar mellan rutnät med bilder och en detaljerad lista utan bilder med ljus, vatten, zon, höjd och om växten är farlig för djur']],
   ['Beta 0.284', '4 nov', ['Fler foton: växter som saknar bild på Wikipedia, till exempel många rossorter, får nu en fri bild från Wikimedia Commons om det finns en med sortens namn']],
   ['Beta 0.283', '4 nov', ['Ny fördjupning under Lär dig: Rosor. Sorter, plats, plantering, beskärning, vatten och näring, vinterskydd, sjukdomar och nypon', 'Snabbfrågan känner igen frågor om rosor och visar fördjupningen']],
   ['Beta 0.282', '4 nov', ['Ny rubrik: Trädgårdar, parker och handelsträdgårdar nära dig']],
@@ -9870,7 +9889,7 @@ const LEARN = {
     ['🐞', 'Sjukdomar och skadedjur', 'Det vanligaste problemet är svamp på bladen. Friska sorter och rätt plats förebygger det mesta.', ['Svartfläcksjuka: svarta fläckar och gula blad. Ta bort angripna blad och kasta dem i soporna', 'Mjöldagg: vitt pulver på bladen. Ge mer luft och vattna inte på bladen', 'Bladlöss: spola bort med vatten. Nyckelpigor och fåglar äter dem', 'Välj sorter som är märkta som friska eller motståndskraftiga']],
     ['🍂', 'Nypon', 'Låt de sista blommorna sitta kvar på hösten så bildas nypon. De är vackra och fåglarna äter dem på vintern.', ['Vresros och hundros ger stora nypon', 'Nypon kan bli soppa, te och marmelad', 'Ta bort fröna och håren inuti innan du använder dem']]]],
 };
-function learnRoses() { S.q = 'Rosa'; openDb(); }
+function learnRoses() { dbClear(); S.q = ''; S.env = 'all'; S.ptypes = ['Rosor']; openDb(); }
 function openLearn(k) { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'learn'; S.learnT = k; render(); $('#main').scrollTop = 0; }
 function learnV() { const k = LEARN[S.learnT] ? S.learnT : 'jord', L = LEARN[k];
   return `${topbar(L[0], 'closeTool()')}
@@ -10394,7 +10413,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.284';
+const APP_VERSION = 'Beta 0.285';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
