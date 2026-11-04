@@ -8379,8 +8379,7 @@ function mineV() {
 function meV() {
   if (!S.user) return `${topbar('Profil', null, gearBtn())}<div class="prof"><img src="${LOGO}" alt="" width="96" height="96" style="display:block;margin:0 auto 12px;border-radius:24px"><h2>Välkommen till Roothood</h2><p class="mut">Skapa ett konto för att spara växter och vara med i communityn.</p><button class="btn" onclick="openModal('login')">Logga in eller skapa konto</button></div>${installCard()}${settingsRow()}`;
   if (S.meCard === undefined) { S.meCard = null; setTimeout(loadMe); }
-  return `${topbar('Profil', null, gearBtn())}${userBody(meCardNow(), S.meCard ? S.meCard.posts : null, true)}${DEMO ? '<p class="mut" style="margin:0 18px">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}
-  ${isMod() ? `<div class="sec"><h2>Moderering</h2></div><div class="pad"><button class="setrow" onclick="openMod('open')"><span class="tic">🛡️</span><span class="grow"><b>Moderering${S.modOpen ? ' (' + S.modOpen + ')' : ''}</b><span>${isAdmin() ? 'Du är admin. Granska rapporter och hantera moderatorer.' : 'Du är moderator. Granska rapporter och community.'}</span></span></button></div>` : ''}
+  return `${topbar('Profil', null, (isMod() ? modBtn() : '') + gearBtn())}${userBody(meCardNow(), S.meCard ? S.meCard.posts : null, true)}${DEMO ? '<p class="mut" style="margin:0 18px">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}
   <div class="sec"><h2>Konto och inställningar</h2></div>
   ${S.user ? proCard() : ''}
   ${S.user ? `<button class="setcard fbcard" onclick="openFb()"><span class="tic">${ic('ph-bug', 'currentColor', 22)}</span><span class="grow"><b>Rapportera fel eller ge förslag</b><span>Hjälp oss göra Roothood bättre. Skärmbild går bra att bifoga.</span></span></button>` : ''}
@@ -9292,6 +9291,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.296', '4 nov', ['Moderering: knappen ligger nu uppe i profilens övre rad, bredvid inställningarna. Den gamla raden längre ner är borttagen']],
   ['Beta 0.295', '4 nov', ['Engelska: knapparna för lista och rutnät i Växtbiblioteket är översatta']],
   ['Beta 0.294', '4 nov', ['Chatt: du kan rapportera en bild från en vän. Rapporterade bilder syns i Felrapporter, och moderatorer kan dölja dem']],
   ['Beta 0.293', '4 nov', ['Chatt: skicka bilder till vänner, med eller utan text. Tryck på en bild för att se den större']],
@@ -10519,7 +10519,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.295';
+const APP_VERSION = 'Beta 0.296';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -10724,6 +10724,7 @@ function settingsV() {
     ${DEMO ? `<button class="btn wide line" style="margin-top:12px" onclick="resetDemo()">${S.del === 'reset' ? 'Tryck igen för att börja om' : 'Återställ demodata'}</button>` : ''}
   </div>`;
 }
+function modBtn() { return `<button class="circ" onclick="openMod('open')" aria-label="Moderering" title="Moderering">${ic('ph-shield-check', null, 22)}</button>`; }
 function gearBtn() { return `<button class="circ" onclick="openSettings()" aria-label="Inställningar" title="Inställningar">${ic(GEAR, null, 22)}</button>`; }
 function settingsRow() {
   return `<div class="pad" style="padding-top:12px"><button class="setrow" onclick="openSettings()"><span class="tic">${ic(GEAR, 'currentColor', 20)}</span><span class="grow"><b>Inställningar</b><span>Profil, utseende, odlingszon och konto</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`;
