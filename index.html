@@ -9155,6 +9155,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.281', '4 nov', ['Trädgårdar nära dig: om appen inte får din plats visas tydligare texten och du kan skriva in en ort i stället', 'Texten nämner inte längre bara Chrome, eftersom behörigheten kan saknas i Roothood eller i Chrome']],
   ['Beta 0.280', '4 nov', ['Ritning: rum med fri form. Tryck på + Rum med fri form och sätt ut hörnen ett i taget, så kan rummet bli L-, T- eller U-format', 'Dra i hörnen på ett sådant rum för att ändra formen. Fönster, dörrar, 3D, gå-läget, växter och möbler fungerar som i vanliga rum']],
   ['Beta 0.279', '4 nov', ['Profil hämtas i förväg när appen startar, så att den öppnas direkt första gången', 'Profil ritas inte om i onödan när inget har ändrats']],
   ['Beta 0.278', '4 nov', ['Designvarianten Städad: emojier bredvid text tas bort så att orden får tala, och den gröna färgen används bara där den betyder något, inte på rubriker, ramar och menyn']],
@@ -9709,37 +9710,50 @@ let nbState = { st: 'idle', list: [], err: null, at: null }, nbKm = 15;
 function nbSetKm(k) { nbKm = k; if (nbState.st !== 'busy') nbFind(); else render(); }
 function openNearby() { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'nearby'; render(); $('#main').scrollTop = 0; }
 const nbDist = (a, b) => { const R = 6371, t = x => x * Math.PI / 180, dl = t(b.lat - a.lat), dn = t(b.lon - a.lon); const h = Math.sin(dl / 2) ** 2 + Math.cos(t(a.lat)) * Math.cos(t(b.lat)) * Math.sin(dn / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+const NB_NOPOS = 'Appen fick inte din plats. Kontrollera att plats är på i telefonens inställningar och att Roothood och Chrome får använda den, tryck sedan på Försök igen. Eller skriv in en ort nedan.';
 function nbFind() {
-  if (!navigator.geolocation) { nbState = { st: 'err', err: 'Mobilen kan inte ge din position. Tillåt platsen i Chrome.' }; return render(); }
+  if (!navigator.geolocation) { nbState = { st: 'err', err: NB_NOPOS }; return render(); }
   nbState = { st: 'busy' }; render();
-  navigator.geolocation.getCurrentPosition(async pos => {
-    const here = { lat: pos.coords.latitude, lon: pos.coords.longitude }, R = nbKm * 1000;
-    const a = `(around:${R},${here.lat},${here.lon})`;
-    let why = '';
-    // Sök med namn i OpenStreetMaps namnsök (Nominatim), begränsat till en ruta runt mig. Lättare än Overpass och svarar snabbt.
-    const dLat = R / 111000, dLon = R / (111000 * Math.cos(here.lat * Math.PI / 180));
-    const view = [here.lon - dLon, here.lat + dLat, here.lon + dLon, here.lat - dLat].join(',');
-    const terms = [['handelsträdgård', 'Handelsträdgård'], ['plantskola', 'Handelsträdgård'], ['trädgårdscenter', 'Handelsträdgård'], ['botanisk trädgård', 'Botanisk trädgård'], ['park', 'Park']];
-    const found = [];
-    for (const [term, kind] of terms) {
-      if (nbKm >= 150 && kind === 'Park') continue;
-      const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 15000);
-      try {
-        const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=40&accept-language=sv&countrycodes=se&bounded=1&viewbox=' + view + '&q=' + encodeURIComponent(term), { signal: ac.signal });
-        if (!r.ok) { why = 'svarskod ' + r.status; continue; }
-        const arr = await r.json(); arr.forEach(x => found.push({ x, kind }));
-      } catch (e) { why = e && e.name === 'AbortError' ? 'för lång väntetid' : 'ingen anslutning'; }
-      finally { clearTimeout(tm); }
-      await new Promise(res => setTimeout(res, 1100));
-    }
+  navigator.geolocation.getCurrentPosition(pos => nbRun({ lat: pos.coords.latitude, lon: pos.coords.longitude }), () => { nbState = { st: 'err', err: NB_NOPOS }; render(); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+}
+// Sök ort med namn (Nominatim, bara Sverige). Används när platsen inte går att hämta.
+async function nbOrt(q) {
+  q = (q || '').trim(); if (!q) return;
+  nbState = { st: 'busy' }; render();
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=se&accept-language=sv&q=' + encodeURIComponent(q));
+    const a = await r.json(); if (!a.length) throw new Error('ingen träff');
+    nbRun({ lat: +a[0].lat, lon: +a[0].lon });
+  } catch (e) { nbState = { st: 'err', err: 'Hittade inte orten "' + q + '". Prova en annan stavning, t.ex. med ortens namn och kommun.' }; render(); }
+}
+async function nbRun(here) {
+  nbState = { st: 'busy' }; render();
+  const R = nbKm * 1000;
+  const a = `(around:${R},${here.lat},${here.lon})`;
+  let why = '';
+  // Sök med namn i OpenStreetMaps namnsök (Nominatim), begränsat till en ruta runt platsen.
+  const dLat = R / 111000, dLon = R / (111000 * Math.cos(here.lat * Math.PI / 180));
+  const view = [here.lon - dLon, here.lat + dLat, here.lon + dLon, here.lat - dLat].join(',');
+  const terms = [['handelsträdgård', 'Handelsträdgård'], ['plantskola', 'Handelsträdgård'], ['trädgårdscenter', 'Handelsträdgård'], ['botanisk trädgård', 'Botanisk trädgård'], ['park', 'Park']];
+  const found = [];
+  for (const [term, kind] of terms) {
+    if (nbKm >= 150 && kind === 'Park') continue;
+    const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 15000);
     try {
-      if (!found.length && why) throw new Error(why);
-      const seen = new Set();
-      const list = found.map(({ x, kind }) => { const nm = (x.namedetails && x.namedetails.name) || (x.name) || (x.display_name || '').split(',')[0]; const la = +x.lat, lo = +x.lon; if (!nm || isNaN(la) || isNaN(lo)) return null; return { name: nm, kind, hours: '', web: '', lat: la, lon: lo, d: nbDist(here, { lat: la, lon: lo }) }; }).filter(Boolean)
-        .filter(x => x.d <= R / 1000 && !seen.has(x.name + Math.round(x.lat * 1000) + Math.round(x.lon * 1000)) && seen.add(x.name + Math.round(x.lat * 1000) + Math.round(x.lon * 1000))).sort((x, y) => x.d - y.d).slice(0, 60);
-      nbState = { st: 'ok', list, at: Date.now() }; render();
-    } catch (e) { nbState = { st: 'err', err: 'Kunde inte hämta platserna just nu (' + (why || e.message) + '). Försök igen om en stund.' }; render(); }
-  }, () => { nbState = { st: 'err', err: 'Tillåt platsen i Chrome för att hitta trädgårdar nära dig.' }; render(); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+      const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=40&accept-language=sv&countrycodes=se&bounded=1&viewbox=' + view + '&q=' + encodeURIComponent(term), { signal: ac.signal });
+      if (!r.ok) { why = 'svarskod ' + r.status; continue; }
+      const arr = await r.json(); arr.forEach(x => found.push({ x, kind }));
+    } catch (e) { why = e && e.name === 'AbortError' ? 'för lång väntetid' : 'ingen anslutning'; }
+    finally { clearTimeout(tm); }
+    await new Promise(res => setTimeout(res, 1100));
+  }
+  try {
+    if (!found.length && why) throw new Error(why);
+    const seen = new Set();
+    const list = found.map(({ x, kind }) => { const nm = (x.namedetails && x.namedetails.name) || (x.name) || (x.display_name || '').split(',')[0]; const la = +x.lat, lo = +x.lon; if (!nm || isNaN(la) || isNaN(lo)) return null; return { name: nm, kind, hours: '', web: '', lat: la, lon: lo, d: nbDist(here, { lat: la, lon: lo }) }; }).filter(Boolean)
+      .filter(x => x.d <= R / 1000 && !seen.has(x.name + Math.round(x.lat * 1000) + Math.round(x.lon * 1000)) && seen.add(x.name + Math.round(x.lat * 1000) + Math.round(x.lon * 1000))).sort((x, y) => x.d - y.d).slice(0, 60);
+    nbState = { st: 'ok', list, at: Date.now() }; render();
+  } catch (e) { nbState = { st: 'err', err: 'Kunde inte hämta platserna just nu (' + (why || e.message) + '). Försök igen om en stund.' }; render(); }
 }
 function nbV() {
   const st = nbState.st, fmt = d => d < 1 ? Math.round(d * 1000) + ' m' : (Math.round(d * 10) / 10).toString().replace('.', ',') + ' km';
@@ -9750,7 +9764,7 @@ function nbV() {
   if (nbState.list) nbState.shown = nbState.list.filter(kOk);
   if (st === 'idle') body = `<p class="mut" style="margin:0 0 14px">Hitta handelsträdgårdar, botaniska trädgårdar och parker. Uppgifterna kommer från OpenStreetMap, så de kan saknas eller vara gamla.</p>${kmChips}<button class="btn" onclick="nbFind()">Hitta nära mig</button>`;
   else if (st === 'busy') body = '<div class="center mut"><div class="lsp"><span></span><span></span><span></span></div><div style="margin-top:14px">Letar…</div></div>';
-  else if (st === 'err') body = `<p class="mut">${esc(nbState.err)}</p><button class="btn sm line" onclick="nbFind()">Försök igen</button>`;
+  else if (st === 'err') body = `<p class="mut">${esc(nbState.err)}</p><button class="btn sm line" onclick="nbFind()">Försök igen</button><form class="mrow2" style="margin-top:14px" onsubmit="event.preventDefault();nbOrt(this.q.value)"><input name="q" placeholder="Ort, t.ex. Piteå" autocomplete="off" enterkeyhint="search" aria-label="Skriv en ort"><button class="btn sm">Sök ort</button></form>`;
   else body = nbState.shown.length ? `${kmChips}<p class="mut" style="margin:0 0 10px;font-size:13px">${nbState.shown.length} platser inom ${nbKm >= 150 ? (nbKm / 10) + ' mil' : nbKm + ' km'}, närmast först. Ring gärna före besöket, eftersom öppettider saknas.</p>` +
       nbState.shown.map(x => `<div class="setcard" style="padding:12px 14px;margin-bottom:8px;text-align:left"><div class="grow"><b style="font-size:15px">${esc(x.name)}</b><span style="display:block;color:var(--mut);font-size:13px">${esc(x.kind)} · ${fmt(x.d)}${x.hours ? ' · ' + esc(x.hours) : ''}</span></div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><a class="btn sm" href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lon}" target="_blank" rel="noopener">Vägbeskrivning</a>${x.web ? `<a class="btn sm line" href="${esc(x.web)}" target="_blank" rel="noopener">Hemsida</a>` : ''}</div></div>`).join('') +
       `<button class="btn sm line" style="margin-top:6px" onclick="nbFind()">Uppdatera</button>`
@@ -10344,7 +10358,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.280';
+const APP_VERSION = 'Beta 0.281';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
