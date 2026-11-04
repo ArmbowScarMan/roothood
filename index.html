@@ -706,6 +706,7 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 /* --- Utseende 1.18: samma stil på alla sidor --- */
 .top{display:flex;align-items:center;gap:10px;padding:18px 18px 8px}
 .top h1{flex:1;min-width:0;font-size:28px;font-weight:800;text-align:left;color:var(--pri);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top h1.long{white-space:normal;font-size:21px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .top.hasback h1{font-size:22px}
 .sec h2{font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--mut)}
 .dtop{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:6px 18px 0}
@@ -6137,7 +6138,7 @@ function topbar(title, backFn, extra) {
     ? `<button class="circ" onclick="${backFn}" aria-label="Tillbaka">${ic(I.back, null, 22)}</button>`
     : `<img class="logoimg" src="${LOGO}" alt="Roothood" width="40" height="40">`;
   const right = bellBtn(), help = S.tool === 'house' ? helpBtn() : (title === 'Min samling' && !backFn ? `<button class="circ" onclick="openQAdd()" aria-label="Lägg till växt">${ic('ph-plus', null, 22)}</button>` : '');
-  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1>${esc(title)}</h1>${extra || (title === 'Gemenskap' ? communityBtns() : '')}${help}${right}</div>`;
+  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1${title.length > 26 ? ' class="long"' : ''}>${esc(title)}</h1>${extra || (title === 'Gemenskap' ? communityBtns() : '')}${help}${right}</div>`;
 }
 function communityBtns() { return `<button class="circ" onclick="openExperts()" aria-label="Fråga en expert">${ic('ph-graduation-cap', null, 22)}</button><button class="circ" onclick="openModal('chelp')" aria-label="Hjälp om Gemenskap" style="font-weight:800;font-size:18px">?</button>${peopleSearchBtn()}`; }
 function peopleSearchBtn() { return `<button class="circ" onclick="openPeople()" aria-label="Hitta användare">${ic('ph-magnifying-glass', null, 22)}</button>`;
@@ -9155,6 +9156,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.282', '4 nov', ['Ny rubrik: Trädgårdar, parker och handelsträdgårdar nära dig']],
   ['Beta 0.281', '4 nov', ['Trädgårdar nära dig: om appen inte får din plats visas tydligare texten och du kan skriva in en ort i stället', 'Texten nämner inte längre bara Chrome, eftersom behörigheten kan saknas i Roothood eller i Chrome']],
   ['Beta 0.280', '4 nov', ['Ritning: rum med fri form. Tryck på + Rum med fri form och sätt ut hörnen ett i taget, så kan rummet bli L-, T- eller U-format', 'Dra i hörnen på ett sådant rum för att ändra formen. Fönster, dörrar, 3D, gå-läget, växter och möbler fungerar som i vanliga rum']],
   ['Beta 0.279', '4 nov', ['Profil hämtas i förväg när appen startar, så att den öppnas direkt första gången', 'Profil ritas inte om i onödan när inget har ändrats']],
@@ -9769,7 +9771,7 @@ function nbV() {
       nbState.shown.map(x => `<div class="setcard" style="padding:12px 14px;margin-bottom:8px;text-align:left"><div class="grow"><b style="font-size:15px">${esc(x.name)}</b><span style="display:block;color:var(--mut);font-size:13px">${esc(x.kind)} · ${fmt(x.d)}${x.hours ? ' · ' + esc(x.hours) : ''}</span></div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><a class="btn sm" href="https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lon}" target="_blank" rel="noopener">Vägbeskrivning</a>${x.web ? `<a class="btn sm line" href="${esc(x.web)}" target="_blank" rel="noopener">Hemsida</a>` : ''}</div></div>`).join('') +
       `<button class="btn sm line" style="margin-top:6px" onclick="nbFind()">Uppdatera</button>`
     : `${kmChips}<p class="mut">Inga trädgårdar eller parker hittades inom ${nbKm} km. Prova ett större avstånd.</p><button class="btn sm line" onclick="nbFind()">Uppdatera</button>`;
-  return `${topbar('Trädgårdar nära dig', 'closeTool()')}<div class="pad">${body}</div>`;
+  return `${topbar('Trädgårdar, parker och handelsträdgårdar nära dig', 'closeTool()')}<div class="pad">${body}</div>`;
 }
 // ===== Kompass: visar vilket håll telefonen pekar mot =====
 let cmpOn = false, cmpHead = null, cmpAbs = false;
@@ -10358,7 +10360,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.281';
+const APP_VERSION = 'Beta 0.282';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
