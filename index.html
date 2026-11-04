@@ -963,7 +963,7 @@ button.pw{cursor:pointer}
 .mycard h3 .svn{display:block;font-size:.78em;font-weight:600;opacity:.85}
 .myname .sci{font-weight:700}
 .myname .svn{margin-left:6px;font-weight:600;color:var(--mut)}
-.chatl{display:flex;flex-direction:column;gap:8px;padding-bottom:90px}.bub{max-width:80%;align-self:flex-start;background:var(--surf);border-radius:16px 16px 16px 4px;padding:9px 12px;display:flex;flex-direction:column;gap:2px;word-break:break-word}.bub.me{align-self:flex-end;background:var(--pri);color:var(--onpri);border-radius:16px 16px 4px 16px}.bub small{opacity:.65;font-size:11px}.bub.me small{opacity:.9}.chatpg{display:flex;flex-direction:column;min-height:calc(100dvh - 130px)}#app.nochat nav{display:none}#app.nochat #main{padding-bottom:0}#app.nochat .chatpg{min-height:calc(100dvh - 70px)}.chatpg .chatl{flex:1;padding-bottom:12px}.chatf{position:sticky;bottom:0;display:flex;gap:8px;align-items:flex-end;padding:10px 14px;background:var(--bg);border-top:1px solid var(--line,#ffffff22)}.chatf textarea{flex:1;min-height:40px;max-height:120px;resize:none}
+.chatl{display:flex;flex-direction:column;gap:8px;padding-bottom:90px}.bimg{display:block;max-width:100%;max-height:260px;border-radius:12px;margin:0 0 4px;cursor:zoom-in;object-fit:cover}.bimg.big{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:contain;background:rgba(0,0,0,.92);z-index:99;border-radius:0;margin:0;cursor:zoom-out}.dmph{position:relative;flex:none;width:40px;height:40px}.dmph img{width:40px;height:40px;object-fit:cover;border-radius:12px;display:block}.dmph button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:var(--ink);color:var(--surf);font-size:14px;line-height:1;cursor:pointer}.dmphb{flex:none;width:40px;height:40px;display:grid;place-items:center;border-radius:50%;cursor:pointer}.bub{max-width:80%;align-self:flex-start;background:var(--surf);border-radius:16px 16px 16px 4px;padding:9px 12px;display:flex;flex-direction:column;gap:2px;word-break:break-word}.bub.me{align-self:flex-end;background:var(--pri);color:var(--onpri);border-radius:16px 16px 4px 16px}.bub small{opacity:.65;font-size:11px}.bub.me small{opacity:.9}.chatpg{display:flex;flex-direction:column;min-height:calc(100dvh - 130px)}#app.nochat nav{display:none}#app.nochat #main{padding-bottom:0}#app.nochat .chatpg{min-height:calc(100dvh - 70px)}.chatpg .chatl{flex:1;padding-bottom:12px}.chatf{position:sticky;bottom:0;display:flex;gap:8px;align-items:flex-end;padding:10px 14px;background:var(--bg);border-top:1px solid var(--line,#ffffff22)}.chatf textarea{flex:1;min-height:40px;max-height:120px;resize:none}
 .flbar{display:flex;gap:8px;align-items:center;padding:4px 14px 8px;overflow-x:auto}.flbar .chips2{flex:1;flex-wrap:nowrap;overflow-x:auto}.flbar .btn{flex:none}
 .cnt{display:flex;align-items:center;gap:12px}.cnt b{min-width:24px;text-align:center;font-size:18px}
 .pdprev{display:flex;flex-direction:column;gap:1px;background:var(--bg);border-radius:12px;padding:8px 12px;margin:6px 0 12px}
@@ -2125,7 +2125,7 @@ const sbApi = {
   },
   async inbox() { const { data, error } = await sb.rpc('inbox'); if (error) throw /inbox/.test(error.message || '') ? new Error('MSG_NOT_READY') : error; return data || []; },
   async thread(id) { const me = S.user.id, { data, error } = await sb.from('messages').select('*').or(`and(from_user.eq.${me},to_user.eq.${id}),and(from_user.eq.${id},to_user.eq.${me})`).order('created_at', { ascending: false }).limit(100); if (error) throw error; return (data || []).reverse().map(m => ({ id: m.id, mine: m.from_user === me, body: m.body, created_at: m.created_at })); },
-  async sendMsg(id, body, adId) { const row = { to_user: id, body }; if (adId) row.post_id = adId; const { error } = await sb.from('messages').insert(row); if (error) throw /BLOCKED/.test(error.message || '') ? new Error('BLOCKED') : /row-level|messages/.test(error.message || '') ? new Error('MSG_DENIED') : error; },
+  async sendMsg(id, body, adId, photo) { const row = { to_user: id, body }; if (adId) row.post_id = adId; if (photo) row.photo_url = photo; const { error } = await sb.from('messages').insert(row); if (error) throw /BLOCKED/.test(error.message || '') ? new Error('BLOCKED') : /row-level|messages/.test(error.message || '') ? new Error('MSG_DENIED') : error; },
   async markRead(id) { await sb.rpc('mark_read', { p_other: id }); },
   async userHome(id) { const { data, error } = await sb.rpc('user_home', { p_id: id }); if (error) throw error; return (data && data[0]) || { visible: false }; },
   async myRole() { const { data, error } = await sb.rpc('my_role'); return error ? 'user' : (data || 'user'); },
@@ -6971,7 +6971,7 @@ function msgsV() {
   return `${topbar('Meddelanden', 'S.tool=null;render()')}
   ${S.msgErr ? `<p class="formmsg" style="margin:16px 18px">${esc(S.msgErr)}</p>` : ''}
   ${msgUnread() ? `<p class="mut" style="margin:12px 18px 0"><b>${msgUnread()} olästa</b> · tryck på ett samtal för att läsa</p>` : ''}
-  <div class="pad nlist" style="padding-top:8px">${S.inboxErr ? retryBox('loadInbox().then(render)') : I == null ? '<p class="mut">Hämtar…</p>' : I.length ? I.map(c => `<button class="nrow ${c.unread ? 'new' : ''}" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">${avBig(c.name || '?')}</span><span class="grow"><b>${esc(c.name || 'Okänd')}</b><span>${c.last_mine ? 'Du: ' : ''}${esc(chatPlain(c.last_body || '').slice(0, 70))}</span></span><small>${c.unread ? c.unread + ' nya · ' : ''}${ago(c.last_at)}</small></button>`).join('') : '<p class="mut" style="margin:8px 0">Inga meddelanden än. Välj en vän nedan för att skriva.</p>'}</div>
+  <div class="pad nlist" style="padding-top:8px">${S.inboxErr ? retryBox('loadInbox().then(render)') : I == null ? '<p class="mut">Hämtar…</p>' : I.length ? I.map(c => `<button class="nrow ${c.unread ? 'new' : ''}" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">${avBig(c.name || '?')}</span><span class="grow"><b>${esc(c.name || 'Okänd')}</b><span>${c.last_mine ? 'Du: ' : ''}${esc(chatPlain(c.last_body || '').slice(0, 70) || '📷 Bild')}</span></span><small>${c.unread ? c.unread + ' nya · ' : ''}${ago(c.last_at)}</small></button>`).join('') : '<p class="mut" style="margin:8px 0">Inga meddelanden än. Välj en vän nedan för att skriva.</p>'}</div>
   <div class="sec"><h2>Skriv till en vän</h2></div><div class="pad">${F.length ? `<div class="chips2">${F.map(f => `<button onclick="openChat(${jsArg(f.id)},${jsArg(f.display_name)})">${esc(f.display_name)}</button>`).join('')}</div>` : '<p class="mut">Du kan skriva till dem som har accepterat din vänförfrågan.</p>'}</div>`;
 }
 async function openChat(id, name, ad) {
@@ -6984,13 +6984,16 @@ async function loadChat(force) {
   catch (e) { S.chatMsgs = S.chatMsgs || []; S.chatErr = errMsg(e); if (S.tool === 'chat' && force) render(); }
 }
 async function sendChat() {
-  const body = (S.dmDraft || '').trim(); if (!body || S.chatBusy) return; S.chatBusy = true;
+  const body = (S.dmDraft || '').trim(), ph = S.dph; if ((!body && !ph) || S.chatBusy) return; S.chatBusy = true;
   let ok = false;
-  try { await api.sendMsg(S.chatId, body, S.chatAd ? S.chatAd.id : null); S.dmDraft = ''; ok = true; }
-  catch (e) { toast(e.message === 'BLOCKED' ? 'Du kan inte skriva till den här personen.' : e.message === 'MSG_DENIED' ? 'Ni måste vara vänner för att skriva till varandra. Meddelanden går inte att använda just nu.' : errMsg(e)); }
+  try { let url = null; if (ph) { url = await uploadPhoto(ph); if (!url) throw new Error('PHOTO_UPLOAD'); }
+    await api.sendMsg(S.chatId, body, S.chatAd ? S.chatAd.id : null, url); S.dmDraft = ''; S.dph = null; S.dphUrl = null; ok = true; }
+  catch (e) { toast(e.message === 'BLOCKED' ? 'Du kan inte skriva till den här personen.' : e.message === 'MSG_DENIED' ? 'Ni måste vara vänner för att skriva till varandra. Meddelanden går inte att använda just nu.' : e.message === 'PHOTO_UPLOAD' ? 'Bilden gick inte att ladda upp. Försök igen.' : /photo_url|messages_body_or_photo/.test(e.message || '') ? 'Bilder i meddelanden är inte påslagna än.' : errMsg(e)); }
   S.chatBusy = false;
   if (ok) await loadChat(true); else if (S.tool === 'chat') render();
 }
+function dmPhoto(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.dph = f; S.dphUrl = URL.createObjectURL(f); keepMain(); }
+function dmPhotoBtn() { return S.dph ? `<span class="dmph"><img src="${esc(S.dphUrl)}" alt="Vald bild"><button type="button" onclick="S.dph=null;S.dphUrl=null;keepMain()" aria-label="Ta bort bilden">×</button></span>` : `<label onclick="photoPick(event,this)" class="circ dmphb" style="width:40px;height:40px;font-size:18px;margin:0" aria-label="Skicka bild">${ic('ph-image', 'currentColor', 18)}<input type="file" accept="image/*" class="sr" onchange="dmPhoto(this)"></label>`; }
 // Egna emojis: [[v:Namn|kategori]] för växter och [[d:Namn|art]] för djur, ritas som små bilder i chatten
 const CHAT_EMO_RE = /\[\[(v|d):([^|\]]*)\|([^\]]*)\]\]/g;
 const PET_ICON = { katt: 'ph-cat', hund: 'ph-dog', fagel: 'ph-bird', fisk: 'ph-fish', kanin: 'ph-rabbit', marsvin: 'ph-paw-print', gnagare: 'ph-paw-print', hons: 'ph-bird', hast: 'ph-horse', reptil: 'ph-lizard', skoldpadda: 'ph-turtle' };
@@ -7009,9 +7012,9 @@ function emoToggle() { S.emoOpen = !S.emoOpen; render(); }
 function chatV() {
   const M = S.chatMsgs;
   return `<div class="chatpg">${topbar(esc(S.chatName || 'Meddelanden'), "openMsgs()")}${S.chatAd ? `<div class="pad" style="padding-bottom:0"><div class="setcard" style="padding:10px 12px;font-size:14px">Om annonsen: <b>${esc(S.chatAd.title || '')}</b></div></div>` : ''}
-  <div class="pad chatl">${S.chatErr ? `<p class="formmsg">${esc(S.chatErr)}</p>` : M == null ? '<p class="mut">Hämtar…</p>' : M.length ? M.map(m => `<div class="bub ${m.mine ? 'me' : ''}"><span>${chatBody(m.body)}</span><small>${ago(m.created_at)}</small></div>`).join('') : '<p class="mut" style="text-align:center;margin:24px 0">Skriv det första meddelandet.</p>'}</div>
+  <div class="pad chatl">${S.chatErr ? `<p class="formmsg">${esc(S.chatErr)}</p>` : M == null ? '<p class="mut">Hämtar…</p>' : M.length ? M.map(m => `<div class="bub ${m.mine ? 'me' : ''}">${m.photo_url ? `<img class="bimg" src="${esc(m.photo_url)}" alt="Bild i meddelandet" loading="lazy" onclick="this.classList.toggle('big')">` : ''}${m.body ? `<span>${chatBody(m.body)}</span>` : ''}<small>${ago(m.created_at)}</small></div>`).join('') : '<p class="mut" style="text-align:center;margin:24px 0">Skriv det första meddelandet.</p>'}</div>
   ${emoPickerV()}
-  <form class="chatf" onsubmit="event.preventDefault();sendChat()"><button type="button" class="circ" style="width:40px;height:40px;font-size:18px" onclick="emoToggle()" aria-label="Egna emojis">🌿</button><textarea id="dmt" rows="1" maxlength="1000" placeholder="Skriv ett meddelande" oninput="S.dmDraft=this.value">${esc(S.dmDraft || '')}</textarea><button class="btn sm" ${S.chatBusy ? 'disabled' : ''}>Skicka</button></form></div>`;
+  <form class="chatf" onsubmit="event.preventDefault();sendChat()">${dmPhotoBtn()}<button type="button" class="circ" style="width:40px;height:40px;font-size:18px" onclick="emoToggle()" aria-label="Egna emojis">🌿</button><textarea id="dmt" rows="1" maxlength="1000" placeholder="Skriv ett meddelande" oninput="S.dmDraft=this.value">${esc(S.dmDraft || '')}</textarea><button class="btn sm" ${S.chatBusy ? 'disabled' : ''}>Skicka</button></form></div>`;
 }
 // ===== Moderering =====
 function openMod(tab) { if (!isMod()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'mod'; S.modTab = tab || 'open'; S.modData = null; S.modErr = null; render(); $('#main').scrollTop = 0; loadMod(); }
@@ -7192,7 +7195,7 @@ function notifV() {
   return `${topbar('Notiser', 'S.tool=null;render()')}
   ${S.notifErr ? retryBox('loadNotifs().then(render)') : ''}
   ${frq.length ? `<div class="sec"><h2>Vänförfrågningar</h2></div><div class="pad nlist">${frq.join('')}</div>` : ''}
-  ${unreadChats.length ? `<div class="sec"><h2>Olästa meddelanden <span class="ncount">${msgUnread()}</span></h2></div><div class="pad nlist">${unreadChats.slice(0, 5).map(c => `<button class="nrow new" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">💬</span><span class="grow"><b>${esc(c.name || 'Någon')}</b><span>${esc((c.last_body || '').slice(0, 70))}</span></span><small>${c.unread} ${c.unread === 1 ? 'ny' : 'nya'}</small></button>`).join('')}${unreadChats.length > 5 ? `<button class="viewall" onclick="openMsgs()">Visa alla ${unreadChats.length} samtal</button>` : ''}</div>` : ''}
+  ${unreadChats.length ? `<div class="sec"><h2>Olästa meddelanden <span class="ncount">${msgUnread()}</span></h2></div><div class="pad nlist">${unreadChats.slice(0, 5).map(c => `<button class="nrow new" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">💬</span><span class="grow"><b>${esc(c.name || 'Någon')}</b><span>${esc((c.last_body || '').slice(0, 70) || '📷 Bild')}</span></span><small>${c.unread} ${c.unread === 1 ? 'ny' : 'nya'}</small></button>`).join('')}${unreadChats.length > 5 ? `<button class="viewall" onclick="openMsgs()">Visa alla ${unreadChats.length} samtal</button>` : ''}</div>` : ''}
   ${isMod() && S.modOpen ? `<div class="sec"><h2>Moderering</h2></div><div class="pad nlist"><button class="nrow new" onclick="openMod('open')"><span class="nic">🛡️</span><span class="grow"><b>${S.modOpen} ${S.modOpen === 1 ? 'rapport väntar' : 'rapporter väntar'}</b><span>Tryck för att granska</span></span></button></div>` : ''}
   ${S.inboxC && S.inboxC.fb ? `<div class="sec"><h2>Felrapporter</h2></div><div class="pad nlist"><button class="nrow new" onclick="openMod('err')"><span class="nic">🐞</span><span class="grow"><b>${S.inboxC.fb} ${S.inboxC.fb === 1 ? 'ny rapport eller förslag' : 'nya rapporter och förslag'}</b><span>Tryck för att läsa och svara</span></span></button></div>` : ''}
   ${S.inboxC && S.inboxC.xq ? `<div class="sec"><h2>Experter</h2></div><div class="pad nlist"><button class="nrow new" onclick="openExperts()"><span class="nic">🌿</span><span class="grow"><b>${S.inboxC.xq} ${S.inboxC.xq === 1 ? 'fråga väntar på svar' : 'frågor väntar på svar'}</b><span>Tryck för att svara</span></span></button></div>` : ''}
@@ -9289,6 +9292,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.293', '4 nov', ['Chatt: skicka bilder till vänner, med eller utan text. Tryck på en bild för att se den större']],
   ['Beta 0.292', '4 nov', ['Ritning → Mer: alla knappar har ikoner och färg, även i mörkt läge. Dubbletten Karta är borttagen (kartknappen finns kvar på ritningen). Ny våning visas i Mer bara när knappen + Våning inte syns', '3D-menyn: knapparna har ikoner']],
   ['Beta 0.291', '4 nov', ['Ritning: innertak i varje rum (vitt, trä eller grått) som syns i 3D när du går inne i huset', 'Ritning → Mer → Tak: platt tak, sadeltak eller pulpettak med lutning, takfot och färg. Visa eller dölj taket i 3D', 'Ritning → Mer → Tempel: bygg ett egyptiskt tempel från Keops tid med pelarsal, granitpelare, processionsväg, sfinx och pyramid. Rum kan få stilen Egyptiskt tempel, och marken kan bli sand']],
   ['Beta 0.290', '4 nov', ['3D: om telefonen inte hinner rita slås Enkel grafik på automatiskt. Då stängs väderanimationen (löv, regn och snö) av och skuggor och upplösning blir enklare', 'Ny knapp Enkel grafik bland 3D-vyns knappar']],
@@ -10513,7 +10517,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.292';
+const APP_VERSION = 'Beta 0.293';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
