@@ -1,0 +1,36 @@
+-- 079: Tid per funktion. Appen skickar hur många sekunder man varit i en funktion (kapat till 30 min per pass).
+-- Inget innehåll sparas. Rensas efter 95 dagar.
+create table if not exists public.usage_time (
+  user_id uuid not null references auth.users on delete cascade,
+  feature text not null check (char_length(feature) between 1 and 40),
+  hour timestamptz not null default date_trunc('hour', now()),
+  secs int not null default 0,
+  primary key (user_id, feature, hour)
+);
+create index if not exists usage_time_hour on public.usage_time (hour, feature);
+alter table public.usage_time enable row level security;
+
+create or replace function public.track_time(p_feature text, p_secs int)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or p_feature !~ '^[a-z0-9_-]{1,40}$' or p_secs is null or p_secs < 1 then return; end if;
+  insert into usage_time (user_id, feature, hour, secs) values (auth.uid(), p_feature, date_trunc('hour', now()), least(p_secs, 1800))
+  on conflict (user_id, feature, hour) do update set secs = least(usage_time.secs + excluded.secs, 360000);
+  if random() < 0.02 then delete from usage_time where hour < now() - interval '95 days'; end if;
+end $$;
+grant execute on function public.track_time(text, int) to authenticated;
+
+create or replace function public.mod_time(p_hours int default 24)
+returns table (feature text, users int, secs bigint, opens bigint)
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query
+    select t.feature::text, count(distinct t.user_id)::int, sum(t.secs)::bigint,
+      coalesce((select sum(d.uses) from usage_daily d
+                where d.feature = t.feature and d.day > current_date - greatest(1, least(p_hours / 24, 365))), 0)::bigint
+    from usage_time t
+    where t.hour > now() - make_interval(hours => greatest(1, least(p_hours, 2200)))
+    group by t.feature order by 3 desc;
+end $$;
+grant execute on function public.mod_time(int) to authenticated;

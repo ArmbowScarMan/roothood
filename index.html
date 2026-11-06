@@ -2151,6 +2151,7 @@ const sbApi = {
   async modUsageUsers(f, d) { const { data, error } = await sb.rpc('mod_usage_users', { p_feature: f || '', p_days: d }); if (error) throw this._st(error); return data || []; },
   async modUsageUserFeatures(u, d) { const { data, error } = await sb.rpc('mod_usage_user_features', { p_user: u, p_days: d }); if (error) throw this._st(error); return data || []; },
   async modUsageH(h) { const { data, error } = await sb.rpc('mod_usage_h', { p_hours: h }); if (error) throw this._st(error); return data || []; },
+  async modTime(h) { const { data, error } = await sb.rpc('mod_time', { p_hours: h }); if (error) throw this._st(error); return data || []; },
   async modNotifStats(h) { const { data, error } = await sb.rpc('mod_notif_stats', { p_hours: h }); if (error) throw this._st(error); return (data && data[0]) || { recipients: 0, sent: 0 }; },
   async modUsageHours(h) { const { data, error } = await sb.rpc('mod_usage_hours', { p_hours: h }); if (error) throw this._st(error); return data || []; },
   async modUsageUsersH(f, h) { const { data, error } = await sb.rpc('mod_usage_users_h', { p_feature: f || '', p_hours: h }); if (error) throw this._st(error); return data || []; },
@@ -6424,7 +6425,12 @@ let navReady = false;
 // Statistik: räkna att en funktion öppnades (högst en gång per funktion och 10 minuter)
 const trackSent = {};
 function featOf(h) { const a = String(h || '').replace(/^#/, '').split('/'); if (a[0] === 't') return a[1] === 'experts' && S.xmode === 'detect' ? 'detect' : a[1]; if (a[0] === 'c') return 'comm-' + (a[1] || 'q'); if (a[0] === 'v') return 'vaxt'; return { home: 'hem', mine: 'samling', me: 'profil' }[a[0]] || null; }
-function trackUse(h) { const f = featOf(h); if (!f || !S.user || DEMO || !sb || isAdmin()) return; const now = Date.now(); if (trackSent[f] && now - trackSent[f] < 6e5) return; trackSent[f] = now; try { sb.rpc('track_use', { p_feature: f.slice(0, 40).toLowerCase().replace(/[^a-z0-9_-]/g, '') }).then(() => {}, () => {}); } catch (e) { } }
+let timeF = null, timeT = 0;
+function fmtDur(s) { s = Math.max(0, Math.round(+s || 0)); if (s < 60) return s + ' s'; if (s < 3600) return Math.floor(s / 60) + ' min ' + (s % 60) + ' s'; return Math.floor(s / 3600) + ' h ' + Math.floor((s % 3600) / 60) + ' min'; }
+function timeFlush(leaving) { const now = Date.now(); if (timeF && timeT && S.user && !DEMO && sb && !isAdmin()) { const secs = Math.min(1800, Math.round((now - timeT) / 1000)); if (secs >= 1) { try { sb.rpc('track_time', { p_feature: timeF, p_secs: secs }).then(() => {}, () => {}); } catch (e) { } } } timeT = (leaving || document.hidden) ? 0 : now; }
+function timeSwitch(h) { timeFlush(false); const f = featOf(h); timeF = f ? f.slice(0, 40).toLowerCase().replace(/[^a-z0-9_-]/g, '') : null; }
+document.addEventListener('visibilitychange', () => { if (document.hidden) timeFlush(true); else timeT = timeF ? Date.now() : 0; });
+function trackUse(h) { timeSwitch(h); const f = featOf(h); if (!f || !S.user || DEMO || !sb || isAdmin()) return; const now = Date.now(); if (trackSent[f] && now - trackSent[f] < 6e5) return; trackSent[f] = now; try { sb.rpc('track_use', { p_feature: f.slice(0, 40).toLowerCase().replace(/[^a-z0-9_-]/g, '') }).then(() => {}, () => {}); } catch (e) { } }
 function navTake() { const o = {}; NAVK.forEach(k => o[k] = S[k]); return o; }
 function navBack() { if (S.tool === 'house' && S.hDirty) saveHomeNow(true); stopLight(); if (((history.state || {}).d || 0) > 0) { try { history.back(); return; } catch (e) { } } S.tool = null; S.sel = null; S.post = null; if (S.tab === 'home') render(); else go('home'); }
 function trackView() {
@@ -7084,7 +7090,7 @@ async function loadMod() {
     else if (t === 'plants') S.modData = await api.modPlants();
     else if (t === 'team') { S.modData = await api.listStaff(); }
     else if (t === 'fb' || t === 'err') { const all = await api.modFb(); S.modData = all.filter(f => (f.kind === 'bug') === (t === 'err')); }
-    else if (t === 'stats') { const P = msPer(); S.msUF = {}; S.msUser = null; const [f, days] = await Promise.all(P.h ? [api.modUsageH(P.h), api.modUsageHours(P.h).then(r => msHourRows(r, P.h))] : [api.modUsage(P.d), api.modUsageDays(P.d)]); const notif = await api.modNotifStats(P.h || P.d * 24).catch(() => null); S.modData = { f, days, notif, users: S.msFeat != null ? await (P.h ? api.modUsageUsersH(S.msFeat, P.h) : api.modUsageUsers(S.msFeat, P.d)) : null }; }
+    else if (t === 'stats') { const P = msPer(); S.msUF = {}; S.msUser = null; const [f, days] = await Promise.all(P.h ? [api.modUsageH(P.h), api.modUsageHours(P.h).then(r => msHourRows(r, P.h))] : [api.modUsage(P.d), api.modUsageDays(P.d)]); const notif = await api.modNotifStats(P.h || P.d * 24).catch(() => null), time = await api.modTime(P.h || P.d * 24).catch(() => null); S.modData = { f, days, notif, time, users: S.msFeat != null ? await (P.h ? api.modUsageUsersH(S.msFeat, P.h) : api.modUsageUsers(S.msFeat, P.d)) : null }; }
     else if (t === 'users') { S.modData = await api.modUsers(S.modUQ || '', 0); S.modUMore = S.modData.length >= (DEMO ? 1e9 : 100); S.modUN = await api.modUserCount().catch(() => null); }
     S.modErr = null; S.modOpen = await api.modOpen(); S.modBestN = await api.modBestCount();
   } catch (e) { S.modData = []; S.modErr = e.message === 'MODU_NOT_READY' ? 'Användarlistan är inte påslagen än. Kör SQL-filen 051-moderator-anvandare i Supabase.' : e.message === 'STATS_NOT_READY' ? (msPer().h ? 'Statistik per timme är inte påslagen än. Kör SQL-filen 060-statistik-per-timme i Supabase.' : 'Statistiken är inte påslagen än. Kör SQL-filen 055-statistik i Supabase.') : e.message === 'FB_NOT_READY' ? 'Feedback är inte påslagen än. Kör SQL-filen 056-feedback i Supabase.' : e.message === 'MOD_NOT_READY' || /mod_|NOT_MOD/.test(e.message || '') ? 'Modereringen går inte att använda just nu.' : errMsg(e); }
@@ -7150,6 +7156,7 @@ function msHourRows(rows, h) { const m = new Map((rows || []).map(r => [new Date
 function modStatsV(D) { if (!D || !D.f) return '<p class="mut" style="margin:12px 18px">Hämtar…</p>'; const P = msPer(), pk = S.msP || 'd30', per = P.h ? 'timme' : 'dag', mx = Math.max(1, ...D.f.map(x => x.users)), md = Math.max(1, ...D.days.map(x => x.users)), tot = D.f.reduce((a, x) => a + x.uses, 0);
   return `<div class="pad"><div class="seg2 inset msper" role="tablist" aria-label="Period">${MS_PER.map(([k, n]) => `<button class="${pk === k ? 'on' : ''}" role="tab" aria-selected="${pk === k}" onclick="S.msP='${k}';S.modData=null;render();loadMod()">${n}</button>`).join('')}</div>
   <div class="setcard" style="margin-top:12px;padding:14px"><b>Aktiva personer per ${per}</b><div class="msday" role="img" aria-label="Aktiva personer per ${per}">${D.days.map(x => `<span title="${x.day}: ${x.users} personer" style="height:${Math.round(x.users / md * 100)}%"></span>`).join('')}</div><small class="mut">${D.days.length ? D.days[0].day + ' till ' + D.days[D.days.length - 1].day + ' · högst ' + md + ' personer på en ' + per : 'Ingen aktivitet än'}</small></div>
+  <div class="setcard" style="margin-top:12px;padding:14px"><b>Tid per funktion</b><small class="mut" style="display:block;margin:2px 0 10px">Total tid i funktionen och snitt per öppning.</small>${D.time && D.time.length ? D.time.map(x => `<p style="margin:6px 0;display:flex;justify-content:space-between;gap:8px"><span>${esc(featName(x.feature))}</span><span>${fmtDur(x.secs)} <small class="mut">(snitt ${fmtDur(x.secs / Math.max(1, x.opens))})</small></span></p>`).join('') : '<small class="mut">Ingen tid registrerad än. Den fylls på när folk använder appen.</small>'}</div>
   <div class="setcard" style="margin-top:12px;padding:14px"><b>Notiser</b><small class="mut" style="display:block;margin:2px 0 10px">Pushnotiser som skickats under perioden.</small>${D.notif ? `<p style="margin:4px 0">Mottagare: <b>${D.notif.recipients}</b> personer</p><p style="margin:4px 0">Skickade notiser: <b>${D.notif.sent}</b></p>` : '<small class="mut">Ingen statistik än.</small>'}</div>
   <div class="setcard" style="margin-top:12px;padding:14px"><b>Funktioner</b><small class="mut" style="display:block;margin:2px 0 10px">Antal personer som använt funktionen. Tryck för att se vilka. Totalt ${tot} öppningar.</small>
   ${D.f.map(x => `<button class="msrow ${S.msFeat === x.feature ? 'on' : ''}" onclick="S.msFeat=S.msFeat===${jsArg(x.feature)}?null:${jsArg(x.feature)};S.modData=Object.assign({},S.modData,{users:null});render();loadMod()"><span class="msn">${esc(featName(x.feature))}</span><span class="msb"><i style="width:${Math.round(x.users / mx * 100)}%"></i></span><span class="msv">${x.users} <small>(${x.uses})</small></span></button>`).join('') || '<p class="mut">Ingen statistik än. Den fylls på när folk använder appen.</p>'}</div>
@@ -9348,6 +9355,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.303', '6 nov', ['Statistik: ny sektion Tid per funktion, med total tid och snitt per öppning']],
   ['Beta 0.302', '6 nov', ['Frysrapporter skickas bara när appen fryser i 7 sekunder eller mer']],
   ['Beta 0.301', '6 nov', ['Statistik: välj 14 dagar, och se hur många som fått notiser och hur många notiser som skickats', 'Notiser loggas nu, så siffrorna startar från nu']],
   ['Beta 0.300', '4 nov', ['Tempel → Keops pyramid i 3D har nu en synlig ingång i norra sidan, med en stig fram till den']],
@@ -10582,7 +10590,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.302';
+const APP_VERSION = 'Beta 0.303';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
