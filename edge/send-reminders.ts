@@ -169,6 +169,7 @@ Deno.serve(async (req) => {
             { TTL: 24 * 3600 },
           );
           await db.from("push_subscriptions").update({ last_version: ver.v }).eq("id", s.id);
+          await db.from("notification_log").insert({ user_id: s.user_id, kind: "update" });
         } catch (e) {
           const code = (e as { statusCode?: number }).statusCode;
           if (code === 404 || code === 410) await db.from("push_subscriptions").delete().eq("id", s.id);
@@ -206,6 +207,7 @@ Deno.serve(async (req) => {
         { TTL: 12 * 3600 },
       );
       sent++;
+      await db.from("notification_log").insert({ user_id: s.user_id, kind: onlyUser ? "test" : "daily" });
       if (!onlyUser) await db.from("push_subscriptions").update({ last_sent: todayStr }).eq("id", s.id);
     } catch (e) {
       const code = (e as { statusCode?: number }).statusCode;

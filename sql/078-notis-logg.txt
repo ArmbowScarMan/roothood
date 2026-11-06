@@ -1,0 +1,21 @@
+-- 078: Logga skickade pushnotiser, så att statistiken kan visa mottagare och antal notiser.
+-- Inget innehåll sparas, bara vem som fick en notis, typ och tidpunkt. Rensas efter 60 dagar.
+create table if not exists public.notification_log (
+  id bigserial primary key,
+  user_id uuid not null references auth.users on delete cascade,
+  kind text not null default 'daily' check (char_length(kind) between 1 and 20),
+  sent_at timestamptz not null default now()
+);
+create index if not exists notification_log_sent on public.notification_log (sent_at);
+alter table public.notification_log enable row level security;
+
+create or replace function public.mod_notif_stats(p_hours int default 24)
+returns table (recipients int, sent int)
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  if random() < 0.02 then delete from notification_log where sent_at < now() - interval '60 days'; end if;
+  return query select count(distinct n.user_id)::int, count(*)::int
+    from notification_log n where n.sent_at > now() - make_interval(hours => greatest(1, least(p_hours, 720)));
+end $$;
+grant execute on function public.mod_notif_stats(int) to authenticated;

@@ -2151,6 +2151,7 @@ const sbApi = {
   async modUsageUsers(f, d) { const { data, error } = await sb.rpc('mod_usage_users', { p_feature: f || '', p_days: d }); if (error) throw this._st(error); return data || []; },
   async modUsageUserFeatures(u, d) { const { data, error } = await sb.rpc('mod_usage_user_features', { p_user: u, p_days: d }); if (error) throw this._st(error); return data || []; },
   async modUsageH(h) { const { data, error } = await sb.rpc('mod_usage_h', { p_hours: h }); if (error) throw this._st(error); return data || []; },
+  async modNotifStats(h) { const { data, error } = await sb.rpc('mod_notif_stats', { p_hours: h }); if (error) throw this._st(error); return (data && data[0]) || { recipients: 0, sent: 0 }; },
   async modUsageHours(h) { const { data, error } = await sb.rpc('mod_usage_hours', { p_hours: h }); if (error) throw this._st(error); return data || []; },
   async modUsageUsersH(f, h) { const { data, error } = await sb.rpc('mod_usage_users_h', { p_feature: f || '', p_hours: h }); if (error) throw this._st(error); return data || []; },
   async modUsageUserFeaturesH(u, h) { const { data, error } = await sb.rpc('mod_usage_user_features_h', { p_user: u, p_hours: h }); if (error) throw this._st(error); return data || []; },
@@ -7083,7 +7084,7 @@ async function loadMod() {
     else if (t === 'plants') S.modData = await api.modPlants();
     else if (t === 'team') { S.modData = await api.listStaff(); }
     else if (t === 'fb' || t === 'err') { const all = await api.modFb(); S.modData = all.filter(f => (f.kind === 'bug') === (t === 'err')); }
-    else if (t === 'stats') { const P = msPer(); S.msUF = {}; S.msUser = null; const [f, days] = await Promise.all(P.h ? [api.modUsageH(P.h), api.modUsageHours(P.h).then(r => msHourRows(r, P.h))] : [api.modUsage(P.d), api.modUsageDays(P.d)]); S.modData = { f, days, users: S.msFeat != null ? await (P.h ? api.modUsageUsersH(S.msFeat, P.h) : api.modUsageUsers(S.msFeat, P.d)) : null }; }
+    else if (t === 'stats') { const P = msPer(); S.msUF = {}; S.msUser = null; const [f, days] = await Promise.all(P.h ? [api.modUsageH(P.h), api.modUsageHours(P.h).then(r => msHourRows(r, P.h))] : [api.modUsage(P.d), api.modUsageDays(P.d)]); const notif = await api.modNotifStats(P.h || P.d * 24).catch(() => null); S.modData = { f, days, notif, users: S.msFeat != null ? await (P.h ? api.modUsageUsersH(S.msFeat, P.h) : api.modUsageUsers(S.msFeat, P.d)) : null }; }
     else if (t === 'users') { S.modData = await api.modUsers(S.modUQ || '', 0); S.modUMore = S.modData.length >= (DEMO ? 1e9 : 100); S.modUN = await api.modUserCount().catch(() => null); }
     S.modErr = null; S.modOpen = await api.modOpen(); S.modBestN = await api.modBestCount();
   } catch (e) { S.modData = []; S.modErr = e.message === 'MODU_NOT_READY' ? 'Användarlistan är inte påslagen än. Kör SQL-filen 051-moderator-anvandare i Supabase.' : e.message === 'STATS_NOT_READY' ? (msPer().h ? 'Statistik per timme är inte påslagen än. Kör SQL-filen 060-statistik-per-timme i Supabase.' : 'Statistiken är inte påslagen än. Kör SQL-filen 055-statistik i Supabase.') : e.message === 'FB_NOT_READY' ? 'Feedback är inte påslagen än. Kör SQL-filen 056-feedback i Supabase.' : e.message === 'MOD_NOT_READY' || /mod_|NOT_MOD/.test(e.message || '') ? 'Modereringen går inte att använda just nu.' : errMsg(e); }
@@ -7142,13 +7143,14 @@ const FEAT_EXTRA = { 'hem': 'Start', 'samling': 'Min samling', 'profil': 'Profil
 function featName(f) { return FEAT_EXTRA[f] || (QPH[f] && QPH[f][1]) || TOOL_LABEL[f] || f; }
 async function msUserToggle(id) { if (S.msUser === id) { S.msUser = null; return keepMain(); } S.msUser = id; S.msUF = S.msUF || {}; keepMain(); if (S.msUF[id]) return;
   const P = msPer(); try { S.msUF[id] = await (P.h ? api.modUsageUserFeaturesH(id, P.h) : api.modUsageUserFeatures(id, P.d)); } catch (e) { S.msUF[id] = { err: e.message === 'STATS_NOT_READY' ? (P.h ? 'Kör SQL-filen 060-statistik-per-timme i Supabase först.' : 'Kör SQL-filen 059-statistik-per-testare i Supabase först.') : errMsg(e) }; } keepMain(); }
-const MS_PER = [['h12', '12 t'], ['h24', '24 t'], ['h48', '48 t'], ['d7', '7 d'], ['d30', '30 d'], ['d90', '90 d']];
+const MS_PER = [['h12', '12 t'], ['h24', '24 t'], ['h48', '48 t'], ['d7', '7 d'], ['d14', '14 d'], ['d30', '30 d'], ['d90', '90 d']];
 function msPer() { const k = S.msP || 'd30', n = +k.slice(1); return k[0] === 'h' ? { h: n } : { d: n }; }
 function msHourRows(rows, h) { const m = new Map((rows || []).map(r => [new Date(r.hour).getTime(), r])), now = new Date(); now.setMinutes(0, 0, 0); const out = [];
   for (let i = h - 1; i >= 0; i--) { const t = now.getTime() - i * 36e5, r = m.get(t); out.push({ day: new Date(t).toLocaleString('sv-SE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }), users: r ? r.users : 0, uses: r ? r.uses : 0 }); } return out; }
 function modStatsV(D) { if (!D || !D.f) return '<p class="mut" style="margin:12px 18px">Hämtar…</p>'; const P = msPer(), pk = S.msP || 'd30', per = P.h ? 'timme' : 'dag', mx = Math.max(1, ...D.f.map(x => x.users)), md = Math.max(1, ...D.days.map(x => x.users)), tot = D.f.reduce((a, x) => a + x.uses, 0);
   return `<div class="pad"><div class="seg2 inset msper" role="tablist" aria-label="Period">${MS_PER.map(([k, n]) => `<button class="${pk === k ? 'on' : ''}" role="tab" aria-selected="${pk === k}" onclick="S.msP='${k}';S.modData=null;render();loadMod()">${n}</button>`).join('')}</div>
   <div class="setcard" style="margin-top:12px;padding:14px"><b>Aktiva personer per ${per}</b><div class="msday" role="img" aria-label="Aktiva personer per ${per}">${D.days.map(x => `<span title="${x.day}: ${x.users} personer" style="height:${Math.round(x.users / md * 100)}%"></span>`).join('')}</div><small class="mut">${D.days.length ? D.days[0].day + ' till ' + D.days[D.days.length - 1].day + ' · högst ' + md + ' personer på en ' + per : 'Ingen aktivitet än'}</small></div>
+  <div class="setcard" style="margin-top:12px;padding:14px"><b>Notiser</b><small class="mut" style="display:block;margin:2px 0 10px">Pushnotiser som skickats under perioden.</small>${D.notif ? `<p style="margin:4px 0">Mottagare: <b>${D.notif.recipients}</b> personer</p><p style="margin:4px 0">Skickade notiser: <b>${D.notif.sent}</b></p>` : '<small class="mut">Ingen statistik än.</small>'}</div>
   <div class="setcard" style="margin-top:12px;padding:14px"><b>Funktioner</b><small class="mut" style="display:block;margin:2px 0 10px">Antal personer som använt funktionen. Tryck för att se vilka. Totalt ${tot} öppningar.</small>
   ${D.f.map(x => `<button class="msrow ${S.msFeat === x.feature ? 'on' : ''}" onclick="S.msFeat=S.msFeat===${jsArg(x.feature)}?null:${jsArg(x.feature)};S.modData=Object.assign({},S.modData,{users:null});render();loadMod()"><span class="msn">${esc(featName(x.feature))}</span><span class="msb"><i style="width:${Math.round(x.users / mx * 100)}%"></i></span><span class="msv">${x.users} <small>(${x.uses})</small></span></button>`).join('') || '<p class="mut">Ingen statistik än. Den fylls på när folk använder appen.</p>'}</div>
   <div class="setcard" style="margin-top:12px;padding:14px"><b>${S.msFeat ? 'Vilka använder ' + esc(featName(S.msFeat)) : 'Mest aktiva användare'}</b>${S.msFeat ? ' <button class="link3" onclick="S.msFeat=null;S.modData=null;render();loadMod()">Visa alla</button>' : ''}
@@ -9346,6 +9348,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.301', '6 nov', ['Statistik: välj 14 dagar, och se hur många som fått notiser och hur många notiser som skickats', 'Notiser loggas nu, så siffrorna startar från nu']],
   ['Beta 0.300', '4 nov', ['Tempel → Keops pyramid i 3D har nu en synlig ingång i norra sidan, med en stig fram till den']],
   ['Beta 0.299', '4 nov', ['Gå-läget: ju fler hopp i rad, desto snabbare går du framåt. Farten återställs när du slutar hoppa']],
   ['Beta 0.298', '4 nov', ['Tempel → Gör Keops pyramid till ett hus att gå in i: ingång i norr, korridor, stora galleriet, kungakammaren med sarkofag och ett hemligt ufoskattrum. Pyramiden döljs när du står inne i den']],
@@ -10578,7 +10581,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.300';
+const APP_VERSION = 'Beta 0.301';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
