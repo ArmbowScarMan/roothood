@@ -7734,7 +7734,7 @@ const INFL = [
   ['Floret Flowers', 'int', 'Snittblommor', 'Erin Benzakein, känd blomsterodlare med fantastiska dahlior.', { ig: 'floretflowers', yt: 'Floret Flowers' }],
 ];
 const ICATS = ['Krukväxter', 'Trädgård', 'Köksträdgård', 'Snittblommor'];
-function openInspo() { stopLight(); S.sel = null; S.modal = null; S.tool = 'inspo'; render(); $('#main').scrollTop = 0; }
+function openInspo() { if (!S.pro) return openModal('pro'); stopLight(); S.sel = null; S.modal = null; S.tool = 'inspo'; render(); $('#main').scrollTop = 0; }
 function inflCard(x) {
   const [n, land, cat, d, l] = x;
   const a = [];
@@ -8083,7 +8083,7 @@ const QUICK = () => [
   ['ask', 'Snabbfråga', 'ph-sparkle', 'xp', 'openAsk()'], ['db', 'Sök växter', I.search, 'db', 'openDb()'], ['id', 'Identifiera', CAM, '', "openTool('id')", 1], ['doc', 'Växtdoktorn', DOCI, 'doc', 'openDoc()', 1], ['expert', 'Fråga expert', XPI, 'xp', 'openExperts()', 1],
   ['house', 'Mitt hem', DOORI, 'house', 'openHouse()', 1], ['bed', 'Planera rabatt', BEDI, 'db', "openBedPlan()", 1], ['light', 'Ljusmätare', I.sun, 'sun', "openTool('light')", 1], ['nearby', 'Trädgårdar nära dig', 'ph-map-pin', 'inspo', 'openNearby()', 1], ['compass', 'Kompass', 'ph-compass', 'sun', 'openCompass()'], ['pets', 'Mina djur', I.paw, 'pets', 'openPets()', 1], ['smart', 'Smarta hemmet', HOMEI, 'smart', 'openSmart()', 1],
   ['comm', 'Frågor', CHATI, 'db', "go('comm');setCtab('q')"], ['forum', 'Forum', CHATI, 'xp', "go('comm');setCtab('forum')"], ['swap', 'Byt & ge bort', SWAPI, 'inspo', "go('comm');setCtab('swap')"], ['detect', 'Växtdetektiver', I.search, 'sun', 'openDetect()', 1],
-  ['people', 'Hitta vänner', PEOPLEI, 'xp', 'openPeople()'], ['inspo', 'Odlare att följa', INSPI, 'inspo', 'openInspo()'], ['season', 'Säsongstips', I.leaf, 'sun', 'openSeason()'], ['sow', 'Såkalender', SOWI, 'db', 'openSow()', 1], ['perma', 'Permakultur', I.leaf, 'inspo', 'openPerma()', 1], ['jord', 'Jord och substrat', 'ph-shovel', 'db', "openLearn('jord')", 1], ['hydro', 'Hydroponi', 'ph-drop', 'xp', "openLearn('hydro')", 1], ['naring', 'Gödsel och näring', 'ph-flask', 'sun', "openLearn('naring')", 1], ['ljuslara', 'Ljus', I.sun, 'sun', "openLearn('ljus')", 1], ['rosor', 'Rosor', 'ph-flower', 'inspo', "openLearn('rosor')", 1],
+  ['people', 'Hitta vänner', PEOPLEI, 'xp', 'openPeople()'], ['inspo', 'Odlare att följa', INSPI, 'inspo', 'openInspo()', 1], ['season', 'Säsongstips', I.leaf, 'sun', 'openSeason()', 1], ['sow', 'Såkalender', SOWI, 'db', 'openSow()', 1], ['perma', 'Permakultur', I.leaf, 'inspo', 'openPerma()', 1], ['jord', 'Jord och substrat', 'ph-shovel', 'db', "openLearn('jord')", 1], ['hydro', 'Hydroponi', 'ph-drop', 'xp', "openLearn('hydro')", 1], ['naring', 'Gödsel och näring', 'ph-flask', 'sun', "openLearn('naring')", 1], ['ljuslara', 'Ljus', I.sun, 'sun', "openLearn('ljus')", 1], ['rosor', 'Rosor', 'ph-flower', 'inspo', "openLearn('rosor')", 1],
   ['mine', 'Min samling', I.plant || I.leaf, 'db', "S.mtab='mine';go('mine')"], ['care', 'Växtjournalen', CALI, 'sun', 'openCare()'], ['notif', 'Notiser', BELLI, 'house', 'openNotif()'], ['cfg', 'Anpassa Hem', PEN, 'smart', "go('home');openHomeCfg()"],
 ];
 const QGROUPS = [['Växter', ['db', 'id', 'care', 'season', 'sow']], ['Verktyg', ['light', 'compass', 'nearby']], ['Hjälp med växterna', ['ask', 'doc', 'expert', 'detect']], ['Gemenskap', ['comm', 'forum', 'swap', 'people', 'inspo']], ['Mitt', ['mine']], ['Fördjupning: hem och trädgård', ['house', 'bed', 'smart']], ['Fördjupning: djur', ['pets']], ['Fördjupning: lär dig', ['jord', 'hydro', 'naring', 'ljuslara', 'rosor', 'perma']]];
@@ -9067,7 +9067,7 @@ function reportV() {
 }
 
 // ===== Pro =====
-const PRO_PLANS = [{ id: 'year', name: 'År', price: '349 kr/år', note: 'Bara 29 kr/månad. Spara 40 %' }, { id: 'month', name: 'Månad', price: '49 kr/månad', note: 'Avsluta när du vill' }];
+const PRO_PLANS = [{ id: 'year', name: 'År', price: '349 kr/år', note: 'Bara 29 kr/månad. Spara 25 %' }, { id: 'month', name: 'Månad', price: '39 kr/månad', note: 'Avsluta när du vill' }];
 const PRO_PRICE = 'från 29 kr/mån';
 const CAM = 'ph-camera';
 const SCAN = 'ph-scan';
@@ -9092,6 +9092,8 @@ function proV() {
     [HOMEI, 'Smarta hemmet', 'Växtlampor, luftfuktare och bevattning som styrs efter dina växter.'],
     [I.paw, 'Mina djur', 'Lägg till dina djur och få varning för växter som är giftiga för dem.'],
     [I.leaf, 'Permakultur och fördjupning', 'Lär dig om jord, näring, ljus, hydroponi och permakultur.'],
+    [I.leaf, 'Säsongstips', 'Se vad du kan göra just nu i trädgården, månad för månad.'],
+    [INSPI, 'Odlare att följa', 'Odlare på YouTube och Instagram som du kan följa för tips och inspiration.'],
     [I.leaf, 'Obegränsad samling', `Gratis kan du spara ${FREE_LIMIT} växter. Med Pro finns ingen gräns.`]];
   return `<div class="mh"><h2>Roothood Pro</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   ${S.limitHit ? `<p class="formmsg ok">Du har ${FREE_LIMIT} växter, vilket är max för gratiskonton. Bli Pro för att spara fler.</p>` : ''}
@@ -9340,7 +9342,7 @@ function seasonCard(sz) {
   ${tips.map(t => stipV(t, true)).join('')}
   <button class="btn sm line" style="margin-top:8px" onclick="openSeason()">Alla tips för ${MONTH_NAMES[m - 1]}</button></div>`;
 }
-function openSeason() { S.tool = 'season'; S.smonth = new Date().getMonth() + 1; render(); $('#main').scrollTop = 0; const b = $('.mchips .on'); if (b) b.parentNode.scrollLeft = b.offsetLeft - 18; }
+function openSeason() { if (!S.pro) return openModal('pro'); S.tool = 'season'; S.smonth = new Date().getMonth() + 1; render(); $('#main').scrollTop = 0; const b = $('.mchips .on'); if (b) b.parentNode.scrollLeft = b.offsetLeft - 18; }
 function seasonV() {
   const m = S.smonth, z = store.get('zone', 0), tips = seasonTips(m);
   const groups = Object.keys(SEASON_T).map(k => [k, tips.filter(t => t[0] === k)]).filter(g => g[1].length);
@@ -9355,6 +9357,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.304', '7 nov', ['Pro kostar nu 39 kr/månad eller 349 kr/år', 'Säsongstips och Odlare att följa ingår i Pro', 'Inställningar: ny rad Köp i appen']],
   ['Beta 0.303', '6 nov', ['Statistik: ny sektion Tid per funktion, med total tid och snitt per öppning']],
   ['Beta 0.302', '6 nov', ['Frysrapporter skickas bara när appen fryser i 7 sekunder eller mer']],
   ['Beta 0.301', '6 nov', ['Statistik: välj 14 dagar, och se hur många som fått notiser och hur många notiser som skickats', 'Notiser loggas nu, så siffrorna startar från nu']],
@@ -10590,7 +10593,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.303';
+const APP_VERSION = 'Beta 0.304';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -10744,6 +10747,7 @@ function zoneTag(p) {
 function seg3(items, cur, fn) {
   return `<div class="seg2 inset">${items.map(([v, t]) => `<button class="${cur === v ? 'on' : ''}" aria-pressed="${cur === v}" onclick="${fn}(${JSON.stringify(v).replace(/"/g, '&quot;')})">${t}</button>`).join('')}</div>`;
 }
+function digitalGoodsRow() { const ok = typeof window.getDigitalGoodsService === 'function'; return `<div class="setcard" style="margin-top:12px;padding:14px"><b>Köp i appen</b><p style="margin:6px 0 0">${ok ? 'Stöds i den här installationen.' : 'Stöds inte här. Kontrollen fungerar bara i appen från Play Store.'}</p></div>`; }
 function settingsV() {
   const th = store.get('theme', 'dark'), ts = store.get('textsize', 1), zone = store.get('zone', 0);
   const P = S.prof;
@@ -10770,6 +10774,7 @@ function settingsV() {
         : `<button class="link3 dangerlink" onclick="S.delAcc=true;render();setTimeout(()=>{const i=$('#delw');if(i)i.scrollIntoView({block:'center'})},50)">Radera mitt konto</button>`}</div></div></div>` : '';
   return `${topbar('Inställningar', 'closeTool()')}
   <div class="sec" style="padding-top:8px"><h2>Profil</h2></div><div class="pad">${profile}</div>
+  <div class="sec"><h2>Köp</h2></div><div class="pad">${digitalGoodsRow()}</div>
   <div class="sec"><h2>Utseende</h2></div><div class="pad"><div class="setcard">
     <label class="fl">Språk / Language</label><div data-notr>${langPick()}</div>
     <label class="fl" style="margin-top:14px">Tema</label>${seg3([['system', 'Auto'], ['light', 'Ljust'], ['dark', 'Mörkt']], th, "(v=>setPref('theme',v))")}
