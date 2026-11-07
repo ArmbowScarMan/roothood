@@ -5793,9 +5793,10 @@ function todoItems() {
 function todoV() {
   if (!S.user) return '';
   const l = todoItems();
-  if (!l.length) return `<div class="todoc empty"><span>✅</span><b>Inget att göra just nu</b></div>`;
+  const sowBtn = `<div style="margin:10px 18px 0"><button class="btn sm line" onclick="openSow()">Öppna Såkalendern</button></div>`;
+  if (!l.length) return `<div class="todoc empty"><span>✅</span><b>Inget att göra just nu</b></div>${sowBtn}`;
   return `<div class="sec cap2"><h2>Att göra</h2><span class="mut" style="font-size:13px">${l.length} ${l.length === 1 ? 'sak' : 'saker'}</span></div>
-  <div class="todoc">${l.slice(0, 8).map(x => `<div class="todor"><button class="tchk" aria-label="Klart" ${x.act ? `onclick="${x.act}"` : 'disabled'}></button><button class="ttxt" onclick="${x.open}">${esc(x.txt)}</button></div>`).join('')}${l.length > 8 ? `<small class="mut">och ${l.length - 8} till</small>` : ''}</div>`;
+  <div class="todoc">${l.slice(0, 8).map(x => `<div class="todor"><button class="tchk" aria-label="Klart" ${x.act ? `onclick="${x.act}"` : 'disabled'}></button><button class="ttxt" onclick="${x.open}">${esc(x.txt)}</button></div>`).join('')}${l.length > 8 ? `<small class="mut">och ${l.length - 8} till</small>` : ''}</div>${sowBtn}`;
 }
 function homeAlerts(sz) {
   if (!S.user) return '';
@@ -7772,7 +7773,7 @@ function avSmall(name, url) { if (url) return `<div class="av avimg"><img src="$
 function personRow(u) {
   const f = (S.follows || []).includes(u.id), same = S.city && u.city && u.city.toLowerCase() === S.city.toLowerCase();
   return `<div class="prow2"><button class="popen" onclick="openUser(${jsArg(u.id)})">${avBig(u.display_name)}<span class="grow"><b>${esc(u.display_name)}</b><span>${[u.city ? (same ? '📍 ' : '') + esc(u.city) : '', u.plants != null ? u.plants + ' växter' : '', u.followers ? u.followers + ' följare' : ''].filter(Boolean).join(' · ')}</span></span></button>
-    <button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow(${jsArg(u.id)})">${f ? 'Följer' : 'Följ'}</button></div>`;
+    <button class="btn sm" onclick="friendAsk(${jsArg(u.id)})">+ Vän</button></div>`;
 }
 function peopleV() {
   const list = S.ppl || [], fol = S.follows || [], q = (S.pq || '').trim();
@@ -7969,9 +7970,9 @@ function setPlView(v) { S.plView = v; keepMain(); }
 function userBody(c, uposts, self) {
   const f = (S.follows || []).includes(c.id), posts = uposts || [];
   return `  <div class="uhero"><div class="avwrap">${avBig(c.display_name, 'bigav', c.avatar_url)}${self ? `<label class="avedit" aria-label="Byt profilbild">${ic('ph-camera', 'currentColor', 18)}<input type="file" accept="image/*" class="sr" onchange="changeAvatar(this.files[0]);this.value=''"></label>` : ''}</div><div class="grow"><h2>${esc(c.display_name)}</h2><span>${c.city ? esc(c.city) : 'Ingen ort angiven'}</span>
-    ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">${ic('ph-pencil-simple', 'currentColor', 15)} Redigera profil</button>` : S.uMod ? '' : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm ${f ? 'line' : ''}" onclick="toggleFollow(${jsArg(c.id)})">${f ? 'Följer ✓' : '+ Följ'}</button>${frBtns(c)}${c.friend_status === 'friends' ? `<button class="btn sm" onclick="openChat(${jsArg(c.id)},${jsArg(c.display_name)})">💬 Skriv</button>` : ''}${umoreV(c)}</div>`}</div></div>
+    ${self ? `<button class="btn sm line" style="margin-top:10px;align-self:flex-start" onclick="openSettings()">${ic('ph-pencil-simple', 'currentColor', 15)} Redigera profil</button>` : S.uMod ? '' : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${frBtns(c)}${c.friend_status === 'friends' ? `<button class="btn sm" onclick="openChat(${jsArg(c.id)},${jsArg(c.display_name)})">💬 Skriv</button>` : ''}${umoreV(c)}</div>`}</div></div>
   ${(() => { const n = (v, a, b) => (v || 0) + ' ' + ((v || 0) === 1 ? a : b), fr = c.friends != null ? c.friends : (self && S.friends ? S.friends.length : 0);
-    return `<p class="ustatl">${n(c.plants, 'växt', 'växter')} · ${n(c.posts, 'inlägg', 'inlägg')} · ${n(c.followers, 'följare', 'följare')}${self ? ` · <button class="link3" aria-expanded="${!!S.showFr}" onclick="S.showFr=!S.showFr;keepMain()">${n(fr, 'vän', 'vänner')} ${ic(S.showFr ? 'ph-caret-up' : 'ph-caret-down', 'currentColor', 13)}</button>` : ` · ${n(fr, 'vän', 'vänner')}`}</p>`; })()}
+    return `<p class="ustatl">${n(c.plants, 'växt', 'växter')} · ${n(c.posts, 'inlägg', 'inlägg')} · ${self ? ` · <button class="link3" aria-expanded="${!!S.showFr}" onclick="S.showFr=!S.showFr;keepMain()">${n(fr, 'vän', 'vänner')} ${ic(S.showFr ? 'ph-caret-up' : 'ph-caret-down', 'currentColor', 13)}</button>` : ` · ${n(fr, 'vän', 'vänner')}`}</p>`; })()}
   ${self && S.showFr ? (friendsSec() || (Array.isArray(S.friends) && !S.friends.length ? `<p class="mut" style="margin:10px 18px 0;font-size:14px">Inga vänner än. <button class="link3" onclick="openPeople()">Hitta vänner</button></p>` : '')) : ''}
   ${(c.interests || []).length ? `<div class="sec"><h2>Intressen</h2></div><div class="pad"><div class="chips2">${c.interests.map(i => `<span class="tag lime">${esc(i)}</span>`).join('')}</div></div>` : ''}
   ${plantsSec(c, self)}
@@ -9343,6 +9344,21 @@ function seasonCard(sz) {
   <button class="btn sm line" style="margin-top:8px" onclick="openSeason()">Alla tips för ${MONTH_NAMES[m - 1]}</button></div>`;
 }
 function openSeason() { if (!S.pro) return openModal('pro'); S.tool = 'season'; S.smonth = new Date().getMonth() + 1; render(); $('#main').scrollTop = 0; const b = $('.mchips .on'); if (b) b.parentNode.scrollLeft = b.offsetLeft - 18; }
+const SEASON_CHECK = [
+  ['Kolla att krukor inte står kalla på golvet', 'Torka av bladen så de får mer ljus', 'Vattna sparsamt, bara när jorden känns torr'],
+  ['Kolla fukten i krukorna', 'Vrid växter så de får ljus jämnt', 'Så tidiga frön inomhus om du vill'],
+  ['Flytta växter bort från element när det blir varmt', 'Byt jord i växter som trängs', 'Börja gödsla lätt om växten växer'],
+  ['Duscha bladen och kolla efter skadedjur', 'Flytta växter långsamt till mer ljus så de inte bränns', 'Plantera ut köksväxter när frosten är över'],
+  ['Sätt ut krukor utomhus i skugga först', 'Vattna oftare i värmen', 'Kolla undersidan av bladen efter skadedjur'],
+  ['Vattna morgon eller kväll', 'Ge gödsel till krukväxter', 'Nypa toppen på kryddor så de grenar sig'],
+  ['Vattna extra när det är varmt', 'Ta sticklingar från friska skott', 'Se till att krukor inte står i direkt solgass'],
+  ['Minska gödseln till hälften', 'Plocka frön från blommor du vill ha fler av', 'Kolla växter som står ute efter skadedjur'],
+  ['Ta in växter innan första nattfrosten', 'Rensa bort döda blad', 'Plantera perenner nu så de hinner rota sig'],
+  ['Ta in känsliga växter', 'Minska vattnet, jorden torkar långsammare', 'Dra ner på gödseln för vintern'],
+  ['Kolla att krukor inte står kalla på golvet', 'Minska vattnet', 'Rensa bort döda blad och kvarvarande skadedjur'],
+  ['Kolla fukten, element torkar luften', 'Flytta växter bort från direkt värmestrålning', 'Vila växterna, de behöver mindre vatten'],
+];
+function seasonChk(i) { const m = S.smonth, d = store.get('seasonChk', {}), k = m + '-' + i; d[k] = !d[k]; store.set('seasonChk', d); render(); }
 function seasonV() {
   const m = S.smonth, z = store.get('zone', 0), tips = seasonTips(m);
   const groups = Object.keys(SEASON_T).map(k => [k, tips.filter(t => t[0] === k)]).filter(g => g[1].length);
@@ -9351,12 +9367,14 @@ function seasonV() {
   <div class="pad" style="margin-top:8px"><button class="btn sm line" onclick="openSow()">Öppna Såkalendern</button></div>
   <div class="mchips" role="tablist">${MONTH_NAMES.map((n, i) => `<button class="${m === i + 1 ? 'on' : ''}" role="tab" aria-selected="${m === i + 1}" onclick="S.smonth=${i + 1};render()">${n.charAt(0).toUpperCase() + n.slice(1, 3)}</button>`).join('')}</div>
   <div class="sec"><h2>${MONTH_NAMES[m - 1].charAt(0).toUpperCase() + MONTH_NAMES[m - 1].slice(1)}</h2></div>
-  ${groups.map(([k, ts]) => `<div class="sec" style="padding-top:6px"><h2 style="font-size:16px">${SEASON_T[k][0]}</h2></div><div class="scard">${ts.map(t => stipV(t)).join('')}</div>`).join('') || '<p class="mut" style="margin:0 18px">Inga tips för den här månaden.</p>'}
+  <div class="scard" style="margin:0 18px 12px"><div class="pad"><b>Gör detta i helgen</b></div>${(() => { const d = store.get('seasonChk', {}); return SEASON_CHECK[m - 1].map((t, i) => `<label class="pad" style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" ${d[m + '-' + i] ? 'checked' : ''} onchange="seasonChk(${i})" style="margin-top:3px"><span>${t}</span></label>`).join(''); })()}</div>
+  ${groups.map(([k, ts]) => `<div class="sec" style="padding-top:6px"><h2 style="font-size:16px">${SEASON_T[k][0]}</h2></div><div class="scard">${ts.map(t => stipV(t, true)).join('')}</div>`).join('') || '<p class="mut" style="margin:0 18px">Inga tips för den här månaden.</p>'}
   <div style="height:20px"></div>`;
 }
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.305', '7 nov', ['Säsongstips: ny checklista "Gör detta i helgen" för varje månad, med bockar som sparas på den här enheten', 'Säsongstips: tips får etiketten För dina krukväxter, köksträdgård eller trädgård när du har växter i den kategorin', 'Permakultur: ny ruta Börja här med tre första steg', 'Startsidan: knapp för att öppna Såkalendern under Att göra', 'Lär dig: sökruta som hittar kort i alla ämnen', 'Notiser: slås på automatiskt igen om du redan tillåtit dem i webbläsaren', 'Följ borttaget: lägg till vänner i stället, under Hitta vänner']],
   ['Beta 0.304', '7 nov', ['Pro kostar nu 39 kr/månad eller 349 kr/år', 'Säsongstips och Odlare att följa ingår i Pro', 'Inställningar: ny rad Köp i appen']],
   ['Beta 0.303', '6 nov', ['Statistik: ny sektion Tid per funktion, med total tid och snitt per öppning']],
   ['Beta 0.302', '6 nov', ['Frysrapporter skickas bara när appen fryser i 7 sekunder eller mer']],
@@ -10071,11 +10089,21 @@ const LEARN = {
 };
 function learnRoses() { dbClear(); S.q = ''; S.env = 'all'; S.ptypes = ['Rosor']; openDb(); }
 function openLearn(k) { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'learn'; S.learnT = k; render(); $('#main').scrollTop = 0; }
+function learnCard(s, open) { return `<details class="acc" ${open ? 'open' : ''}><summary><span class="aem">${s[0]}</span><span class="grow"><b>${s[1]}</b></span></summary><div class="accb"><p>${s[2]}</p><ul>${s[3].map(x => `<li>${x}</li>`).join('')}</ul></div></details>`; }
+function learnBodyHtml(k) {
+  const q = (S.learnQ || '').trim().toLowerCase();
+  if (!q) return LEARN[k][3].map((s, i) => learnCard(s, i === 0)).join('');
+  const hits = [];
+  Object.values(LEARN).forEach(v => v[3].forEach(s => { if ((s[1] + ' ' + s[2] + ' ' + s[3].join(' ')).toLowerCase().includes(q)) hits.push([v[0], s]); }));
+  return hits.length ? hits.map(([tn, s]) => `<div class="sec cap2" style="padding-top:6px"><h2 style="font-size:15px">${tn}</h2></div>${learnCard(s, false)}`).join('') : `<p class="mut" style="margin:0 18px">Inga träffar för "${esc(S.learnQ)}".</p>`;
+}
+function learnSearch(v) { S.learnQ = v; const el = $('#learnbody'); if (el) el.innerHTML = learnBodyHtml(S.learnT && LEARN[S.learnT] ? S.learnT : 'jord'); }
 function learnV() { const k = LEARN[S.learnT] ? S.learnT : 'jord', L = LEARN[k];
   return `${topbar(L[0], 'closeTool()')}
   <div class="pad" style="padding-top:4px"><div class="chips2 sm">${Object.entries(LEARN).map(([kk, v]) => `<button class="${kk === k ? 'on' : ''}" onclick="S.learnT='${kk}';render();$('#main').scrollTop=0">${v[0]}</button>`).join('')}<button onclick="openPerma()">Permakultur</button></div></div>
   <p class="mut" style="margin:0 18px 10px">${L[2]} Tryck på ett kort för att läsa.</p>
-  <div class="pad">${L[3].map((s, i) => `<details class="acc" ${i === 0 ? 'open' : ''}><summary><span class="aem">${s[0]}</span><span class="grow"><b>${s[1]}</b></span></summary><div class="accb"><p>${s[2]}</p><ul>${s[3].map(x => `<li>${x}</li>`).join('')}</ul></div></details>`).join('')}
+  <div class="pad" style="margin-top:4px"><input class="sowsearch" type="search" placeholder="Sök i Lär dig" value="${esc(S.learnQ || '')}" oninput="learnSearch(this.value)" aria-label="Sök i Lär dig"></div>
+  <div class="pad" id="learnbody">${learnBodyHtml(k)}
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">${k === 'ljus' ? `<button class="btn sm" onclick="openTool('light')">Mät ljuset</button>` : ''}${k === 'rosor' ? `<button class="btn sm" onclick="learnRoses()">Rosor i Växtbiblioteket</button>` : ''}<button class="btn sm line" onclick="openAsk()">Ställ en snabbfråga</button><button class="btn sm line" onclick="openDb()">Växtbiblioteket</button></div></div>
   <div style="height:24px"></div>`; }
 // ===== Permakultur och design =====
@@ -10173,6 +10201,10 @@ const PERMA = [
 function permaV() {
   return `${topbar('Permakultur och design', 'closeTool()')}
   <p class="mut" style="margin:0 18px 10px">Lär dig planera en trädgård som sköter sig själv. Tryck på ett kort för att läsa.</p>
+  <div class="scard" style="margin:0 18px 12px"><div class="pad"><b>Börja här</b>
+  <p style="margin:6px 0 0">1. Observera tomten ett år innan du gör större ändringar.</p>
+  <p style="margin:6px 0 0">2. Placera det du använder varje dag nära dörren, se zonerna nedan.</p>
+  <p style="margin:6px 0 0">3. Välj växter efter sol och jord, och gör en liten bit i taget.</p></div></div>
   <div class="pad">${PERMA.map((s, i) => `<details class="acc" ${i === 0 ? 'open' : ''}><summary><span class="aem">${s[0]}</span><span class="grow"><b>${s[1]}</b></span></summary><div class="accb"><p>${s[2]}</p><ul>${s[3].map(x => `<li>${x}</li>`).join('')}</ul></div></details>`).join('')}
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn sm" onclick="openBedPlan()">Planera en rabatt</button><button class="btn sm line" onclick="openSow()">Såkalender</button><button class="btn sm line" onclick="openDb()">Växtbiblioteket</button></div></div>
   <div style="height:24px"></div>`;
@@ -10593,7 +10625,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.304';
+const APP_VERSION = 'Beta 0.305';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -10811,12 +10843,24 @@ const BELL = 'ph-bell';
 const pushOk = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && window.isSecureContext && location.protocol !== 'file:';
 const swReady = () => Promise.race([navigator.serviceWorker.ready, new Promise((_, no) => setTimeout(() => no(new Error('Appens bakgrundsdel startade inte. Ladda om sidan.')), 4000))]);
 const b64u = s => { const b = atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+async function autoPush() {
+  const reg = await swReady();
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUBLIC_KEY) });
+  await api.savePush(sub);
+  try { await api.setPushHour(sub.endpoint, store.get('pushHour', 8)); } catch (e) { console.warn('Roothood:', e); }
+}
 async function refreshPush() {
   let st = 'unsupported';
   if (pushOk()) {
     if (Notification.permission === 'denied') st = 'denied';
     else if (DEMO) st = store.get('pushDemo', false) && Notification.permission === 'granted' ? 'on' : 'off';
     else { try { const reg = await swReady(); st = (await reg.pushManager.getSubscription()) ? 'on' : 'off'; } catch (e) { st = 'unsupported'; } }
+  }
+  // Om webbläsaren redan tillåtit notiser men prenumerationen saknas (t.ex. efter ominstallation): skapa den tyst
+  if (st === 'off' && S.user && !DEMO && typeof Notification !== 'undefined' && Notification.permission === 'granted' && !S.autoPushing) {
+    S.autoPushing = true;
+    try { await autoPush(); st = 'on'; } catch (e) { console.warn('Roothood:', e); } finally { S.autoPushing = false; }
   }
   if (S.push !== st) { S.push = st; render(); }
   // Första gången: fråga om notiser, så att testare märker när det kommer uppdateringar
