@@ -7212,7 +7212,7 @@ function fbV() { const F = S.fbf || { kind: 'bug' };
   <p class="mut" style="font-size:12.5px;margin:10px 0 0">Vi skickar med vilken sida du var på: <b>${esc(S.fbView || '')}</b>. Även appversion ${APP_VERSION} och vilken telefon du har, så blir felet lättare att hitta.</p>
   <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="fbSend()">${S.busy ? 'Skickar…' : 'Skicka'}</button>`; }
 function modFbV(D, t) { const st = { new: 'Ny', seen: 'Sedd', fixed: 'Fixad', wontfix: 'Görs inte' }, kd = { bug: '🐞 Fel', idea: '💡 Förslag', other: 'Annat' };
-  return `<div class="pad">${(D || []).length ? modStatusGroups(D, st).map(([k, L]) => `<details class="mgrp" open><summary>${st[k] || 'Övrigt'} <em class="tabn">${L.length}</em></summary>${L.map(f => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">${kd[f.kind] || ''} · ${esc(f.author || '')} · ${ago(f.created_at)} · ${esc(f.version || '')}</small><p style="white-space:pre-wrap;margin:6px 0">${esc(f.body)}</p>${f.photo_url ? `<img class="fbshot" src="${esc(f.photo_url)}" alt="Bifogad skärmbild" onclick="this.classList.toggle('big')" onerror="fbBroken(this)">` : ''}<p style="margin:4px 0;font-size:14px"><b>Sida:</b> ${esc(f.view || 'okänd')}</p><small class="mut" style="display:block;word-break:break-all">${esc((f.ua || '').slice(0, 120))}</small>
+  return `<div class="pad">${(D || []).length ? modStatusGroups(D, st).map(([k, L]) => `<details class="mgrp" ${k === 'fixed' || k === 'wontfix' ? '' : 'open'}><summary>${st[k] || 'Övrigt'} <em class="tabn">${L.length}</em></summary>${L.map(f => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">${kd[f.kind] || ''} · ${esc(f.author || '')} · ${ago(f.created_at)} · ${esc(f.version || '')}</small><p style="white-space:pre-wrap;margin:6px 0">${esc(f.body)}</p>${f.photo_url ? `<img class="fbshot" src="${esc(f.photo_url)}" alt="Bifogad skärmbild" onclick="this.classList.toggle('big')" onerror="fbBroken(this)">` : ''}<p style="margin:4px 0;font-size:14px"><b>Sida:</b> ${esc(f.view || 'okänd')}</p><small class="mut" style="display:block;word-break:break-all">${esc((f.ua || '').slice(0, 120))}</small>
     <div class="chips2 sm" style="margin-top:8px">${Object.entries(st).map(([k, n]) => `<button class="${f.status === k ? 'on' : ''}" onclick="modFbSet(${f.id},'${k}')">${n}</button>`).join('')}</div></div>`).join('')}</details>`).join('') : `<p class="mut">${t === 'err' ? 'Inga felrapporter än.' : 'Inga förslag eller annan feedback än.'}</p>`}</div>`; }
 async function modFbSet(id, k) { try { await api.modFbSet(id, k); const x = (S.modData || []).find(y => y.id === id); if (x) x.status = k; keepMain(); } catch (e) { toast(errMsg(e)); } }
 function modUsersV(D) {
@@ -7238,12 +7238,12 @@ async function modHideUserFromCard(uid, name) {
   try { const n = await api.modHideUser(uid, true); toast('Allt från ' + name + ' är dolt (' + n + ')'); S.uposts = await api.modUserPosts(uid); } catch (e) { toast(errMsg(e)); }
   render();
 }
-const MOD_TREE = [['Granska', [['open', 'Rapporter'], ['best', 'Bästa svar'], ['plants', 'Växter'], ['feed', 'Gemenskap']]], ['Hantering', [['done', 'Hanterade'], ['users', 'Alla användare']]], ['Appen', [['stats', 'Statistik'], ['err', 'Felrapporter'], ['fb', 'Feedback']]], ['Team', [['team', 'Team']]]];
-function modSecTog(n) { const c = S.modSec || {}; S.modSec = { ...c, [n]: c[n] === false }; keepMain(); }
+const MOD_TREE = [['Granska', [['open', 'Rapporter'], ['best', 'Bästa svar'], ['plants', 'Växter'], ['feed', 'Gemenskap']]], ['Hantering', [['done', 'Hanterade'], ['users', 'Alla användare']]], ['Appen', [['stats', 'Statistik'], ['err', 'Felrapporter'], ['fb', 'Feedback']]], ];
+function modSecTog(n) { const c = S.modSec || {}; S.modSec = { ...c, [n]: c[n] !== true }; keepMain(); }
 function modTreeV(t) {
   const c = S.modSec || {};
   const secs = MOD_TREE.filter(([n]) => n !== 'Team' || isAdmin());
-  return `<div class="mtree" role="navigation" aria-label="Moderering">${secs.map(([n, items]) => { const open = c[n] !== false; return `<div class="mt-sec"><button class="mt-h" onclick="modSecTog('${n}')" aria-expanded="${open}"><span class="mt-car" aria-hidden="true">${open ? '▾' : '▸'}</span>${ic('ph-folder', 'currentColor', 16)}<span class="mt-l">${n}</span></button>${open ? items.map(([k, l]) => { const cnt = k === 'open' ? S.modOpen : k === 'best' ? S.modBestN : 0; return `<button class="mt-i ${t === k ? 'on' : ''}" onclick="modTab('${k}')" aria-current="${t === k}">${ic('ph-file', 'currentColor', 15)}<span class="mt-l">${l}</span>${cnt ? `<em class="tabn">${cnt}</em>` : ''}</button>`; }).join('') : ''}</div>`; }).join('')}</div>`;
+  return `<div class="mtree" role="navigation" aria-label="Moderering">${secs.map(([n, items]) => { const open = c[n] === true; return `<div class="mt-sec"><button class="mt-h" onclick="modSecTog('${n}')" aria-expanded="${open}"><span class="mt-car" aria-hidden="true">${open ? '▾' : '▸'}</span>${ic('ph-folder', 'currentColor', 16)}<span class="mt-l">${n}</span></button>${open ? items.map(([k, l]) => { const cnt = k === 'open' ? S.modOpen : k === 'best' ? S.modBestN : 0; return `<button class="mt-i ${t === k ? 'on' : ''}" onclick="modTab('${k}')" aria-current="${t === k}">${ic('ph-file', 'currentColor', 15)}<span class="mt-l">${l}</span>${cnt ? `<em class="tabn">${cnt}</em>` : ''}</button>`; }).join('') : ''}</div>`; }).join('')}</div>`;
 }
 function modGroups(rows, t) {
   const byN = [...rows].sort((a, b) => (b.n || 0) - (a.n || 0));
@@ -7286,7 +7286,7 @@ function modV() {
     ${S.modRes && !S.modRes.length ? '<p class="mut">Ingen hittades.</p>' : ''}<p class="mut" style="font-size:13px">Moderatorer kan granska rapporter och dölja inlägg och svar. Bara du som admin kan lägga till eller ta bort moderatorer.</p></div>`;
   }
   return `${topbar('Moderering', 'S.tool=null;render()')}
-  ${modTreeV(t)}${body}
+  ${isAdmin() ? '<div style="display:flex;justify-content:flex-end;margin:10px 18px 0"><button class="btn sm line" onclick="modTab(\'team\')">Hantera team</button></div>' : ''}${modTreeV(t)}${body}
   <p class="mut" style="font-size:12.5px;margin:14px 18px 24px">Ett inlägg eller svar döljs automatiskt när tre olika personer har rapporterat det. Du kan välja att behålla det eller dölja det.</p>`;
 }
 // ===== Blockera =====
@@ -9444,7 +9444,6 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
-  ['Beta 0.310', '7 nov', ['Moderering: en enklare mappvy i Utforskar-stil, med mappar för Granska, Hantering och Appen']],
   ['Beta 0.309', '7 nov', ['Passning: en vän kan passa dina krukväxter under en period, och ser vad som behöver göras', 'Rabatt: "Ta bort växterna" tar bort växterna men behåller rabatten, och du kan spara en bild eller skriva ut planen', 'Toaletten går inte att göra djupare än en meter', 'Moderering: rapporterna är grupperade i en mappvy']],
   ['Beta 0.308', '7 nov', ['Felknappen (nyckelpigan) är tillbaka nere till vänster, så den inte stör när du scrollar']],
   ['Beta 0.307', '7 nov', ['Ljusmätaren: tydlig varning när värdet är uppskattat, och kalibreringen är en egen ruta', 'Felknappen (nyckelpigan) är flyttad till höger, ovanför plus-knappen', 'Nyhetsrutan visar bara senaste versionen, äldre finns under Hela loggen', 'Intern städning: borttagen automatisk felrapportering och oanvänd kod']],
