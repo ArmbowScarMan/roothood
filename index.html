@@ -1743,12 +1743,14 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 :root[data-ui=stad] .ti b:not(.bad):not(.na){color:var(--ink)}
 
 .freebar{position:absolute;top:12px;left:12px;right:84px;z-index:3;display:flex;flex-wrap:wrap;gap:8px}.freebar .newroomb{position:static;transform:none;padding:8px 12px;font-size:13px}.freebar .newroomb:disabled{opacity:.45}
-.mtree{margin:8px 18px 4px;border:1px solid var(--line);border-radius:14px;padding:6px}
-.mt-h{display:flex;align-items:center;gap:6px;width:100%;border:0;background:none;color:inherit;font:inherit;font-weight:700;padding:8px 6px;cursor:pointer;text-align:left}
-.mt-car{width:14px;opacity:.7}
-.mt-i{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;color:inherit;opacity:.8;font:inherit;font-size:15px;padding:8px 8px 8px 30px;border-radius:10px;cursor:pointer;text-align:left}
-.mt-i.on{background:rgba(160,200,120,.18);opacity:1;font-weight:700}
-.mt-l{flex:1}
+.mtree{display:block;margin:8px 18px 12px;border:1px solid var(--line);border-radius:10px;padding:4px 0;text-align:left}
+.mt-sec{display:block}
+.mt-h,.mt-i{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;width:100%;margin:0;border:0;border-radius:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:0;box-shadow:none;white-space:normal}
+.mt-h{font-weight:700;padding:9px 12px}
+.mt-i{font-size:15px;font-weight:500;padding:8px 12px 8px 36px;opacity:.85}
+.mt-i.on{background:rgba(160,200,120,.2);opacity:1;font-weight:700}
+.mt-car{width:12px;font-size:11px;opacity:.7}
+.mt-l{flex:1;min-width:0}
 .mtree .tabn{font-style:normal;display:inline-block;min-width:18px;padding:0 6px;border-radius:99px;background:var(--acc);color:#fff;font-size:11.5px;line-height:18px;text-align:center}
 .mgrp{margin:0 0 10px}
 .mgrp>summary{cursor:pointer;font-weight:700;padding:8px 0;list-style:none}
@@ -7241,7 +7243,7 @@ function modSecTog(n) { const c = S.modSec || {}; S.modSec = { ...c, [n]: c[n] =
 function modTreeV(t) {
   const c = S.modSec || {};
   const secs = MOD_TREE.filter(([n]) => n !== 'Team' || isAdmin());
-  return `<nav class="mtree" aria-label="Moderering">${secs.map(([n, items]) => { const open = c[n] !== false; return `<div class="mt-sec"><button class="mt-h" onclick="modSecTog('${n}')" aria-expanded="${open}"><span class="mt-car" aria-hidden="true">${open ? '▾' : '▸'}</span>${n}</button>${open ? items.map(([k, l]) => { const cnt = k === 'open' ? S.modOpen : k === 'best' ? S.modBestN : 0; return `<button class="mt-i ${t === k ? 'on' : ''}" onclick="modTab('${k}')" aria-current="${t === k}"><span class="mt-l">${l}</span>${cnt ? `<em class="tabn">${cnt}</em>` : ''}</button>`; }).join('') : ''}</div>`; }).join('')}</nav>`;
+  return `<div class="mtree" role="navigation" aria-label="Moderering">${secs.map(([n, items]) => { const open = c[n] !== false; return `<div class="mt-sec"><button class="mt-h" onclick="modSecTog('${n}')" aria-expanded="${open}"><span class="mt-car" aria-hidden="true">${open ? '▾' : '▸'}</span>${ic('ph-folder', 'currentColor', 16)}<span class="mt-l">${n}</span></button>${open ? items.map(([k, l]) => { const cnt = k === 'open' ? S.modOpen : k === 'best' ? S.modBestN : 0; return `<button class="mt-i ${t === k ? 'on' : ''}" onclick="modTab('${k}')" aria-current="${t === k}">${ic('ph-file', 'currentColor', 15)}<span class="mt-l">${l}</span>${cnt ? `<em class="tabn">${cnt}</em>` : ''}</button>`; }).join('') : ''}</div>`; }).join('')}</div>`;
 }
 function modGroups(rows, t) {
   const byN = [...rows].sort((a, b) => (b.n || 0) - (a.n || 0));
@@ -9442,6 +9444,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.310', '7 nov', ['Moderering: en enklare mappvy i Utforskar-stil, med mappar för Granska, Hantering och Appen']],
   ['Beta 0.309', '7 nov', ['Passning: en vän kan passa dina krukväxter under en period, och ser vad som behöver göras', 'Rabatt: "Ta bort växterna" tar bort växterna men behåller rabatten, och du kan spara en bild eller skriva ut planen', 'Toaletten går inte att göra djupare än en meter', 'Moderering: rapporterna är grupperade i en mappvy']],
   ['Beta 0.308', '7 nov', ['Felknappen (nyckelpigan) är tillbaka nere till vänster, så den inte stör när du scrollar']],
   ['Beta 0.307', '7 nov', ['Ljusmätaren: tydlig varning när värdet är uppskattat, och kalibreringen är en egen ruta', 'Felknappen (nyckelpigan) är flyttad till höger, ovanför plus-knappen', 'Nyhetsrutan visar bara senaste versionen, äldre finns under Hela loggen', 'Intern städning: borttagen automatisk felrapportering och oanvänd kod']],
@@ -10699,7 +10702,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.309';
+const APP_VERSION = 'Beta 0.310';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
