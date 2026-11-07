@@ -9374,6 +9374,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.306', '7 nov', ['Automatisk felrapportering för frysning är borttagen']],
   ['Beta 0.305', '7 nov', ['Säsongstips: ny checklista "Gör detta i helgen" för varje månad, med bockar som sparas på den här enheten', 'Säsongstips: tips får etiketten För dina krukväxter, köksträdgård eller trädgård när du har växter i den kategorin', 'Permakultur: ny ruta Börja här med tre första steg', 'Startsidan: knapp för att öppna Såkalendern under Att göra', 'Lär dig: sökruta som hittar kort i alla ämnen', 'Notiser: slås på automatiskt igen om du redan tillåtit dem i webbläsaren', 'Följ borttaget: lägg till vänner i stället, under Hitta vänner']],
   ['Beta 0.304', '7 nov', ['Pro kostar nu 39 kr/månad eller 349 kr/år', 'Säsongstips och Odlare att följa ingår i Pro', 'Inställningar: ny rad Köp i appen']],
   ['Beta 0.303', '6 nov', ['Statistik: ny sektion Tid per funktion, med total tid och snitt per öppning']],
@@ -10625,7 +10626,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.305';
+const APP_VERSION = 'Beta 0.306';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -11002,6 +11003,7 @@ document.addEventListener('pointerdown', e => { const t = e.target && e.target.c
 document.addEventListener('scroll', () => { if (performance.now() - FRZ.at > 500) { FRZ.last = 'scroll på ' + (location.hash || '#home'); FRZ.at = performance.now(); } }, { capture: true, passive: true });
 { const R = render; render = function () { const t = performance.now(); try { return R.apply(this, arguments); } finally { FRZ.rend = Math.round(performance.now() - t); FRZ.rendMax = Math.max(FRZ.rendMax, FRZ.rend); } }; }
 function frzReport(ms, how) {
+  return; // automatisk felrapportering är borttagen
   const now = performance.now();
   if (ms < 7000 || FRZ.sent >= 3 || now - FRZ.prev < 8000) return;
   FRZ.sent++; FRZ.prev = now;
@@ -11018,11 +11020,6 @@ function frzReport(ms, how) {
   setTimeout(frzFlush, 3000);
 }
 async function frzFlush() { if (!S.user || !api) return; const q = store.get('frzQ', []); if (!q.length) return; store.set('frzQ', []); for (const f of q) { try { await api.sendFb(f); } catch (e) { console.warn('Roothood:', e); } } }
-{ let on = false, last = 0; const tick = t => { if (last && t - last >= 7000 && !document.hidden) frzReport(t - last, 'skärmen ritades inte om'); last = t; if (performance.now() - FRZ.at < 4000) requestAnimationFrame(tick); else { on = false; last = 0; } };
-  const go = () => { if (!on) { on = true; last = 0; requestAnimationFrame(tick); } }; document.addEventListener('pointerdown', go, true); document.addEventListener('scroll', go, { capture: true, passive: true }); }
-try { new PerformanceObserver(l => l.getEntries().forEach(e => { if (e.duration >= 7000) frzReport(e.duration, 'lång uppgift'); })).observe({ entryTypes: ['longtask'] }); } catch (e) { /* stöds inte i alla webbläsare */ }
-{ let hb = performance.now(); setInterval(() => { const t = performance.now(), gap = t - hb; hb = t; if (gap >= 7000 && !document.hidden) frzReport(gap, 'appen svarade inte'); }, 1000);
-  document.addEventListener('visibilitychange', () => { hb = performance.now(); }); }
 function loadScript(src) { return new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fail(new Error('Kunde inte ladda ' + src)); document.head.appendChild(s); }); }
 async function init() {
   applyPrefs();
