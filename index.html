@@ -1759,7 +1759,7 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 .stiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 10px}.stile{background:rgba(255,255,255,.05);border-radius:12px;padding:12px}.stile b{display:block;font-size:20px;margin-top:4px}
 .msu-bar{display:block;height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin:6px 8px 0}.msu-bar i{display:block;height:100%;background:var(--acc);border-radius:99px}.msf{margin:8px 8px}.msf-t{display:flex;justify-content:space-between;gap:8px;font-size:14px}
 .lsug{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}.lsug:empty{display:none}.lsug .btn{width:auto}
-.uvbbox{margin:10px 0;padding:12px;border-radius:12px;background:rgba(255,255,255,.05)}.uvb{margin:8px 0 0;font-size:14px}.uvb.w{color:#c77700;font-weight:700}.uvb.d{color:#d64545;font-weight:700}.feedrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:14px;margin:6px 0}.feedrow .bad{color:#d64545}
+.uvbbox{margin:10px 0;padding:12px;border-radius:12px;background:rgba(255,255,255,.05)}.uvb{margin:8px 0 0;font-size:14px}.uvb.w{color:#c77700;font-weight:700}.uvb.d{color:#d64545;font-weight:700}.feedrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:14px;margin:6px 0}.feedrow .bad{color:#d64545}.sitbox{margin-top:10px;padding:12px;border-radius:12px;background:rgba(255,255,255,.05)}.sitbox section{padding:8px 0;border-bottom:1px solid rgba(0,0,0,.08)}.sitbox h2{font-size:16px;margin:0 0 4px}.sitbox p{margin:3px 0;font-size:14px}
 .loglist{list-style:none;padding:0;margin:6px 0;font-size:14px}.loglist li{padding:5px 0;border-bottom:1px solid rgba(0,0,0,.08);display:flex;gap:8px;flex-wrap:wrap;align-items:center}.logadd{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:8px}
 </style></head><body>
 <div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas inte förrän nätet är tillbaka.</div>
@@ -6977,6 +6977,28 @@ function feedBlock(a) {
   const fopen = S.feedOpen === a.id, f = a.feed || {};
   return `<div class="feedrow"><span>${feedLine(a)}</span><button class="link3" onclick="feedNow(${a.id})">🍽️ Matade nu</button><button class="link3" onclick="S.feedOpen=${fopen ? 'null' : a.id};keepMain()">${fopen ? 'Stäng' : 'Ändra rutin'}</button></div>${fopen ? `<div class="logadd"><label class="fl">Varje (dagar)<input type="number" min="1" max="60" value="${f.every || ''}" onchange="setFeed(${a.id},'every',this.value)"></label><label class="fl">Senast matad<input type="date" value="${f.last || ''}" onchange="setFeed(${a.id},'last',this.value)"></label><label class="fl">Rutin<input value="${esc(f.note || '')}" placeholder="t.ex. morgon, 50 g torrfoder" onchange="setFeed(${a.id},'note',this.value)"></label></div>` : ''}`;
 }
+function petToxNames(a) {
+  return myPlantsP().filter(([m, p]) => inPetRoom(a, m) && (() => { const r = toxPet(p, a); return r && (r[0] === 'd' || r[0] === 'w'); })()).map(([m, p]) => m.custom_name || p.swedish_name);
+}
+function petSitterHtml() {
+  const an = animals();
+  if (!an.length) return '<p class="mut">Inga djur inlagda ännu.</p>';
+  return an.map(a => {
+    const f = a.feed || {}, v = a.vet || {}, tox = petToxNames(a);
+    return `<section class="sit"><h2>${petEmoji(a.kind, a.sp)} ${esc(a.name)} <small>${esc(a.sp || PK[a.kind][0])}</small></h2>
+      <p><b>Bor i:</b> ${esc(petRoomName(a) || 'Hela hemmet')}</p>
+      <p><b>Mat:</b> ${f.every ? `Varje ${f.every} dag${f.note ? ' · ' + esc(f.note) : ''}` : 'Ingen matrutin satt'}${f.last ? `. Senast matad ${esc(f.last)}` : ''}</p>
+      <p><b>Veterinär:</b> ${esc(v.clinic || '–')} · Försäkring: ${esc(v.ins || '–')} · Chip: ${esc(v.chip || '–')}</p>
+      <p><b>Växter att se upp med:</b> ${tox.length ? tox.slice(0, 10).map(esc).join(', ') : 'Inga kända giftiga växter i rummet'}</p>
+    </section>`;
+  }).join('');
+}
+function sitterPetPrint() {
+  const w = window.open('', '_blank');
+  if (!w) return toast('Tillåt popup-fönster för att skriva ut');
+  w.document.write(`<!doctype html><html lang="sv"><head><meta charset="utf-8"><title>Instruktion för djurvakt</title><style>body{font-family:sans-serif;padding:20px;color:#111}section{border-bottom:1px solid #ccc;padding:10px 0;break-inside:avoid}h2{margin:0 0 6px;font-size:18px}h2 small{color:#666;font-weight:400}p{margin:4px 0;font-size:14px}</style></head><body><h1>Instruktion för djurvakt</h1>${petSitterHtml()}</body></html>`);
+  w.document.close(); w.print();
+}
 function setVet(id, k, v) { const a = petsList().find(x => x.id === id); if (!a) return; a.vet = a.vet || {}; a.vet[k] = v || null; savePets(); keepMain(); }
 function vetV(a) {
   const v = a.vet || {}, today = new Date().toISOString().slice(0, 10), overdue = v.vacNext && v.vacNext < today;
@@ -7013,6 +7035,7 @@ function petsV() {
   ${seasonPetWarn(an)}
   <div class="sec"><h2>Dina djur</h2>${petsList().length && !S.petAdd ? '<button class="viewall" onclick="S.petAdd=true;keepMain()">+ Lägg till</button>' : ''}</div>
   <div class="pad">${an.map(petCard).join('')}${!petsList().length || S.petAdd ? petFormV() : ''}</div>
+  ${an.length ? `<div class="pad"><button class="link3" onclick="S.sitPets=!S.sitPets;keepMain()">${S.sitPets ? 'Dölj instruktionen för djurvakt' : '📋 Instruktion för djurvakt'}</button>${S.sitPets ? `<div class="sitbox">${petSitterHtml()}<button class="btn sm line" onclick="sitterPetPrint()">Skriv ut</button></div>` : ''}</div>` : ''}
   ${wildV()}
   ${hasAq ? `<div class="sec"><h2>🐠 Mitt akvarium</h2></div><div class="pad"><div class="setcard aq">
     <div class="aqset"><label>Liter<input type="number" min="5" max="2000" inputmode="numeric" value="${t.l ?? ''}" onchange="setTank('l',this.value)" placeholder="t.ex. 60"></label><label>Temperatur °C<input type="number" min="5" max="35" inputmode="numeric" value="${t.temp ?? ''}" onchange="setTank('temp',this.value)" placeholder="t.ex. 24"></label></div>
@@ -9542,6 +9565,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.316', '8 nov', ['Mina djur: instruktion för djurvakt. Visar rum, matrutin, veterinär och växter att se upp med för varje djur, och kan skrivas ut']],
   ['Beta 0.315', '8 nov', ['Mina djur: välj vilket rum ditt djur bor i. Giftvarningarna gäller då bara växter i det rummet, och du ser vilka växter det gäller']],
   ['Beta 0.314', '8 nov', ['Mina djur: matrutin per djur. Ange hur ofta djuret ska matas, tryck på Matade nu, och se när nästa matning är. Appen visar när det är dags eller har gått för länge', 'Rutinen kan ha en egen text, till exempel morgon eller 50 g torrfoder']],
   ['Beta 0.313', '8 nov', ['Mina djur: nytt veterinärkort med chipnummer, vaccinationer, avmaskning, försäkring och klinik. Du får en varning när en vaccination har gått ut', 'Mina djur: vikt och händelser. Se viktkurvan och logga ömsning, dvala, parning, äggläggning, sjukdom och vetbesök', 'Mina djur: påminnelse om vintern för katt och hund, och UV-timer för terrarier', 'Passning: en vän kan få se hur du vill att dina krukväxter ska skötas under en period']],
@@ -10804,7 +10828,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.315';
+const APP_VERSION = 'Beta 0.316';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
