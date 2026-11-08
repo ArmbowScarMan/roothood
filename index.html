@@ -1758,6 +1758,7 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 .sitform{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}.sitform label{display:flex;flex-direction:column;font-size:13px;flex:1;min-width:120px}
 .stiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 10px}.stile{background:rgba(255,255,255,.05);border-radius:12px;padding:12px}.stile b{display:block;font-size:20px;margin-top:4px}
 .msu-bar{display:block;height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin:6px 8px 0}.msu-bar i{display:block;height:100%;background:var(--acc);border-radius:99px}.msf{margin:8px 8px}.msf-t{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.lsug{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}.lsug:empty{display:none}.lsug .btn{width:auto}
 </style></head><body>
 <div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas inte förrän nätet är tillbaka.</div>
 <div id="app"><div id="main"></div>
@@ -6656,7 +6657,7 @@ function dbV() {
 }
 // Filter och sortering i Växtbiblioteket: en filterknapp, valda filter som chips som går att ta bort
 function setDsort(k) { S.dsort = k; document.querySelectorAll('.dbsortc button').forEach(b => { const on = b.dataset.k === k; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); renderList(); }
-const DB_SORT = [['az', 'A–Ö'], ['za', 'Ö–A'], ['pop', 'Populärast'], ['easy', 'Lättast att sköta'], ['sun', 'Mest ljus'], ['shade', 'Tål skugga'], ['pet', 'Husdjursvänliga först']];
+const DB_SORT = [['az', 'A–Ö'], ['za', 'Ö–A'], ['type', 'Typ (buskar, träd …)'], ['pop', 'Populärast'], ['easy', 'Lättast att sköta'], ['sun', 'Mest ljus'], ['shade', 'Tål skugga'], ['pet', 'Husdjursvänliga först']];
 function dbFilterN() { return (S.cat && S.cat !== 'Alla' && S.cat !== 'zon' ? 1 : 0) + (S.ptypes || []).length + (S.fzon || S.cat === 'zon' ? 1 : 0) + (S.fpet ? 1 : 0) + (S.feasy ? 1 : 0) + (S.flight ? 1 : 0); }
 function dbChips() { const L = [];
   if (S.cat && S.cat !== 'Alla' && S.cat !== 'zon') L.push([S.cat, "S.cat='Alla'"]);
@@ -8247,10 +8248,17 @@ function dbRow(p, has) {
   return `<div class="drow"><button class="open" onclick="openPlant(${p.id})"><b>${esc(p.swedish_name)}</b><i>${esc(p.latin_name)}</i><span class="dd">${bits.map(b => `<span>${esc(b)}</span>`).join('')}</span></button>
     <button class="heart ${has ? 'on' : ''}" onclick="heart(${p.id})" aria-pressed="${has}" aria-label="${has ? 'Ta bort från Favoriter' : 'Spara som favorit'}">${ic(I.heart, 'currentColor', 20).replace('fill="none"', has ? 'fill="currentColor"' : 'fill="none"')}</button></div>`;
 }
+function tIdx(p) { const i = TYPE_ORDER.indexOf(typeOf(p)); return i >= 0 ? i : 99; }
+function lsugInner(q) {
+  const t = (q || '').trim().toLowerCase(); if (t.length < 2) return '';
+  const m = S.plants.filter(p => (p.swedish_name || '').toLowerCase().includes(t) || (p.latin_name || '').toLowerCase().includes(t)).slice(0, 6);
+  return m.map(p => `<button type="button" class="btn sm line" onclick="lsugPick(${jsArg(p.swedish_name)})">${esc(p.swedish_name)}</button>`).join('');
+}
+function lsugPick(n) { S.lti = n; const i = document.getElementById('lti'); if (i) i.value = n; const b = document.getElementById('lsug'); if (b) b.innerHTML = ''; }
 function renderList() {
   if (!$('#list')) return;
   const so = S.dsort || 'az', nm = (a, b) => (a.swedish_name || '').localeCompare(b.swedish_name || '', 'sv');
-  const r = dbBase().slice().sort(so === 'za' ? (a, b) => nm(b, a) : so === 'pop' ? (a, b) => ((S.popMap || {})[String(b.id)] || 0) - ((S.popMap || {})[String(a.id)] || 0) || nm(a, b) : so === 'easy' ? (a, b) => (a.water_level || 2) - (b.water_level || 2) || nm(a, b) : so === 'sun' ? (a, b) => (b.light_level || 2) - (a.light_level || 2) || nm(a, b) : so === 'shade' ? (a, b) => (a.light_level || 2) - (b.light_level || 2) || nm(a, b) : so === 'pet' ? (a, b) => (b.pet_safe ? 1 : 0) - (a.pet_safe ? 1 : 0) || nm(a, b) : nm);
+  const r = dbBase().slice().sort(so === 'za' ? (a, b) => nm(b, a) : so === 'pop' ? (a, b) => ((S.popMap || {})[String(b.id)] || 0) - ((S.popMap || {})[String(a.id)] || 0) || nm(a, b) : so === 'easy' ? (a, b) => (a.water_level || 2) - (b.water_level || 2) || nm(a, b) : so === 'sun' ? (a, b) => (b.light_level || 2) - (a.light_level || 2) || nm(a, b) : so === 'shade' ? (a, b) => (a.light_level || 2) - (b.light_level || 2) || nm(a, b) : so === 'pet' ? (a, b) => (b.pet_safe ? 1 : 0) - (a.pet_safe ? 1 : 0) || nm(a, b) : so === 'type' ? (a, b) => tIdx(a) - tIdx(b) || nm(a, b) : nm);
   $('#count').textContent = r.length + (r.length === 1 ? ' växt' : ' växter');
   const rows = dbRows();
   $('#list').innerHTML = r.map(p => {
@@ -8978,8 +8986,8 @@ function newListingV() {
     <label class="fl" style="margin-top:0">Vad vill du göra?</label>
     <div class="chips2">${LTYPES.map(x => `<button class="${S.lt === x[0] ? 'on' : ''}" onclick="S.lt='${x[0]}';render()">${x[2]}</button>`).join('')}</div>
     <label class="fl" for="lti">${S.lt === 'Önskas' ? 'Vilken växt letar du efter?' : 'Vilken växt?'}</label>
-    <input id="lti" maxlength="120" list="lplants" placeholder="t.ex. Monstera-sticklingar" value="${esc(S.lti)}" oninput="S.lti=this.value">
-    <datalist id="lplants">${S.plants.map(p => `<option value="${esc(p.swedish_name)}">`).join('')}</datalist>
+    <input id="lti" maxlength="120" autocomplete="off" placeholder="t.ex. Monstera-sticklingar" value="${esc(S.lti)}" oninput="S.lti=this.value;document.getElementById('lsug').innerHTML=lsugInner(this.value)">
+    <div id="lsug" class="lsug">${lsugInner(S.lti)}</div>
     <label class="fl" for="lbo">Beskrivning</label>
     <textarea id="lbo" rows="4" maxlength="2000" placeholder="${S.lt === 'Byta' ? 'Vad har du, och vad vill du ha i utbyte?' : S.lt === 'Önskas' ? 'Vad kan du erbjuda i utbyte?' : 'Storlek, skick, hur man hämtar…'}" oninput="S.lbo=this.value">${esc(S.lbo)}</textarea>
     <label class="fl" for="lci">Ort</label>
@@ -9456,6 +9464,7 @@ function seasonV() {
 // ===== Uppdateringslogg =====
 const NEWS = [
   ['Beta 0.309', '7 nov', ['Passning: en vän kan passa dina krukväxter under en period, och ser vad som behöver göras', 'Rabatt: "Ta bort växterna" tar bort växterna men behåller rabatten, och du kan spara en bild eller skriva ut planen', 'Toaletten går inte att göra djupare än en meter', 'Moderering: rapporterna är grupperade i en mappvy']],
+  ['Beta 0.311', '8 nov', ['Växtlistan kan sorteras på typ, så buskar, träd och andra grupper står samlade', 'Förslagen när du skriver en växt i Ny annons visas under fältet och kan tryckas på, i stället för en lång lista ovanför tangentbordet']],
   ['Beta 0.308', '7 nov', ['Felknappen (nyckelpigan) är tillbaka nere till vänster, så den inte stör när du scrollar']],
   ['Beta 0.307', '7 nov', ['Ljusmätaren: tydlig varning när värdet är uppskattat, och kalibreringen är en egen ruta', 'Felknappen (nyckelpigan) är flyttad till höger, ovanför plus-knappen', 'Nyhetsrutan visar bara senaste versionen, äldre finns under Hela loggen', 'Intern städning: borttagen automatisk felrapportering och oanvänd kod']],
   ['Beta 0.306', '7 nov', ['Automatisk felrapportering för frysning är borttagen']],
@@ -10712,7 +10721,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.310';
+const APP_VERSION = 'Beta 0.311';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
