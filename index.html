@@ -7981,21 +7981,27 @@ function openPeople() { if (needLogin()) return; stopLight(); S.sel = null; S.mo
 function pqInput(v) { S.pq = v; clearTimeout(peopleT); peopleT = setTimeout(loadPeople, 300); }
 function avBig(name, cls, url) { if (url) return `<div class="${cls || 'av'} avimg"><img src="${esc(url)}" alt=""></div>`; return `<div class="${cls || 'av'}" style="background:hsl(${hueOf(name)} 40% 38%)">${esc((name || '?')[0].toUpperCase())}</div>`; }
 function avSmall(name, url) { if (url) return `<div class="av avimg"><img src="${esc(url)}" alt=""></div>`; return `<div class="av" style="background:hsl(${hueOf(name)} 40% 38%)">${esc((name || '?')[0])}</div>`; }
+// Odlingszon per stad, från samma tabell (CITYZ) som såkalendern använder.
+function cityZones(c) { if (!c) return []; const k = Object.keys(CITYZ).find(x => x.toLowerCase() === String(c).trim().toLowerCase()); return k ? [].concat(CITYZ[k]) : []; }
+function myZones() { const z = store.get('zone', 0); return z ? [z] : cityZones(S.city); }
+function zoneLabel(u) { const z = cityZones(u.city); return z.length ? 'Zon ' + z.join('–') : ''; }
+function sameZone(u) { const mine = myZones(); return mine.length > 0 && cityZones(u.city).some(z => mine.includes(z)); }
 function personRow(u) {
   const same = S.city && u.city && u.city.toLowerCase() === S.city.toLowerCase();
-  return `<div class="prow2"><button class="popen" onclick="openUser(${jsArg(u.id)})">${avBig(u.display_name)}<span class="grow"><b>${esc(u.display_name)}</b><span>${[u.city ? (same ? '📍 ' : '') + esc(u.city) : '', u.plants != null ? u.plants + ' växter' : ''].filter(Boolean).join(' · ')}</span></span></button>
+  return `<div class="prow2"><button class="popen" onclick="openUser(${jsArg(u.id)})">${avBig(u.display_name)}<span class="grow"><b>${esc(u.display_name)}</b><span>${[u.city ? (same ? '📍 ' : '') + esc(u.city) : '', zoneLabel(u), u.plants != null ? u.plants + ' växter' : ''].filter(Boolean).join(' · ')}</span></span></button>
     <button class="btn sm" onclick="friendAsk(${jsArg(u.id)})">+ Vän</button></div>`;
 }
 function peopleV() {
   const list = S.ppl || [], q = (S.pq || '').trim();
-  const near = S.city ? list.filter(u => (u.city || '').toLowerCase() === S.city.toLowerCase()) : [], rest = list.filter(u => !near.includes(u));
+  const near = S.city ? list.filter(u => (u.city || '').toLowerCase() === S.city.toLowerCase()) : [], zn = list.filter(u => !near.includes(u) && sameZone(u)), rest = list.filter(u => !near.includes(u) && !zn.includes(u)), mz = myZones();
   const sec = (t, l) => l.length ? `<div class="sec"><h2>${t}</h2></div><div class="pad"><div class="norm">${l.map(personRow).join('')}</div></div>` : '';
   return `${topbar('Hitta användare', 'closeTool()')}
   <div class="searchrow"><div class="search">${ic(I.search, null, 20)}<input id="pq" type="search" placeholder="Sök på namn eller ort" value="${esc(S.pq || '')}" oninput="pqInput(this.value)" aria-label="Sök användare" autocomplete="off"></div></div>
   ${S.pplErr && S.pplErr !== 'USERS_NOT_READY' ? retryBox('loadPeople()') : ''}
   ${S.pplErr === 'USERS_NOT_READY' ? '<div class="instc" style="margin:12px 18px 0"><div><b>Användarsökningen går inte att använda just nu</b><span>Försök igen senare.</span></div></div>' : ''}
   ${S.ppl == null ? '<p class="mut" style="margin:16px 18px">Letar…</p>' : !list.length ? `<p class="mut" style="margin:16px 18px">${q ? 'Ingen användare matchar "' + esc(q) + '".' : 'Inga andra användare än.'}</p>`
-    : q ? sec(list.length + (list.length === 1 ? ' träff' : ' träffar'), list) : sec('Nära dig i ' + esc(S.city || ''), near) + sec('Fler växtvänner', rest)}
+    : q ? sec(list.length + (list.length === 1 ? ' träff' : ' träffar'), list) : sec('Nära dig i ' + esc(S.city || ''), near) + sec('Samma odlingszon · Zon ' + mz.join(' eller '), zn) + sec('Fler växtvänner', rest)}
+  ${!q && !mz.length ? '<p class="mut" style="margin:0 18px">Välj din odlingszon i Såkalendern, så visas växtvänner med samma klimat.</p>' : ''}
   <div style="height:24px"></div>`;
 }
 const FR_ERR = e => e.message === 'FRIENDS_NOT_READY' ? 'Vänner går inte att använda just nu.' : /BLOCKED/.test(e.message || '') ? 'Du kan inte skicka vänförfrågan till den här personen.' : errMsg(e);
@@ -9576,6 +9582,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.318', '8 nov', ['Hitta användare: växtvänner i samma odlingszon visas i en egen grupp, och varje person visar sin zon. Zonen följer din stad eller den du valt i Såkalendern']],
   ['Beta 0.317', '8 nov', ['Passning: en vän som passar dina växter ser nu också dina rabatter, med växtnamn och hur mycket vatten och ljus de vill ha']],
   ['Beta 0.316', '8 nov', ['Mina djur: instruktion för djurvakt. Visar rum, matrutin, veterinär och växter att se upp med för varje djur, och kan skrivas ut']],
   ['Beta 0.315', '8 nov', ['Mina djur: välj vilket rum ditt djur bor i. Giftvarningarna gäller då bara växter i det rummet, och du ser vilka växter det gäller']],
@@ -10840,7 +10847,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.317';
+const APP_VERSION = 'Beta 0.318';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
