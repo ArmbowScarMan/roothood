@@ -1759,6 +1759,8 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 .stiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 10px}.stile{background:rgba(255,255,255,.05);border-radius:12px;padding:12px}.stile b{display:block;font-size:20px;margin-top:4px}
 .msu-bar{display:block;height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin:6px 8px 0}.msu-bar i{display:block;height:100%;background:var(--acc);border-radius:99px}.msf{margin:8px 8px}.msf-t{display:flex;justify-content:space-between;gap:8px;font-size:14px}
 .lsug{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}.lsug:empty{display:none}.lsug .btn{width:auto}
+.uvbbox{margin:10px 0;padding:12px;border-radius:12px;background:rgba(255,255,255,.05)}.uvb{margin:8px 0 0;font-size:14px}.uvb.w{color:#c77700;font-weight:700}.uvb.d{color:#d64545;font-weight:700}
+.loglist{list-style:none;padding:0;margin:6px 0;font-size:14px}.loglist li{padding:5px 0;border-bottom:1px solid rgba(0,0,0,.08);display:flex;gap:8px;flex-wrap:wrap;align-items:center}.logadd{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:8px}
 </style></head><body>
 <div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas inte förrän nätet är tillbaka.</div>
 <div id="app"><div id="main"></div>
@@ -6914,12 +6916,66 @@ function petFormV() {
     <div style="display:flex;gap:8px;margin-top:14px"><button class="btn" style="flex:1" onclick="addPet()">Lägg till</button>${petsList().length ? '<button class="btn line" onclick="S.petAdd=false;keepMain()">Avbryt</button>' : ''}</div></div>`;
 }
 function petCard(a) {
-  const f = a.kind === 'reptil' ? RFOOD[a.sp] : a.kind === 'fagel' && birdOf(a.sp) ? BFOOD[birdOf(a.sp)[3]] : PFOOD[a.kind], bd = a.kind === 'fagel' && birdOf(a.sp), bopen = S.birdOpen === a.id, open = S.petOpen === a.id, sure = S.del === 'pet' + a.id, topen = S.terOpen === a.id, rt = a.kind === 'reptil';
+  const f = a.kind === 'reptil' ? RFOOD[a.sp] : a.kind === 'fagel' && birdOf(a.sp) ? BFOOD[birdOf(a.sp)[3]] : PFOOD[a.kind], bd = a.kind === 'fagel' && birdOf(a.sp), bopen = S.birdOpen === a.id, open = S.petOpen === a.id, sure = S.del === 'pet' + a.id, topen = S.terOpen === a.id, rt = a.kind === 'reptil', vopen = S.vetOpen === a.id, lopen = S.logOpen === a.id;
   const bad = myPlantsP().filter(([m, p]) => { const r = toxPet(p, a); return r && (r[0] === 'd' || r[0] === 'w'); }).length;
   return `<div class="petc"><div class="petr"><span class="pem">${petEmoji(a.kind, a.sp)}</span><span class="grow"><b>${esc(a.name)}</b><span>${esc(a.sp || PK[a.kind][0])}${rt && !terrOf(a.sp)[9] ? ' · äter inte växter' : bad ? ` · <em class="bad">${bad} giftig${bad > 1 ? 'a' : ''} växt${bad > 1 ? 'er' : ''} hemma</em>` : ' · inga giftiga växter hemma'}</span></span>
     <button class="x ${sure ? 'sure' : ''}" onclick="delPet(${a.id})">${sure ? 'Bekräfta' : 'Ta bort'}</button></div>
-    <div class="plinks"><button class="link3" onclick="S.petOpen=${open ? 'null' : a.id};keepMain()">${open ? 'Dölj maten' : 'Vad kan ' + esc(a.name) + ' äta?'}</button>${rt ? `<button class="link3" onclick="S.terOpen=${topen ? 'null' : a.id};keepMain()">${topen ? 'Dölj terrariet' : '🏜️ Terrariet'}</button>` : ''}${bd ? `<button class="link3" onclick="S.birdOpen=${bopen ? 'null' : a.id};keepMain()">${bopen ? 'Dölj' : '🪺 Fågelns behov'}</button>` : ''}</div>
-    ${open && f ? `<div class="food"><div><h4>✅ Kan äta</h4><ul>${f[0].map(x => `<li>${x}</li>`).join('')}</ul></div><div><h4>⛔ Får inte äta</h4><ul>${f[1].map(x => `<li>${x}</li>`).join('')}</ul></div><p>${f[2]}</p></div>` : ''}${rt && topen ? terrV(a) : ''}${bd && bopen ? birdV(a) : ''}</div>`;
+    <div class="plinks"><button class="link3" onclick="S.petOpen=${open ? 'null' : a.id};keepMain()">${open ? 'Dölj maten' : 'Vad kan ' + esc(a.name) + ' äta?'}</button>${rt ? `<button class="link3" onclick="S.terOpen=${topen ? 'null' : a.id};keepMain()">${topen ? 'Dölj terrariet' : '🏜️ Terrariet'}</button>` : ''}${bd ? `<button class="link3" onclick="S.birdOpen=${bopen ? 'null' : a.id};keepMain()">${bopen ? 'Dölj' : '🪺 Fågelns behov'}</button>` : ''}${a.kind !== 'fisk' ? `<button class="link3" onclick="S.vetOpen=${vopen ? 'null' : a.id};keepMain()">${vopen ? 'Dölj veterinärkortet' : '🩺 Veterinärkort'}</button>` : ''}<button class="link3" onclick="S.logOpen=${lopen ? 'null' : a.id};keepMain()">${lopen ? 'Dölj vikt och händelser' : '⚖️ Vikt och händelser'}</button></div>
+    ${open && f ? `<div class="food"><div><h4>✅ Kan äta</h4><ul>${f[0].map(x => `<li>${x}</li>`).join('')}</ul></div><div><h4>⛔ Får inte äta</h4><ul>${f[1].map(x => `<li>${x}</li>`).join('')}</ul></div><p>${f[2]}</p></div>` : ''}${rt && topen ? uvbV(a) + terrV(a) : ''}${bd && bopen ? birdV(a) : ''}${vopen ? vetV(a) : ''}${lopen ? logV(a) : ''}</div>`;
+}
+const LOGT = { omsn: 'Ömsning', dvala: 'Dvala', parn: 'Parning', agg: 'Äggläggning', sjuk: 'Sjuk', vet: 'Vetbesök', ann: 'Annat' };
+const BIGK = ['katt', 'hund', 'hast'];
+function weightSvg(a) {
+  const w = a.weights || [], W = 300, H = 120, P = 24;
+  if (w.length < 2) return '<p class="uvb">Lägg till minst två vikter för att se kurvan.</p>';
+  const t0 = Date.parse(w[0].d), t1 = Date.parse(w[w.length - 1].d), gs = w.map(x => x.g), g0 = Math.min(...gs), g1 = Math.max(...gs), gr = (g1 - g0) || 1;
+  const X = x => P + (Date.parse(x.d) - t0) / ((t1 - t0) || 1) * (W - 2 * P), Y = x => H - P - (x.g - g0) / gr * (H - 2 * P);
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Viktkurva"><polyline points="${w.map(x => X(x).toFixed(1) + ',' + Y(x).toFixed(1)).join(' ')}" fill="none" stroke="var(--acc)" stroke-width="2.5"/>${w.map(x => `<circle cx="${X(x).toFixed(1)}" cy="${Y(x).toFixed(1)}" r="4" fill="var(--acc)"><title>${x.d}: ${x.g}</title></circle>`).join('')}<text x="${P}" y="${H - 4}" font-size="10">${w[0].d}</text><text x="${W - P}" y="${H - 4}" font-size="10" text-anchor="end">${w[w.length - 1].d}</text><text x="2" y="12" font-size="10">${g1}</text><text x="2" y="${H - P}" font-size="10">${g0}</text></svg>`;
+}
+function logAdd(id) {
+  const a = petsList().find(x => x.id === id); if (!a) return;
+  const d = document.getElementById('ld' + id).value || new Date().toISOString().slice(0, 10), t = document.getElementById('lt' + id).value, n = document.getElementById('ln' + id).value.trim(), g = parseFloat(document.getElementById('lw' + id).value);
+  if (!(g > 0) && !t && !n) return toast('Skriv en vikt eller en händelse');
+  if (g > 0) a.weights = (a.weights || []).concat({ d, g }).sort((x, y) => x.d < y.d ? -1 : 1);
+  if (t || n) a.events = (a.events || []).concat({ d, t, n }).sort((x, y) => x.d < y.d ? -1 : 1);
+  savePets(); keepMain();
+}
+function logDel(id, k, i) { const a = petsList().find(x => x.id === id); if (!a || !a[k]) return; a[k].splice(i, 1); savePets(); keepMain(); }
+function logV(a) {
+  const u = BIGK.includes(a.kind) ? 'kg' : 'g', w = a.weights || [], ev = a.events || [], last = w[w.length - 1], first = w[0], today = new Date().toISOString().slice(0, 10);
+  const chg = w.length > 1 ? Math.round((last.g - first.g) * 100) / 100 : 0;
+  return `<div class="uvbbox"><b>Vikt och händelser</b>
+    ${last ? `<p class="uvb">Senaste vikt: <b>${last.g} ${u}</b> (${last.d})${w.length > 1 ? ` · ${chg > 0 ? '+' : ''}${chg} ${u} sedan ${first.d}` : ''}</p>` : '<p class="uvb">Ingen vikt registrerad ännu.</p>'}
+    ${weightSvg(a)}
+    <div class="logadd"><label class="fl">Datum<input type="date" id="ld${a.id}" value="${today}"></label><label class="fl">Vikt (${u})<input type="number" step="0.01" min="0" id="lw${a.id}"></label><label class="fl">Händelse<select id="lt${a.id}"><option value="">–</option>${Object.entries(LOGT).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label><label class="fl">Notering<input id="ln${a.id}"></label><button class="btn sm" onclick="logAdd(${a.id})">Spara</button></div>
+    <h4>Händelser</h4>
+    ${ev.length ? `<ul class="loglist">${ev.map((x, i) => ({ x, i })).reverse().map(({ x, i }) => `<li><span>${x.d}</span><b>${LOGT[x.t] || 'Annat'}</b><span>${esc(x.n || '')}</span><button class="link3" onclick="logDel(${a.id},'events',${i})">Ta bort</button></li>`).join('')}</ul>` : '<p class="uvb">Inga händelser loggade.</p>'}
+    <h4>Vikter</h4>
+    ${w.length ? `<ul class="loglist">${w.map((x, i) => ({ x, i })).reverse().map(({ x, i }) => `<li><span>${x.d}</span><b>${x.g} ${u}</b><button class="link3" onclick="logDel(${a.id},'weights',${i})">Ta bort</button></li>`).join('')}</ul>` : '<p class="uvb">Inga vikter registrerade.</p>'}
+  </div>`;
+}
+function setVet(id, k, v) { const a = petsList().find(x => x.id === id); if (!a) return; a.vet = a.vet || {}; a.vet[k] = v || null; savePets(); keepMain(); }
+function vetV(a) {
+  const v = a.vet || {}, today = new Date().toISOString().slice(0, 10), overdue = v.vacNext && v.vacNext < today;
+  const F = (k, l, t = 'text') => `<label class="fl">${l}<input type="${t}" value="${esc(v[k] || '')}" onchange="setVet(${a.id},'${k}',this.value)"></label>`;
+  return `<div class="uvbbox"><b>Veterinärkort</b>${F('chip', 'Chipnummer')}${F('vacLast', 'Senaste vaccination', 'date')}${F('vacNext', 'Nästa vaccination', 'date')}${overdue ? '<p class="uvb d">Vaccinationen har gått ut. Boka tid hos veterinären.</p>' : ''}${F('deworm', 'Senaste avmaskning', 'date')}${F('ins', 'Försäkringsnummer')}${F('clinic', 'Veterinär eller klinik')}</div>`;
+}
+function setUvb(id, v) { const a = petsList().find(x => x.id === id); if (!a) return; a.uvb = v || null; savePets(); keepMain(); }
+function uvbInfo(a) {
+  if (!a.uvb) return null;
+  const d = new Date(a.uvb + 'T00:00:00'), now = new Date();
+  const mo = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth()) - (now.getDate() < d.getDate() ? 1 : 0);
+  return mo >= 12 ? { lv: 'd', t: 'UVB-lampan är över 12 månader gammal. Byt nu.' } : mo >= 6 ? { lv: 'w', t: 'UVB-lampan är ' + mo + ' månader. Dags att byta snart.' } : { lv: 's', t: 'UVB-lampan är ' + mo + ' månader och duger ännu.' };
+}
+function uvbV(a) {
+  const info = uvbInfo(a);
+  return `<div class="uvbbox"><b>UVB-lampa</b><label class="fl" style="margin-top:6px">Installerades</label><input type="date" value="${esc(a.uvb || '')}" onchange="setUvb(${a.id},this.value)">${info ? `<p class="uvb ${info.lv}">${info.t}</p>` : '<p class="mut" style="font-size:13px">Ange datum när lampan sattes upp. Appen påminner när den behöver bytas. Lysrör tappar nyttig UVB långt innan de slocknar, ofta efter 6–12 månader.</p>'}</div>`;
+}
+function seasonPetWarn(an) {
+  const d = new Date(), m = d.getMonth(), day = d.getDate();
+  const inSeason = (m === 10 && day >= 25) || m === 11 || (m === 0 && day <= 10);
+  if (!inSeason || !an.some(a => a.kind === 'katt' || a.kind === 'hund')) return '';
+  return `<div class="instc" style="margin:12px 18px 0"><div><b>Högtidsväxter kan vara giftiga för katt och hund</b><span>Julstjärna, amaryllis, hyacinter och liljor. Liljor är mycket farliga för katter. Ställ dem utom räckhåll, och kontakta veterinär om djuret har ätit av någon av dem.</span></div></div>`;
 }
 function petsV() {
   if (!S.pets) { loadPets().then(() => S.tool === 'pets' && render()); return `${topbar('Mina djur', 'closeTool()')}<p class="mut" style="margin:0 18px">Hämtar…</p>`; }
@@ -6931,6 +6987,7 @@ function petsV() {
   <p class="mut" style="margin:0 18px">Lägg in dina djur. Appen varnar om någon av dina växter är giftig för dem och visar vad de får äta.</p>
   ${S.petsErr === 'PETS_NOT_READY' && S.user ? `<div class="instc" style="margin:12px 18px 0"><div><b>Djuren sparas bara i den här webbläsaren</b><span>Försök igen senare.</span></div></div>` : ''}
   ${an.length ? `<div class="sec"><h2>Varningar</h2></div><div class="pad">${warns.length ? `<div class="petwarn">${warns.slice(0, S.pwAll ? 99 : 5).map(x => `<button class="pw ${x.lv}" onclick="openMine(${x.m.id})"><span>${petEmoji(x.a.kind, x.a.sp)}</span><div><b>${esc(x.m.name)} är ${x.lv === 'd' ? 'farlig' : 'giftig'} för ${esc(x.a.name)}</b><span>${esc(x.t)}</span></div></button>`).join('')}</div>${warns.length > 5 ? `<button class="link3" onclick="S.pwAll=!S.pwAll;keepMain()">${S.pwAll ? 'Visa färre' : 'Visa alla ' + warns.length}</button>` : ''}` : `<div class="petok">✅ Inga av dina växter är kända som giftiga för dina djur.</div>`}</div>` : ''}
+  ${seasonPetWarn(an)}
   <div class="sec"><h2>Dina djur</h2>${petsList().length && !S.petAdd ? '<button class="viewall" onclick="S.petAdd=true;keepMain()">+ Lägg till</button>' : ''}</div>
   <div class="pad">${an.map(petCard).join('')}${!petsList().length || S.petAdd ? petFormV() : ''}</div>
   ${wildV()}
@@ -9462,6 +9519,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.313', '8 nov', ['Mina djur: nytt veterinärkort med chipnummer, vaccinationer, avmaskning, försäkring och klinik. Du får en varning när en vaccination har gått ut', 'Mina djur: vikt och händelser. Se viktkurvan och logga ömsning, dvala, parning, äggläggning, sjukdom och vetbesök', 'Mina djur: påminnelse om vintern för katt och hund, och UV-timer för terrarier', 'Passning: en vän kan få se hur du vill att dina krukväxter ska skötas under en period']],
   ['Beta 0.309', '7 nov', ['Passning: en vän kan passa dina krukväxter under en period, och ser vad som behöver göras', 'Rabatt: "Ta bort växterna" tar bort växterna men behåller rabatten, och du kan spara en bild eller skriva ut planen', 'Toaletten går inte att göra djupare än en meter', 'Moderering: rapporterna är grupperade i en mappvy']],
   ['Beta 0.312', '8 nov', ['Det går inte längre att följa andra användare. Använd Vän i stället för att hålla kontakt', 'Sökningen visar Nära dig i din ort och Fler växtvänner']],
   ['Beta 0.311', '8 nov', ['Växtlistan kan sorteras på typ, så buskar, träd och andra grupper står samlade', 'Förslagen när du skriver en växt i Ny annons visas under fältet och kan tryckas på, i stället för en lång lista ovanför tangentbordet']],
@@ -10721,7 +10779,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.312';
+const APP_VERSION = 'Beta 0.313';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
