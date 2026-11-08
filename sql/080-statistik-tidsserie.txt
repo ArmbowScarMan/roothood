@@ -1,0 +1,13 @@
+-- 080: Tidsserie per användare för moderatorer. Visar hur många öppningar en person har per dag.
+-- Bygger på usage_daily från 055. Inget innehåll sparas.
+create or replace function public.mod_usage_user_days(p_user uuid, p_days int default 30)
+returns table (day date, uses int)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query select u.day, sum(u.uses)::int
+    from usage_daily u
+    where u.user_id = p_user and u.day > current_date - greatest(1, least(p_days, 365))
+    group by u.day order by u.day;
+end $$;
+grant execute on function public.mod_usage_user_days(uuid, int) to authenticated;
