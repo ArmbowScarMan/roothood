@@ -9034,8 +9034,15 @@ function showV() {
   const L = (S.feed || []).filter(p => p.photo_url);
   return `${topbar('Gemenskap')}${segBar()}<div class="pad" style="padding-top:12px">${st || (L.length ? L.map(postCard).join('') : '<div class="empty"><p>Inga bilder än. Bifoga ett foto när du frågar, så visas det här.</p></div>')}</div>`;
 }
+// Annonser nära dig: växla mellan egen ort och egen odlingszon.
+function zoneMatchCity(city) { const mine = myZones(); return cityZones(city).some(z => mine.includes(z)); }
+function nearScopeHtml() {
+  const zs = myZones(), on = S.lscope === 'zon';
+  return `<div class="lfil"><div class="chips2"><button class="${on ? '' : 'on'}" onclick="S.lscope='ort';render()">Min ort</button><button class="${on ? 'on' : ''}" onclick="S.lscope='zon';render()" ${zs.length ? '' : 'disabled'}>${zs.length ? 'Min zon · Zon ' + zs.join(' eller ') : 'Min zon (välj i Såkalendern)'}</button></div></div>`;
+}
 function nearV() {
-  const h = swapV();
+  let h = swapV();
+  if (!S.post && !S.newL) h = h.replace('<div class="addbar"', nearScopeHtml() + '<div class="addbar"');
   if (S.post || S.newL || (S.prof && S.prof.city)) return h;
   return h.replace('<div class="pad" style="padding-top:8px">', '<div class="pad" style="padding-top:8px"><p class="mut">Lägg till din ort i Profil så visas annonser nära dig.</p>');
 }
@@ -9086,7 +9093,8 @@ function swapV() {
   if (S.lcity === null) S.lcity = (S.prof && S.prof.city) || '';
   const st = listState(S.listings, '');
   const c = S.lcity.trim().toLowerCase();
-  const list = (S.listings || []).filter(p => (S.lf === 'Alla' || p.category === S.lf) && (!c || String(p.city || '').toLowerCase().includes(c)))
+  const zonOn = S.ctab === 'near' && S.lscope === 'zon';
+  const list = (S.listings || []).filter(p => (S.lf === 'Alla' || p.category === S.lf) && (zonOn ? zoneMatchCity(p.city) : (!c || String(p.city || '').toLowerCase().includes(c))))
     .sort((a, b) => (a.taken - b.taken) || b.created_at.localeCompare(a.created_at));
   const body = st && (S.feedErr || !S.listings) ? st
     : !list.length ? `<div class="empty"><p>${S.listings.length ? 'Inga annonser matchar. Prova en annan ort eller "Alla".' : 'Inga annonser än. Har du en stickling att ge bort?'}</p></div>`
@@ -9582,6 +9590,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.319', '8 nov', ['Händer nära dig: byt mellan Min ort och Min zon, så ser du annonser från orter i samma odlingszon']],
   ['Beta 0.318', '8 nov', ['Hitta användare: växtvänner i samma odlingszon visas i en egen grupp, och varje person visar sin zon. Zonen följer din stad eller den du valt i Såkalendern']],
   ['Beta 0.317', '8 nov', ['Passning: en vän som passar dina växter ser nu också dina rabatter, med växtnamn och hur mycket vatten och ljus de vill ha']],
   ['Beta 0.316', '8 nov', ['Mina djur: instruktion för djurvakt. Visar rum, matrutin, veterinär och växter att se upp med för varje djur, och kan skrivas ut']],
@@ -10847,7 +10856,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.318';
+const APP_VERSION = 'Beta 0.319';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
