@@ -1929,8 +1929,7 @@ const sbApi = {
   async wallComment(id, body) { const { error } = await sb.from('wall_comments').insert({ post_id: id, user_id: S.user.id, body }); if (error) throw error; },
   async wallCommentDelete(pid, cid) { const { error } = await sb.from('wall_comments').delete().eq('id', cid); if (error) throw error; },
   async userPosts(id) { const { data, error } = await sb.from('posts').select('id,kind,title,body,category,created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(20); if (error) throw error; return data || []; },
-  async myFollows() { const { data, error } = await sb.from('follows').select('followee').eq('follower', S.user.id); if (error) return []; return (data || []).map(x => x.followee); },
-  async follow(id, on) { const r = on ? await sb.from('follows').insert({ follower: S.user.id, followee: id }) : await sb.from('follows').delete().eq('follower', S.user.id).eq('followee', id); if (r.error && !/duplicate/.test(r.error.message || '')) throw /follows/.test(r.error.message || '') ? new Error('USERS_NOT_READY') : r.error; },
+  async myFollows() { return []; },
   async getPets() { const { data, error } = await sb.from('pets').select('data').eq('owner', S.user.id); if (error) throw /pets/.test(error.message || '') ? new Error('PETS_NOT_READY') : error; return (data && data[0] && data[0].data) || store.get('pets', null) || { list: [], tank: {} }; },
   async savePets(d) { const { error } = await sb.from('pets').upsert({ owner: S.user.id, data: d, updated_at: new Date().toISOString() }); if (error) throw /pets/.test(error.message || '') ? new Error('PETS_NOT_READY') : error; },
   async getHome() {
@@ -7869,20 +7868,20 @@ function pqInput(v) { S.pq = v; clearTimeout(peopleT); peopleT = setTimeout(load
 function avBig(name, cls, url) { if (url) return `<div class="${cls || 'av'} avimg"><img src="${esc(url)}" alt=""></div>`; return `<div class="${cls || 'av'}" style="background:hsl(${hueOf(name)} 40% 38%)">${esc((name || '?')[0].toUpperCase())}</div>`; }
 function avSmall(name, url) { if (url) return `<div class="av avimg"><img src="${esc(url)}" alt=""></div>`; return `<div class="av" style="background:hsl(${hueOf(name)} 40% 38%)">${esc((name || '?')[0])}</div>`; }
 function personRow(u) {
-  const f = (S.follows || []).includes(u.id), same = S.city && u.city && u.city.toLowerCase() === S.city.toLowerCase();
-  return `<div class="prow2"><button class="popen" onclick="openUser(${jsArg(u.id)})">${avBig(u.display_name)}<span class="grow"><b>${esc(u.display_name)}</b><span>${[u.city ? (same ? '📍 ' : '') + esc(u.city) : '', u.plants != null ? u.plants + ' växter' : '', u.followers ? u.followers + ' följare' : ''].filter(Boolean).join(' · ')}</span></span></button>
+  const same = S.city && u.city && u.city.toLowerCase() === S.city.toLowerCase();
+  return `<div class="prow2"><button class="popen" onclick="openUser(${jsArg(u.id)})">${avBig(u.display_name)}<span class="grow"><b>${esc(u.display_name)}</b><span>${[u.city ? (same ? '📍 ' : '') + esc(u.city) : '', u.plants != null ? u.plants + ' växter' : ''].filter(Boolean).join(' · ')}</span></span></button>
     <button class="btn sm" onclick="friendAsk(${jsArg(u.id)})">+ Vän</button></div>`;
 }
 function peopleV() {
-  const list = S.ppl || [], fol = S.follows || [], q = (S.pq || '').trim();
-  const following = list.filter(u => fol.includes(u.id)), near = S.city ? list.filter(u => !fol.includes(u.id) && (u.city || '').toLowerCase() === S.city.toLowerCase()) : [], rest = list.filter(u => !fol.includes(u.id) && !near.includes(u));
+  const list = S.ppl || [], q = (S.pq || '').trim();
+  const near = S.city ? list.filter(u => (u.city || '').toLowerCase() === S.city.toLowerCase()) : [], rest = list.filter(u => !near.includes(u));
   const sec = (t, l) => l.length ? `<div class="sec"><h2>${t}</h2></div><div class="pad"><div class="norm">${l.map(personRow).join('')}</div></div>` : '';
   return `${topbar('Hitta användare', 'closeTool()')}
   <div class="searchrow"><div class="search">${ic(I.search, null, 20)}<input id="pq" type="search" placeholder="Sök på namn eller ort" value="${esc(S.pq || '')}" oninput="pqInput(this.value)" aria-label="Sök användare" autocomplete="off"></div></div>
   ${S.pplErr && S.pplErr !== 'USERS_NOT_READY' ? retryBox('loadPeople()') : ''}
   ${S.pplErr === 'USERS_NOT_READY' ? '<div class="instc" style="margin:12px 18px 0"><div><b>Användarsökningen går inte att använda just nu</b><span>Försök igen senare.</span></div></div>' : ''}
   ${S.ppl == null ? '<p class="mut" style="margin:16px 18px">Letar…</p>' : !list.length ? `<p class="mut" style="margin:16px 18px">${q ? 'Ingen användare matchar "' + esc(q) + '".' : 'Inga andra användare än.'}</p>`
-    : q ? sec(list.length + (list.length === 1 ? ' träff' : ' träffar'), list) : sec('Du följer', following) + sec('Nära dig i ' + esc(S.city || ''), near) + sec('Fler växtvänner', rest)}
+    : q ? sec(list.length + (list.length === 1 ? ' träff' : ' träffar'), list) : sec('Nära dig i ' + esc(S.city || ''), near) + sec('Fler växtvänner', rest)}
   <div style="height:24px"></div>`;
 }
 const FR_ERR = e => e.message === 'FRIENDS_NOT_READY' ? 'Vänner går inte att använda just nu.' : /BLOCKED/.test(e.message || '') ? 'Du kan inte skicka vänförfrågan till den här personen.' : errMsg(e);
@@ -9464,6 +9463,7 @@ function seasonV() {
 // ===== Uppdateringslogg =====
 const NEWS = [
   ['Beta 0.309', '7 nov', ['Passning: en vän kan passa dina krukväxter under en period, och ser vad som behöver göras', 'Rabatt: "Ta bort växterna" tar bort växterna men behåller rabatten, och du kan spara en bild eller skriva ut planen', 'Toaletten går inte att göra djupare än en meter', 'Moderering: rapporterna är grupperade i en mappvy']],
+  ['Beta 0.312', '8 nov', ['Det går inte längre att följa andra användare. Använd Vän i stället för att hålla kontakt', 'Sökningen visar Nära dig i din ort och Fler växtvänner']],
   ['Beta 0.311', '8 nov', ['Växtlistan kan sorteras på typ, så buskar, träd och andra grupper står samlade', 'Förslagen när du skriver en växt i Ny annons visas under fältet och kan tryckas på, i stället för en lång lista ovanför tangentbordet']],
   ['Beta 0.308', '7 nov', ['Felknappen (nyckelpigan) är tillbaka nere till vänster, så den inte stör när du scrollar']],
   ['Beta 0.307', '7 nov', ['Ljusmätaren: tydlig varning när värdet är uppskattat, och kalibreringen är en egen ruta', 'Felknappen (nyckelpigan) är flyttad till höger, ovanför plus-knappen', 'Nyhetsrutan visar bara senaste versionen, äldre finns under Hela loggen', 'Intern städning: borttagen automatisk felrapportering och oanvänd kod']],
@@ -10721,7 +10721,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.311';
+const APP_VERSION = 'Beta 0.312';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
