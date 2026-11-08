@@ -1759,7 +1759,7 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 .stiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 10px}.stile{background:rgba(255,255,255,.05);border-radius:12px;padding:12px}.stile b{display:block;font-size:20px;margin-top:4px}
 .msu-bar{display:block;height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin:6px 8px 0}.msu-bar i{display:block;height:100%;background:var(--acc);border-radius:99px}.msf{margin:8px 8px}.msf-t{display:flex;justify-content:space-between;gap:8px;font-size:14px}
 .lsug{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}.lsug:empty{display:none}.lsug .btn{width:auto}
-.uvbbox{margin:10px 0;padding:12px;border-radius:12px;background:rgba(255,255,255,.05)}.uvb{margin:8px 0 0;font-size:14px}.uvb.w{color:#c77700;font-weight:700}.uvb.d{color:#d64545;font-weight:700}
+.uvbbox{margin:10px 0;padding:12px;border-radius:12px;background:rgba(255,255,255,.05)}.uvb{margin:8px 0 0;font-size:14px}.uvb.w{color:#c77700;font-weight:700}.uvb.d{color:#d64545;font-weight:700}.feedrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:14px;margin:6px 0}.feedrow .bad{color:#d64545}
 .loglist{list-style:none;padding:0;margin:6px 0;font-size:14px}.loglist li{padding:5px 0;border-bottom:1px solid rgba(0,0,0,.08);display:flex;gap:8px;flex-wrap:wrap;align-items:center}.logadd{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:8px}
 </style></head><body>
 <div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas inte förrän nätet är tillbaka.</div>
@@ -6921,6 +6921,7 @@ function petCard(a) {
   return `<div class="petc"><div class="petr"><span class="pem">${petEmoji(a.kind, a.sp)}</span><span class="grow"><b>${esc(a.name)}</b><span>${esc(a.sp || PK[a.kind][0])}${rt && !terrOf(a.sp)[9] ? ' · äter inte växter' : bad ? ` · <em class="bad">${bad} giftig${bad > 1 ? 'a' : ''} växt${bad > 1 ? 'er' : ''} hemma</em>` : ' · inga giftiga växter hemma'}</span></span>
     <button class="x ${sure ? 'sure' : ''}" onclick="delPet(${a.id})">${sure ? 'Bekräfta' : 'Ta bort'}</button></div>
     <div class="plinks"><button class="link3" onclick="S.petOpen=${open ? 'null' : a.id};keepMain()">${open ? 'Dölj maten' : 'Vad kan ' + esc(a.name) + ' äta?'}</button>${rt ? `<button class="link3" onclick="S.terOpen=${topen ? 'null' : a.id};keepMain()">${topen ? 'Dölj terrariet' : '🏜️ Terrariet'}</button>` : ''}${bd ? `<button class="link3" onclick="S.birdOpen=${bopen ? 'null' : a.id};keepMain()">${bopen ? 'Dölj' : '🪺 Fågelns behov'}</button>` : ''}${a.kind !== 'fisk' ? `<button class="link3" onclick="S.vetOpen=${vopen ? 'null' : a.id};keepMain()">${vopen ? 'Dölj veterinärkortet' : '🩺 Veterinärkort'}</button>` : ''}<button class="link3" onclick="S.logOpen=${lopen ? 'null' : a.id};keepMain()">${lopen ? 'Dölj vikt och händelser' : '⚖️ Vikt och händelser'}</button></div>
+    ${feedBlock(a)}
     ${open && f ? `<div class="food"><div><h4>✅ Kan äta</h4><ul>${f[0].map(x => `<li>${x}</li>`).join('')}</ul></div><div><h4>⛔ Får inte äta</h4><ul>${f[1].map(x => `<li>${x}</li>`).join('')}</ul></div><p>${f[2]}</p></div>` : ''}${rt && topen ? uvbV(a) + terrV(a) : ''}${bd && bopen ? birdV(a) : ''}${vopen ? vetV(a) : ''}${lopen ? logV(a) : ''}</div>`;
 }
 const LOGT = { omsn: 'Ömsning', dvala: 'Dvala', parn: 'Parning', agg: 'Äggläggning', sjuk: 'Sjuk', vet: 'Vetbesök', ann: 'Annat' };
@@ -6953,6 +6954,23 @@ function logV(a) {
     <h4>Vikter</h4>
     ${w.length ? `<ul class="loglist">${w.map((x, i) => ({ x, i })).reverse().map(({ x, i }) => `<li><span>${x.d}</span><b>${x.g} ${u}</b><button class="link3" onclick="logDel(${a.id},'weights',${i})">Ta bort</button></li>`).join('')}</ul>` : '<p class="uvb">Inga vikter registrerade.</p>'}
   </div>`;
+}
+const dayStr = (d = new Date()) => d.toLocaleDateString('sv-SE');
+const addDaysStr = (ds, n) => { const d = new Date(ds + 'T00:00'); d.setDate(d.getDate() + n); return dayStr(d); };
+function feedLine(a) {
+  const f = a.feed || {}; const note = f.note ? ' · ' + esc(f.note) : '';
+  if (!f.every) return `<span class="mut">Ingen matrutin satt${note}</span>`;
+  if (!f.last) return `Varje ${f.every} dag · ingen matning registrerad${note}`;
+  const left = Math.round((new Date(addDaysStr(f.last, f.every) + 'T00:00') - new Date(dayStr() + 'T00:00')) / 864e5);
+  if (left < 0) return `<em class="bad">Dags att mata, ${-left} dag${-left === 1 ? '' : 'ar'} sen</em>${note}`;
+  if (left === 0) return `<b>Dags att mata idag</b>${note}`;
+  return `Nästa matning om ${left} dag${left === 1 ? '' : 'ar'}${note}`;
+}
+function feedNow(id) { const a = petsList().find(x => x.id === id); if (!a) return; a.feed = { ...(a.feed || {}), last: dayStr() }; savePets(); keepMain(); toast('Matningen är noterad'); }
+function setFeed(id, k, v) { const a = petsList().find(x => x.id === id); if (!a) return; a.feed = a.feed || {}; a.feed[k] = k === 'every' ? (parseInt(v) || null) : (v || null); savePets(); keepMain(); }
+function feedBlock(a) {
+  const fopen = S.feedOpen === a.id, f = a.feed || {};
+  return `<div class="feedrow"><span>${feedLine(a)}</span><button class="link3" onclick="feedNow(${a.id})">🍽️ Matade nu</button><button class="link3" onclick="S.feedOpen=${fopen ? 'null' : a.id};keepMain()">${fopen ? 'Stäng' : 'Ändra rutin'}</button></div>${fopen ? `<div class="logadd"><label class="fl">Varje (dagar)<input type="number" min="1" max="60" value="${f.every || ''}" onchange="setFeed(${a.id},'every',this.value)"></label><label class="fl">Senast matad<input type="date" value="${f.last || ''}" onchange="setFeed(${a.id},'last',this.value)"></label><label class="fl">Rutin<input value="${esc(f.note || '')}" placeholder="t.ex. morgon, 50 g torrfoder" onchange="setFeed(${a.id},'note',this.value)"></label></div>` : ''}`;
 }
 function setVet(id, k, v) { const a = petsList().find(x => x.id === id); if (!a) return; a.vet = a.vet || {}; a.vet[k] = v || null; savePets(); keepMain(); }
 function vetV(a) {
@@ -9519,6 +9537,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.314', '8 nov', ['Mina djur: matrutin per djur. Ange hur ofta djuret ska matas, tryck på Matade nu, och se när nästa matning är. Appen visar när det är dags eller har gått för länge', 'Rutinen kan ha en egen text, till exempel morgon eller 50 g torrfoder']],
   ['Beta 0.313', '8 nov', ['Mina djur: nytt veterinärkort med chipnummer, vaccinationer, avmaskning, försäkring och klinik. Du får en varning när en vaccination har gått ut', 'Mina djur: vikt och händelser. Se viktkurvan och logga ömsning, dvala, parning, äggläggning, sjukdom och vetbesök', 'Mina djur: påminnelse om vintern för katt och hund, och UV-timer för terrarier', 'Passning: en vän kan få se hur du vill att dina krukväxter ska skötas under en period']],
   ['Beta 0.309', '7 nov', ['Passning: en vän kan passa dina krukväxter under en period, och ser vad som behöver göras', 'Rabatt: "Ta bort växterna" tar bort växterna men behåller rabatten, och du kan spara en bild eller skriva ut planen', 'Toaletten går inte att göra djupare än en meter', 'Moderering: rapporterna är grupperade i en mappvy']],
   ['Beta 0.312', '8 nov', ['Det går inte längre att följa andra användare. Använd Vän i stället för att hålla kontakt', 'Sökningen visar Nära dig i din ort och Fler växtvänner']],
@@ -10779,7 +10798,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.313';
+const APP_VERSION = 'Beta 0.314';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
