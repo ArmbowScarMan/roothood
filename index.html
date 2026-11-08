@@ -1917,6 +1917,7 @@ const sbApi = {
   async sitterAdd(sitterId, from, to) { const { error } = await sb.from('plant_sitters').insert({ owner_id: S.user.id, sitter_id: sitterId, starts_on: from, ends_on: to }); if (error) throw error; },
   async sitterDel(id) { const { error } = await sb.from('plant_sitters').delete().eq('id', id); if (error) throw error; },
   async sitterTasks() { const { data, error } = await sb.rpc('sitter_tasks'); if (error) throw error; return data || []; },
+  async sitterBeds() { const { data, error } = await sb.rpc('sitter_beds'); if (error) throw error; return data || []; },
   async saveVis(vis, share) { const { error } = await sb.from('profiles').update({ vis, share_photos: share }).eq('id', S.user.id); if (error) throw /vis/.test(error.message || '') ? new Error('FRIENDS_NOT_READY') : error; },
   async _wallFill(posts) { if (!posts.length) return []; const ids = posts.map(p => p.id);
     const [c, l] = await Promise.all([sb.from('wall_comments').select('id,post_id,user_id,body,created_at').in('post_id', ids).order('created_at'), sb.from('wall_likes').select('post_id,user_id').in('post_id', ids)]);
@@ -6298,7 +6299,7 @@ function journalAllV() { if (!S.mine.length) return ''; const sel = S.jsel && S.
     ${rec.length > 8 && !S.jmore && !q ? `<button class="btn sm line" style="margin-top:8px" onclick="S.jmore=true;keepMain()">Visa mer</button>` : ''}</div>`; }
 // ===== Växtpassning =====
 async function loadSitters() { S.sitLoad = true; try { S.sitters = await api.sitterList(); if (S.friends == null) S.friends = await api.myFriends(); } catch (e) { S.sitters = []; if (S.friends == null) S.friends = []; toast(errMsg(e)); } S.sitLoad = false; keepMain(); }
-async function loadSitTasks() { try { S.sitTasks = await api.sitterTasks(); } catch (e) { S.sitTasks = []; } if (!S.tool && !S.modal) render(); }
+async function loadSitTasks() { try { S.sitTasks = await api.sitterTasks(); } catch (e) { S.sitTasks = []; } try { S.sitBeds = await api.sitterBeds(); } catch (e) { S.sitBeds = []; } if (!S.tool && !S.modal) render(); }
 function sitterOwnerV() {
   if (!S.user) return '';
   if (S.sitters == null) { if (!S.sitLoad) loadSitters(); return ''; }
@@ -6325,12 +6326,22 @@ async function sitterDel(id) {
   try { await api.sitterDel(id); S.sitters = await api.sitterList(); toast('Passningen är borttagen'); } catch (e) { toast(errMsg(e)); }
   keepMain();
 }
+// Rabatter i en passning: bara namn och skötselnivåer, inga foton eller anteckningar.
+function bedsSitterHtml(B) {
+  if (!B.length) return '';
+  const by = {};
+  B.forEach(r => { const o = by[r.owner_id] = by[r.owner_id] || { name: r.owner_name || 'Vän', ends: r.ends_on, beds: {} }; (o.beds[r.bed_type] = o.beds[r.bed_type] || []).push(r); });
+  return Object.values(by).map(o => `<div class="card" style="padding:14px;margin-bottom:10px"><b>${esc(o.name)}s rabatter</b><small class="mut" style="display:block">Passningen slutar ${esc(o.ends)}</small>${Object.entries(o.beds).map(([t, rows]) => {
+    const uniq = [...new Map(rows.map(r => [r.plant_name, r])).values()];
+    return `<p style="margin:8px 0 0"><b>${esc((UK_M[t] || [0, t])[1])}</b>${uniq.map(r => `<br><small class="mut">${esc(r.plant_name || 'Växt')}${r.water_level ? ' · Vatten: ' + WATER[r.water_level - 1] : ''}${r.light_level ? ' · Ljus: ' + LIGHT[r.light_level - 1] : ''}</small>`).join('')}</p>`;
+  }).join('')}</div>`).join('');
+}
 function sitterTasksHtml() {
-  const T = S.sitTasks || []; if (!T.length) return '';
+  const T = S.sitTasks || [], B = S.sitBeds || []; if (!T.length && !B.length) return '';
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const byO = {};
   T.forEach(t => { (byO[t.owner_id] = byO[t.owner_id] || { name: t.owner_name || 'Vän', ends: t.ends_on, rows: [] }).rows.push(t); });
-  return `<div class="sec"><h2>Passar för andra</h2></div><div class="pad">${Object.values(byO).map(o => `<div class="card" style="padding:14px;margin-bottom:10px"><b>${esc(o.name)}s växter</b><small class="mut" style="display:block">Passningen slutar ${esc(o.ends)}</small>${o.rows.map(t => {
+  return `<div class="sec"><h2>Passar för andra</h2></div><div class="pad">${bedsSitterHtml(B)}${Object.values(byO).map(o => `<div class="card" style="padding:14px;margin-bottom:10px"><b>${esc(o.name)}s växter</b><small class="mut" style="display:block">Passningen slutar ${esc(o.ends)}</small>${o.rows.map(t => {
     let st = 'Ingen vattning registrerad';
     if (t.last_watered && t.water_interval_days) { const due = new Date(t.last_watered + 'T00:00:00'); due.setDate(due.getDate() + t.water_interval_days); const d = Math.round((due - today) / 864e5); st = d <= 0 ? '<span class="due-t">Vattna idag</span>' : `Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}`; }
     return `<p style="margin:8px 0 0"><b>${esc(t.plant_name || 'Växt')}</b><br><small class="mut">${st}</small></p>`; }).join('')}</div>`).join('')}</div>`;
@@ -9565,6 +9576,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.317', '8 nov', ['Passning: en vän som passar dina växter ser nu också dina rabatter, med växtnamn och hur mycket vatten och ljus de vill ha']],
   ['Beta 0.316', '8 nov', ['Mina djur: instruktion för djurvakt. Visar rum, matrutin, veterinär och växter att se upp med för varje djur, och kan skrivas ut']],
   ['Beta 0.315', '8 nov', ['Mina djur: välj vilket rum ditt djur bor i. Giftvarningarna gäller då bara växter i det rummet, och du ser vilka växter det gäller']],
   ['Beta 0.314', '8 nov', ['Mina djur: matrutin per djur. Ange hur ofta djuret ska matas, tryck på Matade nu, och se när nästa matning är. Appen visar när det är dags eller har gått för länge', 'Rutinen kan ha en egen text, till exempel morgon eller 50 g torrfoder']],
@@ -10828,7 +10840,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.316';
+const APP_VERSION = 'Beta 0.317';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
