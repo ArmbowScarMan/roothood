@@ -6884,6 +6884,8 @@ function plantPetNote(p) {
 }
 async function loadPets() { try { S.pets = await api.getPets(); S.petsErr = null; } catch (e) { S.pets = store.get('pets', null) || { list: [], tank: {} }; S.petsErr = e.message; } if (!S.pets.list) S.pets.list = []; if (!S.pets.tank) S.pets.tank = {}; }
 async function savePets() { store.set('pets', S.pets); try { await api.savePets(S.pets); S.petsErr = null; } catch (e) { S.petsErr = e.message; if (e.message !== 'PETS_NOT_READY') toast(errMsg(e)); } }
+// Djurets egen sida, öppnas från profilen.
+async function openPetPage(id) { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.petFocus = id; S.tool = 'pets'; if (!S.pets) await loadPets(); render(); $('#main').scrollTop = 0; }
 async function openPets() { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'pets'; if (!S.pets) await loadPets(); render(); $('#main').scrollTop = 0; }
 function addPet() {
   const k = S.pk || 'katt';
@@ -7036,6 +7038,8 @@ function seasonPetWarn(an) {
 }
 function petsV() {
   if (!S.pets) { loadPets().then(() => S.tool === 'pets' && render()); return `${topbar('Mina djur', 'closeTool()')}<p class="mut" style="margin:0 18px">Hämtar…</p>`; }
+  const fp = S.petFocus && petsList().find(x => x.id === S.petFocus);
+  if (fp) return `${topbar(esc(fp.name), 'S.petFocus=null;closeTool()')}<div class="pad" style="padding-top:8px">${petCard(fp)}</div>`;
   const an = animals(), fish = petsList().filter(x => x.kind === 'fisk'), aqp = aqPlants(), warns = petWarnings(), t = S.pets.tank || {};
   const hasAq = fish.length || aqp.length || S.aqOn;
   const chk = hasAq ? aqChecks() : [];
@@ -8133,7 +8137,8 @@ function profPets(c, self) {
   const L = self ? petsList() : (c.pets || []);
   if (!self && !L.length) return '';
   const an = L.filter(x => x.kind !== 'fisk'), fish = L.filter(x => x.kind === 'fisk'), nf = fish.reduce((a, x) => a + (x.n || 1), 0);
-  const chip = a => `<span class="pchip"><span>${petEmoji(a.kind, a.sp)}</span><span><b>${esc(a.name)}</b><small>${esc(a.sp && a.sp !== a.name ? a.sp : PK[a.kind] ? PK[a.kind][0] : '')}</small></span></span>`;
+  const inner = a => `<span>${petEmoji(a.kind, a.sp)}</span><span><b>${esc(a.name)}</b><small>${esc(a.sp && a.sp !== a.name ? a.sp : PK[a.kind] ? PK[a.kind][0] : '')}</small></span>`;
+  const chip = a => self ? `<button class="pchip" style="border:0;font:inherit;cursor:pointer;text-align:left" onclick="openPetPage(${a.id})">${inner(a)}</button>` : `<span class="pchip">${inner(a)}</span>`;
   const fchip = `<span class="pchip"><span>🐠</span><span><b>Akvarium</b><small>${nf} fisk${nf > 1 ? 'ar' : ''}: ${fish.map(x => (x.n || 1) + ' ' + esc((x.sp || x.name).toLowerCase())).join(', ')}</small></span></span>`;
   return `<div class="sec cap2"><h2>Mina djur</h2>${self ? '<button class="viewall" onclick="openPets()">' + (L.length ? 'Öppna' : 'Lägg till') + '</button>' : ''}</div>
   <div class="pad">${L.length ? `<div class="pchips">${an.map(chip).join('')}${fish.length ? fchip : ''}</div>` : (!S.pets ? '<p class="mut" style="margin:0;font-size:14px">Hämtar…</p>' : '<p class="mut" style="margin:0;font-size:14px">Du har inga djur tillagda än. Lägg till husdjur, fåglar, reptiler eller akvarium och få giftvarningar för dina växter.</p>')}</div>`;
@@ -9641,6 +9646,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.320', '8 nov', ['Profilen: tryck på ett djur för att öppna djurets egen sida, med matrutin, veterinärkort, vikt och händelser']],
   ['Beta 0.319', '8 nov', ['Händer nära dig: byt mellan Min ort och Min zon, så ser du annonser från orter i samma odlingszon']],
   ['Beta 0.318', '8 nov', ['Hitta användare: växtvänner i samma odlingszon visas i en egen grupp, och varje person visar sin zon. Zonen följer din stad eller den du valt i Såkalendern']],
   ['Beta 0.317', '8 nov', ['Passning: en vän som passar dina växter ser nu också dina rabatter, med växtnamn och hur mycket vatten och ljus de vill ha']],
@@ -10907,7 +10913,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.319';
+const APP_VERSION = 'Beta 0.320';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
