@@ -6856,9 +6856,13 @@ function wildV() {
   return `<div class="sec"><h2>Vilda djur i området</h2></div><div class="pad"><p class="mut" style="margin:0 0 10px">Lägg in de vilda djur du ser runt ditt hem. Du får tips om hur du skyddar grödor och rabatter.</p>${cards}${chips ? `<div style="display:flex;gap:8px;flex-wrap:wrap">${chips}</div>` : ''}</div>`;
 }
 function myPlantsP() { return S.mine.map(m => [m, S.plants.find(p => p.id === m.plant_id)]).filter(x => x[1]); }
+// Djur som bor i ett rum varnas bara för växter i samma rum. Växter utan rum räknas alltid med, eftersom vi inte vet var de står.
+function inPetRoom(a, m) { const pr = (m.details || {}).room; return !a.room || !pr || pr === a.room; }
+function petRoomName(a) { const r = a.room && (S.home || []).find(x => x.id === a.room); return r ? r.name : ''; }
+function setPetRoom(id, v) { const a = petsList().find(x => x.id === id); if (!a) return; a.room = v || null; savePets(); keepMain(); }
 function petWarnings() {
   const out = [];
-  myPlantsP().forEach(([m, p]) => animals().forEach(a => { const r = toxPet(p, a); if (r && (r[0] === 'd' || r[0] === 'w')) out.push({ m, p, a, lv: r[0], t: r[1] }); }));
+  myPlantsP().forEach(([m, p]) => animals().forEach(a => { if (!inPetRoom(a, m)) return; const r = toxPet(p, a); if (r && (r[0] === 'd' || r[0] === 'w')) out.push({ m, p, a, lv: r[0], t: r[1] }); }));
   return out.sort((x, y) => LV[y.lv] - LV[x.lv]);
 }
 function plantPetNote(p) {
@@ -6917,9 +6921,10 @@ function petFormV() {
 }
 function petCard(a) {
   const f = a.kind === 'reptil' ? RFOOD[a.sp] : a.kind === 'fagel' && birdOf(a.sp) ? BFOOD[birdOf(a.sp)[3]] : PFOOD[a.kind], bd = a.kind === 'fagel' && birdOf(a.sp), bopen = S.birdOpen === a.id, open = S.petOpen === a.id, sure = S.del === 'pet' + a.id, topen = S.terOpen === a.id, rt = a.kind === 'reptil', vopen = S.vetOpen === a.id, lopen = S.logOpen === a.id;
-  const bad = myPlantsP().filter(([m, p]) => { const r = toxPet(p, a); return r && (r[0] === 'd' || r[0] === 'w'); }).length;
-  return `<div class="petc"><div class="petr"><span class="pem">${petEmoji(a.kind, a.sp)}</span><span class="grow"><b>${esc(a.name)}</b><span>${esc(a.sp || PK[a.kind][0])}${rt && !terrOf(a.sp)[9] ? ' · äter inte växter' : bad ? ` · <em class="bad">${bad} giftig${bad > 1 ? 'a' : ''} växt${bad > 1 ? 'er' : ''} hemma</em>` : ' · inga giftiga växter hemma'}</span></span>
+  const scope = myPlantsP().filter(([m]) => inPetRoom(a, m)), badL = scope.filter(([m, p]) => { const r = toxPet(p, a); return r && (r[0] === 'd' || r[0] === 'w'); }).map(([m, p]) => m.custom_name || p.swedish_name), bad = badL.length, rn = petRoomName(a);
+  return `<div class="petc"><div class="petr"><span class="pem">${petEmoji(a.kind, a.sp)}</span><span class="grow"><b>${esc(a.name)}</b><span>${esc(a.sp || PK[a.kind][0])}${rt && !terrOf(a.sp)[9] ? ' · äter inte växter' : bad ? ` · <em class="bad">${bad} giftig${bad > 1 ? 'a' : ''} växt${bad > 1 ? 'er' : ''} ${rn ? 'i ' + esc(rn) : 'hemma'}</em>` : ` · inga giftiga växter ${rn ? 'i ' + esc(rn) : 'hemma'}`}</span></span>
     <button class="x ${sure ? 'sure' : ''}" onclick="delPet(${a.id})">${sure ? 'Bekräfta' : 'Ta bort'}</button></div>
+    <div class="feedrow"><span>Bor i</span><select onchange="setPetRoom(${a.id},this.value)"><option value="">Hela hemmet</option>${(S.home || []).map(r => `<option value="${r.id}" ${r.id === a.room ? 'selected' : ''}>${esc(r.name)}</option>`).join('')}</select>${badL.length ? `<small class="mut">${badL.slice(0, 5).map(esc).join(', ')}</small>` : ''}</div>
     <div class="plinks"><button class="link3" onclick="S.petOpen=${open ? 'null' : a.id};keepMain()">${open ? 'Dölj maten' : 'Vad kan ' + esc(a.name) + ' äta?'}</button>${rt ? `<button class="link3" onclick="S.terOpen=${topen ? 'null' : a.id};keepMain()">${topen ? 'Dölj terrariet' : '🏜️ Terrariet'}</button>` : ''}${bd ? `<button class="link3" onclick="S.birdOpen=${bopen ? 'null' : a.id};keepMain()">${bopen ? 'Dölj' : '🪺 Fågelns behov'}</button>` : ''}${a.kind !== 'fisk' ? `<button class="link3" onclick="S.vetOpen=${vopen ? 'null' : a.id};keepMain()">${vopen ? 'Dölj veterinärkortet' : '🩺 Veterinärkort'}</button>` : ''}<button class="link3" onclick="S.logOpen=${lopen ? 'null' : a.id};keepMain()">${lopen ? 'Dölj vikt och händelser' : '⚖️ Vikt och händelser'}</button></div>
     ${feedBlock(a)}
     ${open && f ? `<div class="food"><div><h4>✅ Kan äta</h4><ul>${f[0].map(x => `<li>${x}</li>`).join('')}</ul></div><div><h4>⛔ Får inte äta</h4><ul>${f[1].map(x => `<li>${x}</li>`).join('')}</ul></div><p>${f[2]}</p></div>` : ''}${rt && topen ? uvbV(a) + terrV(a) : ''}${bd && bopen ? birdV(a) : ''}${vopen ? vetV(a) : ''}${lopen ? logV(a) : ''}</div>`;
@@ -9537,6 +9542,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.315', '8 nov', ['Mina djur: välj vilket rum ditt djur bor i. Giftvarningarna gäller då bara växter i det rummet, och du ser vilka växter det gäller']],
   ['Beta 0.314', '8 nov', ['Mina djur: matrutin per djur. Ange hur ofta djuret ska matas, tryck på Matade nu, och se när nästa matning är. Appen visar när det är dags eller har gått för länge', 'Rutinen kan ha en egen text, till exempel morgon eller 50 g torrfoder']],
   ['Beta 0.313', '8 nov', ['Mina djur: nytt veterinärkort med chipnummer, vaccinationer, avmaskning, försäkring och klinik. Du får en varning när en vaccination har gått ut', 'Mina djur: vikt och händelser. Se viktkurvan och logga ömsning, dvala, parning, äggläggning, sjukdom och vetbesök', 'Mina djur: påminnelse om vintern för katt och hund, och UV-timer för terrarier', 'Passning: en vän kan få se hur du vill att dina krukväxter ska skötas under en period']],
   ['Beta 0.309', '7 nov', ['Passning: en vän kan passa dina krukväxter under en period, och ser vad som behöver göras', 'Rabatt: "Ta bort växterna" tar bort växterna men behåller rabatten, och du kan spara en bild eller skriva ut planen', 'Toaletten går inte att göra djupare än en meter', 'Moderering: rapporterna är grupperade i en mappvy']],
@@ -10798,7 +10804,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.314';
+const APP_VERSION = 'Beta 0.315';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
