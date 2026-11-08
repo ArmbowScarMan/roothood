@@ -6887,7 +6887,13 @@ async function savePets() { store.set('pets', S.pets); try { await api.savePets(
 // Djurets egen sida, öppnas från profilen.
 async function openPetPage(id) { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.petFocus = id; S.tool = 'pets'; if (!S.pets) await loadPets(); render(); $('#main').scrollTop = 0; }
 async function openPets() { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'pets'; if (!S.pets) await loadPets(); render(); $('#main').scrollTop = 0; }
+// Födelsedatum är valfritt: läses från formuläret och sparas på det nya djuret.
 function addPet() {
+  const born = ((document.getElementById('pborn') || {}).value || '').trim() || null, k = S.pk || 'katt', before = S.pets.list.length;
+  addPetRaw();
+  if (born && k !== 'fisk' && S.pets.list.length > before) { S.pets.list[S.pets.list.length - 1].born = born; savePets(); }
+}
+function addPetRaw() {
   const k = S.pk || 'katt';
   if (k === 'fisk') { const sp = $('#pfish').value, n = Math.max(1, Math.min(99, +$('#pcount').value || 1)); const ex = petsList().find(x => x.kind === 'fisk' && x.sp === sp); if (ex) ex.n += n; else S.pets.list.push({ id: Date.now(), kind: 'fisk', name: sp, sp, n }); toast(n + ' ' + sp.toLowerCase() + ' i akvariet'); }
   else if (k === 'fagel') { const sp = $('#pbird').value, name = ($('#pname').value || '').trim() || sp || 'Fågel'; S.pets.list.push({ id: Date.now(), kind: 'fagel', name, sp }); S.birdOpen = S.pets.list[S.pets.list.length - 1].id; toast(name + ' är tillagd'); }
@@ -6931,6 +6937,7 @@ function petFormV() {
       <label class="fl" for="pcount">Antal</label><input id="pcount" type="number" min="1" max="99" value="1" inputmode="numeric">`
     : `<label class="fl" for="pname">Namn</label><input id="pname" maxlength="40" placeholder="${k === 'katt' ? 't.ex. Misse' : k === 'hund' ? 't.ex. Bamse' : 'Djurets namn'}">
       <label class="fl" for="pbreed">${k === 'hund' ? 'Ras (krävs)' : 'Ras eller art (valfritt)'}</label><input id="pbreed" maxlength="40" placeholder="${k === 'fagel' ? 't.ex. undulat' : k === 'gnagare' ? 't.ex. hamster' : 't.ex. ' + (k === 'hund' ? 'labrador' : k === 'katt' ? 'huskatt' : 'ras')}">`}
+    ${k === 'fisk' ? '' : '<label class="fl" for="pborn">Född (valfritt)</label><input id="pborn" type="date" max="' + new Date().toISOString().slice(0, 10) + '">'}
     <div style="display:flex;gap:8px;margin-top:14px"><button class="btn" style="flex:1" onclick="addPet()">Lägg till</button>${petsList().length ? '<button class="btn line" onclick="S.petAdd=false;keepMain()">Avbryt</button>' : ''}</div></div>`;
 }
 function petCard(a) {
@@ -6940,8 +6947,19 @@ function petCard(a) {
     <button class="x ${sure ? 'sure' : ''}" onclick="delPet(${a.id})">${sure ? 'Bekräfta' : 'Ta bort'}</button></div>
     <div class="feedrow"><span>Bor i</span><select onchange="setPetRoom(${a.id},this.value)"><option value="">Hela hemmet</option>${(S.home || []).map(r => `<option value="${r.id}" ${r.id === a.room ? 'selected' : ''}>${esc(r.name)}</option>`).join('')}</select>${badL.length ? `<small class="mut">${badL.slice(0, 5).map(esc).join(', ')}</small>` : ''}</div>
     <div class="plinks"><button class="link3" onclick="S.petOpen=${open ? 'null' : a.id};keepMain()">${open ? 'Dölj maten' : 'Vad kan ' + esc(a.name) + ' äta?'}</button>${rt ? `<button class="link3" onclick="S.terOpen=${topen ? 'null' : a.id};keepMain()">${topen ? 'Dölj terrariet' : '🏜️ Terrariet'}</button>` : ''}${bd ? `<button class="link3" onclick="S.birdOpen=${bopen ? 'null' : a.id};keepMain()">${bopen ? 'Dölj' : '🪺 Fågelns behov'}</button>` : ''}${a.kind !== 'fisk' ? `<button class="link3" onclick="S.vetOpen=${vopen ? 'null' : a.id};keepMain()">${vopen ? 'Dölj veterinärkortet' : '🩺 Veterinärkort'}</button>` : ''}<button class="link3" onclick="S.logOpen=${lopen ? 'null' : a.id};keepMain()">${lopen ? 'Dölj vikt och händelser' : '⚖️ Vikt och händelser'}</button></div>
+    ${a.kind !== 'fisk' ? `<div class="feedrow"><span>Född</span><input type="date" value="${esc(a.born || '')}" max="${new Date().toISOString().slice(0, 10)}" onchange="setPetBorn(${a.id},this.value)" aria-label="Födelsedatum">${a.born ? `<small class="mut">${petAgeTxt(a.born)}</small>` : ''}</div>` : ''}
     ${feedBlock(a)}
     ${open && f ? `<div class="food"><div><h4>✅ Kan äta</h4><ul>${f[0].map(x => `<li>${x}</li>`).join('')}</ul></div><div><h4>⛔ Får inte äta</h4><ul>${f[1].map(x => `<li>${x}</li>`).join('')}</ul></div><p>${f[2]}</p></div>` : ''}${rt && topen ? uvbV(a) + terrV(a) : ''}${bd && bopen ? birdV(a) : ''}${vopen ? vetV(a) : ''}${lopen ? logV(a) : ''}</div>`;
+}
+function setPetBorn(id, v) { const a = petsList().find(x => x.id === id); if (!a) return; a.born = v || null; savePets(); keepMain(); }
+// Ålder från födelsedatum, t.ex. "3 år 2 mån" eller "5 månader".
+function petAgeTxt(d) {
+  const b = new Date(d + 'T00:00'), t = new Date(); if (isNaN(b)) return '';
+  let m = (t.getFullYear() - b.getFullYear()) * 12 + (t.getMonth() - b.getMonth()) - (t.getDate() < b.getDate() ? 1 : 0);
+  if (m < 0) return '';
+  if (m < 12) return m + (m === 1 ? ' månad' : ' månader');
+  const y = Math.floor(m / 12), r = m % 12;
+  return y + (y === 1 ? ' år' : ' år') + (r ? ' ' + r + (r === 1 ? ' månad' : ' månader') : '');
 }
 const LOGT = { omsn: 'Ömsning', dvala: 'Dvala', parn: 'Parning', agg: 'Äggläggning', sjuk: 'Sjuk', vet: 'Vetbesök', ann: 'Annat' };
 const BIGK = ['katt', 'hund', 'hast'];
@@ -9646,6 +9664,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.321', '8 nov', ['Mina djur: lägg till ett födelsedatum på djuret, valfritt. Åldern visas på djurkortet']],
   ['Beta 0.320', '8 nov', ['Profilen: tryck på ett djur för att öppna djurets egen sida, med matrutin, veterinärkort, vikt och händelser']],
   ['Beta 0.319', '8 nov', ['Händer nära dig: byt mellan Min ort och Min zon, så ser du annonser från orter i samma odlingszon']],
   ['Beta 0.318', '8 nov', ['Hitta användare: växtvänner i samma odlingszon visas i en egen grupp, och varje person visar sin zon. Zonen följer din stad eller den du valt i Såkalendern']],
@@ -10913,7 +10932,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.320';
+const APP_VERSION = 'Beta 0.321';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
