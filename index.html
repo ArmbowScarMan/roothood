@@ -3803,6 +3803,7 @@ function build3dInner(first) {
     (gr.userData || (gr.userData = {})).pid = m.id; gr.position.set(sx, fyOf(pfl) + lift, sy); sc.add(gr); if (m.details.lamp && !['Ampel', 'Upp och ner'].includes(m.details.place) && !planItems().some(it => it.t === 'grow' && Math.hypot(it.x - sx, it.y - sy) < 0.6)) { const lg = new THREE.Group(), K = kit3(THREE, M, lg, 5), fy0 = fyOf(pfl), y0 = Math.min(fy0 + 2.32, fy0 + lift + PT.top + (+m.details.lampcm || 40) / 100), top = fy0 + 2.4 - y0; K.cyl(0.003, 0.003, top, '#3A3A3A', 0, top / 2, 0, 4); K.cyl(0.016, 0.016, 0.04, '#2A2A2A', 0, 0.06, 0, 10); K.cyl(0.032, 0.05, 0.06, '#E2E2E0', 0, 0.012, 0, 16); K.cyl(0.045, 0.045, 0.006, '#FFF6E2', 0, -0.02, 0, 20, { emissive: '#FFE2A8' }); lg.position.set(sx, y0, sy); (lg.userData || (lg.userData = {})).pid = m.id; sc.add(lg); } if (mineSunBad(m)) sunRing3d(THREE, M, sc, sx, sy, fyOf(pfl) + lift - 0.02, m.id); PLT.push({ x: sx, z: sy, y: fyOf(pfl) + lift, top: fyOf(pfl) + lift + (PT.inv ? PT.H + 0.04 : PT.top), fl: pfl }); });
   // smarta saker
   devices3d(THREE, M, sc, PLT, fyOf);
+  growZones3d(THREE, M, sc, fyOf);
   // träd och buskar
   planGarden().forEach(t => { const R = t.r || 1.5, g3 = veg3d(THREE, M, GKIND[t.t] || 'lov', t.h || gDefH(t), R * 2, Math.round(t.x * 577 + t.y * 97), 120, t.t === 'fruit' ? { fruit: true } : {}); g3.position.set(t.x, 0, t.y); sc.add(g3); });
   T3.ty = Math.max(0, ...F3.filter(f3 => floorVis(f3.l)).map(f3 => f3.l)) * FLH / 2;
@@ -7842,6 +7843,14 @@ function leanToLight3d(THREE, pl, r, x, y, fl) {
     pl.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(uz, 0, -ux).normalize(), ang));
   } catch (e) { console.warn('Roothood:', e); }
 }
+// Ljuszoner (punkt 15): varje växtlampa har en röd ring på golvet under sig, som alltid syns i 3D
+function growZones3d(THREE, M, sc, fyOf) {
+  planItems().forEach(it => {
+    if (it.t !== 'grow') return;
+    const fl = flOf(it), fy = fyOf(fl), r = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.5, 40), M('#D7263D', { side: THREE.DoubleSide }));
+    r.rotation.x = -Math.PI / 2; r.position.set(it.x, fy + 0.012, it.y); (r.userData || (r.userData = {})).lightzone = 1; sc.add(r);
+  });
+}
 function sunRing3d(THREE, M, sc, x, y, z, pid) { const r = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.32, 28), M('#E0652F', { side: THREE.DoubleSide })); r.rotation.x = -Math.PI / 2; r.position.set(x, z + 0.03, y); if (pid != null) (r.userData || (r.userData = {})).pid = pid; sc.add(r); }
 function bedSunLevel() { try { const a = bedHelpTarget(); if (!a || !a.pts) return null; const m = ptsMid(a.pts); return sunCls(sunHours(m[0], m[1])); } catch (e) { return null; } }
 function bedsList() { return planAreas().filter(a => ['bed', 'veg'].includes(a.t)); }
@@ -10049,6 +10058,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.331', '9 nov', ['Ljuszoner i 3D: varje växtlampa har en röd ring på golvet under sig, som syns hela tiden'] ],
   ['Beta 0.330', '9 nov', ['Terrarier: ange när UVB-lampan tänds och hur många timmar den lyser. Appen visar om den lyser just nu och när den tänds eller släcks', 'I Mitt hem visar en vald terrarie-möbel UVB-status och när djuret ska matas nästa gång'] ],
   ['Beta 0.329', '9 nov', ['Solbanan visar vädret: hur mycket sol prognosen ger den valda dagen, och hur mycket molnen just nu tar bort', 'Ta en bild direkt från växtkortet i Min samling med kameraknappen. Bilden visas för andra först när den har granskats', 'Giftig för husdjur: tryck på varningen och välj Utom räckhåll från husdjuren eller Dölj. Då försvinner varningen, och bara nya giftiga växter visas igen'] ],
   ['Beta 0.328', '9 nov', ['Vintervila följer nu solen: när dagen på din plats är kortare än 8 timmar vattnas inomhusväxterna mer sällan och gödselpåminnelserna döljs. Så sker det tidigare i norr än i söder', 'Fönstervakten: vädervarningarna nämner nu vilka av dina växter som påverkas. Vid stark sol (UV 6 eller mer) varnas växter i söderfönster, vid sträng kyla växter nära fönsterrutan, och på våren varnas du för plötsliga köldfall', 'Växtbiblioteket: nytt filter Även med skydd, som visar växter som går att odla i din zon med ett skyddat läge. På växtsidan står det nu Möjlig med skydd i din zon','Skördeklart: i Såkalendern ser du vad som är redo att skörda, eller snart blir det, och kan markera det som skördat','Nya recept: 38 recept på det du skördar, med mängder och tider från svenska och internationella källor, med tips om vad du kan laga av det du har just nu','Notiser: slå på Fönstervakt och Skördeklart under Påminnelser, så får du en notis när det blir för kallt eller soligt vid fönstret, och den dag något är redo att skördas','Upptäck: svep höger på växter du inte har, så sparas de i Högerswipe. Filtrera på zon, husdjurssäker och ljus. Under Matcha svarar du på tre frågor och får förslag att lägga i önskelistan','Utskrift: Skriv ut veckans skötsel i Journalen, med kryssrutor för vattning och gödsling','Högkontrast för växtlampor under Inställningar, med svart bakgrund och vit text','Startsidan visar hur många växter som behöver din uppmärksamhet idag, och varnar om en giftig växt finns hemma hos ett katt eller en hund','Ångra: när du tar bort en växt kan du ångra i fem sekunder. Vattna hela rummet kan också ångras','Diktera i växtjournalen med mikrofonen, där webbläsaren stöder det','Odlingslådor visar höjd och hur många liter jord som behövs']],
@@ -11677,7 +11687,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.330';
+const APP_VERSION = 'Beta 0.331';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
