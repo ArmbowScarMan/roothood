@@ -1,0 +1,24 @@
+-- 086: Pushnotiser för fönstervakten och skördeklart.
+-- Kör hela filen en gång i SQL-editorn. Går att köra flera gånger.
+-- Lägger till val (på/av) och en lista med skördedatum på prenumerationen, och två funktioner som appen anropar.
+alter table public.push_subscriptions add column if not exists pref_window boolean not null default true;
+alter table public.push_subscriptions add column if not exists pref_harvest boolean not null default true;
+alter table public.push_subscriptions add column if not exists harvest jsonb not null default '[]'::jsonb;
+
+create or replace function public.save_push_prefs(p_window boolean, p_harvest boolean)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then raise exception 'NOT_LOGGED_IN'; end if;
+  update public.push_subscriptions set pref_window = coalesce(p_window, true), pref_harvest = coalesce(p_harvest, true) where user_id = auth.uid();
+end $$;
+grant execute on function public.save_push_prefs(boolean, boolean) to authenticated;
+
+-- Appen skickar en lista [{"c":"Tomat","d":"2026-08-15"}] med grödor och dagen de blir skördeklara.
+create or replace function public.save_harvest(p_items jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then raise exception 'NOT_LOGGED_IN'; end if;
+  if p_items is null or jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) > 100 then p_items := '[]'::jsonb; end if;
+  update public.push_subscriptions set harvest = p_items where user_id = auth.uid();
+end $$;
+grant execute on function public.save_harvest(jsonb) to authenticated;
