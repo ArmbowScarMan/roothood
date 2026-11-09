@@ -1356,6 +1356,10 @@ nav button{min-width:44px}
 .wzhang{align-self:flex-start;min-height:48px;border:2px solid var(--line);background:var(--surf);color:var(--ink);font:inherit;font-size:15px;font-weight:700;border-radius:999px;padding:8px 16px;cursor:pointer;margin-left:6px}
 .wzhang.on{border-color:var(--pri);color:var(--pri)}
 .wzl .grow,.wzroom .grow,.wzpb .grow{flex:1;min-width:0}
+.wzlist.sl{gap:6px}.wzlist.sl .wzroom{min-height:46px;padding:7px 12px;gap:10px;border-radius:14px;border-width:1.5px}.wzlist.sl .wzroom b{font-size:15.5px}.wzlist.sl .wzroom span span{font-size:12.5px;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wzlist.sl .wzbadge{font-size:12.5px;padding:4px 10px}
+.sunr{height:40px;touch-action:pan-y;accent-color:var(--pri)}.sunr::-webkit-slider-thumb{width:28px;height:28px}.sunr::-moz-range-thumb{width:28px;height:28px}
+.hacts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:2px 0 4px}.hacts button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:58px;padding:8px 4px;border:1.5px solid var(--line);background:var(--surf);color:var(--ink);font:inherit;font-size:13px;font-weight:700;border-radius:14px;cursor:pointer;text-align:center}.hacts button.pri{border-color:var(--pri);color:var(--pri)}
+.rmhead{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:var(--ink);font:inherit;font-size:15px;font-weight:800;padding:6px 2px;cursor:pointer;text-align:left}.rmhead small{font-weight:600;color:var(--mut);margin-left:auto;font-size:13px}.rmhead i{transition:transform .15s}.rmhead.shut i{transform:rotate(-90deg)}
 .wzbadge{flex:none;font-size:14px;font-weight:800;border-radius:999px;padding:6px 12px;background:var(--line);color:var(--mut)}.wzbadge.on{background:rgb(var(--gl) / .35);color:var(--ink)}
 /* Avancerat läge: planritningen är en egen skärm utan bottenmeny */
 body.hadv nav{display:none}
@@ -2878,12 +2882,12 @@ function simpleHomeV() {
     <button class="btn wide wznext" onclick="wzStart()">Kom igång</button>
     <p class="wzlbl">Eller börja från en mall</p><div class="wzlist">${WZ_TPL.map((t, i) => `<button class="wzl" onclick="wzStart(WZ_TPL[${i}][1])"><span class="grow"><b>${t[0]}</b><span>${t[1].join(', ')}</span></span></button>`).join('')}</div>
     <button class="btn wide line" onclick="setHMode('adv','plan')">${ic(PEN, 'currentColor', 18)} Rita planritning (avancerat)</button></div>`;
-  return `${topbar('Mitt hem', 'closeTool()')}<div class="wz"><h1>Ditt hem</h1><p class="mut">${rooms.length} rum · ${placed} ${placed === 1 ? 'växt' : 'växter'} placerade. Tryck på ett rum för att ändra.</p>
-    <div class="wzlist">${rooms.map(r => { const n = plantsIn(r.id).length, l = lightOf(r); return `<button class="wzroom" onclick="wzStart(null,'${r.id}')">${ic(lightIc(l), l === 'Mycket ljust' ? '#E0A11B' : l === 'Halvljust' ? '#D99A2B' : 'var(--mut)', 28)}<span class="grow"><b>${esc(r.name)}</b><span>${[(r.dirs || []).map(dirName).join(' och '), l].filter(Boolean).join(' · ')}</span></span><span class="wzbadge ${n ? 'on' : ''}">${n ? n + (n === 1 ? ' växt' : ' växter') : 'Tomt'}</span></button>`; }).join('')}
-    <button class="wzc add" onclick="wzStart()">+ Lägg till rum</button></div>
-    ${noRoom.length ? `<p class="wzlbl">${noRoom.length} ${noRoom.length === 1 ? 'växt' : 'växter'} utan rum</p><div class="wzlist">${noRoom.slice(0, 6).map(m => `<button class="wzl" onclick="pickRoomFor(${m.id})">${myPh(m)}<span class="grow"><b>${esc(m.name)}</b><span>Tryck för att välja rum</span></span></button>`).join('')}</div>` : ''}
-    <button class="btn wide line" onclick="setHMode('adv','3d')">${ic('ph-cube', 'currentColor', 18)} Visa huset i 3D</button>
-    <button class="btn wide line" onclick="setHMode('adv','plan')">${ic(PEN, 'currentColor', 18)} Rita planritning (avancerat)</button></div>`;
+  const shut = store.get('rmShut', false);
+  return `${topbar('Mitt hem', 'closeTool()')}<div class="wz"><h1 style="margin-bottom:2px">Ditt hem</h1><p class="mut" style="margin:0 0 6px">${rooms.length} rum · ${placed} ${placed === 1 ? 'växt' : 'växter'} placerade. Tryck på ett rum för att ändra.</p>
+    <div class="hacts"><button class="pri" onclick="wzStart()">${ic('ph-plus-circle', 'currentColor', 22)}Lägg till rum</button><button onclick="setHMode('adv','3d')">${ic('ph-cube', 'currentColor', 22)}Visa huset i 3D</button><button onclick="setHMode('adv','plan')">${ic(PEN, 'currentColor', 22)}Rita planritning</button></div>
+    <button class="rmhead ${shut ? 'shut' : ''}" aria-expanded="${!shut}" onclick="store.set('rmShut', ${!shut}); keepMain()">${ic('ph-caret-down', 'currentColor', 16)} Rum <small>${rooms.length} st · ${shut ? 'Visa' : 'Dölj'}</small></button>
+    ${shut ? '' : `<div class="wzlist sl">${rooms.map(r => { const n = plantsIn(r.id).length, l = lightOf(r); return `<button class="wzroom" onclick="wzStart(null,'${r.id}')">${ic(lightIc(l), l === 'Mycket ljust' ? '#E0A11B' : l === 'Halvljust' ? '#D99A2B' : 'var(--mut)', 22)}<span class="grow"><b>${esc(r.name)}</b><span>${[(r.dirs || []).map(dirName).join(' och '), l].filter(Boolean).join(' · ')}</span></span><span class="wzbadge ${n ? 'on' : ''}">${n ? n + (n === 1 ? ' växt' : ' växter') : 'Tomt'}</span></button>`; }).join('')}</div>`}
+    ${noRoom.length ? `<p class="wzlbl">${noRoom.length} ${noRoom.length === 1 ? 'växt' : 'växter'} utan rum</p><div class="wzlist">${noRoom.slice(0, 6).map(m => `<button class="wzl" onclick="pickRoomFor(${m.id})">${myPh(m)}<span class="grow"><b>${esc(m.name)}</b><span>Tryck för att välja rum</span></span></button>`).join('')}</div>` : ''}</div>`;
 }
 function houseV() {
   const rooms = S.home || [];
@@ -9754,6 +9758,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.327', '9 nov', ['Solbana har nu en kamera: välj datum och tid, tryck på Kamera och rikta telefonen. Solen och dess bana syns i kamerabilden, och en pil visar åt vilket håll du ska vrida dig', 'Tidsreglaget i Solbana går att dra med fingret, i stället för att man måste trycka bredvid', 'Ditt hem: knapparna Lägg till rum, Visa huset i 3D och Rita planritning ligger överst. Rumsraderna är slimmare och du kan minimera hela rumslistan']],
   ['Beta 0.326', '9 nov', ['Solbanans kompass är lättare att förstå: en kort förklaring ovanför, tydligare teckenförklaring och en ⓘ-ruta som förklarar ringar, solhöjd och åt vilket håll skuggan faller', 'När solen har gått ner eller inte gått upp än får du ett tydligt besked med klockslag', 'Andras bilder på en växt visas först när de har granskats, så att bara riktiga växtbilder syns. Du kan fortfarande rapportera en bild']],
   ['Beta 0.325', '9 nov', ['Solbanan och 3D-vyn hänger ihop: samma datum, klockslag och plats. Skuggorna i 3D räknas exakt för den dag du valt', 'I 3D syns solens bana som en orange båge över huset, med solen där den står vid vald tid', 'Snabbval i 3D för idag, dagjämningar, midsommar och vintersolstånd. I Solbanan finns knappen Visa skuggorna i 3D', 'Soltimmarna i trädgården räknas nu för husets riktiga plats', 'Fix: solreglaget i 3D-vyn fungerar igen']],
   ['Beta 0.324', '9 nov', ['Nytt verktyg: Solbana. Se exakt var solen går ett visst datum och klockslag, med snabbval för midsommar, dagjämningar och frostdatum för din zon', 'Lägg till hus och träd som skuggar, så räknar appen ut hur många soltimmar platsen får och vilka växter som passar där', 'Rikta telefonen mot himlen så visar kompassen var solen står', 'Tio nya klätterväxter i Växtbiblioteket, bland annat trumpetranka, kiwi, akebia och rävdruva']],
@@ -10505,14 +10510,100 @@ function sunAimTxt(cur) {
   const d = ((cur.az - cmpHead + 540) % 360) - 180, side = Math.abs(d) < 5 ? 'rakt fram' : Math.round(Math.abs(d)) + '° till ' + (d > 0 ? 'höger' : 'vänster');
   return `Telefonen pekar mot ${Math.round(cmpHead)}° (${cmpWord(cmpHead)}). Solen är ${side} och ${Math.round(cur.alt)}° upp.`;
 }
+// ===== Kamera: rikta telefonen dit solen står (eller stod) vid vald tid =====
+let AR = null;
+// Rotationsmatris för enhetens läge (W3C: alpha, beta, gamma i grader). Världen: x = öster, y = norr, z = upp.
+function arMat(a, b, g) { const R = Math.PI / 180; a *= R; b *= R; g *= R; const ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b), cg = Math.cos(g), sg = Math.sin(g);
+  return [ca * cg - sa * sb * sg, -sa * cb, ca * sg + sa * sb * cg, sa * cg + ca * sb * sg, ca * cb, sa * sg - ca * sb * cg, -cb * sg, sb, cb * cg]; }
+// En riktning (kompassgrader, höjd) i enhetens koordinater: x höger, y uppåt, z mot användaren. Kameran tittar mot -z.
+function arToDev(M, az, alt) { const R = Math.PI / 180, wx = Math.sin(az * R) * Math.cos(alt * R), wy = Math.cos(az * R) * Math.cos(alt * R), wz = Math.sin(alt * R);
+  return { x: M[0] * wx + M[3] * wy + M[6] * wz, y: M[1] * wx + M[4] * wy + M[7] * wz, z: M[2] * wx + M[5] * wy + M[8] * wz }; }
+function arProj(d, W, H, hfov) { if (d.z > -1e-4) return null; const f = (W / 2) / Math.tan(hfov * Math.PI / 360); return [W / 2 + d.x / -d.z * f, H / 2 - d.y / -d.z * f]; }
+function arOri(e) {
+  if (!AR) return;
+  let a = e.alpha;
+  if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) a = (360 - e.webkitCompassHeading) % 360;
+  else if (e.type === 'deviceorientationabsolute') AR.abs = true;
+  else if (!e.absolute) { AR.rel = true; return; }  // utan riktig kompass kan vi inte veta åt vilket håll kameran pekar
+  if (e.type === 'deviceorientation' && AR.abs) return;
+  if (a == null || e.beta == null) return;
+  AR.o = { a, b: e.beta, g: e.gamma || 0 };
+}
+function arDraw() {
+  if (!AR) return; AR.raf = requestAnimationFrame(arDraw);
+  const cv = AR.cv, dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  const loc = sunLoc(), ds = sunDay(), t = S.sunT ?? sunNowMin(), cur = SUN(sunAt(ds, t), loc.lat, loc.lon), hf = AR.hfov;
+  const say = (txt) => { const el = AR.info; if (el.__t !== txt) { el.__t = txt; el.innerHTML = txt; } };
+  const label = AR.tl; if (label) label.textContent = hm(t);
+  if (!AR.o) { say(AR.rel ? 'Den här telefonen ger ingen kompass i webbläsaren, så kameran kan inte veta åt vilket håll den pekar.' : 'Väntar på kompassen… Rör telefonen i en åtta om inget händer.'); return; }
+  const M = arMat(AR.o.a, AR.o.b, AR.o.g), P = (az, alt) => arProj(arToDev(M, az, alt), W, H, hf);
+  c.lineWidth = 1.5; c.strokeStyle = 'rgba(255,255,255,.55)'; c.setLineDash([6, 6]); c.beginPath(); let pen = false;
+  for (let az = 0; az <= 360; az += 4) { const q = P(az, 0); if (q) { pen ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); pen = true; } else pen = false; }
+  c.stroke(); c.setLineDash([]);
+  c.font = '700 15px system-ui,sans-serif'; c.textAlign = 'center'; c.fillStyle = '#fff'; c.shadowColor = 'rgba(0,0,0,.7)'; c.shadowBlur = 4;
+  [['N', 0], ['O', 90], ['S', 180], ['V', 270]].forEach(([n, az]) => { const q = P(az, 0); if (q) c.fillText(n, q[0], q[1] - 8); });
+  c.lineWidth = 4; c.strokeStyle = '#F08A24'; c.lineCap = 'round'; c.beginPath(); pen = false; const hrs = [];
+  for (let m = 0; m <= 1430; m += 10) { const p = SUN(sunAt(ds, m), loc.lat, loc.lon); if (p.alt < -1) { pen = false; continue; } const q = P(p.az, p.alt); if (q) { pen ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); pen = true; if (m % 120 === 0) hrs.push([m, q]); } else pen = false; }
+  c.stroke(); c.fillStyle = '#FFE9B8'; c.font = '700 13px system-ui,sans-serif';
+  hrs.forEach(([m, q]) => { c.beginPath(); c.arc(q[0], q[1], 3.5, 0, 7); c.fill(); c.fillText(String(m / 60), q[0], q[1] - 9); });
+  c.shadowBlur = 0;
+  const d = arToDev(M, cur.az, cur.alt), q = arProj(d, W, H, hf), inView = q && q[0] > -30 && q[0] < W + 30 && q[1] > -30 && q[1] < H + 30;
+  if (inView) {
+    c.fillStyle = cur.alt > 0 ? '#FFC83D' : 'rgba(180,190,200,.9)'; c.strokeStyle = '#F08A24'; c.lineWidth = 3; c.beginPath(); c.arc(q[0], q[1], 20, 0, 7); c.fill(); c.stroke();
+    if (cur.alt > 0) { c.strokeStyle = '#FFC83D'; c.lineWidth = 3; for (let i = 0; i < 12; i++) { const an = i * Math.PI / 6; c.beginPath(); c.moveTo(q[0] + Math.cos(an) * 26, q[1] + Math.sin(an) * 26); c.lineTo(q[0] + Math.cos(an) * 34, q[1] + Math.sin(an) * 34); c.stroke(); } }
+  } else {
+    const ang = Math.atan2(-d.y, d.x), r = Math.min(W, H) * 0.36, ax = W / 2 + Math.cos(ang) * r, ay = H / 2 + Math.sin(ang) * r;
+    c.save(); c.translate(ax, ay); c.rotate(ang); c.fillStyle = '#FFC83D'; c.strokeStyle = '#F08A24'; c.lineWidth = 3; c.beginPath(); c.moveTo(26, 0); c.lineTo(-14, -20); c.lineTo(-6, 0); c.lineTo(-14, 20); c.closePath(); c.fill(); c.stroke(); c.restore();
+  }
+  const camAz = (Math.atan2(-M[2], -M[5]) * 180 / Math.PI + 360) % 360, camAlt = Math.asin(Math.max(-1, Math.min(1, -M[8]))) * 180 / Math.PI;
+  const da = ((cur.az - camAz + 540) % 360) - 180, dh = cur.alt - camAlt;
+  const pos = `${sunWord(cur.az)} (${Math.round(cur.az)}°), ${Math.round(cur.alt)}° över horisonten`;
+  say(cur.alt <= 0 ? `Kl <b>${hm(t)}</b> är solen under horisonten (${Math.round(cur.az)}° ${sunWord(cur.az)}).` : inView ? `Kl <b>${hm(t)}</b> står solen här: ${pos}.` : `Kl <b>${hm(t)}</b> står solen i ${pos}. Vrid dig <b>${Math.round(Math.abs(da))}° åt ${da > 0 ? 'höger' : 'vänster'}</b>${Math.abs(dh) > 5 ? ' och luta telefonen <b>' + (dh > 0 ? 'uppåt' : 'nedåt') + '</b>' : ''}.`);
+}
+async function arOpen() {
+  if (AR) return;
+  if (typeof DeviceOrientationEvent === 'undefined') return toast('Den här webbläsaren har ingen orienteringssensor. Öppna appen i Chrome på telefonen.');
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') { try { if ((await DeviceOrientationEvent.requestPermission()) !== 'granted') return toast('Tillåt rörelse- och orienteringssensorn i inställningarna'); } catch (e) { return; } }
+  if (S.sunT == null) S.sunT = sunNowMin();
+  const el = document.createElement('div'); el.id = 'sunar'; el.style.cssText = 'position:fixed;inset:0;z-index:99999;background:linear-gradient(#1c3a52,#0b1a25);color:#fff;font-family:system-ui,sans-serif;touch-action:none';
+  el.innerHTML = `<video playsinline muted autoplay style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video><canvas style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+    <div style="position:absolute;top:0;left:0;right:0;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;display:flex;gap:10px;align-items:flex-start;background:linear-gradient(rgba(0,0,0,.65),transparent)"><button id="sunarx" aria-label="Stäng kameran" style="flex:none;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:22px">✕</button><div id="sunarinfo" style="flex:1;font-size:15px;line-height:1.35;text-shadow:0 1px 3px #000"></div></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;padding:14px 16px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.75))"><div style="font-size:14px;margin-bottom:2px">Tid: <b id="sunartl"></b> · ${esc(new Date(sunDay() + 'T12:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' }))} · ${esc(sunLoc().name)}</div><input id="sunarr" type="range" min="0" max="1435" step="5" value="${S.sunT}" style="width:100%;height:44px;accent-color:#FFC83D" aria-label="Tid på dygnet"><div style="font-size:12.5px;opacity:.8">Håll telefonen stående. Dra i reglaget och rikta kameran dit pilen eller solen visar.</div></div>`;
+  document.body.appendChild(el);
+  AR = { el, cv: el.querySelector('canvas'), vid: el.querySelector('video'), info: el.querySelector('#sunarinfo'), tl: el.querySelector('#sunartl'), hfov: 54, o: null };
+  el.querySelector('#sunarx').onclick = arClose;
+  el.querySelector('#sunarr').oninput = ev => { S.sunT = +ev.target.value; S.sunPin = true; };
+  window.addEventListener('deviceorientationabsolute', arOri, true); window.addEventListener('deviceorientation', arOri, true);
+  try { AR.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }); AR.vid.srcObject = AR.stream; AR.vid.play && AR.vid.play().catch(() => {}); }
+  catch (e) { AR.noCam = true; toast('Kameran gick inte att starta. Du ser ändå solens bana mot en mörk bakgrund.'); }
+  arDraw();
+}
+function arClose() {
+  if (!AR) return; cancelAnimationFrame(AR.raf);
+  window.removeEventListener('deviceorientationabsolute', arOri, true); window.removeEventListener('deviceorientation', arOri, true);
+  try { AR.stream && AR.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+  AR.el.remove(); AR = null; if (S.tool === 'sunpath') keepMain();
+}
 function sunAimUpdate() { const t = document.getElementById('sunaim'); if (!t || S.tool !== 'sunpath') return; const loc = sunLoc(), cur = SUN(sunAt(sunDay(), S.sunT ?? sunNowMin()), loc.lat, loc.lon); t.textContent = sunAimTxt(cur); const h = document.getElementById('sunhead'); if (h && cmpHead != null) { h.style.transform = `rotate(${cmpHead}deg)`; h.setAttribute('visibility', 'visible'); } }
+function sunCurTxt(info, cur, obs, t) { return cur.alt > 0 ? `Solen står i <b>${sunWord(cur.az)}</b> (${Math.round(cur.az)}°), <b>${Math.round(cur.alt)}°</b> över horisonten${sunBlocked(cur, obs) ? ', men <b>bakom ett hinder</b>' : ''}.` : (info.allDay || info.noSun ? 'Solen är under horisonten.' : (info.up != null && t < info.up ? `Solen har <b>inte gått upp än</b>. Den går upp kl <b>${hm(info.up)}</b>.` : `Solen har <b>gått ner</b> för i dag${info.down != null ? ` (kl ${hm(info.down)})` : ''}. Då är det skugga överallt.`)); }
+// Reglaget uppdaterar bara bilden och texten, så att man kan dra det utan att sidan ritas om under fingret
+function sunLive(v) {
+  S.sunT = v; S.sunPin = true;
+  const loc = sunLoc(), obs = sunObs(), ds = sunDay(), info = sunDayInfo(ds, loc, obs), cur = SUN(sunAt(ds, v), loc.lat, loc.lon);
+  const a = document.getElementById('suntl'); if (a) a.textContent = hm(v);
+  const b = document.getElementById('sunskyw'); if (b) b.innerHTML = sunSky(info, loc, obs, cur);
+  const c = document.getElementById('suncur'); if (c) c.innerHTML = sunCurTxt(info, cur, obs, v);
+  const d = document.getElementById('sunaim'); if (d) d.textContent = sunAimTxt(cur);
+}
 function sunPathV() {
   const loc = sunLoc(), obs = sunObs(), ds = sunDay(), y = +ds.slice(0, 4), t = S.sunT ?? sunNowMin();
   const info = sunDayInfo(ds, loc, obs), cur = SUN(sunAt(ds, t), loc.lat, loc.lon), cls = sunClass(info.sunH);
   const fr = sowF(y), af = sowA(y), quick = [['Idag', dIso(new Date())], ['Vårdagjämning', y + '-03-20'], ['Sista vårfrost', dIso(fr)], ['Midsommar', y + '-06-21'], ['Höstdagjämning', y + '-09-23'], ['Första frosten', dIso(af)], ['Vintersolstånd', y + '-12-21']];
   const months = [3, 4, 5, 6, 7, 8, 9, 10].map(m => [m, sunDayInfo(`${y}-${String(m).padStart(2, '0')}-15`, loc, obs).sunH]), mx = Math.max(1, ...months.map(x => x[1]));
   const plants = sunPlants(cls[0]);
-  const curTxt = cur.alt > 0 ? `Solen står i <b>${sunWord(cur.az)}</b> (${Math.round(cur.az)}°), <b>${Math.round(cur.alt)}°</b> över horisonten${sunBlocked(cur, obs) ? ', men <b>bakom ett hinder</b>' : ''}.` : (info.allDay || info.noSun ? 'Solen är under horisonten.' : (info.up != null && t < info.up ? `Solen har <b>inte gått upp än</b>. Den går upp kl <b>${hm(info.up)}</b>.` : `Solen har <b>gått ner</b> för i dag${info.down != null ? ` (kl ${hm(info.down)})` : ''}. Då är det skugga överallt.`));
+  const curTxt = sunCurTxt(info, cur, obs, t);
   const dayTxt = info.allDay ? 'Midnattssol: solen går inte ner.' : info.noSun ? 'Polarnatt: solen går inte upp.' : `Upp kl <b>${info.up != null ? hm(info.up) : '–'}</b> · Ner kl <b>${info.down != null ? hm(info.down) : '–'}</b> · Högst <b>${Math.round(info.best.alt)}°</b> kl ${hm(info.best.m)}`;
   return `${topbar('Solbana', 'closeTool()')}
   <p class="mut" style="margin:0 18px">Se exakt var solen går ett visst datum, och hur många soltimmar en plats får. Bra innan du planterar.</p>
@@ -10526,13 +10617,13 @@ function sunPathV() {
     <p style="margin:0 0 4px;font-size:14.5px"><b>Så läser du kompassen</b></p>
     <p class="mut" style="margin:0 0 8px;font-size:13.5px">Du tittar rakt ovanifrån. <b>Mitten är där du står</b>, och N, O, S och V är väderstrecken. Den <b style="color:#F08A24">orangea bågen</b> är den väg solen går över himlen det datum du valt. Den <b style="color:#E8A800">gula pricken</b> är solen vid klockslaget du valt (den syns när solen är uppe). Slår du på kompassen med <i>Rikta telefonen</i> visas en <b style="color:var(--pri)">grön linje</b> som pekar dit telefonen är riktad.</p>
     <details style="margin:0 0 8px"><summary style="cursor:pointer;font-size:13.5px;font-weight:700">ⓘ Mer om ringar, höjd och skugga</summary><div class="mut" style="font-size:13.5px;margin-top:6px"><p style="margin:0 0 6px"><b>Ringarna</b> visar hur högt solen står. Yttersta ringen är horisonten (0°), ringen märkt 30° är en tredjedel upp mot himlen, ringen märkt 60° är två tredjedelar upp, och mitten är rakt upp (90°). Ju närmare mitten bågen går, desto högre står solen och desto kortare blir skuggorna.</p><p style="margin:0 0 6px"><b>Skuggan</b> faller alltid åt motsatt håll mot solen. Står solen i söder faller skuggan mot norr. Ligger en tänkt plantering i skuggan av ett hus eller ett träd när solen står i ett visst väderstreck, får den ingen direkt sol då.</p><p style="margin:0"><b>Midsommar</b> är årets högsta och bredaste båge, och <b>vintersolståndet</b> är den lägsta. Alla andra dagar går solen någonstans mellan dem. Vill du se hur solen går under växtsäsongen, hoppa mellan datumknapparna ovanför.</p></div></details>
-    ${sunSky(info, loc, obs, cur)}
+    <div id="sunskyw">${sunSky(info, loc, obs, cur)}</div>
     <div class="slegend" style="justify-content:center;flex-wrap:wrap"><span style="color:#F08A24">━ Solens väg valt datum</span><span style="color:#E8A800">● Solen vid vald tid</span>${cmpOn ? '<span style="color:var(--pri)">━ Telefonens riktning</span>' : ''}<span style="color:#E8B423">┅ Midsommar (högst)</span><span style="color:#6FA8DC">┅ Vintersolstånd (lägst)</span>${obs.length ? '<span style="color:#888">■ Hinder</span>' : ''}</div>
     <label class="fl" style="margin:12px 0 4px">Tid: <b id="suntl">${hm(t)}</b></label>
-    <input type="range" min="0" max="1435" step="5" value="${t}" style="width:100%" oninput="S.sunT=+this.value;S.sunPin=true;document.getElementById('suntl').textContent=hm(S.sunT);clearTimeout(window.__sunT);window.__sunT=setTimeout(keepMain,60)" aria-label="Tid på dygnet">
-    <p style="margin:10px 0 4px;font-size:15px">${curTxt}</p>
+    <input type="range" class="sunr" min="0" max="1435" step="5" value="${t}" style="width:100%" oninput="sunLive(+this.value)" aria-label="Tid på dygnet">
+    <p id="suncur" style="margin:10px 0 4px;font-size:15px">${curTxt}</p>
     <p class="mut" style="margin:0;font-size:14px">${dayTxt}</p>
-    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">${S.user && S.pro ? '<button class="btn sm" onclick="sunTo3d()">' + ic('ph-cube', 'currentColor', 16) + ' Visa skuggorna i 3D</button>' : ''}${typeof DeviceOrientationEvent !== 'undefined' ? (cmpOn ? '<button class="btn sm line" onclick="stopCompass();keepMain()">Stäng kompassen</button>' : '<button class="btn sm line" onclick="startCompass().then(keepMain)">🧭 Rikta telefonen</button>') : ''}</div><p id="sunaim" class="mut" style="margin:8px 0 0;font-size:13.5px">${sunAimTxt(cur)}</p>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">${S.user && S.pro ? '<button class="btn sm" onclick="sunTo3d()">' + ic('ph-cube', 'currentColor', 16) + ' Visa skuggorna i 3D</button>' : ''}${typeof DeviceOrientationEvent !== 'undefined' ? (cmpOn ? '<button class="btn sm line" onclick="stopCompass();keepMain()">Stäng kompassen</button>' : '<button class="btn sm line" onclick="startCompass().then(keepMain)">🧭 Rikta telefonen</button>') : ''}${typeof DeviceOrientationEvent !== 'undefined' ? '<button class="btn sm" onclick="arOpen()">' + ic('ph-camera', 'currentColor', 16) + ' Kamera</button>' : ''}</div><p id="sunaim" class="mut" style="margin:8px 0 0;font-size:13.5px">${sunAimTxt(cur)}</p>
   </div></div>
   <div class="sec"><h2>Soltimmar här</h2></div>
   <div class="pad"><div class="setcard" style="padding:14px">
@@ -11165,7 +11256,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.326';
+const APP_VERSION = 'Beta 0.327';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
