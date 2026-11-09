@@ -1,0 +1,31 @@
+-- 081: Odlingszon på profilen och bättre "Hitta användare" (felrapport #78 och #79).
+-- Zonen är obligatorisk i appen och syns för andra. Staden är fortfarande valfri.
+alter table public.profiles add column if not exists zone smallint;
+alter table public.profiles drop constraint if exists profiles_zone_chk;
+alter table public.profiles add constraint profiles_zone_chk check (zone is null or zone between 1 and 8);
+
+-- find_users returnerar nu även profilbild, zon och vänstatus, så att listan kan visa rätt knapp.
+drop function if exists public.find_users(text);
+create function public.find_users(q text default '')
+returns table (id uuid, display_name text, city text, interests text[], plants int, posts int, followers int,
+  avatar_url text, zone smallint, friend_status text)
+language sql stable security definer set search_path = public as $$
+  select p.id, p.display_name, case when can_see(p.id, 'city') then p.city end, case when can_see(p.id, 'interests') then p.interests else '{}'::text[] end,
+    (select count(*) from user_plants u where u.user_id = p.id)::int,
+    (select count(*) from posts x where x.user_id = p.id and not coalesce(x.hidden, false))::int,
+    (select count(*) from follows f where f.followee = p.id)::int,
+    p.avatar_url,
+    p.zone,
+    case when public.are_friends(p.id, auth.uid()) then 'friends'
+      when exists (select 1 from friend_requests f where f.status = 'pending' and f.from_user = auth.uid() and f.to_user = p.id) then 'pending_out'
+      when exists (select 1 from friend_requests f where f.status = 'pending' and f.from_user = p.id and f.to_user = auth.uid()) then 'pending_in'
+      else 'none' end
+  from profiles p
+  where p.id is distinct from auth.uid()
+    and not exists (select 1 from blocks b where (b.blocker = auth.uid() and b.blocked = p.id) or (b.blocker = p.id and b.blocked = auth.uid()))
+    and (coalesce(q, '') = '' or p.display_name ilike '%' || q || '%' or (can_see(p.id, 'city') and p.city ilike '%' || q || '%'))
+  order by (can_see(p.id, 'city') and lower(coalesce(p.city, '')) = lower(coalesce((select city from profiles where id = auth.uid()), '#'))) desc,
+    (select count(*) from follows f where f.followee = p.id) desc, p.display_name
+  limit 40;
+$$;
+grant execute on function public.find_users(text) to authenticated;
