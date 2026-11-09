@@ -2319,7 +2319,7 @@ async function addMyPhoto(id, inp) {
   await run(async () => {
     const url = await api.uploadOwn(f), m = myItem(id);
     await api.setPhotos(id, { photo_url: url, show_own: true, photos: m.photos.concat([url]) });
-  }, 'Fotot är sparat och visas nu för växten');
+  }, 'Fotot är sparat. Andra ser det när det har granskats');
 }
 function pickMyPhoto(id, i) { const m = myItem(id); S.del = null; run(() => api.setPhotos(id, { photo_url: m.photos[i], show_own: true }), 'Det fotot visas nu'); }
 function showDbPhoto(id) { S.del = null; run(() => api.setPhotos(id, { show_own: false }), 'Databasens foto visas nu. Dina foton finns kvar.'); }
@@ -6675,7 +6675,7 @@ const DAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
 function wxPlace() { const M = S.hplan && S.hplan.map; if (M && M.lat != null) return { lat: M.lat, lon: M.lon, name: S.city || 'ditt hem' }; const g = store.get('wxGeo', null); if (g && g.q === (S.city || '').trim().toLowerCase() && g.lat != null) return g; return null; }
 async function loadWeather(force) {
   if (S.wxBusy) { S.wxAgain = true; return; } if (!force && S.wxFailAt && Date.now() - S.wxFailAt < 10 * 60e3) return; const c = store.get('wx', null), pl = wxPlace();
-  if (!force && c && Date.now() - c.t < 30 * 60e3 && pl && Math.abs(c.lat - pl.lat) < 0.01 && Math.abs(c.lon - pl.lon) < 0.01) { S.wx = c; if (T3 && T3.scene) env3d(); if (!S.tool && !S.sel && S.tab === 'home') render(); return; }
+  if (!force && c && c.d && c.d.sunshine_duration && c.cur && c.cur.cloud_cover != null && Date.now() - c.t < 30 * 60e3 && pl && Math.abs(c.lat - pl.lat) < 0.01 && Math.abs(c.lon - pl.lon) < 0.01) { S.wx = c; if (T3 && T3.scene) env3d(); if (!S.tool && !S.sel && S.tab === 'home') render(); return; }
   S.wxBusy = true;
   try {
     let place = pl;
@@ -6684,7 +6684,7 @@ async function loadWeather(force) {
       if (j.results && j.results[0]) { place = { q: S.city.trim().toLowerCase(), lat: j.results[0].latitude, lon: j.results[0].longitude, name: j.results[0].name }; store.set('wxGeo', place); }
     }
     if (!place) { S.wx = { none: true }; return; }
-    const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,wind_gusts_10m_max,uv_index_max&wind_speed_unit=ms&timezone=Europe%2FStockholm&forecast_days=5`;
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,cloud_cover&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,wind_gusts_10m_max,uv_index_max,sunshine_duration&wind_speed_unit=ms&timezone=Europe%2FStockholm&forecast_days=5`;
     const r = await fetch(u); if (!r.ok) throw new Error('wx ' + r.status); const j = await r.json();
     S.wx = { t: Date.now(), lat: place.lat, lon: place.lon, name: place.name, cur: j.current, d: j.daily };
     // Regn och snö de senaste 7 dagarna och snödjupet nu, för att räkna ut om utomhusväxterna behöver vattnas
@@ -8833,7 +8833,7 @@ function mineV() {
     const facts = [['Kruka', potTxt], ['Jord', fd.soil && fd.soil.length ? fd.soil.join(', ') : ''], ['Höjd', fd.h ? fd.h + ' cm' : ''], ['Plats', rmName || fd.light || fd.place || ''], ['Sol', mineSun(m)]].filter(([, v]) => v);
     const factsHtml = facts.length ? `<dl class="mfacts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : '';
     return `<div class="mrow${det ? ' det' : ''}"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${nameHtml(m)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${m.details && +m.details.count > 1 ? `<span class="mini">× ${+m.details.count} samplanterade i samma kruka</span>` : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${det ? factsHtml : ''}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
-      <div class="side">${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad"><span class="wdrop" aria-hidden="true">💧</span></button>` : ''}${d ? `<small class="wnext">Vattna om ${d} d</small>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
+      <div class="side"><label class="camb" onclick="photoPick(event,this)" aria-label="Ta foto på ${esc(m.name)}" title="Ta foto" style="display:inline-flex;width:36px;height:36px;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:var(--pri);background:var(--card2,transparent)">${ic(CAM, 'currentColor', 18)}<input type="file" accept="image/*" capture="environment" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad"><span class="wdrop" aria-hidden="true">💧</span></button>` : ''}${d ? `<small class="wnext">Vattna om ${d} d</small>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
   }).join('');
   return `${topbar('Min samling')}${mtabBar()}
   ${S.mine.length ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
@@ -9908,12 +9908,30 @@ function jVoice(id) {
 const TOX_CAT = ['dieffenbachia', 'epipremnum', 'philodendron', 'aloe', 'dracaena', 'sansevieria', 'ficus', 'hedera', 'lilium', 'kalanchoe', 'chlorophytum', 'nerium', 'rhododendron', 'cycas', 'crassula', 'asparagus'];
 const TOX_DOG = ['dieffenbachia', 'epipremnum', 'philodendron', 'aloe', 'dracaena', 'sansevieria', 'ficus', 'hedera', 'kalanchoe', 'nerium', 'rhododendron', 'cycas', 'crassula', 'asparagus'];
 function toxicBanner() {
-  const pets = animals().filter(x => x.kind === 'katt' || x.kind === 'hund'); if (!pets.length) return '';
-  const hits = [];
+  const hits = toxHits(); if (!hits.length) return '';
+  // Bara växter som inte har bekräftats visas. Nya giftiga växter ger en ny varning, de gamla visas inte igen.
+  const ack = (store.get('tox_' + S.user.id, null) || {}).ack || [];
+  const fresh = hits.filter(h => !ack.includes(h)); if (!fresh.length) return '';
+  const open = !!S.toxOpen, names = fresh.map(esc).join(', ');
+  return `<div class="wxwarn" style="margin:12px 18px"><button class="wxw" style="width:100%;text-align:left;background:none;border:0;color:inherit;font:inherit;padding:0;cursor:pointer" onclick="S.toxOpen=!S.toxOpen;keepMain()" aria-expanded="${open}"><span>${ic('ph-warning', 'currentColor', 18)}</span><div style="flex:1"><b>Giftig för husdjur</b><span>${names}. Ställ dem där husdjuren inte når.</span></div></button>${open ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="toxSet()">Utom räckhåll från husdjuren</button><button class="btn sm line" onclick="toxSet()">Dölj varningen</button></div>` : ''}</div>`;
+}
+// Giftiga växter i samlingen, i förhållande till husdjuren
+function toxHits() {
+  if (!S.user) return [];
+  const pets = animals().filter(x => x.kind === 'katt' || x.kind === 'hund'), hits = [];
+  if (!pets.length) return hits;
   S.mine.forEach(m => { const p = plantById(m.plant_id); if (!p) return; const g = String(p.latin_name || '').split(' ')[0].toLowerCase();
     pets.forEach(a => { const list = a.kind === 'katt' ? TOX_CAT : TOX_DOG; if (list.includes(g)) hits.push(m.name + ' (' + (a.name || (a.kind === 'katt' ? 'katt' : 'hund')) + ')'); }); });
-  if (!hits.length) return '';
-  return `<div class="wxwarn" style="margin:12px 18px"><div class="wxw"><span>${ic('ph-warning', 'currentColor', 18)}</span><div><b>Giftig för husdjur</b><span>${hits.map(esc).join(', ')}. Ställ dem där husdjuren inte når.</span></div></div></div>`;
+  return hits;
+}
+// Bekräftar de varningar som visas nu, så de inte kommer tillbaka. Både "Utom räckhåll" och "Dölj" gör det.
+function toxSet() {
+  if (!S.user) return;
+  const cur = store.get('tox_' + S.user.id, null) || {}, ack = new Set(cur.ack || []);
+  toxHits().forEach(h => ack.add(h));
+  try { store.set('tox_' + S.user.id, { ack: [...ack] }); } catch (e) { }
+  S.toxOpen = false; keepMain();
+  toast('Varningen är borta. Nya giftiga växter visas igen.');
 }
 // ===== Odlingslådans höjd och jordbehov (punkt 8) =====
 function bedSetH(v) { v = parseFloat(String(v).replace(',', '.')); if (!(v > 0)) return; v = Math.max(0.05, Math.min(2, Math.round(v * 100) / 100)); const P = PL(), a = curBed(); if (!a || P.bnew) { P.bdim = Object.assign({ L: 3, D: 1.2, shape: 'rect' }, P.bdim, { H: v }); render(); return; } if (!a.br) return; pushUndo(); a.br.H = v; saveHomeSoon(); render(); }
@@ -10020,6 +10038,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.329', '9 nov', ['Solbanan visar vädret: hur mycket sol prognosen ger den valda dagen, och hur mycket molnen just nu tar bort', 'Ta en bild direkt från växtkortet i Min samling med kameraknappen. Bilden visas för andra först när den har granskats', 'Giftig för husdjur: tryck på varningen och välj Utom räckhåll från husdjuren eller Dölj. Då försvinner varningen, och bara nya giftiga växter visas igen'] ],
   ['Beta 0.328', '9 nov', ['Vintervila följer nu solen: när dagen på din plats är kortare än 8 timmar vattnas inomhusväxterna mer sällan och gödselpåminnelserna döljs. Så sker det tidigare i norr än i söder', 'Fönstervakten: vädervarningarna nämner nu vilka av dina växter som påverkas. Vid stark sol (UV 6 eller mer) varnas växter i söderfönster, vid sträng kyla växter nära fönsterrutan, och på våren varnas du för plötsliga köldfall', 'Växtbiblioteket: nytt filter Även med skydd, som visar växter som går att odla i din zon med ett skyddat läge. På växtsidan står det nu Möjlig med skydd i din zon','Skördeklart: i Såkalendern ser du vad som är redo att skörda, eller snart blir det, och kan markera det som skördat','Nya recept: 38 recept på det du skördar, med mängder och tider från svenska och internationella källor, med tips om vad du kan laga av det du har just nu','Notiser: slå på Fönstervakt och Skördeklart under Påminnelser, så får du en notis när det blir för kallt eller soligt vid fönstret, och den dag något är redo att skördas','Upptäck: svep höger på växter du inte har, så sparas de i Högerswipe. Filtrera på zon, husdjurssäker och ljus. Under Matcha svarar du på tre frågor och får förslag att lägga i önskelistan','Utskrift: Skriv ut veckans skötsel i Journalen, med kryssrutor för vattning och gödsling','Högkontrast för växtlampor under Inställningar, med svart bakgrund och vit text','Startsidan visar hur många växter som behöver din uppmärksamhet idag, och varnar om en giftig växt finns hemma hos ett katt eller en hund','Ångra: när du tar bort en växt kan du ångra i fem sekunder. Vattna hela rummet kan också ångras','Diktera i växtjournalen med mikrofonen, där webbläsaren stöder det','Odlingslådor visar höjd och hur många liter jord som behövs']],
   ['Beta 0.327', '9 nov', ['Solbana har nu en kamera: välj datum och tid, tryck på Kamera och rikta telefonen. Solen och dess bana syns i kamerabilden, och en pil visar åt vilket håll du ska vrida dig', 'Tidsreglaget i Solbana går att dra med fingret, i stället för att man måste trycka bredvid', 'Ditt hem: knapparna Lägg till rum, Visa huset i 3D och Rita planritning ligger överst. Rumsraderna är slimmare och du kan minimera hela rumslistan']],
   ['Beta 0.326', '9 nov', ['Solbanans kompass är lättare att förstå: en kort förklaring ovanför, tydligare teckenförklaring och en ⓘ-ruta som förklarar ringar, solhöjd och åt vilket håll skuggan faller', 'När solen har gått ner eller inte gått upp än får du ett tydligt besked med klockslag', 'Andras bilder på en växt visas först när de har granskats, så att bara riktiga växtbilder syns. Du kan fortfarande rapportera en bild']],
@@ -10958,6 +10977,24 @@ function arClose() {
   AR.el.remove(); AR = null; if (S.tool === 'sunpath') keepMain();
 }
 function sunAimUpdate() { const t = document.getElementById('sunaim'); if (!t || S.tool !== 'sunpath') return; const loc = sunLoc(), cur = SUN(sunAt(sunDay(), S.sunT ?? sunNowMin()), loc.lat, loc.lon); t.textContent = sunAimTxt(cur); const h = document.getElementById('sunhead'); if (h && cmpHead != null) { h.style.transform = `rotate(${cmpHead}deg)`; h.setAttribute('visibility', 'visible'); } }
+// Solbanan och vädret: prognosen för dagen (solsken) och molnigheten just nu, för orten i Mitt hem
+function sunWxTxt(ds, loc, info, obs) {
+  const w = S.wx; if (!w || !w.d || w.none || w.err) return '';
+  const H = x => String(Math.round(x * 10) / 10).replace('.', ',');
+  if (w.lat == null || Math.abs(w.lat - loc.lat) > 0.05 || Math.abs(w.lon - loc.lon) > 0.05) return '<p class="mut" style="margin:10px 0 0;font-size:13.5px">Vädret i den här vyn gäller din ort i Mitt hem. Välj samma ort här för att se hur molnen påverkar solen.</p>';
+  const i = (w.d.time || []).indexOf(ds), sec = i >= 0 && w.d.sunshine_duration ? w.d.sunshine_duration[i] : null;
+  const today = dIso(new Date());
+  let out = '';
+  if (sec != null) {
+    const got = sec / 3600, full = info.dayH, pct = full > 0 ? Math.round(Math.min(1, got / full) * 100) : null;
+    const word = pct == null ? '' : pct < 40 ? ' Mulet, och mycket av solen är borta.' : pct < 70 ? ' Växlande moln.' : ' Mest sol.';
+    out += `<p style="margin:10px 0 0;font-size:14.5px"><b>Med vädret:</b> ca ${H(got)} h solsken enligt prognosen${full > 0 ? `, av ${H(full)} h möjlig sol` : ''}.${word} <small class="mut">Prognosen kan ändras.</small></p>`;
+  } else if (ds < today || ds > dIso(new Date(Date.now() + 4 * 864e5))) {
+    out += '<p class="mut" style="margin:10px 0 0;font-size:13.5px">Väderprognosen når bara fem dagar framåt, så för det här datumet finns inget väder.</p>';
+  }
+  if (ds === today && w.cur && w.cur.cloud_cover != null) out += `<p style="margin:6px 0 0;font-size:14px">Just nu: <b>${Math.round(w.cur.cloud_cover)} %</b> moln${w.cur.cloud_cover >= 80 ? ', så solen syns knappt' : ''}.</p>`;
+  return out;
+}
 function sunCurTxt(info, cur, obs, t) { return cur.alt > 0 ? `Solen står i <b>${sunWord(cur.az)}</b> (${Math.round(cur.az)}°), <b>${Math.round(cur.alt)}°</b> över horisonten${sunBlocked(cur, obs) ? ', men <b>bakom ett hinder</b>' : ''}.` : (info.allDay || info.noSun ? 'Solen är under horisonten.' : (info.up != null && t < info.up ? `Solen har <b>inte gått upp än</b>. Den går upp kl <b>${hm(info.up)}</b>.` : `Solen har <b>gått ner</b> för i dag${info.down != null ? ` (kl ${hm(info.down)})` : ''}. Då är det skugga överallt.`)); }
 // Reglaget uppdaterar bara bilden och texten, så att man kan dra det utan att sidan ritas om under fingret
 function sunLive(v) {
@@ -10999,7 +11036,8 @@ function sunPathV() {
   <div class="sec"><h2>Soltimmar här</h2></div>
   <div class="pad"><div class="setcard" style="padding:14px">
     <p style="margin:0;font-size:15px"><b style="font-size:22px">${String(Math.round(info.sunH * 10) / 10).replace('.', ',')} h</b> sol den ${new Date(ds + 'T12:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' })}${obs.length ? ` <small class="mut">(av ${String(Math.round(info.dayH * 10) / 10).replace('.', ',')} h utan hinder)</small>` : ''}</p>
-    <p style="margin:6px 0 0"><span class="tag lime">${cls[1]}</span> <span style="font-size:14px">${cls[2]}</span></p>
+    ${sunWxTxt(ds, loc, info, obs)}
+    <p style="margin:8px 0 0"><span class="tag lime">${cls[1]}</span> <span style="font-size:14px">${cls[2]}</span></p>
     ${plants.length ? `<p class="mut" style="margin:8px 0 0;font-size:13.5px">Till exempel: ${plants.map(esc).join(', ')}.</p>` : ''}
     <h4 style="margin:14px 0 6px">Soltimmar per månad, den 15:e</h4>
     <div class="wdbars sunbars">${months.map(([m, h]) => `<div><span style="height:${Math.round(h / mx * 100)}%;background:#F0A43A" title="${String(Math.round(h * 10) / 10).replace('.', ',')} h"></span><small>${['', '', '', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt'][m]}</small><small>${Math.round(h)}</small></div>`).join('')}</div>
@@ -11627,7 +11665,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.328';
+const APP_VERSION = 'Beta 0.329';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
