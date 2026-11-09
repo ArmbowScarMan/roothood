@@ -1955,7 +1955,13 @@ const sbApi = {
     const { error } = await sb.from('homes').upsert(Object.assign({ user_id: S.user.id }, body));
     if (error) throw /homes/.test(error.message || '') ? new Error('HOME_NOT_READY') : error;
   },
-  async othersPhotos(pid) { const { data, error } = await sb.rpc('plant_photos', { p_plant_id: pid }); if (error) throw error; return data || []; },
+  async othersPhotos(pid) {
+    const { data, error } = await sb.rpc('plant_photos', { p_plant_id: pid }); if (error) throw error;
+    const all = data || []; if (!all.length) return [];
+    // Bara granskade och godkända bilder visas för andra. Går granskningen inte att nå visas inga bilder alls.
+    const ok = await sb.rpc('approved_photos', { p_urls: all.map(x => x.url) }); if (ok.error) return [];
+    const good = new Set(ok.data || []); return all.filter(x => good.has(x.url));
+  },
   async setShare(on) { const { error } = await sb.from('profiles').update({ share_photos: on }).eq('id', S.user.id); if (error) throw error; },
   async log(upId) { const { data, error } = await sb.from('care_log').select('id,user_plant_id,kind,done_on,note,created_at').eq('user_plant_id', upId).order('done_on', { ascending: false }); if (error) throw error; return data; },
   async addLog(upId, kind, date, note) { const { error } = await sb.from('care_log').insert({ user_plant_id: upId, kind, done_on: date, note: note || null }); if (error) throw error; },
@@ -2316,7 +2322,7 @@ function othersV(p) {
   if (L === undefined) { S.others[p.id] = 'loading'; setTimeout(() => loadOthers(p.id)); }
   const list = Array.isArray(L) ? L : [];
   const body = !Array.isArray(L) ? '<p class="empty2">Hämtar bilder…</p>'
-    : !list.length ? `<p class="empty2">Ingen annan har delat bilder på ${esc(p.swedish_name.toLowerCase())} än. Lägg till ett foto under Mina foton så blir du först!</p>`
+    : !list.length ? `<p class="empty2">Ingen annan har delat bilder på ${esc(p.swedish_name.toLowerCase())} än. Lägg till ett foto under Mina foton så blir du först! Nya bilder visas för andra när de har granskats.</p>`
     : `<div class="similar others">${list.map((x, i) => `<button onclick="openLb(${p.id},${i})" aria-label="Visa bild från ${esc(x.display_name || 'någon')}"><img src="${esc(x.url)}" alt="" loading="lazy"><span>${esc(x.display_name || 'Växtvän')}</span></button>`).join('')}</div>`;
   return `<div class="sec"><h2>Andras bilder på samma växt</h2>${list.length ? `<span class="mut" style="font-size:13px">${list.length} st</span>` : ''}</div>${body}`;
 }
@@ -9748,6 +9754,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.326', '9 nov', ['Solbanans kompass är lättare att förstå: en kort förklaring ovanför, tydligare teckenförklaring och en ⓘ-ruta som förklarar ringar, solhöjd och åt vilket håll skuggan faller', 'När solen har gått ner eller inte gått upp än får du ett tydligt besked med klockslag', 'Andras bilder på en växt visas först när de har granskats, så att bara riktiga växtbilder syns. Du kan fortfarande rapportera en bild']],
   ['Beta 0.325', '9 nov', ['Solbanan och 3D-vyn hänger ihop: samma datum, klockslag och plats. Skuggorna i 3D räknas exakt för den dag du valt', 'I 3D syns solens bana som en orange båge över huset, med solen där den står vid vald tid', 'Snabbval i 3D för idag, dagjämningar, midsommar och vintersolstånd. I Solbanan finns knappen Visa skuggorna i 3D', 'Soltimmarna i trädgården räknas nu för husets riktiga plats', 'Fix: solreglaget i 3D-vyn fungerar igen']],
   ['Beta 0.324', '9 nov', ['Nytt verktyg: Solbana. Se exakt var solen går ett visst datum och klockslag, med snabbval för midsommar, dagjämningar och frostdatum för din zon', 'Lägg till hus och träd som skuggar, så räknar appen ut hur många soltimmar platsen får och vilka växter som passar där', 'Rikta telefonen mot himlen så visar kompassen var solen står', 'Tio nya klätterväxter i Växtbiblioteket, bland annat trumpetranka, kiwi, akebia och rävdruva']],
   ['Beta 0.323', '9 nov', ['Odlingszon: välj din zon en gång, så syns den för andra växtvänner. Du behöver inte ange stad', 'Hitta användare: profilbilder, eller en blomma på samma bokstav som namnet. Knapparna Lägg till vän och Profil, och ingen knapp om ni redan är vänner', 'Andras hem: tryck Visa stort för att vrida och zooma i 3D. Du kan bara titta', 'Mina djur: lägg till fisk direkt i akvariet, och varje fiskart får en egen matrutin', 'Ritning: ta bort alla möbler på våningen på en gång', 'Nyckelpigan: bifoga upp till fyra bilder', 'Snabbfråga svarar direkt när du frågar norr eller söder', 'Tryck på fliken du redan är på så scrollar sidan till toppen utan att laddas om', 'Många små fixar: mellanrum, ikoner, sökfält, vattnaknappen och listor på surfplatta']],
@@ -10505,7 +10512,7 @@ function sunPathV() {
   const fr = sowF(y), af = sowA(y), quick = [['Idag', dIso(new Date())], ['Vårdagjämning', y + '-03-20'], ['Sista vårfrost', dIso(fr)], ['Midsommar', y + '-06-21'], ['Höstdagjämning', y + '-09-23'], ['Första frosten', dIso(af)], ['Vintersolstånd', y + '-12-21']];
   const months = [3, 4, 5, 6, 7, 8, 9, 10].map(m => [m, sunDayInfo(`${y}-${String(m).padStart(2, '0')}-15`, loc, obs).sunH]), mx = Math.max(1, ...months.map(x => x[1]));
   const plants = sunPlants(cls[0]);
-  const curTxt = cur.alt > 0 ? `Solen står i <b>${sunWord(cur.az)}</b> (${Math.round(cur.az)}°), <b>${Math.round(cur.alt)}°</b> över horisonten${sunBlocked(cur, obs) ? ', men <b>bakom ett hinder</b>' : ''}.` : 'Solen är under horisonten.';
+  const curTxt = cur.alt > 0 ? `Solen står i <b>${sunWord(cur.az)}</b> (${Math.round(cur.az)}°), <b>${Math.round(cur.alt)}°</b> över horisonten${sunBlocked(cur, obs) ? ', men <b>bakom ett hinder</b>' : ''}.` : (info.allDay || info.noSun ? 'Solen är under horisonten.' : (info.up != null && t < info.up ? `Solen har <b>inte gått upp än</b>. Den går upp kl <b>${hm(info.up)}</b>.` : `Solen har <b>gått ner</b> för i dag${info.down != null ? ` (kl ${hm(info.down)})` : ''}. Då är det skugga överallt.`));
   const dayTxt = info.allDay ? 'Midnattssol: solen går inte ner.' : info.noSun ? 'Polarnatt: solen går inte upp.' : `Upp kl <b>${info.up != null ? hm(info.up) : '–'}</b> · Ner kl <b>${info.down != null ? hm(info.down) : '–'}</b> · Högst <b>${Math.round(info.best.alt)}°</b> kl ${hm(info.best.m)}`;
   return `${topbar('Solbana', 'closeTool()')}
   <p class="mut" style="margin:0 18px">Se exakt var solen går ett visst datum, och hur många soltimmar en plats får. Bra innan du planterar.</p>
@@ -10515,13 +10522,17 @@ function sunPathV() {
   </div></div>
   <div class="pad"><div class="chips2 qfilt sunq">${quick.map(([n, d]) => `<button class="${d === ds ? 'on' : ''}" onclick="sunPSet('sunD','${d}')">${n}</button>`).join('')}</div>
     <div style="display:flex;gap:10px;align-items:center;margin-top:10px"><label class="fl" style="margin:0;flex:1">Datum<input type="date" value="${ds}" onchange="if(this.value)sunPSet('sunD',this.value)"></label></div></div>
-  <div class="pad"><div class="setcard" style="padding:12px">${sunSky(info, loc, obs, cur)}
-    <div class="slegend" style="justify-content:center;flex-wrap:wrap"><span style="color:#F08A24">● Valt datum</span><span style="color:#E8B423">┅ Midsommar</span><span style="color:#6FA8DC">┅ Vintersolstånd</span>${obs.length ? '<span style="color:#888">■ Hinder</span>' : ''}</div>
+  <div class="pad"><div class="setcard" style="padding:12px">
+    <p style="margin:0 0 4px;font-size:14.5px"><b>Så läser du kompassen</b></p>
+    <p class="mut" style="margin:0 0 8px;font-size:13.5px">Du tittar rakt ovanifrån. <b>Mitten är där du står</b>, och N, O, S och V är väderstrecken. Den <b style="color:#F08A24">orangea bågen</b> är den väg solen går över himlen det datum du valt. Den <b style="color:#E8A800">gula pricken</b> är solen vid klockslaget du valt (den syns när solen är uppe). Slår du på kompassen med <i>Rikta telefonen</i> visas en <b style="color:var(--pri)">grön linje</b> som pekar dit telefonen är riktad.</p>
+    <details style="margin:0 0 8px"><summary style="cursor:pointer;font-size:13.5px;font-weight:700">ⓘ Mer om ringar, höjd och skugga</summary><div class="mut" style="font-size:13.5px;margin-top:6px"><p style="margin:0 0 6px"><b>Ringarna</b> visar hur högt solen står. Yttersta ringen är horisonten (0°), ringen märkt 30° är en tredjedel upp mot himlen, ringen märkt 60° är två tredjedelar upp, och mitten är rakt upp (90°). Ju närmare mitten bågen går, desto högre står solen och desto kortare blir skuggorna.</p><p style="margin:0 0 6px"><b>Skuggan</b> faller alltid åt motsatt håll mot solen. Står solen i söder faller skuggan mot norr. Ligger en tänkt plantering i skuggan av ett hus eller ett träd när solen står i ett visst väderstreck, får den ingen direkt sol då.</p><p style="margin:0"><b>Midsommar</b> är årets högsta och bredaste båge, och <b>vintersolståndet</b> är den lägsta. Alla andra dagar går solen någonstans mellan dem. Vill du se hur solen går under växtsäsongen, hoppa mellan datumknapparna ovanför.</p></div></details>
+    ${sunSky(info, loc, obs, cur)}
+    <div class="slegend" style="justify-content:center;flex-wrap:wrap"><span style="color:#F08A24">━ Solens väg valt datum</span><span style="color:#E8A800">● Solen vid vald tid</span>${cmpOn ? '<span style="color:var(--pri)">━ Telefonens riktning</span>' : ''}<span style="color:#E8B423">┅ Midsommar (högst)</span><span style="color:#6FA8DC">┅ Vintersolstånd (lägst)</span>${obs.length ? '<span style="color:#888">■ Hinder</span>' : ''}</div>
     <label class="fl" style="margin:12px 0 4px">Tid: <b id="suntl">${hm(t)}</b></label>
     <input type="range" min="0" max="1435" step="5" value="${t}" style="width:100%" oninput="S.sunT=+this.value;S.sunPin=true;document.getElementById('suntl').textContent=hm(S.sunT);clearTimeout(window.__sunT);window.__sunT=setTimeout(keepMain,60)" aria-label="Tid på dygnet">
     <p style="margin:10px 0 4px;font-size:15px">${curTxt}</p>
     <p class="mut" style="margin:0;font-size:14px">${dayTxt}</p>
-    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">${S.user && S.pro ? '<button class="btn sm" onclick="sunTo3d()">' + ic('ph-cube', 'currentColor', 16) + ' Visa skuggorna i 3D</button>' : ''}${typeof DeviceOrientationEvent !== 'undefined' ? (cmpOn ? '<button class="btn sm line" onclick="stopCompass();keepMain()">Stäng kompassen</button>' : '<button class="btn sm line" onclick="startCompass().then(keepMain)">🧭 Rikta telefonen</button>') : ''}<small id="sunaim" class="mut">${sunAimTxt(cur)}</small></div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">${S.user && S.pro ? '<button class="btn sm" onclick="sunTo3d()">' + ic('ph-cube', 'currentColor', 16) + ' Visa skuggorna i 3D</button>' : ''}${typeof DeviceOrientationEvent !== 'undefined' ? (cmpOn ? '<button class="btn sm line" onclick="stopCompass();keepMain()">Stäng kompassen</button>' : '<button class="btn sm line" onclick="startCompass().then(keepMain)">🧭 Rikta telefonen</button>') : ''}</div><p id="sunaim" class="mut" style="margin:8px 0 0;font-size:13.5px">${sunAimTxt(cur)}</p>
   </div></div>
   <div class="sec"><h2>Soltimmar här</h2></div>
   <div class="pad"><div class="setcard" style="padding:14px">
@@ -10540,7 +10551,7 @@ function sunPathV() {
       <div style="display:flex;gap:10px"><label class="fl" style="flex:1">Höjd (m)<input id="soh" inputmode="decimal" placeholder="T.ex. 6"></label><label class="fl" style="flex:1">Avstånd (m)<input id="sod" inputmode="decimal" placeholder="T.ex. 10"></label></div>
       <div style="display:flex;gap:8px;margin-top:12px"><button class="btn" style="flex:1" onclick="sunObsAdd()">Lägg till</button><button class="btn line" onclick="sunPSet('sunObsAdd',false)">Avbryt</button></div></div>` : ''}
   </div>
-  <p class="mut" style="margin:12px 18px 0;font-size:12.5px">Tiderna gäller den tidszon telefonen har. Solens läge räknas med samma formler som SunCalc.</p>`;
+  <p class="mut" style="margin:12px 18px 0;font-size:12.5px">Tiderna gäller den tidszon telefonen har. Solens läge räknas med samma formler som SunCalc.</p><div style="height:96px"></div>`;
 }
 function openCompass() { stopLight(); S.sel = null; S.modal = null; S.tool = 'compass'; render(); $('#main').scrollTop = 0; startCompass(); }
 async function startCompass() {
@@ -11154,7 +11165,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.325';
+const APP_VERSION = 'Beta 0.326';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];

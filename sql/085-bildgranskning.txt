@@ -1,0 +1,24 @@
+-- 085: Andras bilder på en växt visas först när de är granskade och godkända.
+-- Kör hela filen en gång i SQL-editorn. Går att köra flera gånger.
+-- Bilder som redan fanns godkänns automatiskt, så inget försvinner. Nya bilder väntar på granskning.
+create table if not exists public.photo_review (
+  url text primary key,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  reviewed_at timestamptz default now()
+);
+alter table public.photo_review enable row level security;  -- inga policyer: bara servern och funktionerna kommer åt tabellen
+
+insert into public.photo_review (url, status)
+select distinct u, 'approved' from (
+  select photo_url as u from public.user_plants where photo_url is not null
+  union all
+  select unnest(photos) from public.user_plants where photos is not null
+) s where u is not null
+on conflict (url) do nothing;
+
+-- Appen skickar in bildadresserna den fått från plant_photos och får tillbaka de som är godkända.
+create or replace function public.approved_photos(p_urls text[])
+returns setof text language sql stable security definer set search_path = public as $$
+  select url from public.photo_review where status = 'approved' and url = any(p_urls)
+$$;
+grant execute on function public.approved_photos(text[]) to authenticated, anon;
