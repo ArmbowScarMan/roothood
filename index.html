@@ -1770,7 +1770,7 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 .uvbbox{margin:10px 0;padding:12px;border-radius:12px;background:rgba(255,255,255,.05)}.uvb{margin:8px 0 0;font-size:14px}.uvb.w{color:#c77700;font-weight:700}.uvb.d{color:#d64545;font-weight:700}.feedrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:14px;margin:6px 0}.feedrow .bad{color:#d64545}#app{overflow:clip}i.ph{display:inline-block;background:none;overflow:visible;vertical-align:-.125em}#app i.ph,#ov i.ph{width:auto;height:auto;aspect-ratio:auto;border-radius:0;box-shadow:none;background:none}.prow2.mur{margin-bottom:8px}.phwrap{position:relative;display:block;border-radius:30px;overflow:hidden}.phwrap>.ph{width:100%}.phcred{position:absolute;left:0;right:0;bottom:0;font-size:10.5px!important;padding:14px 10px 6px;font-size:10.5px;line-height:1.3;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.6));display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-align:left}.phcred b{font-weight:700}.avflower{display:grid;place-items:center;line-height:1}.pbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex:none}.prow2.pwrap{flex-wrap:wrap}.prow2.pwrap .pbtns{width:100%;justify-content:flex-start;padding-left:56px;box-sizing:border-box}.prow2 .tag{flex:none}.fbshots{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.fbshots .fbshot{margin:0}.fbsh{display:flex;flex-direction:column;align-items:flex-start;gap:4px}.aqfeed{padding:0 4px 10px;border-bottom:1px solid var(--line);margin-bottom:6px}.search>i.ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--mut);pointer-events:none}.jnote textarea{border:1px solid var(--line);background:rgba(127,127,127,.06);border-radius:12px;padding:10px}.sitform{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}.sitform label{min-width:0}.sitform label:first-child,.sitform .btn{grid-column:1/-1}.sitform select,.sitform input{width:100%;box-sizing:border-box;min-height:46px;padding:10px 14px}.mchips{-webkit-mask-image:linear-gradient(to right,transparent 0,#000 18px,#000 calc(100% - 18px),transparent 100%);mask-image:linear-gradient(to right,transparent 0,#000 18px,#000 calc(100% - 18px),transparent 100%)}.hscroll,.mchips{scroll-padding-inline:18px}.planbox.home3d{touch-action:pan-y}.wdrop{font-size:22px;line-height:1}.wdbars{display:flex;gap:6px;align-items:flex-end;height:120px}.wdbars>div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font-size:11px}.wdbars span{display:block;width:100%;background:var(--acc);border-radius:6px 6px 0 0;min-height:2px}.sunbars{height:110px}.sunbars small{line-height:1.2}.slegend{display:flex;gap:14px;font-size:13px;margin-top:4px}.donut{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.dleg{list-style:none;padding:0;margin:0;font-size:14px;flex:1;min-width:150px}.dleg li{display:flex;align-items:center;gap:6px;padding:3px 0}.dleg i{display:inline-block;width:12px;height:12px;border-radius:4px}.sitbox{margin-top:10px;padding:12px;border-radius:12px;background:rgba(255,255,255,.05)}.sitbox section{padding:8px 0;border-bottom:1px solid rgba(0,0,0,.08)}.sitbox h2{font-size:16px;margin:0 0 4px}.sitbox p{margin:3px 0;font-size:14px}
 .loglist{list-style:none;padding:0;margin:6px 0;font-size:14px}.loglist li{padding:5px 0;border-bottom:1px solid rgba(0,0,0,.08);display:flex;gap:8px;flex-wrap:wrap;align-items:center}.logadd{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:8px}
 </style></head><body>
-<div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas inte förrän nätet är tillbaka.</div>
+<div id="offline" role="status" hidden>Du är offline. Det du såg senast finns kvar. Nya ändringar sparas i telefonen och skickas när nätet är tillbaka.</div>
 <div id="app"><div id="main"></div>
 <nav aria-label="Huvudmeny">
 <button data-t="home" onclick="navTap('home')" aria-label="Start"><i class="ph ph-house" style="font-size:22px"></i><span>Start</span></button>
@@ -2221,8 +2221,30 @@ const isMod = () => S.role === 'mod' || S.role === 'admin', isAdmin = () => S.ro
 // ===== Åtgärder =====
 let toastT;
 function toast(t) { const el = $('#toast'); el.textContent = tr(t); iconize(el); el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, 2800); }
+// ===== Offline-kö (punkt 17): ändringar som inte kom fram sparas i telefonen och skickas när nätet är tillbaka =====
+const WQ_KEY = 'wq_v1';
+const wqGet = () => { try { const a = JSON.parse(localStorage.getItem(WQ_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
+const wqSet = a => { try { if (a.length) localStorage.setItem(WQ_KEY, JSON.stringify(a)); else localStorage.removeItem(WQ_KEY); } catch (e) { } wqShow(); };
+function wqAdd(item) { const a = wqGet(); if (a.length >= 300) { toast('För många ändringar väntar. Gå online för att skicka dem.'); return; } a.push(item); wqSet(a); toast('Sparat i telefonen. Skickas när nätet är tillbaka'); }
+let wqBusy = false;
+async function wqFlush() {
+  if (wqBusy || !navigator.onLine || !wqGet().length) return; wqBusy = true; let sent = 0;
+  try {
+    while (true) {
+      const a = wqGet(); if (!a.length) break; const it = a[0];
+      const hd = Object.assign({}, it.h);
+      if (hd.Authorization && sb && sb.auth && sb.auth.getSession) { try { const { data } = await sb.auth.getSession(); if (data && data.session) hd.Authorization = 'Bearer ' + data.session.access_token; } catch (e) { } }
+      let r; try { r = await fetch(it.u, { method: it.m, headers: hd, body: it.b }); } catch (e) { break; } // nätet försvann igen, behåll kön
+      if (r.status === 401 || r.status === 408 || r.status === 429 || r.status >= 500) break; // tillfälligt fel, prova igen senare
+      wqSet(wqGet().slice(1)); sent++; // skickad, eller avvisad av servern (då kan den inte skickas om)
+    }
+  } finally { wqBusy = false; wqShow(); }
+  if (sent) { toast('Ändringar skickade: ' + sent); if (S.user) { try { S.mine = await api.mine(); } catch (e) { } render(); } }
+}
+function wqShow() { const el = document.getElementById('offline'), n = wqGet().length; if (!el) return; el.textContent = navigator.onLine ? (n ? n + ' ändringar väntar på att skickas' : '') : 'Du är offline. Det du såg senast finns kvar.' + (n ? ' ' + n + ' ändringar sparas i telefonen och skickas när nätet är tillbaka.' : ' Nya ändringar sparas i telefonen och skickas när nätet är tillbaka.'); el.hidden = navigator.onLine && !n; }
+window.addEventListener('online', () => { wqShow(); wqFlush(); });
 async function run(fn, ok) {
-  try { await fn(); S.mine = await api.mine(); if (ok) toast(ok); }
+  try { await fn(); if (!navigator.onLine) { toast('Sparat i telefonen. Skickas när nätet är tillbaka'); render(); return; } S.mine = await api.mine(); if (ok) toast(ok); }
   catch (e) { toast(errMsg(e)); }
   render();
 }
@@ -10058,6 +10080,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.332', '9 nov', ['Ändringar sparas i telefonen när nätet är borta, och skickas i ordning när det är tillbaka. Bilder ingår inte än'] ],
   ['Beta 0.331', '9 nov', ['Ljuszoner i 3D: varje växtlampa har en röd ring på golvet under sig, som syns hela tiden'] ],
   ['Beta 0.330', '9 nov', ['Terrarier: ange när UVB-lampan tänds och hur många timmar den lyser. Appen visar om den lyser just nu och när den tänds eller släcks', 'I Mitt hem visar en vald terrarie-möbel UVB-status och när djuret ska matas nästa gång'] ],
   ['Beta 0.329', '9 nov', ['Solbanan visar vädret: hur mycket sol prognosen ger den valda dagen, och hur mycket molnen just nu tar bort', 'Ta en bild direkt från växtkortet i Min samling med kameraknappen. Bilden visas för andra först när den har granskats', 'Giftig för husdjur: tryck på varningen och välj Utom räckhåll från husdjuren eller Dölj. Då försvinner varningen, och bara nya giftiga växter visas igen'] ],
@@ -11687,7 +11710,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.331';
+const APP_VERSION = 'Beta 0.332';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -12059,7 +12082,7 @@ function installCard() {
 }
 if ('serviceWorker' in navigator && window.isSecureContext && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 // Offline-banner
-const showOffline = () => { const el = document.getElementById('offline'); if (el) el.hidden = navigator.onLine; };
+const showOffline = () => { wqShow(); };
 window.addEventListener('online', showOffline); window.addEventListener('offline', showOffline); showOffline();
 
 // ===== Start =====
@@ -12076,13 +12099,22 @@ async function init() {
     if (!DEMO) {
       await loadScript('./supabase.js?v=2.45.4');
       // Skickar headers som ett vanligt objekt, så att appen även fungerar i förhandsvisningar som inte klarar Headers-objekt
-      const plainFetch = (input, init = {}) => {
+      const plainFetch = async (input, init = {}) => {
         const opts = { ...init };
         if (opts.headers instanceof Headers) opts.headers = Object.fromEntries(opts.headers.entries());
         if (!opts.signal) delete opts.signal;
+        const url = typeof input === 'string' ? input : (input && input.url) || '', m = String(opts.method || 'GET').toUpperCase();
+        const h = opts.headers || {}, pref = String(h.Prefer || h.prefer || '');
+        // Ändringar (insert, update, delete, rpc) utan svar i data köas i telefonen om nätet är borta, och skickas i tur och ordning när nätet är tillbaka
+        if (m !== 'GET' && m !== 'HEAD' && url.includes('/rest/v1/') && !/return=representation/i.test(pref) && typeof opts.body === 'string') {
+          if (navigator.onLine) { try { return await fetch(url, opts); } catch (e) { } }
+          wqAdd({ u: url, m, h, b: opts.body, t: Date.now() });
+          return new Response(null, { status: 204 });
+        }
         return fetch(input, opts);
       };
       sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { fetch: plainFetch } });
+      setTimeout(wqFlush, 1500);
       if (sb.auth.onAuthStateChange) sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') resetUserState(); if (ev === 'PASSWORD_RECOVERY') setTimeout(() => { S.msg = ''; openModal('newpw'); }, 300); });
       api = sbApi;
     }
