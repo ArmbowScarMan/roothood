@@ -1779,7 +1779,7 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 <button data-t="me" onclick="navTap('me')" aria-label="Profil"><i class="ph ph-user-circle" style="font-size:22px"></i><span>Profil</span></button>
 </nav>
 <button id="fab" class="fab" onclick="openQAdd()" aria-label="Lägg till växt" hidden><i class="ph ph-plus" style="font-size:26px"></i></button>
-<button id="bugb" class="bugb" onclick="openFb()" aria-label="Rapportera fel eller ge förslag" hidden><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M13.2 5.2C12.4 3.4 11 2.4 9.4 2.2M18.8 5.2C19.6 3.4 21 2.4 22.6 2.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="9.2" cy="2.3" r="1.4" fill="currentColor"/><circle cx="22.8" cy="2.3" r="1.4" fill="currentColor"/><circle cx="16" cy="9" r="6" fill="#2A2422" stroke="rgba(255,255,255,.35)" stroke-width=".8"/><circle cx="16" cy="20.2" r="10.2" fill="#E5484D" stroke="#B8323A" stroke-width=".8"/><path d="M16 10.2V30.2" stroke="#2A2422" stroke-width="1.3"/><circle cx="10.8" cy="16.6" r="2.1" fill="#2A2422"/><circle cx="21.2" cy="16.6" r="2.1" fill="#2A2422"/><circle cx="9.6" cy="23" r="1.8" fill="#2A2422"/><circle cx="22.4" cy="23" r="1.8" fill="#2A2422"/><circle cx="13.4" cy="27" r="1.3" fill="#2A2422"/><circle cx="18.6" cy="27" r="1.3" fill="#2A2422"/><ellipse cx="11.4" cy="13.4" rx="2.2" ry="1.2" fill="#fff" opacity=".45" transform="rotate(-30 11.4 13.4)"/><circle cx="13.6" cy="7.6" r="1.6" fill="#fff"/><circle cx="18.4" cy="7.6" r="1.6" fill="#fff"/><circle cx="13.9" cy="7.9" r=".8" fill="#2A2422"/><circle cx="18.7" cy="7.9" r=".8" fill="#2A2422"/><circle cx="12.4" cy="10.4" r=".9" fill="#F49BA0" opacity=".85"/><circle cx="19.6" cy="10.4" r=".9" fill="#F49BA0" opacity=".85"/></svg></button>
+<button id="bugb" class="bugb" onclick="openFb()" aria-label="Nycklas: rapportera fel eller ge förslag" title="Nycklas" hidden><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M13.2 5.2C12.4 3.4 11 2.4 9.4 2.2M18.8 5.2C19.6 3.4 21 2.4 22.6 2.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="9.2" cy="2.3" r="1.4" fill="currentColor"/><circle cx="22.8" cy="2.3" r="1.4" fill="currentColor"/><circle cx="16" cy="9" r="6" fill="#2A2422" stroke="rgba(255,255,255,.35)" stroke-width=".8"/><circle cx="16" cy="20.2" r="10.2" fill="#E5484D" stroke="#B8323A" stroke-width=".8"/><path d="M16 10.2V30.2" stroke="#2A2422" stroke-width="1.3"/><circle cx="10.8" cy="16.6" r="2.1" fill="#2A2422"/><circle cx="21.2" cy="16.6" r="2.1" fill="#2A2422"/><circle cx="9.6" cy="23" r="1.8" fill="#2A2422"/><circle cx="22.4" cy="23" r="1.8" fill="#2A2422"/><circle cx="13.4" cy="27" r="1.3" fill="#2A2422"/><circle cx="18.6" cy="27" r="1.3" fill="#2A2422"/><ellipse cx="11.4" cy="13.4" rx="2.2" ry="1.2" fill="#fff" opacity=".45" transform="rotate(-30 11.4 13.4)"/><circle cx="13.6" cy="7.6" r="1.6" fill="#fff"/><circle cx="18.4" cy="7.6" r="1.6" fill="#fff"/><circle cx="13.9" cy="7.9" r=".8" fill="#2A2422"/><circle cx="18.7" cy="7.9" r=".8" fill="#2A2422"/><circle cx="12.4" cy="10.4" r=".9" fill="#F49BA0" opacity=".85"/><circle cx="19.6" cy="10.4" r=".9" fill="#F49BA0" opacity=".85"/></svg></button>
 <div id="ov"></div><div id="toast" class="toast" hidden role="status"></div>
 </div>
 <script>
@@ -7533,7 +7533,7 @@ async function fbSend() { const t = $('#fbt'), body = ((t && t.value) || '').tri
   try { await api.sendFb({ kind: S.fbf.kind, body: body.slice(0, 4000), view: (S.fbView || '').slice(0, 200), version: APP_VERSION, ua: navigator.userAgent.slice(0, 300) }, (S.fbf.photos || []).map(x => x.file)); S.fbf = null; S.modal = null; toast('Tack! Din rapport är skickad 🙏'); }
   catch (e) { toast(e.message === 'FB_NOT_READY' ? 'Rapporter är inte påslagna än. Kör SQL-filen 056-feedback i Supabase.' : errMsg(e)); } S.busy = false; render(); }
 function fbV() { const F = S.fbf || { kind: 'bug' };
-  return `<div class="mh"><h2>Rapportera fel eller ge förslag</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  return `<div class="mh"><h2>Nycklas: rapportera fel eller ge förslag</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div class="chips2">${[['bug', '🐞 Något är fel'], ['idea', '💡 Förslag'], ['other', 'Annat']].map(([k, n]) => `<button class="${F.kind === k ? 'on' : ''}" aria-pressed="${F.kind === k}" onclick="S.fbf.kind='${k}';keepScroll()">${n}</button>`).join('')}</div>
   <label class="fl" for="fbt">${F.kind === 'bug' ? 'Vad hände? Vad tryckte du på och vad förväntade du dig?' : F.kind === 'idea' ? 'Vad vill du kunna göra?' : 'Berätta'}</label><textarea id="fbt" rows="5" maxlength="4000" oninput="S.fbf.body=this.value">${esc(F.body || '')}</textarea>
   ${(F.photos || []).length ? `<div class="fbshots">${F.photos.map((ph, i) => `<div class="fbsh"><img class="fbshot" src="${esc(ph.url)}" alt="Bifogad bild ${i + 1}" onclick="this.classList.toggle('big')" onerror="fbBroken(this)"><button class="x" onclick="fbPhotoDel(${i})" aria-label="Ta bort bild ${i + 1}">Ta bort</button></div>`).join('')}</div>` : ''}
@@ -8911,7 +8911,7 @@ function meV() {
   return `${topbar('Profil', null, (isMod() ? modBtn() : '') + gearBtn())}${userBody(meCardNow(), S.meCard ? S.meCard.posts : null, true)}${S.user ? badgeSection() : ''}${DEMO ? '<p class="mut" style="margin:0 18px">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}
   <div class="sec"><h2>Konto och inställningar</h2></div>
   ${S.user ? proCard() : ''}
-  ${S.user ? `<button class="setcard fbcard" onclick="openFb()"><span class="tic">${ic('ph-bug', 'currentColor', 22)}</span><span class="grow"><b>Rapportera fel eller ge förslag</b><span>Hjälp oss göra Roothood bättre. Skärmbild går bra att bifoga.</span></span></button>` : ''}
+  ${S.user ? `<button class="setcard fbcard" onclick="openFb()"><span class="tic">${ic('ph-bug', 'currentColor', 22)}</span><span class="grow"><b>Nycklas: rapportera fel eller ge förslag</b><span>Nycklas är felknappen. Hjälp oss göra Roothood bättre. Skärmbild går bra att bifoga.</span></span></button>` : ''}
   ${installCard()}
   ${settingsRow()}
   <div class="pad" style="padding-top:12px"><button class="setrow" onclick="openPeople()"><span class="tic">${ic('ph-users', 'currentColor', 20)}</span><span class="grow"><b>Hitta användare</b><span>Sök på namn eller ort och följ andra växtvänner</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
@@ -10080,6 +10080,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.333', '9 nov', ['Felknappen, nyckelpigan, heter nu Nycklas. Den syns i Profil och i rubriken när du rapporterar'] ],
   ['Beta 0.332', '9 nov', ['Ändringar sparas i telefonen när nätet är borta, och skickas i ordning när det är tillbaka. Bilder ingår inte än'] ],
   ['Beta 0.331', '9 nov', ['Ljuszoner i 3D: varje växtlampa har en röd ring på golvet under sig, som syns hela tiden'] ],
   ['Beta 0.330', '9 nov', ['Terrarier: ange när UVB-lampan tänds och hur många timmar den lyser. Appen visar om den lyser just nu och när den tänds eller släcks', 'I Mitt hem visar en vald terrarie-möbel UVB-status och när djuret ska matas nästa gång'] ],
@@ -11710,7 +11711,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.332';
+const APP_VERSION = 'Beta 0.333';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
