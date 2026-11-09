@@ -4923,7 +4923,9 @@ const PETFOR = { terr: ['reptil', 'skoldpadda', 'gnagare'], petbed: ['katt', 'hu
 const petsOf = f => { const ids = (f && f.pets) || []; return ids.length ? petsList().filter(p => ids.includes(p.id)) : []; };
 function petRow(f) { if (S.user && !S.pets && !S.petsLoading) { S.petsLoading = true; loadPets().then(() => { S.petsLoading = false; render(); }); }
   const L = petsList().filter(p => PETFOR[f.t].includes(p.kind));
-  return `<div class="pfopt"><small>Djur här</small>${L.length ? `<div class="chips2 qfilt">${L.map(p => `<button class="${(f.pets || []).includes(p.id) ? 'on' : ''}" onclick="furnPet(${+p.id})">${(PK[p.kind] || ['', '🐾'])[1]} ${esc(p.name || '')}${p.kind === 'fisk' && p.n > 1 ? ' ×' + p.n : ''}</button>`).join('')}</div>` : `<p class="mut" style="font-size:12.5px;margin:0">${S.pets ? 'Lägg till djur under Mina djur, så kan du välja dem här.' : 'Hämtar dina djur…'}</p>`}</div>`; }
+  const T = f.t === 'terr' ? petsOf(f).filter(p => ['reptil', 'skoldpadda'].includes(p.kind)) : [];
+  const Tx = T.map(p => `<div class="mut" style="font-size:12.5px;margin-top:6px"><b>${esc(p.name || '')}</b>: ${uvbTimerTxt(p)}${p.uvb ? '' : ' · UVB-lampans datum inte satt'} · ${feedLine(p)}</div>`).join('');
+  return `<div class="pfopt"><small>Djur här</small>${L.length ? `<div class="chips2 qfilt">${L.map(p => `<button class="${(f.pets || []).includes(p.id) ? 'on' : ''}" onclick="furnPet(${+p.id})">${(PK[p.kind] || ['', '🐾'])[1]} ${esc(p.name || '')}${p.kind === 'fisk' && p.n > 1 ? ' ×' + p.n : ''}</button>`).join('')}</div>` : `<p class="mut" style="font-size:12.5px;margin:0">${S.pets ? 'Lägg till djur under Mina djur, så kan du välja dem här.' : 'Hämtar dina djur…'}</p>`}${Tx}</div>`; }
 function furnPet(id) { const f = planFurn().find(x => x.id === PL().sel.id); if (!f) return; pushUndo(); const a = f.pets || []; f.pets = a.includes(id) ? a.filter(x => x !== id) : a.concat(id); if (!f.pets.length) delete f.pets; saveHomeSoon(); render(); }
 function furnLabel(f) { const nm = (FURN_M[f.t] || [0, 'Möbel'])[1], pn = petsOf(f).map(p => p.name).filter(Boolean); return pn.length ? nm + ' · ' + pn.join(', ') : nm; }
 function furnSet(k, v) { const f = planFurn().find(x => x.id === PL().sel.id); if (!f) return; pushUndo(); if (v === '' || v == null) delete f[k]; else f[k] = k === 'uh' ? +v : v; saveHomeSoon(); render(); }
@@ -7129,6 +7131,15 @@ function vetV(a) {
   return `<div class="uvbbox"><b>Veterinärkort</b>${F('chip', 'Chipnummer')}${F('vacLast', 'Senaste vaccination', 'date')}${F('vacNext', 'Nästa vaccination', 'date')}${overdue ? '<p class="uvb d">Vaccinationen har gått ut. Boka tid hos veterinären.</p>' : ''}${F('deworm', 'Senaste avmaskning', 'date')}${F('ins', 'Försäkringsnummer')}${F('clinic', 'Veterinär eller klinik')}</div>`;
 }
 function setUvb(id, v) { const a = petsList().find(x => x.id === id); if (!a) return; a.uvb = v || null; savePets(); keepMain(); }
+// UVB-timer (punkt 14): när lampan tänds och hur många timmar den lyser per dygn
+function setUvbT(id, k, v) { const a = petsList().find(x => x.id === id); if (!a) return; if (k === 'uvbH') v = Math.max(1, Math.min(24, parseInt(v) || 12)); a[k] = v || null; savePets(); keepMain(); }
+function uvbTimerTxt(a) {
+  const [h, m] = String(a.uvbOn || '08:00').split(':').map(Number), on = h * 60 + m, len = Math.round((+a.uvbH || 12) * 60);
+  const hm2 = x => String(Math.floor(x / 60) % 24).padStart(2, '0') + ':' + String(x % 60).padStart(2, '0');
+  const off = (on + len) % 1440, now = new Date(), n = now.getHours() * 60 + now.getMinutes();
+  const lit = len >= 1440 || (on < off ? (n >= on && n < off) : (n >= on || n < off));
+  return lit ? `UVB lyser nu, släcks kl ${hm2(off)}` : `UVB är släckt, tänds kl ${hm2(on)}`;
+}
 function uvbInfo(a) {
   if (!a.uvb) return null;
   const d = new Date(a.uvb + 'T00:00:00'), now = new Date();
@@ -7137,7 +7148,7 @@ function uvbInfo(a) {
 }
 function uvbV(a) {
   const info = uvbInfo(a);
-  return `<div class="uvbbox"><b>UVB-lampa</b><label class="fl" style="margin-top:6px">Installerades</label><input type="date" value="${esc(a.uvb || '')}" onchange="setUvb(${a.id},this.value)">${info ? `<p class="uvb ${info.lv}">${info.t}</p>` : '<p class="mut" style="font-size:13px">Ange datum när lampan sattes upp. Appen påminner när den behöver bytas. Lysrör tappar nyttig UVB långt innan de slocknar, ofta efter 6–12 månader.</p>'}</div>`;
+  return `<div class="uvbbox"><b>UVB-lampa</b><label class="fl" style="margin-top:6px">Installerades</label><input type="date" value="${esc(a.uvb || '')}" onchange="setUvb(${a.id},this.value)"><div class="feedrow" style="margin-top:8px"><span>Tänds kl</span><input type="time" value="${esc(a.uvbOn || '08:00')}" onchange="setUvbT(${a.id},'uvbOn',this.value)" aria-label="Tid då UVB-lampan tänds"><span>Lyser</span><input type="number" min="1" max="24" value="${+a.uvbH || 12}" style="width:70px" onchange="setUvbT(${a.id},'uvbH',this.value)" aria-label="Timmar per dygn"><span>timmar</span></div><p class="uvb" style="margin-top:6px"><b>${uvbTimerTxt(a)}</b></p>${info ? `<p class="uvb ${info.lv}">${info.t}</p>` : '<p class="mut" style="font-size:13px">Ange datum när lampan sattes upp. Appen påminner när den behöver bytas. Lysrör tappar nyttig UVB långt innan de slocknar, ofta efter 6–12 månader.</p>'}</div>`;
 }
 function seasonPetWarn(an) {
   const d = new Date(), m = d.getMonth(), day = d.getDate();
@@ -10038,6 +10049,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.330', '9 nov', ['Terrarier: ange när UVB-lampan tänds och hur många timmar den lyser. Appen visar om den lyser just nu och när den tänds eller släcks', 'I Mitt hem visar en vald terrarie-möbel UVB-status och när djuret ska matas nästa gång'] ],
   ['Beta 0.329', '9 nov', ['Solbanan visar vädret: hur mycket sol prognosen ger den valda dagen, och hur mycket molnen just nu tar bort', 'Ta en bild direkt från växtkortet i Min samling med kameraknappen. Bilden visas för andra först när den har granskats', 'Giftig för husdjur: tryck på varningen och välj Utom räckhåll från husdjuren eller Dölj. Då försvinner varningen, och bara nya giftiga växter visas igen'] ],
   ['Beta 0.328', '9 nov', ['Vintervila följer nu solen: när dagen på din plats är kortare än 8 timmar vattnas inomhusväxterna mer sällan och gödselpåminnelserna döljs. Så sker det tidigare i norr än i söder', 'Fönstervakten: vädervarningarna nämner nu vilka av dina växter som påverkas. Vid stark sol (UV 6 eller mer) varnas växter i söderfönster, vid sträng kyla växter nära fönsterrutan, och på våren varnas du för plötsliga köldfall', 'Växtbiblioteket: nytt filter Även med skydd, som visar växter som går att odla i din zon med ett skyddat läge. På växtsidan står det nu Möjlig med skydd i din zon','Skördeklart: i Såkalendern ser du vad som är redo att skörda, eller snart blir det, och kan markera det som skördat','Nya recept: 38 recept på det du skördar, med mängder och tider från svenska och internationella källor, med tips om vad du kan laga av det du har just nu','Notiser: slå på Fönstervakt och Skördeklart under Påminnelser, så får du en notis när det blir för kallt eller soligt vid fönstret, och den dag något är redo att skördas','Upptäck: svep höger på växter du inte har, så sparas de i Högerswipe. Filtrera på zon, husdjurssäker och ljus. Under Matcha svarar du på tre frågor och får förslag att lägga i önskelistan','Utskrift: Skriv ut veckans skötsel i Journalen, med kryssrutor för vattning och gödsling','Högkontrast för växtlampor under Inställningar, med svart bakgrund och vit text','Startsidan visar hur många växter som behöver din uppmärksamhet idag, och varnar om en giftig växt finns hemma hos ett katt eller en hund','Ångra: när du tar bort en växt kan du ångra i fem sekunder. Vattna hela rummet kan också ångras','Diktera i växtjournalen med mikrofonen, där webbläsaren stöder det','Odlingslådor visar höjd och hur många liter jord som behövs']],
   ['Beta 0.327', '9 nov', ['Solbana har nu en kamera: välj datum och tid, tryck på Kamera och rikta telefonen. Solen och dess bana syns i kamerabilden, och en pil visar åt vilket håll du ska vrida dig', 'Tidsreglaget i Solbana går att dra med fingret, i stället för att man måste trycka bredvid', 'Ditt hem: knapparna Lägg till rum, Visa huset i 3D och Rita planritning ligger överst. Rumsraderna är slimmare och du kan minimera hela rumslistan']],
@@ -11665,7 +11677,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.329';
+const APP_VERSION = 'Beta 0.330';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
