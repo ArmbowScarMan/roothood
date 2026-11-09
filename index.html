@@ -1358,6 +1358,10 @@ nav button{min-width:44px}
 .wzl .grow,.wzroom .grow,.wzpb .grow{flex:1;min-width:0}
 .wzlist.sl{gap:6px}.wzlist.sl .wzroom{min-height:46px;padding:7px 12px;gap:10px;border-radius:14px;border-width:1.5px}.wzlist.sl .wzroom b{font-size:15.5px}.wzlist.sl .wzroom span span{font-size:12.5px;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wzlist.sl .wzbadge{font-size:12.5px;padding:4px 10px}
 .sunr{height:40px;touch-action:pan-y;accent-color:var(--pri)}.sunr::-webkit-slider-thumb{width:28px;height:28px}.sunr::-moz-range-thumb{width:28px;height:28px}
+.seg2.sowtabs{overflow-x:auto;flex-wrap:nowrap}.seg2.sowtabs button{padding:8px 8px;flex:none;font-size:13.5px}
+.sownext.harv{font-weight:600}.sownext.harv.nu{color:var(--pri)}.sownext.harv.skordad{color:var(--mut)}
+.rcard{padding:0;margin-bottom:10px;overflow:hidden}.rhead{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;color:var(--ink);font:inherit;text-align:left;padding:12px 14px;cursor:pointer}.rhead b{display:block;font-size:16px}.rhead small{display:block;font-size:12.5px}.rhead .tag{flex:none}
+.rbody{padding:0 14px 14px;font-size:14.5px}.rlist{list-style:none;margin:0;padding:0}.rlist li{padding:2px 0}.rlist.plain li:before{content:'• '}.rsteg{margin:8px 0 0;padding-left:20px}.rsteg li{margin-bottom:4px}.rpet{margin:10px 0 0;padding:8px 10px;border-radius:10px;background:rgb(var(--wr,224 160 60) / .15);font-size:13.5px}
 .hacts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:2px 0 4px}.hacts button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:58px;padding:8px 4px;border:1.5px solid var(--line);background:var(--surf);color:var(--ink);font:inherit;font-size:13px;font-weight:700;border-radius:14px;cursor:pointer;text-align:center}.hacts button.pri{border-color:var(--pri);color:var(--pri)}
 .rmhead{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:var(--ink);font:inherit;font-size:15px;font-weight:800;padding:6px 2px;cursor:pointer;text-align:left}.rmhead small{font-weight:600;color:var(--mut);margin-left:auto;font-size:13px}.rmhead i{transition:transform .15s}.rmhead.shut i{transform:rotate(-90deg)}
 .wzbadge{flex:none;font-size:14px;font-weight:800;border-radius:999px;padding:6px 12px;background:var(--line);color:var(--mut)}.wzbadge.on{background:rgb(var(--gl) / .35);color:var(--ink)}
@@ -1803,7 +1807,14 @@ const jsArg = v => esc(JSON.stringify(String(v ?? '')));
 const today = () => new Date().toLocaleDateString('sv-SE');
 const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toLocaleDateString('sv-SE'); };
 const since = d => { const t = Date.parse(d); return isNaN(t) ? null : Math.round((Date.parse(today()) - t) / 864e5); };
-const left = m => { if (m.remind !== false && sensorDry(m)) return 0; if (!m.interval || m.remind === false) return null; const s0 = since(m.last_watered); return Math.max(0, m.interval - (s0 == null ? m.interval : s0)); };
+// Dagslängd på användarens plats. Under WINTER_H timmar dagsljus går växterna in i vintervila.
+const WINTER_H = 8;
+function dayLenH() { const l = sunLoc(), ds = dIso(new Date()), k = ds + '|' + l.lat.toFixed(1); if (dayLenH.c && dayLenH.c.k === k) return dayLenH.c.h; const h = sunDayInfo(ds, l, []).dayH; dayLenH.c = { k, h }; return h; }
+const winterRest = () => dayLenH() < WINTER_H;
+function dayLenTxt() { const m = Math.round(dayLenH() * 60); return Math.floor(m / 60) + ' h ' + (m % 60) + ' min'; }
+function dayLenSent() { return Math.round(dayLenH() * 60) < 5 ? 'Solen går inte upp (polarnatt).' : 'Dagen är bara ' + dayLenTxt() + ' lång.'; }
+const ivOf = m => m.interval && winterRest() && !isOutM(m) ? Math.round(m.interval * 1.5) : m.interval;
+const left = m => { if (m.remind !== false && sensorDry(m)) return 0; if (!m.interval || m.remind === false) return null; const iv = ivOf(m), s0 = since(m.last_watered); return Math.max(0, iv - (s0 == null ? iv : s0)); };
 const newRemind = () => S.addRemind !== undefined ? S.addRemind : store.get('remindDefault', true);
 const ord = n => (n % 10 === 1 || n % 10 === 2) && n % 100 !== 11 && n % 100 !== 12 ? ':a' : ':e';
 const hueOf = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
@@ -1901,6 +1912,8 @@ function art(cat, name) {
 // ===== Data: Supabase =====
 let sb;
 const sbApi = {
+  async setPushPrefs(w, h) { const { error } = await sb.rpc('save_push_prefs', { p_window: w, p_harvest: h }); if (error) throw error; },
+  async saveHarvest(items) { const { error } = await sb.rpc('save_harvest', { p_items: items }); if (error) throw error; },
   async setPushHour(endpoint, h) { const { error } = await sb.from('push_subscriptions').update({ notify_hour: h }).eq('endpoint', endpoint); if (error) throw /notify_hour/.test(error.message || '') ? new Error('HOUR_NOT_READY') : error; },
   async plantPopularity() { const { data, error } = await sb.rpc('plant_popularity'); if (error) throw error; const o = {}; (data || []).forEach(r => { o[String(r.plant_id)] = r.users; }); return o; },
   async setRemind(id, on) { const { error } = await sb.from('user_plants').update({ remind: on }).eq('id', id); if (error) throw /remind/.test(error.message || '') ? new Error('REMIND_NOT_READY') : error; },
@@ -2279,7 +2292,7 @@ function myplantV() {
   <div class="addpimg">${myPh(m)}</div>
   ${m.latin ? `<p class="mut" style="margin:10px 0 0"><i>${esc(m.latin)}</i></p>` : ''}
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><span class="tag lime">${esc(m.category || 'Egen växt')}</span><span class="tag green">${d === null ? 'Vattna vid torka' : d === 0 ? 'Vattna idag' : 'Vattnas om ' + d + (d === 1 ? ' dag' : ' dagar')}</span></div>
-  ${m.interval ? `<p style="margin:14px 0 0">Vattna ungefär var ${m.interval}${ord(m.interval)} dag.</p>` : ''}
+  ${m.interval ? `<p style="margin:14px 0 0">Vattna ungefär var ${ivOf(m)}${ord(ivOf(m))} dag.${ivOf(m) !== m.interval ? ' <span class="mut">(Vintervila: ' + m.interval + ' dagar under växtsäsongen.)</span>' : ''}</p>` : ''}
   ${m.notes ? `<div class="tipr" style="margin-top:12px;box-shadow:none"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>Anteckningar</b><span>${esc(m.notes)}</span></div></div>` : ''}
   ${sensorCard(m, true)}
   ${detailsV(m, true)}
@@ -2699,7 +2712,7 @@ function zonePickV() {
   <button class="link3" style="margin-top:10px" onclick="S.zpMap=!S.zpMap;keepScroll()">${S.zpMap ? 'Dölj zonkartan' : 'Visa zonkartan'}</button>
   ${S.zpMap ? '<img class="zonkarta" src="zonkarta.jpg" alt="Karta över Sveriges odlingszoner 1 till 8">' : ''}`;
 }
-async function loadHome() { if (!S.user) return; checkZone(); loadSitTasks(); loadFavs(); loadWishes(); loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
+async function loadHome() { if (!S.user) return; syncHarvest(); checkZone(); loadSitTasks(); loadFavs(); loadWishes(); loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
 // Ett tryck från Hem: rakt in i rabattplaneringen i ritningen
 function openBedPlan() {
   if (needPro()) return; openHouse(); S.hmode = 'adv';
@@ -2983,7 +2996,7 @@ function roomFormV() {
   <p class="mut" style="font-size:13px;margin:-2px 0 8px">${(f.wins || []).length || (f.bays || []).length ? 'Räknas fram från fönstren du ritat. Du kan ändra här, men det skrivs över när du ändrar fönstren.' : 'Tryck på ett eller flera väderstreck. Osäker? Tryck på Mät med kompassen och håll telefonen platt med toppen mot fönstret.' + (f.rect ? ' Du kan också rita in fönster i ritningen.' : '')}</p>
   <div class="cpick"><div class="cring"></div><div class="cmid">${f.dirs.length ? f.dirs.join(' + ') : 'Inget<br>fönster'}</div>${pts}</div>
   <p class="mut" style="text-align:center;font-size:14px;margin:4px 0 0"><b style="color:var(--ink)">${esc(roomLightWord(f))}</b> · ${esc(dirTxt(f))}</p>
-  <div style="text-align:center;margin:10px 0 0"><button class="btn sm" onclick="rfCompass()">🧭 Mät med kompassen</button></div>
+  ${ps.length ? `<div style="text-align:center;margin:10px 0 0"><button class="btn sm line" onclick="waterRoom(${r.id})">${ic('ph-drop', 'currentColor', 15)} Vattna hela rummet</button></div>` : ''}<div style="text-align:center;margin:10px 0 0"><button class="btn sm" onclick="rfCompass()">🧭 Mät med kompassen</button></div>
   <label class="tog"><input type="checkbox" ${f.lamp ? 'checked' : ''} onchange="S.rf.lamp=this.checked;keepScroll()"><span><b>Växtlampa i rummet</b></span></label>
   <div class="two"><div><label class="fl">Temperatur</label><div class="chips2 sm">${TEMPS.map(t => `<button class="${f.temp === t ? 'on' : ''}" onclick="S.rf.temp='${t}';keepScroll()">${t}</button>`).join('')}</div></div>
   <div><label class="fl">Luften</label><div class="chips2 sm">${HUMS.map(t => `<button class="${f.hum === t ? 'on' : ''}" onclick="S.rf.hum='${t}';keepScroll()">${t}</button>`).join('')}</div></div></div>
@@ -5969,11 +5982,6 @@ function addpV() {
 }
 function addCustomStart(dest) { if (!S.user) return openModal('login'); S.addDest = dest || 'mine'; if (S.addDest === 'mine' && overLimit()) { S.limitHit = true; return openModal('pro'); } S.prefillTax = null; openModal('add', S.q); }
 function water(id) { const m = S.mine.find(x => x.id === id); run(async () => { await api.water(id); try { await api.addLog(id, 'water', today(), ''); } catch (e) { console.warn('Roothood:', e); } delete S.log[id]; }, m.name + ' är vattnad'); }
-function removeMine(id) {
-  if (S.del !== id) { S.del = id; render(); return; }
-  S.del = null; const m = S.mine.find(x => x.id === id);
-  run(() => api.remove(id), m.name + ' är borttagen');
-}
 function plantRow(f) {
   return {
     swedish_name: f.name, latin_name: f.latin || '', category: f.cat, status: 'pending',
@@ -6235,7 +6243,7 @@ function diaryV(m, inModal) {
   <div class="jquick"><span class="mut">Idag:</span>${['water', 'feed', 'repot', 'prune'].map(k => `<button onclick="jQuick(${m.id},'${k}')">${ic(LOGK[k][1], 'currentColor', 16)} ${LOGK[k][0]}</button>`).join('')}</div>
   <div class="jnote"><textarea id="jn${m.id}" rows="2" maxlength="480" placeholder="Skriv en anteckning, t.ex. nytt blad på gång" oninput="S.jdraft=S.jdraft||{};S.jdraft[${m.id}]=this.value">${esc(draft)}</textarea>
     <div class="chips2 sm jtags">${JTAGS.map(([k, n]) => `<button class="${tag === k ? 'on' : ''}" aria-pressed="${tag === k}" onclick="jTag(${m.id},'${k}')">${n}</button>`).join('')}</div>
-    <div class="jrow"><input id="jd${m.id}" type="date" value="${today()}" max="${today()}" aria-label="Datum"><button class="btn sm" onclick="jNote(${m.id})">Spara</button></div></div>
+    <div class="jrow"><input id="jd${m.id}" type="date" value="${today()}" max="${today()}" aria-label="Datum">${speechOk() ? `<button class="btn sm line" onclick="jVoice(${m.id})" aria-label="Diktera">${ic('ph-microphone', 'currentColor', 16)}</button>` : ''}<button class="btn sm" onclick="jNote(${m.id})">Spara</button></div></div>
   ${m.interval ? `<label class="remrow"><input type="checkbox" ${m.remind !== false ? 'checked' : ''} onchange="setRemind(${m.id}, this.checked)"><span><b>Påminn mig när den behöver vatten</b><span class="mut">${m.remind !== false ? 'Var ' + m.interval + ':e dag, i appen och som notis' : 'Av. Du sköter vattningen själv'}</span></span></label>` : ''}
   ${nextStepsV(m)}
   <div class="chips2 sm jfilt scrx" role="tablist">${[['all', 'Allt'], ['care', 'Skötsel'], ['note', 'Anteckningar'], ['mat', 'Mått']].map(([k, n]) => `<button class="${f === k ? 'on' : ''}" role="tab" aria-selected="${f === k}" onclick="S.jf=S.jf||{};S.jf[${m.id}]='${k}';keepMain()">${n}</button>`).join('')}<button onclick="openDetails(${m.id})">${ic('ph-ruler', 'currentColor', 14)} Mät</button></div>
@@ -6263,9 +6271,10 @@ function careTasks(m, month) {
   const p = plantOf(m), g = careGroup(m), lt = p ? p.light_level || 2 : 2, T = [];
   const n = ((m.name || '') + ' ' + (m.latin || '') + ' ' + (p ? p.latin_name || '' : '')).toLowerCase();
   const add = (mids, sh, k, t, d) => { if (inMonth(month, mids, sh)) T.push({ k, t, d }); };
+  const rest = (t, d) => { const nowM = month === new Date().getMonth() + 1; if (nowM ? winterRest() : [11, 12, 1, 2].includes(month)) T.push({ k: null, t, d: (nowM ? dayLenSent() + ' ' : '') + d }); };
   const repot = since(lastLog(m, 'repot') || '2000-01-01') ?? 9999;
   if (g === 'inne') {
-    add([11, 12, 1, 2], '', null, 'Vintervila', 'Vattna mindre och låt jorden torka mer mellan gångerna. Ingen näring nu.');
+    rest('Vintervila', 'Vattna mindre och låt jorden torka mer mellan gångerna. Ingen näring nu.');
     if (lt >= 2) add([12, 1], '', null, 'Ge den mer ljus', 'Ställ den så ljust du kan, gärna nära ett fönster eller under en växtlampa.');
     else add([12, 1], '', null, 'Torka av bladen', 'Den klarar lite ljus, men damm stjäl det lilla som finns. Torka bladen med en fuktig trasa.');
     add([2], '', null, 'Kolla efter spinn', 'Torr inomhusluft lockar spinnkvalster. Titta under bladen efter fina nät.');
@@ -6281,13 +6290,13 @@ function careTasks(m, month) {
     if (/julstjärna|euphorbia pulcherrima/.test(n)) add([12, 1], '', null, 'Inget drag', 'Ställ den ljust utan drag och vattna när jorden är torr på ytan.');
   } else if (g === 'orkide') {
     add([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], '', 'feed', 'Svag näring', 'Ge orkidénäring i var tredje vattning, året om.');
-    add([11, 12, 1, 2], '', null, 'Vattna mindre', 'Låt barken torka nästan helt mellan vattningarna i vintermörkret.');
+    rest('Vattna mindre', 'Låt barken torka nästan helt mellan vattningarna i vintermörkret.');
     if (repot > 600) add([3, 4, 5], '', 'repot', 'Plantera om i bark', 'Gör det efter blomningen, vartannat år. Använd orkidébark, inte vanlig jord.');
     add([5, 6], '', 'prune', 'Klipp vissnad blomstängel', 'När sista blomman fallit klipper du stängeln ovanför andra eller tredje knölen, så kan den blomma igen.');
     add([6, 7, 8], '', null, 'Ingen direkt middagssol', 'Ställ den i ett öst- eller västfönster, eller dra för gardinen mitt på dagen.');
     add([9, 10], '', null, 'Svalare nätter ger blommor', 'Några veckor med 15–18 grader på natten får den att skjuta nya blomstänglar.');
   } else if (g === 'kaktus') {
-    add([11, 12, 1, 2], '', null, 'Vintervila', 'Vattna nästan inget. Svalt (10–15 grader) och ljust ger blommor i vår.');
+    rest('Vintervila', 'Vattna nästan inget. Svalt (10–15 grader) och ljust ger blommor i vår.');
     add([3], '', null, 'Väck den försiktigt', 'Börja vattna lite i taget när dagarna blir längre.');
     add([4, 5, 6, 7, 8], '', 'feed', 'Gödsla', 'Ge kaktusnäring en gång i månaden under växtsäsongen.');
     if (repot > 1000) add([4, 5], '', 'repot', 'Plantera om', 'Vart tredje år räcker. Använd kaktusjord och håll den med tidningspapper så du slipper taggarna.');
@@ -6321,7 +6330,7 @@ function careTasks(m, month) {
     T.forEach(t => { const e = t.k ? L.find(x => x.kind === t.k) : L.find(x => x.kind === 'note' && x.note === 'Gjort: ' + t.t); if (e && (since(e.done_on) ?? 9999) <= (t.k ? win[t.k] : 31)) { t.done = true; t.when = e.done_on; } });
     const d = left(m); if (d === 0) T.unshift({ k: 'water', t: 'Vattna idag', d: m.interval ? 'Den vattnas ungefär var ' + m.interval + ord(m.interval) + ' dag.' : '' });
   }
-  return T;
+  return month === cur && winterRest() ? T.filter(t => t.k !== 'feed') : T;
 }
 const TASKI = { water: [I.drop, 'var(--wat)'], feed: [I.leaf, 'var(--pri2)'], repot: [POT, '#A0703F'], prune: [SCISS, 'var(--acc)'] };
 function taskRow(m, t, i, now) {
@@ -6424,10 +6433,12 @@ function careV() {
     ${nt.length ? `<p class="nm"><b>I ${MONTH_NAMES[nx - 1]}:</b> ${nt.map(x => esc(x.t.toLowerCase())).join(', ')}</p>` : ''}
     <div class="cfoot"><button class="btn sm line" onclick="openMine(${m.id})">${ic(PEN, 'currentColor', 15)} Växtjournalen</button></div></div>`; }).join('');
   return `${topbar('Min samling')}${mtabBar()}
+  <div style="padding:0 18px"><button class="btn sm line" onclick="printWeek()">${ic('ph-printer', 'currentColor', 15)} Skriv ut veckans skötsel</button></div>
   ${journalAllV()}
   ${sitterOwnerV()}
   <div class="mchips" role="tablist" style="margin-top:12px">${MONTH_NAMES.map((n, i) => `<button class="${mo === i + 1 ? 'on' : ''}" role="tab" aria-selected="${mo === i + 1}" onclick="S.cmonth=${i + 1};keepMain()">${n.charAt(0).toUpperCase() + n.slice(1, 3)}</button>`).join('')}</div>
   <div class="sec"><h2>${isNow ? 'Att göra i ' + MONTH_NAMES[mo - 1] : capM(mo)}</h2></div>
+  ${isNow && winterRest() ? `<div class="wxwarn" style="margin:0 18px 10px"><div class="wxw"><span>${ic('ph-snowflake', 'currentColor', 18)}</span><div><b>Vintervila är på</b><span>${dayLenSent()} Inomhusväxterna vattnas därför mer sällan och får ingen näring, och påminnelserna anpassas.</span></div></div></div>` : ''}
   <p class="mut" style="margin:-4px 18px 12px;font-size:14px">${isNow ? (open ? open + (open === 1 ? ' sak' : ' saker') + ' att göra. Tryck Gjort så sparas det i växtens journal.' : 'Allt är gjort för den här månaden.') : 'Så här ser det ut för dina växter i ' + MONTH_NAMES[mo - 1] + '.'} ${store.get('zone', 0) ? 'Anpassat för zon ' + store.get('zone', 0) + '.' : '<button class="link3" onclick="openSettings()">Välj din odlingszon</button> för bättre tider.'}</p>
   ${S.mine.length ? cards : `<div class="list"><div class="empty"><p>Lägg till växter i din samling, så ser du här vad de behöver varje månad.</p><button class="btn sm" onclick="openQAdd()">Lägg till växt</button></div></div>`}
   <div style="height:20px"></div>`;
@@ -6485,6 +6496,7 @@ function iconize(root) {
 function rowCenter() { document.querySelectorAll('.tabs, .scrx, .chips2.qfilt').forEach(p => { const ov = p.scrollWidth > p.clientWidth + 2; p.classList.toggle('ovf', ov); if (!ov || p.dataset.c === (p.querySelector('.on') || {}).textContent) return; const on = p.querySelector('.on'); if (!on) return; p.dataset.c = on.textContent; const a = p.getBoundingClientRect(), b = on.getBoundingClientRect(); p.scrollLeft += (b.left + b.width / 2) - (a.left + a.width / 2); });
   document.querySelectorAll('.tabs.ovf, .scrx.ovf, .chips2.qfilt.ovf').forEach(p => { if (p.dataset.sl) return; p.dataset.sl = 1; p.addEventListener('scroll', () => p.classList.toggle('end', p.scrollLeft + p.clientWidth >= p.scrollWidth - 4), { passive: true }); }); }
 function render() {
+  applyGrowlight();
   requestAnimationFrame(rowCenter); requestAnimationFrame(uiIcons);
   HV = otherHome();
   { const fb = $('#fab'); if (fb) fb.hidden = true; }
@@ -6649,6 +6661,8 @@ function home() {
   return `<div class="home2"><div class="hh2"><div class="hh2top"><span class="hbrand">Roothood</span><div class="hhrow">${S.user ? msgBtn() + bellBtn() : ''}<button class="hadd" onclick="openQAdd()" aria-label="Lägg till växt" title="Lägg till växt">${ic('ph-plus', 'currentColor', 22)}</button></div></div>
     <h1 class="hhello">${S.user ? greet + (name ? ', ' + esc(name) : '') : 'Välkommen'}</h1><p class="hsub">${sub}</p></div>
   ${DEMO ? '<p style="text-align:center;margin:0 0 4px"><span class="badge" title="Ingen databas kopplad. Det du gör sparas bara i den här webbläsaren.">Demoläge</span></p>' : ''}
+  ${S.user && due.length ? thirstyCard(due) : ''}
+  ${S.user ? toxicBanner() : ''}
   ${homeBlocks(intro)}
   ${S.user ? `<div class="hcfgrow"><button class="hcfgb" onclick="openHomeCfg()">${ic(PEN, 'currentColor', 15)} Anpassa startsidan</button></div>` : ''}</div>`;
 }
@@ -6670,7 +6684,7 @@ async function loadWeather(force) {
       if (j.results && j.results[0]) { place = { q: S.city.trim().toLowerCase(), lat: j.results[0].latitude, lon: j.results[0].longitude, name: j.results[0].name }; store.set('wxGeo', place); }
     }
     if (!place) { S.wx = { none: true }; return; }
-    const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,wind_gusts_10m_max&wind_speed_unit=ms&timezone=Europe%2FStockholm&forecast_days=5`;
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,wind_gusts_10m_max,uv_index_max&wind_speed_unit=ms&timezone=Europe%2FStockholm&forecast_days=5`;
     const r = await fetch(u); if (!r.ok) throw new Error('wx ' + r.status); const j = await r.json();
     S.wx = { t: Date.now(), lat: place.lat, lon: place.lon, name: place.name, cur: j.current, d: j.daily };
     // Regn och snö de senaste 7 dagarna och snödjupet nu, för att räkna ut om utomhusväxterna behöver vattnas
@@ -6687,9 +6701,15 @@ function wxWarnings(w) {
   const outdoor = S.mine.filter(m => ['Trädgård', 'Köksträdgård'].includes(m.category) || (m.details && ['Ute i sol', 'Ute i skugga'].includes(m.details.light)) || (m.details && m.details.room && ((S.home || []).find(r => r.id === m.details.room) || {}).type === 'Balkong'));
   const day = i => i === 0 ? 'i natt' : i === 1 ? 'i morgon' : DAYS[new Date(String(d.time[i]).length === 10 ? d.time[i] + 'T12:00' : d.time[i]).getDay()] + 'dag';
   const fi = d.temperature_2m_min.findIndex((v, i) => i < 3 && v <= 0), cold = Math.min(...d.temperature_2m_min.slice(0, 3));
+  const inRooms = pred => S.mine.filter(m => { const r = (S.home || []).find(x => x.id === (m.details || {}).room); return r && pred(r, m); });
+  const names = L => L.slice(0, 3).map(m => m.name.toLowerCase()).join(', ') + (L.length > 3 ? ' med flera' : '');
+  const month = new Date().getMonth() + 1, min3 = Math.min(...d.temperature_2m_min.slice(0, 3)), springDrop = month >= 3 && month <= 5 && fi < 0 && d.temperature_2m_max[0] >= 10 && min3 <= 3 && d.temperature_2m_max[0] - min3 >= 8;
+  if (springDrop) out.push(['spring', '🥶', `Plötsligt köldfall, ner till ${Math.round(min3)} °C`, 'Ta in eller täck förkultiverade plantor, nyutplanterat och känsliga växter på balkong och uteplats.']);
   if (fi >= 0) out.push(['frost', '🥶', `Frost ${day(fi)}, ner till ${Math.round(d.temperature_2m_min[fi])} °C`, outdoor.length ? `Ta in eller täck över ${outdoor.slice(0, 2).map(m => m.name.toLowerCase()).join(' och ')}${outdoor.length > 2 ? ' med flera' : ''}. Krukor ute fryser lätt sönder.` : 'Ta in känsliga krukväxter från balkong och uteplats.']);
-  else if (cold <= 4) out.push(['cold', '🌡️', `Kallt ${day(d.temperature_2m_min.indexOf(cold))}, ${Math.round(cold)} °C`, 'Tropiska växter på balkongen bör in nu. Låt inga blad nudda kalla fönsterrutor.']);
-  if (cold <= -10) out.push(['freeze', '❄️', `Sträng kyla, ${Math.round(cold)} °C`, 'Vädra kort, och ställ inte växter nära ytterdörr eller otäta fönster.']);
+  else if (cold <= 4 && !springDrop) out.push(['cold', '🌡️', `Kallt ${day(d.temperature_2m_min.indexOf(cold))}, ${Math.round(cold)} °C`, 'Tropiska växter på balkongen bör in nu. Låt inga blad nudda kalla fönsterrutor.']);
+  if (cold <= -10) { const WL = cold <= -15 ? inRooms((r, m) => (r.dirs || []).length && !['ute', 'kok'].includes(careGroup(m))) : []; out.push(['freeze', '❄️', `Sträng kyla, ${Math.round(cold)} °C`, WL.length ? `Flytta ${names(WL)} en bit från fönsterglaset i natt. Kalla rutor och drag kan frysa bladen. Vädra kort.` : 'Vädra kort, och ställ inte växter nära ytterdörr eller otäta fönster.']); }
+  const uv = d.uv_index_max ? Math.max(...d.uv_index_max.slice(0, 2).map(v => v || 0)) : 0;
+  if (uv >= 6) { const SL = inRooms((r, m) => (r.dirs || []).some(x => ['S', 'SO', 'SV', 'V'].includes(x)) && !['ute', 'kok'].includes(careGroup(m)) && ((plantOf(m) || {}).light_level || 2) <= 2); if (SL.length) out.push(['uv', '☀️', `Stark sol, UV-index ${Math.round(uv)}`, `Flytta ${names(SL)} en bit från söderfönstret mitt på dagen, eller dra för gardinen. Solen genom glas kan bränna bladen.`]); }
   const gi = d.wind_gusts_10m_max.findIndex((v, i) => i < 3 && v >= 14);
   if (gi >= 0) out.push(['wind', '💨', `Blåsigt ${day(gi).replace('i natt', 'i dag')}, byar upp till ${Math.round(d.wind_gusts_10m_max[gi])} m/s`, 'Flytta in eller bind fast höga krukor och växter på balkongen.']);
   const ri = d.precipitation_sum.findIndex((v, i) => i < 3 && v >= 10 && !(d.snowfall_sum[i] > 1));
@@ -6727,6 +6747,7 @@ function openDb(focus) { stopLight(); S.sel = null; S.modal = null; S.tool = 'db
 function dbV() {
   const n = dbFilterN();
   return `${topbar('Växtbiblioteket', 'closeTool()')}
+  <div style="padding:0 16px 4px"><button class="btn line sm" onclick="openDiscover()">Upptäck nya växter</button></div>
   <div class="searchrow dbsr"><div class="search">${ic(I.search, null, 20)}<input type="search" placeholder="Sök växt eller vetenskapligt namn" value="${esc(S.q)}" oninput="S.q=this.value;renderList()" aria-label="Sök växter"></div>
     <button class="dbfb ${n ? 'on' : ''}" onclick="openModal('dbf')" aria-label="Filter${n ? ', ' + n + ' valda' : ''}">${ic('ph-sliders-horizontal', 'currentColor', 20)}${n ? `<em>${n}</em>` : ''}</button></div>
   <div class="seg2 dbenv" role="tablist">${[['all', 'Alla'], ['in', 'Inomhus'], ['out', 'Utomhus']].map(([k, t]) => `<button class="${S.env === k ? 'on' : ''}" role="tab" aria-selected="${S.env === k}" onclick="setEnv('${k}')">${t}</button>`).join('')}</div>
@@ -6737,16 +6758,16 @@ function dbV() {
 // Filter och sortering i Växtbiblioteket: en filterknapp, valda filter som chips som går att ta bort
 function setDsort(k) { S.dsort = k; document.querySelectorAll('.dbsortc button').forEach(b => { const on = b.dataset.k === k; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); renderList(); }
 const DB_SORT = [['az', 'A–Ö'], ['za', 'Ö–A'], ['type', 'Typ (buskar, träd …)'], ['pop', 'Populärast'], ['easy', 'Lättast att sköta'], ['sun', 'Mest ljus'], ['shade', 'Tål skugga'], ['pet', 'Husdjursvänliga först']];
-function dbFilterN() { return (S.cat && S.cat !== 'Alla' && S.cat !== 'zon' ? 1 : 0) + (S.ptypes || []).length + (S.fzon || S.cat === 'zon' ? 1 : 0) + (S.fpet ? 1 : 0) + (S.feasy ? 1 : 0) + (S.flight ? 1 : 0); }
+function dbFilterN() { return (S.cat && S.cat !== 'Alla' && S.cat !== 'zon' ? 1 : 0) + (S.ptypes || []).length + (S.fzon || S.fzm || S.cat === 'zon' ? 1 : 0) + (S.fpet ? 1 : 0) + (S.feasy ? 1 : 0) + (S.flight ? 1 : 0); }
 function dbChips() { const L = [];
   if (S.cat && S.cat !== 'Alla' && S.cat !== 'zon') L.push([S.cat, "S.cat='Alla'"]);
   (S.ptypes || []).forEach(t => L.push([t, `S.ptypes=S.ptypes.filter(x=>x!==${jsArg(t)})`]));
-  if (S.fzon || S.cat === 'zon') L.push(['Klarar zon ' + store.get('zone', 0), "S.fzon=false;if(S.cat==='zon')S.cat='Alla'"]);
+  if (S.fzon || S.fzm || S.cat === 'zon') L.push([S.fzm ? 'Zon ' + store.get('zone', 0) + ', även med skydd' : 'Klarar zon ' + store.get('zone', 0), "S.fzon=false;S.fzm=false;if(S.cat==='zon')S.cat='Alla'"]);
   if (S.flight) L.push([LIGHT[S.flight - 1], 'S.flight=0']); if (S.fpet) L.push(['Säker för husdjur', 'S.fpet=false']); if (S.feasy) L.push(['Lättskött', 'S.feasy=false']);
   return L.length ? `<div class="chips2 sm">${L.map(([t, a]) => `<button class="on dbchip" onclick="${a};render()" aria-label="Ta bort filtret ${esc(t)}">${esc(t)} <span aria-hidden="true">×</span></button>`).join('')}<button class="link3" onclick="dbClear()">Rensa</button></div>` : ''; }
-function dbClear() { S.cat = 'Alla'; S.ptypes = []; S.fzon = false; S.fpet = false; S.feasy = false; S.flight = 0; render(); }
-function dbBase(ign) { const q = S.q.trim().toLowerCase(), z = store.get('zone', 0), zok = p => { const r = zoneOf(p); return r && r[1] >= z; }, types = S.ptypes || [];
-  return S.plants.filter(p => envCats().includes(p.category) && (ign === 'cat' || !S.cat || S.cat === 'Alla' || S.cat === 'zon' || p.category === S.cat) && (!(S.fzon || S.cat === 'zon') || !z || zok(p))
+function dbClear() { S.cat = 'Alla'; S.ptypes = []; S.fzon = false; S.fzm = false; S.fpet = false; S.feasy = false; S.flight = 0; render(); }
+function dbBase(ign) { const q = S.q.trim().toLowerCase(), z = store.get('zone', 0), zok = p => { const r = zoneOf(p); return r && r[1] >= z - (S.fzm ? 1 : 0); }, types = S.ptypes || [];
+  return S.plants.filter(p => envCats().includes(p.category) && (ign === 'cat' || !S.cat || S.cat === 'Alla' || S.cat === 'zon' || p.category === S.cat) && (!(S.fzon || S.fzm || S.cat === 'zon') || !z || zok(p))
     && (ign === 'type' || !types.length || types.includes(typeOf(p))) && (!S.fpet || p.pet_safe) && (!S.feasy || (p.water_level || 2) <= 1 || /lättsk/i.test(p.tips || ''))
     && (!S.flight || p.light_level === S.flight) && (!q || (p.swedish_name + ' ' + p.latin_name + ' ' + (p.family || '')).toLowerCase().includes(q))); }
 function dbfV() { const z = store.get('zone', 0), cats = envCats(), cc = c => dbBase('cat').filter(p => p.category === c).length, tb = dbBase('type'), tc = {}; tb.forEach(p => { const g = typeOf(p); if (g) tc[g] = (tc[g] || 0) + 1; });
@@ -6756,7 +6777,7 @@ function dbfV() { const z = store.get('zone', 0), cats = envCats(), cc = c => db
   <label class="fl">Kategori</label><div class="chips2">${chip(!S.cat || S.cat === 'Alla' || S.cat === 'zon', 'Alla', "S.cat='Alla'")}${cats.map(c => chip(S.cat === c, c, `S.cat=${jsArg(c)}`, cc(c))).join('')}</div>
   ${types.length > 1 ? `<label class="fl">Typ <small class="mut">(välj flera)</small></label><div class="chips2">${types.map(g => chip((S.ptypes || []).includes(g), g, `S.ptypes=(S.ptypes||[]).includes(${jsArg(g)})?S.ptypes.filter(x=>x!==${jsArg(g)}):(S.ptypes||[]).concat(${jsArg(g)})`, tc[g])).join('')}</div>` : ''}
   <label class="fl">Ljus</label><div class="chips2">${chip(!S.flight, 'Alla', 'S.flight=0')}${LIGHT.map((t, i) => chip(S.flight === i + 1, t, `S.flight=${i + 1}`)).join('')}</div>
-  <label class="fl">Egenskaper</label><div class="chips2">${z && S.env !== 'in' ? chip(!!(S.fzon || S.cat === 'zon'), 'Klarar zon ' + z, "S.fzon=!(S.fzon||S.cat==='zon');if(S.cat==='zon')S.cat='Alla'") : ''}${chip(!!S.fpet, 'Säker för husdjur', 'S.fpet=!S.fpet')}${chip(!!S.feasy, 'Lättskött', 'S.feasy=!S.feasy')}</div>
+  <label class="fl">Egenskaper</label><div class="chips2">${z && S.env !== 'in' ? chip(!!((S.fzon || S.cat === 'zon') && !S.fzm), 'Klarar zon ' + z, "S.fzon=!((S.fzon||S.cat==='zon')&&!S.fzm);S.fzm=false;if(S.cat==='zon')S.cat='Alla'") : ''}${z > 1 && S.env !== 'in' ? chip(!!S.fzm, 'Även med skydd (zon ' + (z - 1) + ')', "S.fzm=!S.fzm;S.fzon=false;if(S.cat==='zon')S.cat='Alla'") : ''}${chip(!!S.fpet, 'Säker för husdjur', 'S.fpet=!S.fpet')}${chip(!!S.feasy, 'Lättskött', 'S.feasy=!S.feasy')}</div>
   <div style="display:flex;gap:10px;margin-top:18px"><button class="btn wide" onclick="closeModal()">Visa ${dbBase().length} växter</button><button class="btn sm line" onclick="dbClear();keepScroll()">Rensa</button></div>`; }
 
 
@@ -7818,7 +7839,7 @@ function bedSwitch(id) { const P = PL(); const a = bedsList().find(x => x.id ===
 function bedRename(v) { const a = curBed(), n = (v || '').trim(); if (!a) return; if (!n) { toast('Namnet får inte vara tomt'); return render(); } a.name = n; saveHomeSoon(); render(); }
 function bedPanelV() {
   const P = PL(), a = curBed(), d = P.bdim || { L: 3, D: 1.2, shape: 'rect' };
-  const dims = (L, D, sh, dis) => `<div class="bdims"><label>Längd<input type="text" inputmode="decimal" value="${String(L).replace('.', ',')}" ${dis ? 'disabled' : ''} onchange="bedSetDim('L',this.value)"><small>m</small></label><label>Djup<input type="text" inputmode="decimal" value="${String(D).replace('.', ',')}" ${dis ? 'disabled' : ''} onchange="bedSetDim('D',this.value)"><small>m</small></label><div class="chips2 sm">${[['rect', '▭ Rak'], ['round', '◯ Rund']].map(([k, t]) => `<button class="${sh === k ? 'on' : ''}" ${dis ? 'disabled' : ''} onclick="bedShape('${k}')">${t}</button>`).join('')}</div></div>`;
+  const dims = (L, D, sh, dis) => `<div class="bdims"><label>Höjd<input type="text" inputmode="decimal" value="${String(((curBed() || {}).br || {}).H || (PL().bdim || {}).H || 0.3).replace('.', ',')}" ${dis ? 'disabled' : ''} onchange="bedSetH(this.value)"><small>m</small></label><label>Längd<input type="text" inputmode="decimal" value="${String(L).replace('.', ',')}" ${dis ? 'disabled' : ''} onchange="bedSetDim('L',this.value)"><small>m</small></label><label>Djup<input type="text" inputmode="decimal" value="${String(D).replace('.', ',')}" ${dis ? 'disabled' : ''} onchange="bedSetDim('D',this.value)"><small>m</small></label><div class="chips2 sm">${[['rect', '▭ Rak'], ['round', '◯ Rund']].map(([k, t]) => `<button class="${sh === k ? 'on' : ''}" ${dis ? 'disabled' : ''} onclick="bedShape('${k}')">${t}</button>`).join('')}</div></div>`;
   if (P.bnew || !a) return `<div class="psel col bpanel"><b>Ny rabatt</b><div class="bname"><label>Namn på rabatten (valfritt)</label><input type="text" value="${esc(P.bname || '')}" placeholder="Lämna tomt så blir det Ny rabatt" oninput="PL().bname=this.value"></div><p class="bstep"><span>1</span>Välj storlek och form</p>${dims(d.L, d.D, d.shape)}<p class="bstep"><span>2</span>Välj kant runt rabatten</p>${edgeChips(P.bedge || 'sten', 'new')}<p class="bstep"><span>3</span>Tryck på gården där rabatten ska ligga</p>${planAreas().some(x => ['bed', 'veg'].includes(x.t)) ? '<button class="link3" onclick="PL().bnew=false;render()">Avbryt</button>' : ''}</div>`;
   const p = plantById(P.bpick), [L, D] = a.br ? [a.br.L, a.br.D] : bedDims(a.pts), sp = a.spots || [], bad = sp.filter((s, i) => spotBad(a, i)).length;
   const cnt = {}; sp.forEach(s => cnt[s.pid] = (cnt[s.pid] || 0) + 1);
@@ -8805,7 +8826,7 @@ function mineV() {
   const shown = S.mroom ? S.mine.filter(m => S.mroom === '-' ? !roomOf(m) : (m.details || {}).room === S.mroom) : S.mine;
   const view = S.mview || store.get('mineView', 'compact'), det = view === 'detail';
   const rows = shown.map(m => {
-    const d = left(m), pct = m.interval ? Math.round((m.interval - d) / m.interval * 100) : 0;
+    const d = left(m), pct = m.interval ? Math.round((ivOf(m) - d) / ivOf(m) * 100) : 0;
     const status = d === null ? `<span class="mut">${m.remind === false ? 'Ingen påminnelse, du sköter vattningen' : 'Växer ute, vattna vid torka'}</span>` : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
     const fd = m.details || {}, potTxt = [fd.cm ? 'Ø' + fd.cm + ' cm' : '', fd.ph ? fd.ph + ' cm hög' : '', fd.mat || ''].filter(Boolean).join(', ');
     const rmName = roomOf(m) && !S.mroom ? roomOf(m).name : '';
@@ -8823,10 +8844,29 @@ function mineV() {
   <div class="seg2 mview" role="tablist" aria-label="Visa som">${[['compact', 'Kompakt'], ['detail', 'Detaljerad']].map(([k, t]) => `<button class="${view === k ? 'on' : ''}" role="tab" aria-selected="${view === k}" onclick="setMview('${k}')">${t}</button>`).join('')}</div>
   <div class="list" style="padding-top:0">${S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p>Öppna en växt under Växter och tryck Lägg till i min samling, så hamnar den här med vattningspåminnelser. Hjärtat sparar växter du gillar under Favoriter.</p><button class="btn sm" onclick="go('home')">Hitta växter</button></div>`}</div>`;
 }
+// ===== Badges (punkt 12). Beräknas lokalt från samlingen och loggen. Sparas per konto på telefonen tills tabellen user_badges finns. =====
+const BADGES = { vattare: { n: 'Vattenkannans mästare', e: '💧', d: 'Vattna 10 gånger' }, aroid: { n: 'Aroid-entusiasten', e: '🪴', d: 'Ha 5 eller fler aroider i samlingen' } };
+const badgeKey = () => 'badges_' + (S.user ? S.user.id : 'anon');
+function badgesNow() {
+  const have = store.get(badgeKey(), {}) || {}; let changed = false;
+  const aroids = S.mine.filter(m => { const p = plantById(m.plant_id); return p && p.family === 'Araceae'; }).length;
+  const waters = (store.get('log', []) || []).filter(x => x.kind === 'water').length;
+  if (aroids >= 5 && !have.aroid) { have.aroid = today(); changed = true; }
+  if (waters >= 10 && !have.vattare) { have.vattare = today(); changed = true; }
+  if (changed) store.set(badgeKey(), have);
+  return have;
+}
+function badgeSection() {
+  const h = badgesNow(), main = store.get('mainBadge', null);
+  return `<div class="sec"><h2>Märken</h2></div><div class="pad" style="display:flex;gap:10px;flex-wrap:wrap">${Object.keys(BADGES).map(k => h[k]
+    ? `<div class="setcard" style="padding:10px 12px;min-width:150px"><b>${BADGES[k].e} ${BADGES[k].n}</b><small style="display:block;color:var(--mut)">Upplåst ${esc(h[k])}</small><button class="link3" onclick="setMainBadge('${k}')">${main === k ? 'Huvudbadge ✓' : 'Välj som huvudbadge'}</button></div>`
+    : `<div class="setcard" style="padding:10px 12px;min-width:150px;opacity:.55"><b>${BADGES[k].e} ${BADGES[k].n}</b><small style="display:block">${BADGES[k].d}</small></div>`).join('')}</div>`;
+}
+function setMainBadge(k) { store.set('mainBadge', k); toast('Huvudbadgen är vald'); render(); }
 function meV() {
   if (!S.user) return `${topbar('Profil', null, gearBtn())}<div class="prof"><img src="${LOGO}" alt="" width="96" height="96" style="display:block;margin:0 auto 12px;border-radius:24px"><h2>Välkommen till Roothood</h2><p class="mut">Skapa ett konto för att spara växter och vara med i communityn.</p><button class="btn" onclick="openModal('login')">Logga in eller skapa konto</button></div>${installCard()}${settingsRow()}`;
   if (S.meCard === undefined) { S.meCard = null; setTimeout(loadMe); }
-  return `${topbar('Profil', null, (isMod() ? modBtn() : '') + gearBtn())}${userBody(meCardNow(), S.meCard ? S.meCard.posts : null, true)}${DEMO ? '<p class="mut" style="margin:0 18px">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}
+  return `${topbar('Profil', null, (isMod() ? modBtn() : '') + gearBtn())}${userBody(meCardNow(), S.meCard ? S.meCard.posts : null, true)}${S.user ? badgeSection() : ''}${DEMO ? '<p class="mut" style="margin:0 18px">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}
   <div class="sec"><h2>Konto och inställningar</h2></div>
   ${S.user ? proCard() : ''}
   ${S.user ? `<button class="setcard fbcard" onclick="openFb()"><span class="tic">${ic('ph-bug', 'currentColor', 22)}</span><span class="grow"><b>Rapportera fel eller ge förslag</b><span>Hjälp oss göra Roothood bättre. Skärmbild går bra att bifoga.</span></span></button>` : ''}
@@ -8960,7 +9000,8 @@ async function changeAvatar(file) {
 
 async function uploadPhoto(file) {
   try {
-    const blob = (await fileShrink(file, 900)) || file;
+    let blob = (await fileShrink(file, 1920)) || file;
+    if (blob.size > 800 * 1024) blob = (await fileShrink(file, 1280)) || blob;
     const path = S.user.id + '/' + Date.now() + '.jpg';
     const { error } = await sb.storage.from('plant-photos').upload(path, blob, { contentType: 'image/jpeg' });
     if (error) throw error;
@@ -9636,10 +9677,47 @@ function docAsk() { if (needPro()) return; S.xbody = docQuestion(); S.xcat = 'Sk
 
 async function docLog(id) { const c = CAUSE.find(x => x.id === id), m = S.mine.find(x => x.id === S.docMine); if (!m) return;
   try { await api.addLog(m.id, 'note', today(), 'Växtdoktorn: ' + c.n + '. Började behandla: ' + c.a[0].replace(/\.$/, '').toLowerCase() + '.'); delete S.log[m.id]; toast('Sparat i Växtjournalen för ' + m.name); } catch (e) { toast(errMsg(e)); } }
+// ===== Felsökningsträd i Växtdoktorn (punkt 16) =====
+// Varje steg har frågan och alternativen. Lövnoderna har en orsak och vad man gör. Växtens egen luftfuktighet och ljusbehov kopplas in.
+const DTREE = {
+  start: { q: 'Vad ser du på växten?', o: [['fl', 'Fläckar på bladen'], ['gul', 'Gulnande blad'], ['hang', 'Hängande eller slappa blad']] },
+  fl: { q: 'Hur ser fläckarna ut?', o: [['r1', 'Bruna och torra kanter'], ['r2', 'Gula och mjuka'], ['r3', 'Svarta och mjuka']] },
+  gul: { q: 'Var sitter de gula bladen?', o: [['r4', 'Nedre, äldre blad'], ['r5', 'Hela växten är blekgul'], ['r2', 'Gula och mjuka, jorden är blöt']] },
+  hang: { q: 'Hur känns jorden?', o: [['r6', 'Torr och lätt'], ['r7', 'Blöt eller kladdig']] },
+};
+const DRES = {
+  r1: { t: 'Torr luft eller ojämn vattning', b: 'Kolla jorden med fingret. Om den är torr två centimeter ner, vattna grundligt tills vatten rinner ur hålet. Vid torr luft hjälper ett grunt fat med våt lera under krukan.', hum: 'hög' },
+  r2: { t: 'Övervattning', b: 'Låt jorden torka mellan vattningarna. Om växten fortsätter försämras, lyft upp den och titta på rötterna. Mjuka bruna rötter betyder rotröta, och då behöver den omplanteras i ny jord.' },
+  r3: { t: 'Möjlig svampsjukdom', b: 'Ta bort de skadade bladen. Blöt inte bladen, och flytta växten till en luftigare plats. Om fläckarna sprider sig, isolera växten från dina andra växter.', sp: true },
+  r4: { t: 'Naturligt avstötta blad eller brist på näring', b: 'Om det bara är något enstaka blad är det normalt. Om många blad gulnar, kontrollera gödslingen under växtsäsongen och att jorden inte är utarmad.' },
+  r5: { t: 'För lite ljus', b: 'Flytta växten närmare ett fönster, men inte i direkt sol om den är en skuggväxt.', light: 1 },
+  r6: { t: 'För lite vatten', b: 'Vattna grundligt och låt överskottet rinna av. Hängande blad brukar resa sig inom ett par dagar när de fått vatten.' },
+  r7: { t: 'För mycket vatten', b: 'Låt jorden torka ut helt mellan vattningarna. Kontrollera att krukan har hål och att den inte står i vatten.' },
+};
+function dtreeV() {
+  const path = S.dpath && S.dpath.length ? S.dpath : ['start'], cur = path[path.length - 1];
+  const crumbs = path.length > 1 ? `<div style="padding:0 18px 8px"><button class="link3" onclick="dtreeBack()">← Tillbaka</button></div>` : '';
+  const head = `${topbar('Växtdoktorn', 'closeTool()')}<div style="padding:0 18px 4px"><button class="link3" onclick="S.dmode=null;render()">← Till checklistan</button></div>`;
+  if (DRES[cur]) {
+    const r = DRES[cur], m = S.docMine ? S.mine.find(x => x.id === S.docMine) : null, p = m ? plantById(m.plant_id) : null;
+    const notes = [];
+    if (p && r.hum && /hög/i.test(p.humidity || '')) notes.push('Den här växten gillar hög luftfuktighet, så den är extra känslig för torr luft.');
+    if (p && r.light && p.light_level === 1) notes.push('Den här växten tål lite ljus, så den bör inte flyttas till ljusare plats.');
+    if (p && r.light && p.light_level === 3) notes.push('Den här växten behöver mycket ljus, så ett skuggigt läge kan vara orsaken.');
+    return `${head}${crumbs}<div class="pad"><div class="dcause open"><div class="dbody"><h3 style="margin:0 0 8px">${esc(r.t)}</h3><p>${esc(r.b)}</p>${notes.map(n => `<p class="dwhy">${esc(n)}</p>`).join('')}${r.sp ? '<div class="pdhint warn"><span class="ck">⚠️</span><span>Ställ växten för sig själv tills den är frisk, så smittar den inte dina andra växter.</span></div>' : ''}</div></div>
+    <button class="btn sm line" style="margin-top:12px" onclick="S.dpath=['start'];render()">Börja om</button></div>`;
+  }
+  const node = DTREE[cur];
+  return `${head}${crumbs}<div class="pad"><h3 style="margin:0 0 10px">${esc(node.q)}</h3><div style="display:flex;flex-direction:column;gap:10px">${node.o.map(([k, t]) => `<button class="btn line wide" onclick="dtreeGo('${k}')">${esc(t)}</button>`).join('')}</div></div>`;
+}
+function dtreeGo(k) { S.dpath = (S.dpath && S.dpath.length ? S.dpath : ['start']).concat(k); render(); }
+function dtreeBack() { const p = (S.dpath || ['start']).slice(0, -1); S.dpath = p.length ? p : ['start']; render(); }
 function docV() {
+  if (S.dmode === 'tree') return dtreeV();
   const sel = S.docSym || [], res = docScores(), mine = S.mine || [];
   return `${topbar('Växtdoktorn', 'closeTool()')}
   <p class="mut" style="margin:0 18px">Välj allt du ser på växten, så får du troliga orsaker och vad du kan göra.</p>
+  <div style="padding:8px 18px 0"><button class="btn sm line" onclick="S.dmode='tree';S.dpath=['start'];render()">Felsökningsträd: steg för steg</button></div>
   ${mine.length ? `<div class="docpick"><label for="docm">Gäller</label><select id="docm" onchange="S.docMine=+this.value||null;render()"><option value="">Ingen särskild växt</option>${mine.map(m => `<option value="${m.id}" ${S.docMine === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></div>` : ''}
   ${SYM.map(([g, list]) => `<div class="sec"><h2>${g}</h2></div><div class="symgrid">${list.map(([k, n, e]) => `<button class="sym ${sel.includes(k) ? 'on' : ''}" aria-pressed="${sel.includes(k)}" onclick="docSym('${k}')"><span class="se">${e}</span><span>${n}</span></button>`).join('')}</div>`).join('')}
   ${sel.length ? `<button class="docgo" onclick="document.getElementById('docres').scrollIntoView({behavior:'smooth'})">Visa ${res.length} ${res.length === 1 ? 'trolig orsak' : 'troliga orsaker'} ↓</button>` : ''}
@@ -9657,7 +9735,191 @@ function docV() {
 }
 function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { navBack(); }
-function toolV() { return S.tool === 'learn' ? learnV() : S.tool === 'ask' ? askV() : S.tool === 'explore' ? exploreV() : S.tool === 'notif' ? notifV() : S.tool === 'msgs' ? msgsV() : S.tool === 'chat' ? chatV() : S.tool === 'mod' ? modV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'news' ? newsV() : S.tool === 'sow' ? sowV() : S.tool === 'perma' ? permaV() : S.tool === 'smart' ? smartV() : S.tool === 'sunpath' ? sunPathV() : S.tool === 'compass' ? compassV() : S.tool === 'nearby' ? nbV() : lightV(); }
+// ===== Upptäck: svep på växter du inte har =====
+// Höger = sparas i katalogen Högerswipe (på telefonen). Vänster = hoppar över utan att spara något.
+const dsKey = () => 'swipeR_' + (S.user ? S.user.id : 'anon');
+const dsRight = () => store.get(dsKey(), []);
+const dsF = () => S.dsc || (S.dsc = { zon: false, pet: false, easy: false, light: 0, cat: 'Alla' });
+function dsPool() {
+  const c = dsF(), z = store.get('zone', 0), have = new Set(S.mine.map(m => m.plant_id)), right = new Set(dsRight()), skip = S.dsSkip || (S.dsSkip = new Set());
+  return S.plants.filter(p => envCats().includes(p.category) && !have.has(p.id) && !right.has(p.id) && !skip.has(p.id)
+    && (!c.zon || !z || (zoneOf(p) && zoneOf(p)[1] >= z)) && (!c.pet || p.pet_safe) && (!c.easy || (p.water_level || 2) <= 1)
+    && (!c.light || p.light_level === c.light) && (!c.cat || c.cat === 'Alla' || p.category === c.cat));
+}
+// Slumpordning. Köaen byggs om när filtren ändras, annars byts kort bara när man svept.
+function dsQueue() {
+  if (!S.dsQ) { const a = dsPool().map(p => p.id); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } S.dsQ = a; }
+  return S.dsQ;
+}
+function dsRender() { render(); setTimeout(dsBind, 30); }
+function openDiscover() { stopLight(); S.sel = null; S.modal = null; S.tool = 'discover'; S.dsView = (S.user && !S.mine.length && !store.get('matchSeen', false)) ? 'match' : ''; if (S.dsView === 'match') { store.set('matchSeen', true); S.mq = null; } S.dsQ = null; render(); $('#main').scrollTop = 0; setTimeout(dsBind, 30); }
+function dsFilter(k, v) { dsF()[k] = v; S.dsQ = null; dsRender(); }
+function dsSwipe(dir) {
+  if (S.dsView === 'match') return mSwipe(dir);
+  const id = dsQueue()[0]; if (id == null) return;
+  if (dir === 'r') { const l = dsRight(); if (!l.includes(id)) store.set(dsKey(), [id].concat(l)); toast('Sparad i Högerswipe'); }
+  else { (S.dsSkip || (S.dsSkip = new Set())).add(id); }
+  S.dsQ.shift(); dsRender();
+}
+// Knapparna gör samma sak som svep, för den som inte vill svepa.
+function dsButton(dir) {
+  const el = document.getElementById('dscard'); if (!el) return dsSwipe(dir);
+  el.style.transition = 'transform .25s ease, opacity .25s'; el.style.transform = 'translateX(' + (dir === 'r' ? 520 : -520) + 'px) rotate(' + (dir === 'r' ? 18 : -18) + 'deg)'; el.style.opacity = '0';
+  setTimeout(() => dsSwipe(dir), 220);
+}
+function dsRemoveSaved(id) { store.set(dsKey(), dsRight().filter(x => x !== id)); dsRender(); }
+function dsBind() {
+  const el = document.getElementById('dscard'); if (!el || el.dataset.b) return; el.dataset.b = '1';
+  let x0 = null, dx = 0;
+  el.addEventListener('pointerdown', e => { x0 = e.clientX; dx = 0; try { el.setPointerCapture(e.pointerId); } catch (err) {} el.style.transition = 'none'; });
+  el.addEventListener('pointermove', e => { if (x0 == null) return; dx = e.clientX - x0; el.style.transform = 'translateX(' + dx + 'px) rotate(' + (dx / 20) + 'deg)'; });
+  const end = () => { if (x0 == null) return; const d = dx; x0 = null; if (Math.abs(d) > 90) dsButton(d > 0 ? 'r' : 'l'); else { el.style.transition = 'transform .2s ease'; el.style.transform = ''; } };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+}
+function discoverV() {
+  const c = dsF(), n = [c.zon, c.pet, c.easy, !!c.light, c.cat !== 'Alla'].filter(Boolean).length;
+  const head = topbar('Upptäck', 'closeTool()');
+  if (S.dsView === 'match') return `${head}<div class="seg2" role="tablist"><button onclick="S.dsView='';dsRender()">Upptäck</button><button class="on">Matcha</button></div>${matchV()}`;
+  const tabs = `<div class="seg2" role="tablist"><button class="${S.dsView !== 'saved' ? 'on' : ''}" onclick="S.dsView='';dsRender()">Upptäck</button><button onclick="S.dsView='match';S.mq=null;dsRender()">Matcha</button><button class="${S.dsView === 'saved' ? 'on' : ''}" onclick="S.dsView='saved';dsRender()">Högerswipe (${dsRight().length})</button></div>`;
+  if (S.dsView === 'saved') {
+    const L = dsRight().map(id => S.plants.find(p => p.id === id)).filter(Boolean);
+    return `${head}${tabs}<div class="pad" style="display:flex;flex-direction:column;gap:10px;margin-top:12px">${L.length ? L.map(p => `<div class="setcard" style="padding:12px 14px;display:flex;gap:10px;align-items:center"><button class="link3" style="flex:1;text-align:left" onclick="openPlant(${p.id})"><b>${esc(p.swedish_name)}</b><small style="display:block;font-style:italic">${esc(p.latin_name)}</small></button><button class="link3" style="color:var(--mut)" onclick="dsRemoveSaved(${p.id})">Ta bort</button></div>`).join('') : `<div class="empty"><p>Här samlas växter du svept åt höger på. Gå till Upptäck och svep höger på en växt du vill ha.</p></div>`}</div>`;
+  }
+  const q = dsQueue(), p = q.length ? S.plants.find(x => x.id === q[0]) : null;
+  const chips = `<div class="chips2 sm" style="padding:0 16px">
+    <button class="${c.zon ? 'on' : ''}" aria-pressed="${c.zon}" onclick="dsFilter('zon',${!c.zon})">Klarar min zon</button>
+    <button class="${c.pet ? 'on' : ''}" aria-pressed="${c.pet}" onclick="dsFilter('pet',${!c.pet})">Husdjurssäker</button>
+    <button class="${c.easy ? 'on' : ''}" aria-pressed="${c.easy}" onclick="dsFilter('easy',${!c.easy})">Lättskött</button>
+    ${[1, 2, 3].map(l => `<button class="${c.light === l ? 'on' : ''}" aria-pressed="${c.light === l}" onclick="dsFilter('light',${c.light === l ? 0 : l})">Ljus ${l}</button>`).join('')}
+  </div>`;
+  let body;
+  if (!p) body = `<div class="empty" style="margin:24px 16px"><p>${n ? 'Du har sett alla växter som passar dina filter. Ta bort ett filter för fler.' : 'Du har sett alla växter i biblioteket som du inte har än.'}</p>${n ? `<button class="btn sm" onclick="S.dsc=null;S.dsSkip=null;S.dsQ=null;dsRender()">Rensa filter</button>` : ''}</div>`;
+  else body = `<div style="display:flex;justify-content:center;padding:12px 16px 0"><div id="dscard" style="width:100%;max-width:360px;touch-action:pan-y;user-select:none;background:var(--surf);border-radius:20px;box-shadow:var(--sh);overflow:hidden;cursor:grab">
+      ${plantPh(p)}<div style="padding:14px 16px 16px"><h3 style="margin:0;font-size:20px">${esc(p.swedish_name)}</h3><i style="color:var(--mut)">${esc(p.latin_name)}</i>
+      <p style="margin:8px 0 0;font-size:14px;color:var(--mut)">${esc(p.category || '')}${p.hardiness_zone ? ' · Zon ' + esc(p.hardiness_zone) : ''}</p>
+      <button class="link3" style="margin-top:8px" onclick="openPlant(${p.id})">Visa mer om växten</button></div></div></div>
+    <div style="display:flex;justify-content:center;gap:28px;margin:18px 0 8px">
+      <button class="circ" onclick="dsButton('l')" aria-label="Hoppa över" style="width:64px;height:64px;font-size:26px">✕</button>
+      <button class="circ" onclick="dsButton('r')" aria-label="Spara i Högerswipe" style="width:64px;height:64px;font-size:26px">♥</button>
+    </div>
+    <p class="mut" style="text-align:center;font-size:13px;margin:0 0 12px">Svep höger för att spara i Högerswipe, vänster för att hoppa över.</p>`;
+  return `${head}${tabs}<div class="sec" style="margin-top:10px"><h2>Filter</h2></div>${chips}<div style="margin-top:6px">${body}</div>`;
+}
+// ===== Utskrift: veckans skötsel (punkt 1) =====
+function printWeek() {
+  const cur = new Date().getMonth() + 1, rows = [];
+  S.mine.forEach(m => {
+    const items = [], l = left(m);
+    if (l != null && l <= 7) items.push(l === 0 ? 'Vattna nu' : 'Vattna om ' + l + (l === 1 ? ' dag' : ' dagar'));
+    careTasks(m, cur).filter(x => x.k === 'feed' && !x.done).forEach(() => items.push('Gödsla'));
+    if (items.length) rows.push('<tr><td>' + esc(m.name) + '</td><td>' + items.map(i => '☐ ' + i).join('<br>') + '</td></tr>');
+  });
+  let box = document.getElementById('printArea');
+  if (!box) { box = document.createElement('div'); box.id = 'printArea'; document.body.appendChild(box); }
+  box.innerHTML = '<h1>Veckans skötsel</h1><p>' + new Date().toLocaleDateString('sv-SE') + '</p>' + (rows.length ? '<table><tr><th>Växt</th><th>Att göra</th></tr>' + rows.join('') + '</table>' : '<p>Inget att göra den här veckan.</p>');
+  if (!document.getElementById('printCss')) { const st = document.createElement('style'); st.id = 'printCss'; st.textContent = '#printArea{display:none}@media print{body *{visibility:hidden}#printArea,#printArea *{visibility:visible}#printArea{display:block;position:absolute;left:0;top:0;width:100%;color:#000;background:#fff;padding:16px;font-size:14px}#printArea table{width:100%;border-collapse:collapse}#printArea td,#printArea th{border:1px solid #000;padding:8px;text-align:left;vertical-align:top}}'; document.head.appendChild(st); }
+  window.print();
+}
+// ===== Högkontrast för växtlampor (punkt 2) =====
+function setGrowlight(v) { store.set('growlight', !!v); applyGrowlight(); }
+function applyGrowlight() {
+  if (!document.body) return;
+  document.body.classList.toggle('theme-growlight', !!store.get('growlight', false));
+  if (!document.getElementById('growCss')) { const st = document.createElement('style'); st.id = 'growCss'; st.textContent = 'body.theme-growlight{background:#000!important;color:#fff!important}body.theme-growlight *{box-shadow:none!important;text-shadow:none!important;color:#fff!important;background-color:#000!important;border-color:#fff!important}body.theme-growlight [class*="dot"],body.theme-growlight [class*="status"]{border:3px solid #fff!important;background:#000!important}body.theme-growlight .on,body.theme-growlight button.on{background:#fff!important;color:#000!important}'; document.head.appendChild(st); }
+}
+// ===== Törstig-widget på startsidan (punkt 7) =====
+function thirstyCard(due) {
+  const names = due.slice(0, 3).map(m => esc(m.name)).join(', ') + (due.length > 3 ? ' och ' + (due.length - 3) + ' till' : '');
+  return `<div class="setcard" style="margin:12px 16px;display:flex;gap:12px;align-items:center;border-left:4px solid #f44336"><span style="font-size:22px">💧</span><div style="flex:1"><b>${due.length} ${due.length === 1 ? 'växt behöver' : 'växter behöver'} din uppmärksamhet idag</b><small style="display:block;color:var(--mut)">${names}</small></div><button class="btn sm" onclick="openMine(${due[0].id})">Visa</button></div>`;
+}
+
+// ===== Matchmaking (punkt 11): tre frågor, sedan kort att svepa på =====
+const MATCH_L = ['Mörkt hörn', 'Ljust men utan direkt sol', 'Solig plats'];
+const MATCH_W = ['Glömmer ofta att vattna', 'Vattnar regelbundet', 'Gillar att sköta om'];
+function matchQueue() {
+  const q = S.mq, have = new Set(S.mine.map(m => m.plant_id)), wish = new Set(wishList().map(w => w.id));
+  const pool = S.plants.filter(p => envCats().includes(p.category) && !have.has(p.id) && !wish.has(p.id) && (!q.P || p.pet_safe));
+  const sc = p => Math.abs((p.light_level || 2) - q.L) * 2 + Math.abs((p.water_level || 2) - q.W);
+  return pool.map(p => [p, sc(p)]).sort((a, b) => a[1] - b[1]).slice(0, 40).map(x => x[0].id);
+}
+function matchV() {
+  const q = S.mq || (S.mq = { step: 0, L: null, W: null, P: null, ids: null, n: 0 });
+  if (q.step < 3) {
+    const qs = [['Hur ljust är platsen?', MATCH_L.map((t, i) => [i + 1, t]), 'L'], ['Hur mycket tid har du för vatten?', MATCH_W.map((t, i) => [i + 1, t]), 'W'], ['Ska den vara säker för husdjur?', [[1, 'Ja'], [0, 'Nej, det spelar ingen roll']], 'P']][q.step];
+    return `<div class="sec" style="margin-top:12px"><h2>${qs[0]}</h2></div><div class="pad" style="display:flex;flex-direction:column;gap:10px">${qs[1].map(([v, t]) => `<button class="btn line wide" onclick="matchAns('${qs[2]}',${v})">${esc(t)}</button>`).join('')}</div>`;
+  }
+  if (!q.ids) { q.ids = matchQueue(); for (let i = q.ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q.ids[i], q.ids[j]] = [q.ids[j], q.ids[i]]; } }
+  const p = q.ids.length ? S.plants.find(x => x.id === q.ids[0]) : null;
+  if (!p) return `<div class="empty" style="margin:24px 16px"><p>Inga fler förslag. Ändra svaren för att se andra växter.</p><button class="btn sm" onclick="S.mq=null;dsRender()">Börja om</button></div>`;
+  return `<div style="display:flex;justify-content:center;padding:12px 16px 0"><div id="dscard" style="width:100%;max-width:360px;touch-action:pan-y;user-select:none;background:var(--surf);border-radius:20px;box-shadow:var(--sh);overflow:hidden">${plantPh(p)}<div style="padding:14px 16px 16px"><h3 style="margin:0;font-size:20px">${esc(p.swedish_name)}</h3><i style="color:var(--mut)">${esc(p.latin_name)}</i><button class="link3" style="display:block;margin-top:8px" onclick="openPlant(${p.id})">Visa mer om växten</button></div></div></div>
+  <div style="display:flex;justify-content:center;gap:28px;margin:18px 0 8px"><button class="circ" onclick="dsButton('l')" aria-label="Nästa" style="width:64px;height:64px;font-size:26px">✕</button><button class="circ" onclick="dsButton('r')" aria-label="Lägg i önskelistan" style="width:64px;height:64px;font-size:26px">♥</button></div>
+  <p class="mut" style="text-align:center;font-size:13px;margin:0 0 12px">Svep höger för önskelistan, vänster för nästa.</p>`;
+}
+function matchAns(k, v) { const q = S.mq || (S.mq = { step: 0, L: null, W: null, P: null, ids: null, n: 0 }); q[k] = v; if (k === 'P' && !v) q.P = 0; q.step++; q.ids = null; if (q.step >= 3) { q.ids = matchQueue(); } dsRender(); }
+function mSwipe(dir) {
+  const q = S.mq; if (!q || !q.ids || !q.ids.length) return;
+  const id = q.ids.shift();
+  if (dir === 'r') { if (!isWish(id)) toggleWish(id); toast('Lagd i önskelistan'); }
+  dsRender();
+}
+
+// ===== Ångra vid borttagning (punkt 4): 5 sekunder att ångra innan det tas bort på riktigt =====
+function showUndo(msg) {
+  let bar = document.getElementById('undobar');
+  if (!bar) { bar = document.createElement('div'); bar.id = 'undobar'; bar.setAttribute('role', 'status'); bar.style.cssText = 'position:fixed;left:16px;right:16px;bottom:88px;z-index:300;background:#1F2A24;color:#fff;border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.25)'; document.body.appendChild(bar); }
+  bar.innerHTML = '<span style="flex:1;font-size:15px">' + esc(msg) + '</span><button onclick="undoRemove()" style="background:none;border:0;color:#9BC77A;font-weight:800;font-size:15px;cursor:pointer">Ångra</button>';
+  bar.hidden = false;
+}
+function hideUndo() { const bar = document.getElementById('undobar'); if (bar) bar.remove(); }
+function removeMine(id) {
+  if (S.del !== id) { S.del = id; render(); return; }
+  S.del = null; const m = S.mine.find(x => x.id === id); if (!m) return;
+  S.mine = S.mine.filter(x => x.id !== id);
+  const t = setTimeout(() => { S.undoRm = null; hideUndo(); api.remove(id).then(() => toast(m.name + ' är borttagen')).catch(e => { toast(errMsg(e)); }); }, 5000);
+  S.undoRm = { m, t };
+  showUndo(m.name + ' är borttagen');
+  render();
+}
+function undoRemove() { const u = S.undoRm; if (!u) return; clearTimeout(u.t); S.undoRm = null; S.mine = S.mine.concat(u.m); hideUndo(); render(); toast(u.m.name + ' är kvar'); }
+// ===== Vattna hela rummet (punkt 5): hoppar över kaktusar, suckulenter och växter vattnade de senaste två dagarna =====
+function waterRoom(rid) {
+  const prev = [];
+  const todo = plantsIn(rid).filter(m => { const p = plantById(m.plant_id) || {}; const s0 = since(m.last_watered); return !['Kaktus', 'Suckulent'].includes(p.category) && (s0 == null || s0 >= 2); });
+  if (!todo.length) return toast('Alla växter i rummet är redan vattnade eller ska inte vattnas');
+  todo.forEach(m => prev.push({ id: m.id, last: m.last_watered || null }));
+  run(async () => {
+    for (const m of todo) { await api.water(m.id); try { await api.addLog(m.id, 'water', today(), ''); } catch (e) { console.warn('Roothood:', e); } delete S.log[m.id]; }
+    if (S.mine.length) S.mine = await api.mine();
+    showUndo(todo.length + (todo.length === 1 ? ' växt vattnad' : ' växter vattnade'));
+    const bar = document.getElementById('undobar'); if (bar) bar.querySelector('button').setAttribute('onclick', 'undoWaterRoom(' + JSON.stringify(prev).replace(/"/g, '&quot;') + ')');
+  }, 'Rummet är vattnat');
+}
+async function undoWaterRoom(prev) { hideUndo(); try { for (const x of prev) await api.setWatered(x.id, x.last); S.mine = await api.mine(); toast('Vattningen är ångrad'); render(); } catch (e) { toast(errMsg(e)); } }
+// ===== Diktera i växtjournalen (punkt 6): visas bara där webbläsaren stöder röstinmatning =====
+const speechOk = () => !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+function jVoice(id) {
+  const R = window.SpeechRecognition || window.webkitSpeechRecognition; if (!R) return;
+  const rec = new R(); rec.lang = 'sv-SE'; rec.interimResults = false;
+  rec.onresult = e => { const t = $('#jn' + id), txt = e.results[0][0].transcript; if (t) { t.value = (t.value ? t.value + ' ' : '') + txt; S.jdraft = S.jdraft || {}; S.jdraft[id] = t.value; } };
+  rec.onerror = () => toast('Jag hörde inget. Försök igen.');
+  rec.start();
+}
+// ===== Giftlista för husdjur (punkt 13): per art, källa Farmers' Almanac (ASPCA-lista ej tillgänglig) =====
+const TOX_CAT = ['dieffenbachia', 'epipremnum', 'philodendron', 'aloe', 'dracaena', 'sansevieria', 'ficus', 'hedera', 'lilium', 'kalanchoe', 'chlorophytum', 'nerium', 'rhododendron', 'cycas', 'crassula', 'asparagus'];
+const TOX_DOG = ['dieffenbachia', 'epipremnum', 'philodendron', 'aloe', 'dracaena', 'sansevieria', 'ficus', 'hedera', 'kalanchoe', 'nerium', 'rhododendron', 'cycas', 'crassula', 'asparagus'];
+function toxicBanner() {
+  const pets = animals().filter(x => x.kind === 'katt' || x.kind === 'hund'); if (!pets.length) return '';
+  const hits = [];
+  S.mine.forEach(m => { const p = plantById(m.plant_id); if (!p) return; const g = String(p.latin_name || '').split(' ')[0].toLowerCase();
+    pets.forEach(a => { const list = a.kind === 'katt' ? TOX_CAT : TOX_DOG; if (list.includes(g)) hits.push(m.name + ' (' + (a.name || (a.kind === 'katt' ? 'katt' : 'hund')) + ')'); }); });
+  if (!hits.length) return '';
+  return `<div class="wxwarn" style="margin:12px 18px"><div class="wxw"><span>${ic('ph-warning', 'currentColor', 18)}</span><div><b>Giftig för husdjur</b><span>${hits.map(esc).join(', ')}. Ställ dem där husdjuren inte når.</span></div></div></div>`;
+}
+// ===== Odlingslådans höjd och jordbehov (punkt 8) =====
+function bedSetH(v) { v = parseFloat(String(v).replace(',', '.')); if (!(v > 0)) return; v = Math.max(0.05, Math.min(2, Math.round(v * 100) / 100)); const P = PL(), a = curBed(); if (!a || P.bnew) { P.bdim = Object.assign({ L: 3, D: 1.2, shape: 'rect' }, P.bdim, { H: v }); render(); return; } if (!a.br) return; pushUndo(); a.br.H = v; saveHomeSoon(); render(); }
+function bedSoilTxt(L, D, H) { const liters = Math.round(L * D * H * 1000); return 'Kräver ' + liters + ' liter planteringsjord (' + Math.ceil(liters / 40) + ' säckar à 40 liter)'; }
+
+function toolV() { return S.tool === 'learn' ? learnV() : S.tool === 'ask' ? askV() : S.tool === 'explore' ? exploreV() : S.tool === 'notif' ? notifV() : S.tool === 'msgs' ? msgsV() : S.tool === 'chat' ? chatV() : S.tool === 'mod' ? modV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'news' ? newsV() : S.tool === 'sow' ? sowV() : S.tool === 'perma' ? permaV() : S.tool === 'smart' ? smartV() : S.tool === 'sunpath' ? sunPathV() : S.tool === 'compass' ? compassV() : S.tool === 'nearby' ? nbV() : S.tool === 'discover' ? discoverV() : lightV(); }
 
 // --- Säsongstips ---
 // Varje tips: [typ, rubrik, text, månader i zon 1–2, zon 3–5, zon 6–8]. En lista gäller alla zoner.
@@ -9758,6 +10020,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.328', '9 nov', ['Vintervila följer nu solen: när dagen på din plats är kortare än 8 timmar vattnas inomhusväxterna mer sällan och gödselpåminnelserna döljs. Så sker det tidigare i norr än i söder', 'Fönstervakten: vädervarningarna nämner nu vilka av dina växter som påverkas. Vid stark sol (UV 6 eller mer) varnas växter i söderfönster, vid sträng kyla växter nära fönsterrutan, och på våren varnas du för plötsliga köldfall', 'Växtbiblioteket: nytt filter Även med skydd, som visar växter som går att odla i din zon med ett skyddat läge. På växtsidan står det nu Möjlig med skydd i din zon','Skördeklart: i Såkalendern ser du vad som är redo att skörda, eller snart blir det, och kan markera det som skördat','Nya recept: 38 recept på det du skördar, med mängder och tider från svenska och internationella källor, med tips om vad du kan laga av det du har just nu','Notiser: slå på Fönstervakt och Skördeklart under Påminnelser, så får du en notis när det blir för kallt eller soligt vid fönstret, och den dag något är redo att skördas','Upptäck: svep höger på växter du inte har, så sparas de i Högerswipe. Filtrera på zon, husdjurssäker och ljus. Under Matcha svarar du på tre frågor och får förslag att lägga i önskelistan','Utskrift: Skriv ut veckans skötsel i Journalen, med kryssrutor för vattning och gödsling','Högkontrast för växtlampor under Inställningar, med svart bakgrund och vit text','Startsidan visar hur många växter som behöver din uppmärksamhet idag, och varnar om en giftig växt finns hemma hos ett katt eller en hund','Ångra: när du tar bort en växt kan du ångra i fem sekunder. Vattna hela rummet kan också ångras','Diktera i växtjournalen med mikrofonen, där webbläsaren stöder det','Odlingslådor visar höjd och hur många liter jord som behövs']],
   ['Beta 0.327', '9 nov', ['Solbana har nu en kamera: välj datum och tid, tryck på Kamera och rikta telefonen. Solen och dess bana syns i kamerabilden, och en pil visar åt vilket håll du ska vrida dig', 'Tidsreglaget i Solbana går att dra med fingret, i stället för att man måste trycka bredvid', 'Ditt hem: knapparna Lägg till rum, Visa huset i 3D och Rita planritning ligger överst. Rumsraderna är slimmare och du kan minimera hela rumslistan']],
   ['Beta 0.326', '9 nov', ['Solbanans kompass är lättare att förstå: en kort förklaring ovanför, tydligare teckenförklaring och en ⓘ-ruta som förklarar ringar, solhöjd och åt vilket håll skuggan faller', 'När solen har gått ner eller inte gått upp än får du ett tydligt besked med klockslag', 'Andras bilder på en växt visas först när de har granskats, så att bara riktiga växtbilder syns. Du kan fortfarande rapportera en bild']],
   ['Beta 0.325', '9 nov', ['Solbanan och 3D-vyn hänger ihop: samma datum, klockslag och plats. Skuggorna i 3D räknas exakt för den dag du valt', 'I 3D syns solens bana som en orange båge över huset, med solen där den står vid vald tid', 'Snabbval i 3D för idag, dagjämningar, midsommar och vintersolstånd. I Solbanan finns knappen Visa skuggorna i 3D', 'Soltimmarna i trädgården räknas nu för husets riktiga plats', 'Fix: solreglaget i 3D-vyn fungerar igen']],
@@ -10240,10 +10503,10 @@ function sowInWindow(c, w, d) { const y = d.getFullYear(), F = sowF(y), A = sowA
 function sowDue(days) { const t0 = d0(), lim = dDays(t0, days == null ? 7 : days), old = dDays(t0, -21), out = [];
   sowLog().forEach(L => sowSteps(L).forEach(st => { if ((L.done || {})[st.k] || st.d > lim || st.d < old) return; out.push({ L, ...st }); }));
   return out.sort((a, b) => a.d - b.d); }
-function sowDone(id, k) { const l = sowLog(), L = l.find(x => x.id === id); if (!L) return; L.done = L.done || {}; L.done[k] = !L.done[k]; store.set('sowLog', l); if (S.tool === 'sow') sowKeep(); else render(); }
-function sowDel(id) { if (S.del !== 'sow' + id) { S.del = 'sow' + id; sowKeep(); return; } S.del = null; store.set('sowLog', sowLog().filter(x => x.id !== id)); sowKeep(); }
+function sowDone(id, k) { const l = sowLog(), L = l.find(x => x.id === id); if (!L) return; L.done = L.done || {}; L.done[k] = !L.done[k]; store.set('sowLog', l); syncHarvest(); if (S.tool === 'sow') sowKeep(); else render(); }
+function sowDel(id) { if (S.del !== 'sow' + id) { S.del = 'sow' + id; sowKeep(); return; } S.del = null; store.set('sowLog', sowLog().filter(x => x.id !== id)); syncHarvest(); sowKeep(); }
 function sowAddOpen(i) { S.sowNew = { c: i != null ? CROPS[i].n : '', d: dIso(d0()), w: '' }; if (i != null) { const ty = CROPS[i].s.map(st => st[0]).filter(t => t !== 'plant'); S.sowNew.w = ty.includes('inne') ? 'inne' : ty[0] || 'ute'; } openModal('sowadd'); }
-function sowAddSave() { const v = S.sowNew; if (!v.c) return toast('Välj vad du har sått'); if (!v.w) return toast('Välj var du har sått'); const l = sowLog(); l.unshift({ id: Date.now(), c: v.c, d: v.d || dIso(d0()), w: v.w, n: (v.n || '').trim() }); store.set('sowLog', l); S.modal = null; S.tool = 'sow'; S.sowTab = 'mina'; toast(v.c + ' är sparad. Du får påminnelser om nästa steg.'); render(); }
+function sowAddSave() { const v = S.sowNew; if (!v.c) return toast('Välj vad du har sått'); if (!v.w) return toast('Välj var du har sått'); const l = sowLog(); l.unshift({ id: Date.now(), c: v.c, d: v.d || dIso(d0()), w: v.w, n: (v.n || '').trim() }); store.set('sowLog', l); syncHarvest(); S.modal = null; S.tool = 'sow'; S.sowTab = 'mina'; toast(v.c + ' är sparad. Du får påminnelser om nästa steg.'); render(); }
 const relTxt = d => { const n = Math.round((d - d0()) / 864e5); return n === 0 ? 'Idag' : n === 1 ? 'I morgon' : n === -1 ? 'I går' : n < 0 ? 'För ' + (-n) + ' dagar sedan' : 'Om ' + n + ' dagar'; };
 function ybar(c, big) {
   const y = new Date().getFullYear(), F = sowF(y), A = sowA(y), types = ['inne', 'forgro', 'ute', 'sat', 'plant'].filter(t => c.s.some(st => st[0] === t));
@@ -10300,6 +10563,111 @@ function sowFrostV() {
   const risk = [...new Set(sowLog().filter(L => { const c = CROPS[cropIx(L.c)]; return c && c.fr === 0 && (L.w === 'ute' || L.w === 'sat' || (L.done || {}).plant); }).map(L => L.c))];
   return `<div class="sowfrost"><b>❄️ Frost ${day}: ${Math.round(w.temperature_2m_min[i])} °C</b><span>${risk.length ? 'Täck ' + esc(risk.join(', ').toLowerCase()) + ' med fiberduk eller ta in dem över natten.' : 'Vänta med att plantera ut frostkänsliga växter som tomat, gurka, bönor och basilika. Täck det som redan står ute.'}</span></div>`;
 }
+// ===== Skördeklar: när är det dags att skörda det du har sått =====
+// Grödor som man skördar lite i taget under lång tid. Övriga skördas en gång.
+const SOW_CONT = /ärt|bön|sallat|spenat|mangold|grönkål|brysselkål|squash|gurka|tomat|chili|paprika|aubergine|physalis|jordgubb|smultron|rabarber|persilja|dill|gräslök|basilika|koriander|krasse|ruccola|rosmarin|timjan|oregano|salvia|citronmeliss|körvel|libbsticka|mejram/i;
+function sowHarv(L) {
+  const c = CROPS[cropIx(L.c)]; if (!c || c.bl) return null;
+  const st = sowSteps(L).find(x => x.k === 'skord'); if (!st) return null;
+  const n = Math.round((st.d - d0()) / 864e5), cont = SOW_CONT.test(c.n), done = !!(L.done || {}).skord;
+  const state = done && !cont ? 'skordad' : n > 0 ? 'snart' : n >= -(cont ? 90 : 30) ? 'nu' : 'sen';
+  return { c, L, d: st.d, n, cont, done, state };
+}
+const sowHarvAll = () => sowLog().map(sowHarv).filter(Boolean);
+// Skickar skördedatum till servern så pushnotisen kan komma när appen är stängd.
+let harvSig = '';
+function syncHarvest() {
+  if (!S.user) return;
+  try {
+    const items = sowHarvAll().filter(h => !h.done && (h.state === 'nu' || h.state === 'snart') && h.n <= 60).map(h => ({ c: h.c.n, d: dIso(h.d) })).slice(0, 60);
+    const sig = JSON.stringify(items); if (sig === harvSig) return; harvSig = sig;
+    api.saveHarvest(items).catch(() => { harvSig = ''; });
+  } catch (e) {}
+}
+function sowHarvTxt(h) { return h.state === 'nu' ? (h.cont ? 'Skördeklar nu. Skörda lite i taget' : 'Skördeklar nu') : h.state === 'snart' ? 'Skördeklar om ' + h.n + (h.n === 1 ? ' dag' : ' dagar') + ' (' + dTxt(h.d) + ')' : h.state === 'skordad' ? 'Skördad' : 'Skördetiden har passerat'; }
+function sowHarvSec() {
+  const L = sowHarvAll().filter(h => h.state === 'nu' || (h.state === 'snart' && h.n <= 14)).sort((a, b) => a.n - b.n); if (!L.length) return '';
+  return `<div class="sec"><h2>Skördeklart</h2><button class="viewall" onclick="S.sowTab='rec';sowKeep()">Se recept</button></div><div class="scard">${L.map(h => `<div class="sowrem"><span style="font-size:22px">🧺</span><div class="grow"><b>${esc(h.c.n)}</b><span>${sowHarvTxt(h)}</span></div>${h.state === 'nu' && !h.done ? `<button class="btn sm line" onclick="sowDone(${h.L.id},'skord')">Skördat</button>` : ''}</div>`).join('')}</div>`;
+}
+// ===== Recept på det du skördar =====
+// req: grödor (namn som i såkalendern) som måste vara skördeklara. opt: valfria grödor. skafferi: det man har hemma.
+const RECIPES = [
+  { t: 'Tomatsallad med basilika', tid: 10, por: 2, req: ['Tomat'], opt: ['Basilika'], ing: ['500 g tomater', '1 liten rödlök', '1 kruka gräslök eller en näve basilika'], skafferi: ['4 msk olivolja', '2 msk rödvinsvinäger', 'salt', 'svartpeppar'], steg: ['Skär tomaterna i bitar. Skala och finhacka rödlöken.', 'Lägg tomaterna på ett fat och strö över lök och hackad gräslök eller basilika.', 'Ringla över vinäger och olja, salta och peppra.'] },
+  { t: 'Tomatsås på färska tomater', tid: 35, por: 4, req: ['Tomat'], opt: ['Basilika', 'Vitlök'], ing: ['1 kg tomater', '2 vitlöksklyftor', 'en näve basilika eller oregano'], skafferi: ['2 msk olivolja', '2 msk tomatpuré', '1 tsk salt', '1 msk smör (valfritt)'], steg: ['Ta bort skalet och kärnhuset, halvera tomaterna och riv dem på rivjärn över en skål. Kassera skalet.', 'Fräs vitlöken mjuk i oljan på låg värme. Rör ner tomatpurén.', 'Tillsätt tomatmassan och salt. Sjud utan lock tills såsen tjocknat, ungefär 15 till 30 minuter.', 'Ta av från värmen och rör ner basilikan och smöret tills basilikan viker sig.'] },
+  { t: 'Pico de gallo', tid: 10, por: 4, req: ['Tomat', 'Koriander'], opt: ['Chili'], ing: ['110 g tomat, kärnhuset borta', '55 g rödlök', '15 g jalapeño', '4 msk fint hackad koriander'], skafferi: ['½ lime (bara saften)', 'salt', 'svartpeppar'], steg: ['Skär tomat och rödlök i små tärningar. Skiva jalapeñon.', 'Blanda allt i en skål med limesaften.', 'Smaka av med salt och peppar.'] },
+  { t: 'Ratatouille', tid: 60, por: 4, req: ['Aubergine', 'Squash och zucchini', 'Tomat'], opt: ['Paprika', 'Vitlök', 'Timjan'], ing: ['350 g aubergine', '350 g zucchini', '350 g paprika', '350 g gul lök', '500 g mogna tomater', '3 vitlöksklyftor', '1 kvist timjan', '1 lagerblad'], skafferi: ['6 msk olivolja', 'salt', 'svartpeppar'], steg: ['Skala tomaterna och skär dem i bitar. Skär auberginen och zucchinin i skivor, paprikan i strimlor och löken i ringar.', 'Hetta upp 2 msk olja och mjuka upp löken och paprikan. Tillsätt tomaterna, hackad vitlök, timjan och lagerblad. Krydda, lägg på lock och sjud på låg värme i 45 minuter.', 'Stek aubergine och zucchini i resten av oljan i en annan panna i ungefär 15 minuter, så att de blir mjuka.', 'Blanda ner de stekta grönsakerna i tomatsåsen och sjud i 10 minuter till. Smaka av med salt och peppar.'] },
+  { t: 'Gurksallad med dill', tid: 75, por: 6, req: ['Gurka', 'Dill'], opt: ['Gräslök'], ing: ['1 gurka', '½ dl vatten', '½ dl hackad dill'], skafferi: ['2 msk spritvinäger 12 % (eller 3 msk vitvinsvinäger)', '2 msk socker', '½ tsk salt', '¼ tsk vitpeppar'], steg: ['Skiva gurkan tunt. Lägg skivorna i lager på ett fat och salta varje lager.', 'Lägg en tallrik med vikt ovanpå och låt stå i minst 15 minuter. Häll av vätskan.', 'Värm vatten, vinäger, socker och vitpeppar tills sockret löst sig. Koka inte upp.', 'Lägg gurkan och dillen i en glasburk och häll över vätskan. Kyl minst en timme innan servering.'] },
+  { t: 'Zucchini med tomat och basilika', tid: 30, por: 4, req: ['Squash och zucchini'], opt: ['Tomat', 'Basilika'], ing: ['5 medelstora zucchini', '3 plommontomater', '1 liten vitlöksklyfta', '2 msk hackad basilika', '1 tsk balsamvinäger'], skafferi: ['2 msk olivolja', 'salt', 'svartpeppar', '¼ dl riven parmesan'], steg: ['Blanda tomaterna, vitlöken, vinägern, 2 tsk olja, ¼ tsk salt och basilikan i en skål.', 'Riv zucchinin grovt, salta med 1½ tsk salt och låt rinna av 5 till 10 minuter. Krama ur vätskan i en handduk.', 'Hetta upp resten av oljan i en stekpanna på hög värme. Stek zucchinin utan att röra om i ungefär 2 minuter, tills undersidan fått färg. Vänd och stek 2 minuter till.', 'Ta av från värmen och blanda ner tomatblandningen. Smaka av med salt och peppar och strö över parmesan.'] },
+  { t: 'Zucchinibiffar med ricotta', tid: 30, por: 4, req: ['Squash och zucchini'], opt: ['Dill'], ing: ['2 zucchini', '250 g ricotta', '2 ägg', '1,5 dl vetemjöl', '1 dl riven ost', '2 msk hackad dill'], skafferi: ['2 krm salt', 'svartpeppar', 'smör eller olja till stekning'], steg: ['Riv zucchinin grovt och pressa ut vätskan med händerna.', 'Blanda zucchini, ricotta, ägg, mjöl, ost, dill, salt och peppar till en smet.', 'Stek små biffar i smör eller olja i ungefär 3 minuter per sida.'] },
+  { t: 'Pumpasoppa', tid: 35, por: 4, req: ['Pumpa'], opt: ['Schalottenlök', 'Vitlök', 'Citron'], ing: ['500 g skalad pumpa (helst butternut)', '2 schalottenlökar', '1 vitlöksklyfta', '1 citron (2 till 3 msk saft)'], skafferi: ['2 msk smör', '1½ msk koncentrerad grönsaksfond', '5 dl vatten', '2½ dl matlagningsgrädde', 'salt', 'svartpeppar', 'olivolja och bröd till servering'], steg: ['Skala löken och vitlöken. Skär löken och pumpan i bitar och finhacka vitlöken.', 'Fräs pumpan, löken och vitlöken i smöret på låg värme i ungefär 5 minuter.', 'Tillsätt fonden och vattnet. Koka på svag värme med lock i ungefär 15 minuter.', 'Mixa soppan slät med stavmixer. Rör i grädden och koka upp.', 'Smaka av med salt, peppar och citronsaft. Toppa med olivolja och peppar och servera med bröd.'] },
+  { t: 'Ugnsrostade rotfrukter', tid: 45, por: 4, req: ['Morot', 'Palsternacka'], opt: ['Rotselleri', 'Timjan'], ing: ['1 kg rotfrukter (t.ex. rotselleri, kålrot, morot och palsternacka)', '½ kruka färsk timjan'], skafferi: ['1 msk olivolja', '1 tsk salt', 'flingsalt', 'svartpeppar'], steg: ['Sätt ugnen på 225 °C.', 'Skala rotfrukterna och dela dem i bitar. Blanda med olja och salt.', 'Lägg på en plåt med bakplåtspapper och strö över timjankvistarna.', 'Rosta i mitten av ugnen tills rotfrukterna är mjuka och gyllene. Toppa med timjan, flingsalt och peppar.'] },
+  { t: 'Rårivna morötter med gräddfil', tid: 5, por: 1, req: ['Morot'], opt: ['Gräddfil'], ing: ['100 g morot'], skafferi: ['1 msk gräddfil', 'italiensk salladskrydda'], steg: ['Riv moroten grovt.', 'Blanda med gräddfilen och salladskryddan.'] },
+  { t: 'Rödbetssallad med ingefära', tid: 50, por: 4, req: ['Rödbeta'], opt: ['Ingefära'], ing: ['500 g rödbetor', '2 dl matyoghurt', '1 msk riven färsk ingefära'], skafferi: ['2 msk honung', 'salt', 'svartpeppar'], steg: ['Koka rödbetorna mjuka i lätt saltat vatten.', 'Låt dem svalna, skala och riv grovt.', 'Blanda med yoghurt, honung och ingefära. Smaka av med salt och peppar.'] },
+  { t: 'Nypotatis med dill', tid: 20, por: 4, req: ['Potatis', 'Dill'], opt: [], ing: ['900 g färskpotatis', '2 till 3 msk hackad dill'], skafferi: ['4 msk smör', 'salt', 'svartpeppar'], steg: ['Skrubba potatisen utan att skala. Lägg den i kallt saltat vatten och låt koka upp.', 'Sjud 10 till 12 minuter för små potatisar och 16 till 18 minuter för större, tills en kniv går lätt in i mitten.', 'Häll av vattnet. Vänd potatisen med smöret, dillen, salt och peppar.'] },
+  { t: 'Potatissallad med gräslök', tid: 25, por: 4, req: ['Potatis', 'Gräslök'], opt: ['Rädisa', 'Salladslök'], ing: ['1 kg färskpotatis', '1 salladslök', '1 knippe rädisor'], skafferi: ['3 dl gräddfil', '2 msk finhackad gräslök', '1 msk finhackad schalottenlök', '1 vitlöksklyfta', '¾ tsk salt', '1 krm svartpeppar'], steg: ['Koka potatisen i lätt saltat vatten. Låt svalna och skär i bitar.', 'Skiva salladslöken och rädisorna.', 'Skala och finhacka schalottenlöken och vitlöken. Blanda med gräddfil och gräslök och smaka av med salt och peppar.', 'Vänd ner dressingen i potatisen och toppa med salladslök och rädisor.'] },
+  { t: 'Spenatomelett', tid: 15, por: 4, req: ['Spenat'], opt: ['Gräslök', 'Dill', 'Persilja'], ing: ['200 g spenat', '100 g gräslök', '100 g persilja', '100 g dill', '6 ägg', '2 vitlöksklyftor'], skafferi: ['2 msk olja', '1 tsk spiskummin', '1 tsk gurkmeja', 'salt', 'vitpeppar'], steg: ['Hacka örterna fint eller klipp dem med sax.', 'Hetta upp oljan i en stekpanna, tillsätt vitlöken och sedan örterna. Fräs tills de mjuknat.', 'Vispa ägg med kryddorna och häll över örterna. Stek tills båda sidor fått färg.', 'Servera med en sallad.'] },
+  { t: 'Spenat- och potatissoppa', tid: 30, por: 4, req: ['Spenat', 'Potatis'], opt: ['Purjolök', 'Vitlök'], ing: ['300 g färsk spenat', '5 potatisar', '1 purjolök', '3 blekselleristjälkar', '2 vitlöksklyftor'], skafferi: ['2 msk rapsolja', '1 l grönsaksbuljong', '2 dl gräddmjölk', 'salt', 'peppar', 'riven muskotnöt'], steg: ['Hacka spenaten. Tärna potatisen. Strimla purjolöken och selleriet.', 'Fräs potatis, purjolök och selleri i oljan. Pressa i vitlöken och späd med buljongen.', 'Sjud under lock i ungefär 15 minuter.', 'Vispa så att potatisen mosas lite. Lägg i spenaten och koka i 5 minuter.', 'Rör i gräddmjölken och värm. Smaka av med salt, peppar och muskot.'] },
+  { t: 'Grönkålschips', tid: 25, por: 2, req: ['Grönkål'], opt: [], ing: ['200 g grönkål'], skafferi: ['2 msk smör, smält och avsvalnat', '2 krm salt'], steg: ['Sätt ugnen på 150 °C.', 'Riv av de tunna bladen från stammen och bryt dem i mindre bitar.', 'Gnid in smöret och saltet på kålen.', 'Lägg hälften på en plåt med bakplåtspapper och rosta i 15 till 20 minuter, tills kålen är krispig men inte bränd. Upprepa med resten.', 'Låt svalna helt innan servering.'] },
+  { t: 'Grönkålssallad med äpple', tid: 15, por: 8, req: ['Grönkål'], opt: ['Vitkål', 'Äpple'], ing: ['300 g grönkål', '1 klyfta vitkål', '2 äpplen', '0,5 dl russin'], skafferi: ['3 msk julsenap', '2 dl gräddfil', '1 msk vinäger'], steg: ['Skär vitkålen mycket fint. Skär äpplena i små klyftor.', 'Blanda kål, äpple och russin i en skål.', 'Rör ihop dressingen av senap, gräddfil och vinäger, smaka av och servera vid sidan om.'] },
+  { t: 'Broccolisoppa', tid: 25, por: 4, req: ['Broccoli'], opt: ['Lök', 'Potatis'], ing: ['1 gul lök', '3 till 4 potatisar (ca 300 g)', '250 g broccoli'], skafferi: ['9 dl grönsaksbuljong', '2½ dl matlagningsgrädde', 'salt', 'peppar'], steg: ['Skala och skiva lök och potatis. Dela hela broccolin i bitar, med stjälkarna.', 'Koka upp buljongen. Lägg i lök, potatis och broccoli och sjud i ungefär 10 minuter tills allt är mjukt.', 'Mixa slätt.', 'Rör ner grädden, koka upp och smaka av med salt och peppar.'] },
+  { t: 'Ugnsrostad blomkål', tid: 40, por: 6, req: ['Blomkål'], opt: ['Rosmarin', 'Vitlök'], ing: ['1 blomkål', '2 vitlöksklyftor', '1 kvist rosmarin'], skafferi: ['olivolja', 'salt', 'svartpeppar'], steg: ['Sätt ugnen på 175 °C.', 'Dela blomkålen i buketter.', 'Krossa vitlöken och hacka rosmarinen. Blanda med olja, salt och peppar över blomkålen.', 'Rosta i ugnen tills blomkålen är mjuk och gyllene.'] },
+  { t: 'Grönsaker med ädelostdipp', tid: 15, por: 1, req: ['Morot', 'Blomkål'], opt: ['Paprika'], ing: ['1 morot', '⅓ paprika', '100 g blomkål'], skafferi: ['½ dl gräddfil', '25 g ädelost'], steg: ['Skär moroten och paprikan i stavar. Dela blomkålen i buketter.', 'Lägg upp grönsakerna på ett fat.', 'Blanda gräddfil och smulad ädelost i en liten skål och servera som dipp.'] },
+  { t: 'Rädisor med ramslökssmör', tid: 15, por: 4, req: ['Rädisa'], opt: ['Ramslök', 'Bröd'], ing: ['1 knippe rädisor (ca 125 g)', '10 blad ramslök', '2 tunna skivor surdegsbröd'], skafferi: ['100 g rumsvarmt smör', '3 msk olivolja', '2 krm flingsalt'], steg: ['Hacka brödet i små bitar och stek det i olivoljan tills det är gyllene. Låt rinna av på hushållspapper.', 'Mixa smör, ramslök och salt slätt.', 'Skölj rädisorna och låt dem torka.', 'Servera smöret, rädisorna och brödsmulorna på ett fat. Dippa rädisorna i smöret och sedan i smulorna.'] },
+  { t: 'Ruccolasallad med päron', tid: 10, por: 2, req: ['Ruccola'], opt: ['Päron', 'Valnöt'], ing: ['1 förpackning ruccola', '1 sött saftigt päron', 'riven parmesan efter smak', 'hackade valnötter efter smak'], skafferi: ['citronsaft', 'olivolja', 'salt', 'svartpeppar'], steg: ['Blanda ruccolan och det skivade päronet i en skål med citronsaft, olja, salt och peppar.', 'Strö över riven parmesan och hackade valnötter.'] },
+  { t: 'Blandsallad med senapsvinägrett', tid: 10, por: 4, req: ['Sallat'], opt: ['Rädisa', 'Gurka'], ing: ['1 salladshuvud', 'några rädisor eller en halv gurka (valfritt)'], skafferi: ['1 msk dijonsenap', '3 msk rödvinsvinäger', '2 tsk flytande honung', '2 msk finskuren schalottenlök', '1,5 dl olivolja', '6 msk matolja', 'salt'], steg: ['Vispa ihop senap, vinäger, salt, honung och schalottenlök i en skål.', 'Vispa i oljan lite i taget. Smaka av med salt.', 'Lägg salladsbladen i en skål, ringla över en del av dressingen och vänd tills varje blad är täckt.'] },
+  { t: 'Basilikapesto', tid: 15, por: 4, req: ['Basilika'], opt: ['Persilja', 'Vitlök'], ing: ['2 stora nävar basilika', 'en näve persilja', '1 vitlöksklyfta', '1 dl rostade pinjenötter eller solroskärnor', '2 dl riven parmesan'], skafferi: ['3 dl olivolja', '½ tsk salt', '½ tsk grovmald svartpeppar'], steg: ['Lägg allt i en mixer och mixa till en pesto.', 'Pulsa tills konsistensen är lagom, grov eller slät.'] },
+  { t: 'Provensalskt örtsmör', tid: 15, por: 4, req: ['Persilja'], opt: ['Timjan', 'Oregano'], ing: ['1 msk hackad timjan', '1 msk hackad salvia', '1 msk hackad oregano', '1 msk hackad persilja', '1 vitlöksklyfta'], skafferi: ['150 g smör', 'salt'], steg: ['Hacka örterna fint.', 'Mixa örterna, vitlöken och smöret. Salta efter smak.', 'Kyl tills det stelnat. Ta ut 30 minuter före servering.'] },
+  { t: 'Chilisås', tid: 25, por: 4, req: ['Chili'], opt: ['Ingefära', 'Vitlök', 'Lime'], ing: ['4 till 4½ röda chili (fröna kvar för starkare sås)', '1 bit ingefära', '2 till 3 vitlöksklyftor', '½ lime (bara saften)'], skafferi: ['½ dl hönsbuljong', '1 msk socker', '1 tsk salt'], steg: ['Skölj och torka chilin. Skala ingefäran och vitlöken.', 'Pressa saften ur limen.', 'Mixa allt med buljongen, sockret och saltet till en slät sås.'] },
+  { t: 'Fylld paprika med ris', tid: 60, por: 4, req: ['Paprika'], opt: ['Lök', 'Zucchini'], ing: ['4 paprikor', '1 gul lök', '2 vitlöksklyftor', '3 selleristjälkar', '1 liten zucchini', '1 dl råris', '2 msk tomatpuré', '2 tsk chilipulver', '1 tsk torkad timjan eller basilika', '1,5 dl hackade oliver', '1,5 dl hackade valnötter', '1,5 dl riven parmesan'], skafferi: ['4 msk olivolja', '2,5 dl vatten', '1 grönsaksbuljongtärning', '0,5 dl vatten till formen', 'salt'], steg: ['Hacka lök, vitlök, selleri och zucchini. Stek dem i hälften av oljan i ungefär 10 minuter.', 'Tillsätt riset, tomatpurén, chilin och örterna. Fräs i ungefär 5 minuter.', 'Häll i vattnet och smulad buljongtärning. Koka under lock i ungefär 10 minuter, tills riset är mjukt.', 'Rör ner oliver, nötter och ost och smaka av med salt. Sätt ugnen på 200 °C.', 'Skär av paprikornas toppar och gröp ur kärnorna. Lägg dem i en ugnsform, fyll med risblandningen och lägg på locken.', 'Ringla över resten av oljan, häll 0,5 dl vatten i formen och grädda 25 till 35 minuter, tills paprikorna är mjuka.'] },
+  { t: 'Haricots verts med citron och vitlök', tid: 15, por: 4, req: ['Bönor'], opt: ['Schalottenlök', 'Vitlök'], ing: ['300 g haricots verts', '1 till 2 schalottenlökar', '1 vitlöksklyfta', '1 msk riven citronskal'], skafferi: ['2 msk smör', 'salt', 'svartpeppar'], steg: ['Ansa bönorna och koka dem i saltat vatten i ungefär 4 minuter.', 'Häll av, kyl snabbt i kallt vatten och torka.', 'Fräs finhackad schalottenlök och vitlök i smöret i ungefär 1 minut utan att de får färg.', 'Tillsätt bönorna och fräs ett par minuter. Rör ner citronskalet och smaka av med salt och peppar.'] },
+  { t: 'Mangoldpaj med kryddost', tid: 60, por: 6, req: ['Mangold'], opt: ['Purjolök'], ing: ['250 g färdig pajdeg', '1 purjolök (ca 300 g)', '200 g mangold', '4 dl riven kryddost', '4 ägg', '2½ dl mellangrädde', '1½ dl mjölk'], skafferi: ['1 msk smör eller olja', '½ tsk salt', '2 krm svartpeppar'], steg: ['Sätt ugnen på 200 °C. Lägg pajdegen i formen och täck med folie.', 'Förgrädda skalet i 15 minuter. Ta sedan bort folien.', 'Strimla purjolöken och mangolden och fräs dem i smöret i omgångar.', 'Lägg fräset och hälften av osten i pajskalet.', 'Vispa ihop ägg, grädde och mjölk med salt och peppar. Häll över fyllningen och strö över resten av osten.', 'Grädda i ungefär 30 minuter, tills pajen stelnat.'] },
+  { t: 'Krämig potatis- och purjolökssoppa', tid: 30, por: 4, req: ['Purjolök', 'Potatis'], opt: ['Timjan'], ing: ['600 g potatis', '1 purjolök (ca 300 g)', '1 tsk torkad timjan', 'ca 10 dl grönsaksbuljong'], skafferi: ['1 msk olja', '3 dl matlagningsgrädde', 'salt', 'peppar'], steg: ['Skala och skiva potatisen. Rensa och strimla purjolöken.', 'Fräs purjolöken i oljan i en stor kastrull.', 'Tillsätt potatis, timjan och buljong. Sjud i ungefär 15 minuter.', 'Mixa slätt med stavmixer. Rör i grädden och koka upp.', 'Smaka av med salt och peppar.'] },
+  { t: 'Fransk löksoppa', tid: 50, por: 4, req: ['Sättlök och schalottenlök'], opt: ['Vitlök', 'Timjan'], ing: ['1 kg gul lök', '2 vitlöksklyftor', '1 msk färsk timjan (eller 1 tsk torkad)', '½ baguette', '2 dl riven ost, helst gruyère'], skafferi: ['3 msk olja', '3 msk smör', '1 tsk strösocker', '2 dl vitt vin', '12 dl vatten', '2½ buljongtärningar', '2 lagerblad', '2 tsk vitvinsvinäger', 'salt', 'svartpeppar'], steg: ['Skala och skiva löken tunt. Koka den i oljan på medelvärme, under lock, i ungefär 30 minuter tills den mjuknat.', 'Ta bort locket och höj värmen. Tillsätt vitlök, timjan, socker och smör och stek tills löken fått fin färg.', 'Häll i vinet och låt koka upp kort. Tillsätt vatten, buljongtärningar och lagerblad och sjud i ungefär 10 minuter. Smaka av med vinäger, salt och peppar och ta bort lagerbladen.', 'Sätt ugnen på grill, 250 °C.', 'Skiva baguetten tunt. Häll soppan i ugnssäkra skålar, lägg på bröd och ost och gratinera några minuter högt upp i ugnen.'] },
+  { t: 'Krämig rotfruktssoppa', tid: 45, por: 4, req: ['Morot', 'Palsternacka'], opt: ['Potatis'], ing: ['8 potatisar', '2 palsternackor', '3 morötter', '1 liter örtbuljong', '250 g cottage cheese'], skafferi: ['2 dl lätt crème fraiche', 'salt', 'peppar', 'olivolja (valfritt)'], steg: ['Skala och skär potatis och palsternacka i stora bitar. Skär två morötter i mindre bitar.', 'Koka upp buljongen. Lägg i rotfrukterna och koka under lock i 15 till 20 minuter. Häll av och spara buljongen.', 'Mixa rotfrukterna med crème fraiche. Häll tillbaka i kastrullen, späd med 4 till 5 dl av den sparade buljongen och smaka av.', 'Hyvla den återstående morotten i strimlor och koka dem i soppan i ungefär 1 minut.', 'Servera med cottage cheese och eventuellt en skvätt olivolja.'] },
+  { t: 'Fänkålssallad med rucola', tid: 15, por: 2, req: ['Fänkål'], opt: ['Rucola', 'Pistage'], ing: ['2 fänkålar', '70 g rucola', '1 citron (skal och saft)', '1 dl rostade pistagenötter', '100 g aged havarti'], skafferi: ['olivolja', '1 tsk flingsalt', 'svartpeppar'], steg: ['Hyvla fänkålen tunt med mandolin. Lägg i isvatten i ungefär 15 minuter och låt rinna av.', 'Blanda fänkål, rucola, citronskal, citronsaft, olja, salt och peppar i en skål.', 'Grovhacka nötterna och smula osten över salladen.'] },
+  { t: 'Kokta majskolvar', tid: 25, por: 4, req: ['Sockermajs'], opt: [], ing: ['8 majskolvar', '1 liter vatten'], skafferi: ['2 tsk salt', 'smör till servering'], steg: ['Ta bort bladen om kolvarna är färska. Skölj dem i kallt vatten.', 'Koka upp vatten och salt. Lägg i kolvarna och låt sjuda svagt i ungefär 20 minuter, tills kornen är mjuka.', 'Servera med salt och smör.'] },
+  { t: 'Rostade sötpotatisklyftor', tid: 25, por: 4, req: ['Sötpotatis'], opt: [], ing: ['500 g sötpotatis'], skafferi: ['3 msk olivolja', '2 krm salt', 'flingsalt'], steg: ['Sätt ugnen på 225 °C.', 'Skala eller skrubba sötpotatisen och skär i klyftor.', 'Blanda klyftorna med olja och salt. Lägg dem på en bakplåt med bakplåtspapper.', 'Rosta i mitten av ugnen i 20 till 25 minuter och rör om några gånger. Strö över flingsalt före servering.'] },
+  { t: 'Vaniljcrème med rårörda jordgubbar', tid: 15, por: 4, req: ['Jordgubbar'], opt: ['Mynta'], ing: ['250 g jordgubbar', '2 msk strösocker', '1,5 dl syrad grädde', '150 g färskost', '1 dl florsocker', '1 vaniljstång (eller 1 krm vaniljpulver)'], skafferi: [], steg: ['Skölj jordgubbarna, skär dem i kvartar och rör ner strösockret tills det löst sig.', 'Blanda syrad grädde, färskost, florsocker och vaniljfrön. Vispa till en krämig konsistens.', 'Fördela krämen i glas och toppa med jordgubbarna.'] },
+  { t: 'Rabarberpaj med havregryn', tid: 45, por: 4, req: ['Rabarber'], opt: [], ing: ['500 g rabarber, finskuren'], skafferi: ['1 till 2 dl strösocker', '1,5 dl havregryn', '1 dl vetemjöl', '0,5 dl strösocker', '125 g smör'], steg: ['Sätt ugnen på 225 °C. Lägg rabarbern i en pajform och strö över sockret.', 'Grädda i ungefär 10 minuter.', 'Blanda havregryn, mjöl, socker och smör till en smulig smet och bred ut över rabarbern.', 'Grädda i ungefär 20 minuter till. Servera ljummen.'] },
+  { t: 'Citronmeliste', tid: 10, por: 2, req: ['Citronmeliss'], opt: ['Lime'], ing: ['1 stor näve citronmeliss', '1 lime'], skafferi: ['5 dl vatten', '2 msk socker', '2 citronsmakande tepåsar'], steg: ['Koka upp vattnet. Värm kannan med hett vatten, häll ut det och lägg i tepåsarna. Häll över det kokande vattnet och låt dra i ungefär 5 minuter.', 'Fyll två höga glas med citronmelissen. Skölj limen och skär den i små bitar.', 'Lägg limebitarna och sockret i glasen. Lägg en tepåse i varje glas och en sked i glaset så att det inte spricker.', 'Låt dra en minut, ta bort citronmelissen och limebitarna. Servera varm, eller låt svalna och servera över is.'] },
+];
+
+// Ämnen som är farliga för katter och hundar
+const PETTOX = { 'Sättlök och schalottenlök': 'lök', 'Lök från frö': 'lök', 'Salladslök': 'lök', 'Purjolök': 'purjolök', 'Vitlök': 'vitlök', 'Gräslök': 'gräslök', 'Rabarber': 'rabarber (bladen är giftiga)', 'Chili': 'stark chili' };
+const recHave = () => store.get('recHave', []);
+function recToggle(n) { const l = recHave(), i = l.indexOf(n); i >= 0 ? l.splice(i, 1) : l.push(n); store.set('recHave', l); sowKeep(); }
+// Vilka grödor är skördeklara, och hur många dagar kvarstår för de som snart blir det
+function recReady() { const ready = new Map(); recHave().forEach(n => ready.set(n, 0)); sowHarvAll().forEach(h => { if (h.state === 'nu') ready.set(h.c.n, 0); else if (h.state === 'snart' && h.n <= 28 && !(ready.get(h.c.n) === 0)) ready.set(h.c.n, Math.min(ready.get(h.c.n) ?? 999, h.n)); }); return ready; }
+function recScore(r, ready) {
+  const have = r.req.filter(c => ready.get(c) === 0), soon = r.req.filter(c => ready.get(c) > 0), miss = r.req.filter(c => !ready.has(c));
+  const state = miss.length ? 'none' : soon.length ? 'soon' : 'ready';
+  return { have, soon, miss, state, wait: soon.reduce((a, c) => Math.max(a, ready.get(c)), 0), opt: r.opt.filter(c => ready.get(c) === 0) };
+}
+function recCard(r, sc) {
+  const open = S.recOpen === r.t, bad = (S.pets && S.pets.list && S.pets.list.length) ? [...new Set(r.req.concat(r.opt).filter(c => PETTOX[c]).map(c => PETTOX[c]))] : [];
+  const tag = sc.state === 'ready' ? '<span class="tag green">Du kan göra den nu</span>' : sc.state === 'soon' ? `<span class="tag warn">Snart skördeklar: om ${sc.wait} ${sc.wait === 1 ? 'dag' : 'dagar'}</span>` : `<span class="tag">Saknar ${sc.miss.map(esc).join(', ')}</span>`;
+  const row = c => { const r0 = ready0(c); return `<li>${r0 === 0 ? '✓' : r0 > 0 ? '⏳' : '○'} ${esc(c)}${r0 > 0 ? ` <small class="mut">om ${r0} d</small>` : ''}</li>`; };
+  return `<div class="setcard rcard"><button class="rhead" onclick="S.recOpen=${open ? 'null' : JSON.stringify(r.t).replace(/"/g, '&quot;')};sowKeep()" aria-expanded="${open}"><span class="grow"><b>${esc(r.t)}</b><small class="mut">${r.tid} min · ${r.por} ${r.por === 1 ? 'portion' : 'portioner'}</small></span>${tag}</button>
+    ${open ? `<div class="rbody"><p class="mut" style="margin:0 0 4px;font-size:13px">Från trädgården:</p><ul class="rlist">${r.req.map(row).join('')}${r.opt.map(c => row(c).replace('<li>', '<li class="opt">').replace('</li>', ' <small class="mut">(valfritt)</small></li>')).join('')}</ul>
+      <p style="margin:8px 0 2px;font-size:14px"><b>Ingredienser</b></p><ul class="rlist plain">${r.ing.map(x => `<li>${esc(x)}</li>`).join('')}</ul><p class="mut" style="margin:4px 0 8px;font-size:13px">Från skafferiet: ${r.skafferi.map(esc).join(', ')}.</p>
+      <ol class="rsteg">${r.steg.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
+      ${bad.length ? `<p class="rpet">🐾 Receptet innehåller ${bad.join(' och ')}, som är giftigt för katter och hundar. Låt dem inte äta av det eller av resterna.</p>` : ''}</div>` : ''}</div>`;
+}
+let ready0 = () => -1;
+function recipesHtml() {
+  const ready = recReady(); ready0 = c => ready.has(c) ? ready.get(c) : -1;
+  const all = RECIPES.map(r => [r, recScore(r, ready)]), rd = all.filter(x => x[1].state === 'ready'), sn = all.filter(x => x[1].state === 'soon').sort((a, b) => a[1].wait - b[1].wait), no = all.filter(x => x[1].state === 'none').sort((a, b) => a[1].miss.length - b[1].miss.length || a[0].t.localeCompare(b[0].t, 'sv'));
+  const crops = [...new Set(RECIPES.flatMap(r => r.req.concat(r.opt)))].sort((a, b) => a.localeCompare(b, 'sv')), mine = sowHarvAll().filter(h => h.state === 'nu').map(h => h.c.n);
+  const hv = recHave();
+  return `<div class="pad" style="margin-top:12px"><p class="mut" style="margin:0 0 8px;font-size:14px">Recepten matchas mot det du kan skörda. Det du har sått i <b>Mina sådder</b> räknas automatiskt när det är skördeklart. Du kan också trycka på det du redan har hemma.</p>
+    ${mine.length ? `<p style="margin:0 0 6px;font-size:14px"><b>Skördeklart från dina sådder:</b> ${mine.map(esc).join(', ')}</p>` : ''}
+    <details class="rhave" ${S.recHaveOpen ? 'open' : ''} ontoggle="S.recHaveOpen=this.open"><summary style="cursor:pointer;font-size:14.5px;font-weight:700">Jag har hemma${hv.length ? ' (' + hv.length + ' valda)' : ''}</summary><div class="chips2 sm" style="margin-top:8px">${crops.map(c => `<button class="${hv.includes(c) ? 'on' : ''}" onclick="recToggle(${JSON.stringify(c).replace(/"/g, '&quot;')})">${esc(c)}</button>`).join('')}</div></details></div>
+  ${rd.length ? `<div class="sec"><h2>Du kan göra nu</h2><span class="mut" style="font-size:13px">${rd.length}</span></div><div class="pad">${rd.map(([r, s]) => recCard(r, s)).join('')}</div>` : ''}
+  ${sn.length ? `<div class="sec"><h2>Snart skördeklara</h2><span class="mut" style="font-size:13px">${sn.length}</span></div><div class="pad">${sn.map(([r, s]) => recCard(r, s)).join('')}</div>` : ''}
+  ${!rd.length && !sn.length ? '<p class="mut" style="margin:12px 18px">Inget recept matchar än. Tryck på det du har hemma ovan, eller lägg in en sådd under Mina sådder, så dyker recepten upp här.</p>' : ''}
+  <div class="sec"><h2>Fler recept</h2><button class="viewall" onclick="S.recMore=!S.recMore;sowKeep()">${S.recMore ? 'Dölj' : 'Visa ' + no.length}</button></div>
+  ${S.recMore ? `<div class="pad">${no.map(([r, s]) => recCard(r, s)).join('')}</div>` : ''}`;
+}
 function openSow() { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'sow'; S.sowM = new Date().getMonth() + 1; S.sowTab = S.sowTab || 'nu'; S.sowCat = S.sowCat || 'all'; render(); $('#main').scrollTop = 0; const b = $('.mchips .on'); if (b) b.parentNode.scrollLeft = b.offsetLeft - 18; }
 function sowListHtml() {
   const q = (S.sowQ || '').trim().toLowerCase(), cat = S.sowCat || 'all', plan = sowPlan(), y = new Date().getFullYear(), F = sowF(y), A = sowA(y);
@@ -10319,7 +10687,7 @@ function sowV() {
     const now = [], soon = [];
     list.forEach(c => c.s.forEach(st => { const sp = stepSpan(st, F, A), w = stepWeek(sp, t0); if (w) now.push({ c, st, sp, w }); else { const s0 = stepSoon(sp, t0); if (s0) soon.push({ c, st, sp, s0 }); } }));
     const rank = { end: 0, start: 1, on: 2 }; now.sort((a, b) => rank[a.w] - rank[b.w] || a.c.n.localeCompare(b.c.n, 'sv')); soon.sort((a, b) => a.s0 - b.s0);
-    body = `${due.length ? `<div class="sec"><h2>Dina påminnelser</h2></div><div class="scard">${due.map(x => `<div class="sowrem ${x.d < t0 ? 'late' : ''}"><button class="tchk" aria-label="Klart" onclick="sowDone(${x.L.id},'${x.k}')"></button><div class="grow"><b>${esc(x.t)}</b><span>${relTxt(x.d)} · ${dTxt(x.d)}</span></div></div>`).join('')}</div>` : ''}
+    body = `${sowHarvSec()}${due.length ? `<div class="sec"><h2>Dina påminnelser</h2></div><div class="scard">${due.map(x => `<div class="sowrem ${x.d < t0 ? 'late' : ''}"><button class="tchk" aria-label="Klart" onclick="sowDone(${x.L.id},'${x.k}')"></button><div class="grow"><b>${esc(x.t)}</b><span>${relTxt(x.d)} · ${dTxt(x.d)}</span></div></div>`).join('')}</div>` : ''}
     <div class="sec"><h2>Den här veckan</h2>${plan.length ? `<button class="viewall" onclick="S.sowAll=!S.sowAll;sowKeep()">${S.sowAll ? 'Bara min plan' : 'Visa alla'}</button>` : ''}</div>
     ${now.length ? `<div class="scard">${now.map(x => sowRow(x.c, `${SOWL[x.st[0]]} · ${x.sp.txt}`, x.w === 'end' ? ['Sista veckan', 'end'] : x.w === 'start' ? ['Börjar nu', 'start'] : null)).join('')}</div>` : `<p class="mut" style="margin:0 18px">Inget att så eller plantera just nu${only ? ' i din plan' : ''}. Titta på Snart eller Per månad.</p>`}
     ${soon.length ? `<div class="sec"><h2>Snart</h2></div><div class="scard">${soon.slice(0, 12).map(x => sowRow(x.c, `${SOWL[x.st[0]]} från ${dTxt(x.sp.a || x.s0)}`, [relTxt(x.sp.a || x.s0).replace('Om ', ''), 'soon'])).join('')}</div>` : ''}
@@ -10336,18 +10704,21 @@ function sowV() {
     <div class="chips2 sm" style="margin-top:10px">${[['all', 'Alla'], ['plan', '★ Min plan']].concat(Object.entries(SOWG)).map(([k, n]) => `<button class="${cat === k ? 'on' : ''}" onclick="S.sowCat='${k}';sowKeep()">${n}</button>`).join('')}</div>
     <div class="yleg" style="margin-top:10px">${['inne', 'ute', 'plant', 'sat'].map(t => `<span><i style="background:${SOWC[t]}"></i>${SOWL[t]}</span>`).join('')}<span><i style="background:${SOWC.h}"></i>Skörd</span></div></div>
     <div class="scard" id="sowlist" style="margin-top:8px">${sowListHtml()}</div>`;
+  } else if (tab === 'rec') {
+    body = recipesHtml();
   } else {
     const l = sowLog();
     body = `<div class="pad" style="margin-top:12px"><button class="btn wide" onclick="sowAddOpen()">+ Ny sådd</button></div>
     ${l.length ? l.map(L => { const c = CROPS[cropIx(L.c)], st = sowSteps(L), nx = st.find(x => !(L.done || {})[x.k]), sure = S.del === 'sow' + L.id;
       return `<div class="setcard sowlog"><div class="sowlh"><div class="grow"><b>${esc(L.c)}</b><span>${{ inne: 'Sådd inomhus', ute: 'Sådd ute', sat: 'Satt', forgro: 'Förgror' }[L.w]} ${dTxt(dParse(L.d))}${L.n ? ' · ' + esc(L.n) : ''}</span></div><button class="x ${sure ? 'sure' : ''}" onclick="sowDel(${L.id})">${sure ? 'Bekräfta' : 'Ta bort'}</button></div>
       ${nx ? `<div class="sownext">Nästa: <b>${esc(nx.t)}</b> · ${relTxt(nx.d).toLowerCase()}</div>` : '<div class="sownext">Alla steg är klara 🎉</div>'}
+      ${(() => { const hv = sowHarv(L); return hv && hv.state !== 'sen' ? `<div class="sownext harv ${hv.state}">🧺 ${sowHarvTxt(hv)}${hv.state === 'nu' && !hv.done ? ` <button class="btn sm line" style="margin-left:8px" onclick="sowDone(${L.id},'skord')">Skördat</button>` : ''}</div>` : ''; })()}
       <div class="sowchk">${st.map(x => `<button class="${(L.done || {})[x.k] ? 'on' : ''}" onclick="sowDone(${L.id},'${x.k}')"><span>${(L.done || {})[x.k] ? '✓' : '○'}</span>${esc({ gro: 'Grott', skola: 'Skolat om', harda: 'Härdat av', plant: 'Utplanterad', gallra: 'Gallrat', nasta: 'Nästa omgång', skord: c && c.bl ? 'Blommar' : 'Skörd', sat: 'Satt', kupa: 'Kupat' }[x.k])}<small>${dTxt(x.d)}</small></button>`).join('')}</div>
       ${c ? `<button class="link3" onclick="S.sowc=${CROPS.indexOf(c)};openModal('sowc')">Så odlar du ${esc(c.n.toLowerCase())}</button>` : ''}</div>`; }).join('') : '<p class="mut" style="margin:12px 18px">Här sparar du det du har sått. Du får påminnelser om varje steg, från groning till skörd.</p>'}`;
   }
   return `${topbar('Såkalender', 'closeTool()')}
   <div class="pad">${zone}${sowFrostV()}</div>
-  <div class="pad" style="margin-top:12px"><div class="seg2 inset sowtabs" role="tablist">${[['nu', 'Nu'], ['m', 'Per månad'], ['a', 'Alla grödor'], ['mina', 'Mina sådder' + (sowLog().length ? ' ' + sowLog().length : '')]].map(([k, n]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" onclick="S.sowTab='${k}';render()">${n}</button>`).join('')}</div></div>
+  <div class="pad" style="margin-top:12px"><div class="seg2 inset sowtabs" role="tablist">${[['nu', 'Nu'], ['m', 'Månad'], ['a', 'Grödor'], ['mina', 'Mina sådder' + (sowLog().length ? ' ' + sowLog().length : '')], ['rec', 'Recept']].map(([k, n]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" onclick="S.sowTab='${k}';render()">${n}</button>`).join('')}</div></div>
   ${body}
   <p class="mut" style="margin:16px 18px 0;font-size:12.5px">Datumen räknas från ungefärlig sista vårfrost och första höstfrost i din zon. Ett år kan vara två veckor tidigare eller senare, och läget i trädgården spelar roll. Följ väderprognosen innan du planterar ut frostkänsliga växter. Uppgifterna kommer från svenska fröföretag, koloniträdgårdsförbundet och SMHI:s frostdata.</p>
   <div style="height:24px"></div>`;
@@ -10965,7 +11336,7 @@ function shrinkUrl(url, max, asDataUrl) {
       c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
       if (asDataUrl) return ok(c.toDataURL('image/jpeg', .8));
-      c.toBlob(b => ok(b), 'image/jpeg', .85);
+      c.toBlob(b => ok(b), 'image/jpeg', .8);
     };
     img.onerror = () => ok(null);
     img.src = url;
@@ -11256,7 +11627,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.327';
+const APP_VERSION = 'Beta 0.328';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -11405,7 +11776,7 @@ function zoneOf(p) {
 function zoneTag(p) {
   const z = store.get('zone', 0), r = zoneOf(p);
   if (!z || !r) return '';
-  return z <= r[1] ? `<span class="tag green">Härdig i din zon ${z}</span>` : `<span class="tag warn">Inte härdig i zon ${z}</span>`;
+  return z <= r[1] ? `<span class="tag green">Härdig i din zon ${z}</span>` : z - 1 === r[1] ? `<span class="tag warn">Möjlig med skydd i zon ${z}</span>` : `<span class="tag warn">Inte härdig i zon ${z}</span>`;
 }
 function seg3(items, cur, fn) {
   return `<div class="seg2 inset">${items.map(([v, t]) => `<button class="${cur === v ? 'on' : ''}" aria-pressed="${cur === v}" onclick="${fn}(${JSON.stringify(v).replace(/"/g, '&quot;')})">${t}</button>`).join('')}</div>`;
@@ -11443,6 +11814,7 @@ function settingsV() {
     <label class="fl" style="margin-top:14px">Tema</label>${seg3([['system', 'Auto'], ['light', 'Ljust'], ['dark', 'Mörkt']], th, "(v=>setPref('theme',v))")}
     <label class="fl" style="margin-top:14px">Färgtema</label>
     <div class="palrow">${[['', 'Roothood', '#1F4D3A']].concat(PALS).map(([k, n, c]) => `<button class="pal ${store.get('pal', '') === k ? 'on' : ''}" aria-pressed="${store.get('pal', '') === k}" onclick="setPref('pal','${k}')"><i style="background:${c}"></i><span>${n}</span></button>`).join('')}</div>
+    <label class="remrow" style="margin-top:14px"><input type="checkbox" ${store.get('growlight', false) ? 'checked' : ''} onchange="setGrowlight(this.checked)"><span><b>Högkontrast för växtlampor</b><span class="mut">Svart bakgrund och vit text, med tydliga former i stället för färger</span></span></label>
     <label class="fl" style="margin-top:14px">Textstorlek</label>${seg3([[1, 'Normal'], [1.1, 'Större'], [1.2, 'Störst']], ts, "(v=>setPref('textsize',v))")}
     ${isMod() ? `<label class="fl" style="margin-top:14px">Designvariant (test)</label><div class="chips2 sm">${UI_VARS.map(([k, n]) => `<button class="${store.get('ui', '') === k ? 'on' : ''}" aria-pressed="${store.get('ui', '') === k}" onclick="setPref('ui','${k}')">${n}</button>`).join('')}</div><p class="mut" style="font-size:12.5px;margin:6px 0 0">Bara moderatorer ser det här. Det ändrar bara utseendet på den här telefonen.</p>` : ''}
   </div></div>
@@ -11555,6 +11927,10 @@ async function testPush() {
   } catch (e) { toast('Kunde inte skicka: ' + (e.message || e)); }
   finally { S.pushBusy = false; render(); }
 }
+function setPushPref(k, v) {
+  const pp = Object.assign({ w: true, h: true }, store.get('pushPref', {})); pp[k] = v; store.set('pushPref', pp);
+  api.setPushPrefs(pp.w !== false, pp.h !== false).then(() => toast('Sparat')).catch(() => toast('Kunde inte spara. Försök igen senare.'));
+}
 function pushCard() {
   const st = S.push, busy = S.pushBusy ? ' disabled' : '';
   let inner;
@@ -11566,6 +11942,8 @@ function pushCard() {
   <label class="fl" for="phour">Tid för påminnelsen</label><select id="phour" onchange="setPushHour(+this.value)">${Array.from({ length: 17 }, (_, i) => i + 6).map(h => `<option value="${h}" ${store.get('pushHour', 8) === h ? 'selected' : ''}>kl ${String(h).padStart(2, '0')}.00</option>`).join('')}</select><div class="row2"><button class="btn sm"${busy} onclick="testPush()">Skicka testnotis</button><button class="btn sm line"${busy} onclick="disablePush()">Stäng av</button></div>`;
   else inner = `<p class="mut" style="margin:0">Få en notis när en växt behöver vattnas, och när du får ett meddelande eller en vänförfrågan, även när appen är stängd. Du väljer själv tiden för vattning.</p><div class="row2"><button class="btn sm"${busy} onclick="enablePush()">${ic(BELL, 'currentColor', 16)} Slå på påminnelser</button></div>`;
   const def = store.get('remindDefault', true);
+  const pp = store.get('pushPref', { w: true, h: true });
+  if (st === 'on') inner += `<label class="remrow" style="margin-top:10px"><input type="checkbox" ${pp.w !== false ? 'checked' : ''} onchange="setPushPref('w',this.checked)"><span><b>Fönstervakt</b><small>Varning när det blir kallt, för mycket sol eller vårkyla som kan skada växter vid fönstret.</small></span></label><label class="remrow"><input type="checkbox" ${pp.h !== false ? 'checked' : ''} onchange="setPushPref('h',this.checked)"><span><b>Skördeklart</b><small>En notis den dag något du sått är redo att skörda.</small></span></label>`;
   return `<div class="setcard pushc">${inner}</div>
   <label class="remrow" style="margin-top:10px"><input type="checkbox" ${def ? 'checked' : ''} onchange="store.set('remindDefault', this.checked);toast(this.checked ? 'Nya växter får påminnelser' : 'Nya växter får inga påminnelser')"><span><b>Påminnelser för nya växter</b><span class="mut">Bocka ur om du vill sköta vattningen själv. Du kan ändra för varje växt i skötseldagboken.</span></span></label>`;
 }
