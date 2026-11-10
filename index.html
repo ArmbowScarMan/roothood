@@ -2107,6 +2107,16 @@ const sbApi = {
     const { error } = await sb.rpc(on ? 'start_pro_trial' : 'end_pro');
     if (error) throw /TRIAL_USED/.test(error.message || '') ? new Error('TRIAL_USED') : /start_pro_trial|end_pro|pro_trial_used|pro_until/.test(error.message || '') ? new Error('PRO_NOT_READY') : error;
   },
+  // Stripe-betalning (Roothood Pro). Serverfunktionerna skapar Checkout eller kundportal och webhooken uppdaterar Pro-status.
+  async _fnPost(name, body) {
+    const sess = (await sb.auth.getSession()).data.session;
+    const r = await fetch(SUPABASE_URL + '/functions/v1/' + name, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + (sess ? sess.access_token : SUPABASE_ANON_KEY) }, body: JSON.stringify(body || {}) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.url) throw new Error(j.error || 'PAY_FAILED');
+    return j.url;
+  },
+  async startProCheckout(plan, code) { location.href = await this._fnPost('create-checkout', { plan, code: code || '' }); },
+  async openProPortal() { location.href = await this._fnPost('create-portal', {}); },
   async feed(kind) {
     kind = kind || 'question';
     let res = await sb.from('posts').select('*').eq('kind', kind).order('created_at', { ascending: false }).limit(kind === 'question' ? 50 : 200);
@@ -9588,8 +9598,8 @@ function reportV() {
 }
 
 // ===== Pro =====
-const PRO_PLANS = [{ id: 'year', name: 'År', price: '349 kr/år', note: 'Bara 29 kr/månad. Spara 25 %' }, { id: 'month', name: 'Månad', price: '39 kr/månad', note: 'Avsluta när du vill' }];
-const PRO_PRICE = 'från 29 kr/mån';
+const PRO_PLANS = [{ id: 'year', name: 'År', price: '449 kr/år', note: 'Bara 37 kr/månad. Spara 24 %' }, { id: 'month', name: 'Månad', price: '49 kr/månad', note: 'Avsluta när du vill' }];
+const PRO_PRICE = 'från 49 kr/mån';
 const CAM = 'ph-camera';
 const SCAN = 'ph-scan';
 function needPro() { if (needLogin()) return true; if (!S.pro) { openModal('pro'); return true; } return false; }
@@ -9599,6 +9609,10 @@ async function setPro(on) {
   try { await api.setPro(on); S.pro = on; toast(on ? 'Välkommen som Pro! 🌱' : 'Pro är avslutat'); }
   catch (e) { toast(e.message === 'PRO_NOT_READY' ? 'Pro går inte att använda just nu.' : e.message === 'TRIAL_USED' ? 'Du har redan använt din gratis provperiod.' : errMsg(e)); }
   render();
+}
+// Betalningstest för moderatorer. Syns bara för moderatorer, och används mot Stripe-sandboxen.
+function modPayTestV() {
+  return `<div class="setcard" style="margin:10px 0"><b>Betalningstest (bara moderatorer)</b><p class="mut" style="font-size:13px;margin:4px 0 8px">Använd testkortet 4242 4242 4242 4242 med valfritt framtida datum och valfri CVC.</p><label class="fl" for="procode" style="margin-top:0">Rabattkod (valfri)</label><input id="procode" maxlength="30" autocomplete="off" placeholder="ROOTHOOD29" style="width:100%"><button class="btn wide formbtn" style="margin-top:10px" onclick="startProBuy()">Testa köp i sandboxen</button><button class="btn wide line" style="margin-top:8px" onclick="openProPortalBtn()">Testa kundportalen</button></div>`;
 }
 function proV() {
   const feats = [[CAM, 'Identifiera växter med kameran', 'Fota ett blad eller en blomma och få veta vad det är.'],
@@ -9617,11 +9631,21 @@ function proV() {
     [INSPI, 'Odlare att följa', 'Odlare på YouTube och Instagram som du kan följa för tips och inspiration.'],
     [I.leaf, 'Obegränsad samling', `Gratis kan du spara ${FREE_LIMIT} växter. Med Pro finns ingen gräns.`]];
   return `<div class="mh"><h2>Roothood Pro</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  ${isMod() ? modPayTestV() : ''}
   ${S.limitHit ? `<p class="formmsg ok">Du har ${FREE_LIMIT} växter, vilket är max för gratiskonton. Bli Pro för att spara fler.</p>` : ''}
   <div class="profeats">${feats.map(f => `<div class="pf"><span class="pfi">${ic(f[0], 'currentColor', 22)}</span><div><b>${f[1]}</b><span>${f[2]}</span></div></div>`).join('')}</div>
-  ${S.pro ? `<p class="formmsg ok">Du är Pro. Tack för att du stöttar Roothood!</p><button class="btn wide line" onclick="setPro(false)">Avsluta Pro (testläge)</button>`
+  ${S.pro ? `<p class="formmsg ok">Du är Pro. Tack för att du stöttar Roothood!</p>${PRO_FREE ? `<p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">Pro är gratis under testperioden.</p>` : `<button class="btn wide line" onclick="openProPortalBtn()">Hantera prenumeration</button><p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">Du kan säga upp när som helst. Prenumerationen gäller till sista betalda period.</p>`}`
     : `<div class="plans">${PRO_PLANS.map(pl => `<button class="plan ${(S.plan || 'year') === pl.id ? 'on' : ''}" aria-pressed="${(S.plan || 'year') === pl.id}" onclick="S.plan='${pl.id}';render()">${pl.id === 'year' ? '<span class="best">Populärast</span>' : ''}<b>${pl.name}</b><span class="pp">${pl.price}</span><span>${pl.note}</span></button>`).join('')}</div>
-    <button class="btn wide formbtn" onclick="setPro(true)">Prova gratis i 7 dagar</button><p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">Sedan ${(PRO_PLANS.find(pl => pl.id === (S.plan || 'year')) || PRO_PLANS[0]).price}.</p><p class="mut" style="text-align:center;margin:10px 0 0">Testläge: ingen betalning görs.</p>`}`;
+    ${PRO_FREE ? `<button class="btn wide formbtn" onclick="setPro(true)">Prova gratis i 7 dagar</button><p class="mut" style="text-align:center;margin:10px 0 0">Testläge: ingen betalning görs.</p>` : `<label class="fl" for="procode">Rabattkod (valfri)</label><input id="procode" maxlength="30" autocomplete="off" placeholder="Skriv koden här" style="width:100%"><button class="btn wide formbtn" style="margin-top:12px" onclick="startProBuy()">Prova gratis i 7 dagar</button><p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">Efter 7 dagar startar betalningen: ${(PRO_PLANS.find(pl => pl.id === (S.plan || 'year')) || PRO_PLANS[0]).price}. Du kan säga upp när som helst.</p>`}`}`;
+}
+async function startProBuy() {
+  const c = ((document.getElementById('procode') || {}).value || '').trim();
+  try { toast('Skickar dig till betalningen…'); await api.startProCheckout(S.plan || 'year', c); }
+  catch (e) { toast(/BAD_CODE/.test(e.message) ? 'Den koden finns inte.' : 'Betalningen går inte att starta just nu. Försök igen.'); }
+}
+async function openProPortalBtn() {
+  try { toast('Öppnar din prenumeration…'); await api.openProPortal(); }
+  catch (e) { toast('Prenumerationen går inte att öppna just nu. Försök igen.'); }
 }
 function proBadge() { return '<span class="probadge">PRO</span>'; }
 
@@ -10128,6 +10152,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.337', '10 nov', ['Förberett för betald Pro: moderatorer kan testa köp och kundportal i Pro-rutan. Pro är fortfarande gratis för alla under testperioden, och moderatorer, admins och experter har alltid Pro']],
   ['Beta 0.336', '10 nov', ['Felrapporterna är fixade: den färgade kanten på kort är borttagen, du kan beskära profilbilden i en cirkel innan du laddar upp den, menyer som går att scrolla åt sidan visar en tona-kant, och Såkalenderns ikon är större', 'Designvarianten Städad: knappar och menyer är minst 48 px höga, ingen ren svart bakgrund i bildvisaren, och mindre rörelse för dig som valt minskad rörelse i systemet']],
   ['Beta 0.335', '10 nov', ['Notifikations-inställningar: alla notiser samlade under Inställningar. Välj vilka du vill få: ny uppdatering, nytt meddelande och vänförfrågningar'] ],
   ['Beta 0.334', '10 nov', ['Ändringar som inte kom fram skickas igen var minut, och när du går tillbaka till appen. Rutan säger hur många som väntar, och du kan trycka för att skicka direkt'] ],
@@ -11762,7 +11787,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.336';
+const APP_VERSION = 'Beta 0.337';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
