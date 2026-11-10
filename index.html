@@ -3658,9 +3658,21 @@ function sunSet(v) { S.sunT = Math.round(+v * 60); S.sunPin = true; const l = $(
 function sunAt3d() { const loc = sunLoc(), q = SUN(sunAt(sunDay(), S.sunT ?? sunNowMin()), loc.lat, loc.lon); return { alt: q.alt * Math.PI / 180, az: q.az * Math.PI / 180 }; }
 const SUN3_DAYS = [['Idag', null], ['Vårdagjämning', '03-20'], ['Midsommar', '06-21'], ['Höstdagjämning', '09-23'], ['Vintersolstånd', '12-21']];
 function sun3Day(md) { if (!md) { S.sunD = null; S.mon3 = null; S.sunPin = false; } else { S.sunD = new Date().getFullYear() + '-' + md; S.mon3 = +md.slice(0, 2); S.sunPin = true; } v3done(); build3d(); keepMain(); }
-function v3SunHtml() { const d = sunDay(), loc = sunLoc(); return `<span class="fl">Datum för solen</span>${SUN3_DAYS.map(([n, md]) => `<button class="${(md ? d.slice(5) === md : !S.sunD) ? 'on' : ''}" onclick="sun3Day(${md ? `'${md}'` : 'null'})"><i class="ph ph-calendar-blank"></i>${n}</button>`).join('')}<button class="${S.v3arc !== false ? 'on' : ''}" onclick="S.v3arc=!(S.v3arc!==false);sunUpdate3d();v3pop('sun');v3pop('sun')"><i class="ph ph-sun-horizon"></i>Solens bana: ${S.v3arc !== false ? 'på' : 'av'}</button><button onclick="v3done();openSunPath()"><i class="ph ph-arrow-square-out"></i>Öppna Solbanan</button><p class="mut" style="font-size:12.5px;margin:6px 2px 0">Plats: ${esc(loc.name)}. Samma datum och tid som i Solbanan.</p>`; }
+function v3SunHtml() { const d = sunDay(), loc = sunLoc(); return `<span class="fl">Datum för solen</span>${SUN3_DAYS.map(([n, md]) => `<button class="${(md ? d.slice(5) === md : !S.sunD) ? 'on' : ''}" onclick="sun3Day(${md ? `'${md}'` : 'null'})"><i class="ph ph-calendar-blank"></i>${n}</button>`).join('')}<button class="${S.v3arc !== false ? 'on' : ''}" onclick="S.v3arc=!(S.v3arc!==false);sunUpdate3d();v3pop('sun');v3pop('sun')"><i class="ph ph-sun-horizon"></i>Solens bana: ${S.v3arc !== false ? 'på' : 'av'}</button><button class="${S.v3moon !== false ? 'on' : ''}" onclick="S.v3moon=!(S.v3moon!==false);sunUpdate3d();v3pop('sun');v3pop('sun')"><i class="ph ph-moon"></i>Månen: ${S.v3moon !== false ? 'på' : 'av'}</button><span class="fl" style="font-weight:400">${esc(moonTxt(MOON(sunAt(d, S.sunT ?? sunNowMin()), loc.lat, loc.lon)))}</span><button onclick="v3done();openSunPath()"><i class="ph ph-arrow-square-out"></i>Öppna Solbanan</button><p class="mut" style="font-size:12.5px;margin:6px 2px 0">Plats: ${esc(loc.name)}. Samma datum och tid som i Solbanan.</p>`; }
 function sunPlace3d(light, cx, cz, span) { const s = sunAt3d(), R = span * 2, a = Math.max(s.alt, 0.08), th = northDeg() * Math.PI / 180, d = Math.cos(a) * R; light.position.set(cx + Math.sin(s.az + th) * d, Math.sin(a) * R, cz - Math.cos(s.az + th) * d); }
-function sunUpdate3d() { if (!T3 || !T3.scene || !T3.bounds) return; const b = T3.bounds, cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2, span = Math.max(10, b[2] - b[0], b[3] - b[1]); T3.scene.children.forEach(o => { if (o.isDirectionalLight) sunPlace3d(o, cx, cz, span); }); sunArc3d(cx, cz, span); T3.dirty = true; }
+function sunUpdate3d() { if (!T3 || !T3.scene || !T3.bounds) return; const b = T3.bounds, cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2, span = Math.max(10, b[2] - b[0], b[3] - b[1]); T3.scene.children.forEach(o => { if (o.isDirectionalLight) sunPlace3d(o, cx, cz, span); }); sunArc3d(cx, cz, span); moon3d(cx, cz, span); T3.dirty = true; }
+function moon3d(cx, cz, span) {
+  const THREE = T3.THREE; if (T3.moonG) { T3.scene.remove(T3.moonG); T3.moonG.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); T3.moonG = null; }
+  if (S.v3moon === false) return;
+  const loc = sunLoc(), ds = sunDay(), th = northDeg() * Math.PI / 180, R = span * 1.05, g = new THREE.Group();
+  const at = (azD, altD) => { const a = azD * Math.PI / 180 + th, e = Math.max(altD, 0) * Math.PI / 180; return new THREE.Vector3(cx + Math.sin(a) * Math.cos(e) * R, Math.sin(e) * R, cz - Math.cos(a) * Math.cos(e) * R); };
+  let seg = []; const flush = () => { if (seg.length > 1) g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(seg), new THREE.LineBasicMaterial({ color: 0xB8C4D6, transparent: true, opacity: 0.6 }))); seg = []; };
+  for (let m = 0; m <= 1440; m += 10) { const q = MOON(sunAt(ds, m), loc.lat, loc.lon); if (q.alt > 0) seg.push(at(q.az, q.alt)); else flush(); }
+  flush();
+  const q = MOON(sunAt(ds, S.sunT ?? sunNowMin()), loc.lat, loc.lon);
+  if (q.alt > 0) { const mm = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.3, span * 0.028), 16, 12), new THREE.MeshBasicMaterial({ color: q.frac > 0.5 ? 0xEEF1F5 : 0xB9C2CF })); mm.position.copy(at(q.az, q.alt)); g.add(mm); }
+  g.userData.noPick = true; T3.moonG = g; T3.scene.add(g);
+}
 function sunArc3d(cx, cz, span) {
   const THREE = T3.THREE; if (T3.sunArc) { T3.scene.remove(T3.sunArc); T3.sunArc.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); T3.sunArc = null; }
   if (S.v3arc === false) return;
@@ -3886,7 +3898,7 @@ function build3dInner(first) {
   sc.add(new THREE.HemisphereLight(dark ? '#9fb7c8' : '#f4f8ff', dark ? '#1b2a20' : '#b9c6ae', (dark ? 0.7 : 0.68) * HEMI3));
   const th = northDeg() * Math.PI / 180, sx = -Math.sin(th), sz = Math.cos(th), sun = new THREE.DirectionalLight('#fff1d8', (dark ? 1.0 : 1.85) * SUN3);
   sunPlace3d(sun, cx, cz, span); sun.target.position.set(cx, 0, cz); sun.castShadow = true;
-  Object.assign(sun.shadow.camera, { left: -span, right: span, top: span, bottom: -span, near: 0.5, far: span * 4 }); sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02; sc.add(sun); sc.add(sun.target); T3.sunArc = null; sunArc3d(cx, cz, span);
+  Object.assign(sun.shadow.camera, { left: -span, right: span, top: span, bottom: -span, near: 0.5, far: span * 4 }); sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02; sc.add(sun); sc.add(sun.target); T3.sunArc = null; sunArc3d(cx, cz, span); T3.moonG = null; moon3d(cx, cz, span);
   // tomt och ytor
   planAreas().slice().sort((a, c) => (c.t === 'lot') - (a.t === 'lot')).forEach((a, i) => { const y = 0.002 + i * 0.001, col = AREA3[a.t] || '#7FB35B';
     if (a.t === 'lot') shape(a.pts, -0.01, col); else area3d(a, THREE, M, sc, slab, shape, y); });
@@ -8072,10 +8084,14 @@ function bedSunV(a, sel) {
     return out;
   } catch (e) { console.warn('Roothood:', e); return ''; }
 }
-function sunShadedFrom(x, y, z, O, dx, dy, tA) {
-  for (const g of O.trees) { const tx = g.x - x, ty = g.y - y, t = tx * dx + ty * dy; if (t > 0 && Math.abs(tx * dy - ty * dx) < g.r && z + t * tA < g.h) return true; }
-  for (const p of O.polys) { const mt = (p.h - z) / tA; if (mt <= 0) continue; const r = sunSlab(x, y, dx, dy, p.bb); if (!r) continue; const t0 = Math.max(r[0], 0), t1 = Math.min(r[1], mt); for (let t = t0; t <= t1 + 1e-9; t += 0.25) if (inPoly(x + dx * t, y + dy * t, p.pts)) return true; }
-  return false;
+// Trädens genomsläpplighet per månad: barrträd 10 % året runt, lövträd 35 % med löv (maj–sep) och 75 % kala.
+function treeTau(g, m) { const t = g.tau ?? 0.35; return t <= 0.1 ? t : (m >= 5 && m <= 9 ? 0.35 : 0.75); }
+// Andel solljus som når en punkt på höjden z (t.ex. ett fönster): 0 bakom hus, annars produkten av trädens genomsläpplighet.
+function sunTauFrom(x, y, z, O, dx, dy, tA, m) {
+  for (const p of O.polys) { const mt = (p.h - z) / tA; if (mt <= 0) continue; const r = sunSlab(x, y, dx, dy, p.bb); if (!r) continue; const t0 = Math.max(r[0], 0), t1 = Math.min(r[1], mt); for (let t = t0; t <= t1 + 1e-9; t += 0.25) if (inPoly(x + dx * t, y + dy * t, p.pts)) return 0; }
+  let tau = 1;
+  for (const g of O.trees) { const tx = g.x - x, ty = g.y - y, t = tx * dx + ty * dy; if (t > 0 && Math.abs(tx * dy - ty * dx) < g.r && z + t * tA < g.h) tau *= treeTau(g, m); }
+  return tau;
 }
 const flSafe = o => (typeof flOf === 'function' ? (flOf(o) || 0) : 0);
 function freeWinSegs(r, x, y) { return planWallsAll().filter(wl => wl.h !== 'hedge' && wl.h !== 'half' && flSafe(wl) === flSafe(r)).flatMap(wl => { const L = Math.hypot(wl.x2 - wl.x1, wl.y2 - wl.y1) || 1, ux = (wl.x2 - wl.x1) / L, uy = (wl.y2 - wl.y1) / L; return (wl.ops || []).filter(o => o.k === 'win' && okn(o.p, o.l)).map(o => [[wl.x1 + ux * o.p, wl.y1 + uy * o.p, wl.x1 + ux * (o.p + o.l), wl.y1 + uy * (o.p + o.l)], null]); }).filter(([q]) => segDist(x, y, q) < 8); }
@@ -8087,24 +8103,30 @@ function doorWinSegs(r, x, y) {
   return own.concat(free);
 }
 const allWinSegs = (r, x, y) => winSegs(r).concat(freeWinSegs(r, x, y), doorWinSegs(r, x, y));
+// Andel direkt sol (0–1) som når punkten (x, y) i rummet r genom något fönster, för solläget s (radianer) i månad m.
+function winTauFn(r, x, y) {
+  const segs = allWinSegs(r, x, y); if (!segs.length) return null;
+  const O = sunObst(), near = Math.min(...segs.map(g => segDist(x, y, g[0]))), z0 = near < 0.7 ? 1.0 : 0.6, fz = flSafe(r) * 2.8, th = northDeg() * Math.PI / 180;
+  const fn = (s, m) => {
+    if (s.alt <= 0.05) return 0;
+    const dx = Math.sin(s.az + th), dy = -Math.cos(s.az + th), tA = Math.tan(s.alt);
+    return segs.reduce((best, [q, ang, za, zb]) => {
+      if (best >= 1) return best;
+      if (ang != null) { const na = ang * Math.PI / 180; if (dx * Math.sin(na) - dy * Math.cos(na) <= 0.05) return best; }
+      const ex = q[2] - q[0], ey = q[3] - q[1], den = dx * ey - dy * ex; if (Math.abs(den) < 1e-9) return best;
+      const t = ((q[0] - x) * ey - (q[1] - y) * ex) / den, u = ((q[0] - x) * dy - (q[1] - y) * dx) / den; if (t < 0 || u < 0 || u > 1) return best;
+      const zw = z0 + t * tA; if (zw < (za || 0.85) || zw > (zb || 2.15)) return best;
+      return Math.max(best, sunTauFrom(x + dx * (t + 0.05), y + dy * (t + 0.05), zw + fz, O, dx, dy, tA, m));
+    }, 0);
+  };
+  fn.segs = segs; fn.th = th; fn.z0 = z0; return fn;
+}
 function sunHoursIn(r, x, y) {
   const segs = allWinSegs(r, x, y); if (!segs.length) return 0;
   const key = 'i' + x.toFixed(1) + ',' + y.toFixed(1) + '|' + JSON.stringify(segs) + '|' + northDeg() + '|' + planRooms().length + ':' + planFurnAll().length + ':' + planGarden().map(g => g.t + g.x.toFixed(1) + g.y.toFixed(1)).join('');
   if (SUNC.has(key)) return SUNC.get(key); if (SUNC.size > 2000) SUNC.clear();
-  const O = sunObst(), near = Math.min(...segs.map(g => segDist(x, y, g[0]))), z0 = near < 0.7 ? 1.0 : 0.6, fz = flSafe(r) * 2.8, th = northDeg() * Math.PI / 180;
-  let tot = 0;
-  for (const m of [3, 6, 9, 12]) for (let h = 3; h <= 23; h += 0.5) {
-    const s = sunAtMH(m, h); if (s.alt <= 0.05) continue;
-    const dx = Math.sin(s.az + th), dy = -Math.cos(s.az + th), tA = Math.tan(s.alt);
-    const lit = segs.some(([q, ang, za, zb]) => {
-      if (ang != null) { const na = ang * Math.PI / 180; if (dx * Math.sin(na) - dy * Math.cos(na) <= 0.05) return false; }
-      const ex = q[2] - q[0], ey = q[3] - q[1], den = dx * ey - dy * ex; if (Math.abs(den) < 1e-9) return false;
-      const t = ((q[0] - x) * ey - (q[1] - y) * ex) / den, u = ((q[0] - x) * dy - (q[1] - y) * dx) / den; if (t < 0 || u < 0 || u > 1) return false;
-      const zw = z0 + t * tA; if (zw < (za || 0.85) || zw > (zb || 2.15)) return false;
-      return !sunShadedFrom(x + dx * (t + 0.05), y + dy * (t + 0.05), zw + fz, O, dx, dy, tA);
-    });
-    if (lit) tot += 0.5;
-  }
+  const f = winTauFn(r, x, y); let tot = 0;
+  for (const m of [3, 6, 9, 12]) for (let h = 3; h <= 23; h += 0.5) tot += 0.5 * f(sunAtMH(m, h), m);
   const v = tot / 4; SUNC.set(key, v); return v;
 }
 function minePos(m) { const d = m.details || {}; return isOutM(m) && d.pos && okn(d.pos.x, d.pos.y) && !['Kruka', 'Ampel', 'Upp och ner'].includes(d.place) ? d.pos : null; }
@@ -9287,7 +9309,10 @@ function photoWarnCheck() { if (S.photoWarn) { S.photoWarn = false; toast('Växt
 const petWord = p => p.pet_safe ? 'Ofarlig' : /^Okänt|inte känd/i.test(p.toxicity_text || '') ? 'Okänt' : 'Giftig';
 function plantPh(p) { return p.photo_url ? `<div class="ph has-img" style="--h:0"><img src="${esc(p.photo_url)}" alt="" loading="lazy"></div>` : ph(p.latin_name, p.category, p.swedish_name); }
 // På växtsidan: fotograf och licens (krävs för bilder från Wikimedia Commons), och om bilden visar arten eller släktet
-function plantPhD(p) { if (!p.photo_url || !(p.photo_credit || p.photo_note)) return plantPh(p); return `<div class="phwrap">${plantPh(p)}<small class="phcred">${p.photo_note ? '<b>' + esc(p.photo_note) + '</b> · ' : ''}${esc(p.photo_credit || '')}</small></div>`; }
+// Bildsökning på Google för växten (latinskt namn med sort). Bara en länk, inga bilder kopieras in i appen.
+function imgSearchUrl(p) { return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent((p.latin_name || p.swedish_name || '').trim()); }
+function imgSearchBtn(p, st) { const sort = /['‘’"]|\bvar\.|\bcv\./.test(p.latin_name || ''); return `<a class="link3" style="display:inline-block;${st || ''}" href="${imgSearchUrl(p)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Sök bilder på ${sort ? 'sorten' : 'arten'}</a>`; }
+function plantPhD(p) { const cred = p.photo_url && (p.photo_credit || p.photo_note) ? `<small class="phcred">${p.photo_note ? '<b>' + esc(p.photo_note) + '</b> · ' : ''}${esc(p.photo_credit || '')}</small>` : ''; return `<div class="phwrap">${plantPh(p)}${cred}${imgSearchBtn(p, 'margin-top:6px;font-size:13px')}</div>`; }
 function myPh(m) { return m.photo ? `<div class="ph has-img" style="--h:0"><img src="${esc(m.photo)}" alt="" loading="lazy"></div>` : ph(m.latin, m.category, m.name); }
 async function insertUP(row) {
   if (!newRemind()) row.remind = false;
@@ -10199,7 +10224,7 @@ function discoverV() {
   else body = `<div style="display:flex;justify-content:center;padding:12px 16px 0"><div id="dscard" style="width:100%;max-width:360px;touch-action:pan-y;user-select:none;background:var(--surf);border-radius:20px;box-shadow:var(--sh);overflow:hidden;cursor:grab">
       ${plantPh(p)}<div style="padding:14px 16px 16px"><h3 style="margin:0;font-size:20px">${esc(p.swedish_name)}</h3><i style="color:var(--mut)">${esc(p.latin_name)}</i>
       <p style="margin:8px 0 0;font-size:14px;color:var(--mut)">${esc(p.category || '')}${p.hardiness_zone ? ' · Zon ' + esc(p.hardiness_zone) : ''}</p>
-      <button class="link3" style="margin-top:8px" onclick="openPlant(${p.id})">Visa mer om växten</button></div></div></div>
+      <button class="link3" style="margin-top:8px" onclick="openPlant(${p.id})">Visa mer om växten</button><br>${imgSearchBtn(p, 'margin-top:6px')}</div></div></div>
     <div style="display:flex;justify-content:center;gap:28px;margin:18px 0 8px">
       <button class="circ" onclick="dsButton('l')" aria-label="Hoppa över" style="width:64px;height:64px;font-size:26px">✕</button>
       <button class="circ" onclick="dsButton('r')" aria-label="Spara i Högerswipe" style="width:64px;height:64px;font-size:26px">♥</button>
@@ -10253,7 +10278,7 @@ function matchV() {
   if (!q.ids) { q.ids = matchQueue(); for (let i = q.ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q.ids[i], q.ids[j]] = [q.ids[j], q.ids[i]]; } }
   const p = q.ids.length ? S.plants.find(x => x.id === q.ids[0]) : null;
   if (!p) return `<div class="empty" style="margin:24px 16px"><p>Inga fler förslag. Ändra svaren för att se andra växter.</p><button class="btn sm" onclick="S.mq=null;dsRender()">Börja om</button></div>`;
-  return `<div style="display:flex;justify-content:center;padding:12px 16px 0"><div id="dscard" style="width:100%;max-width:360px;touch-action:pan-y;user-select:none;background:var(--surf);border-radius:20px;box-shadow:var(--sh);overflow:hidden">${plantPh(p)}<div style="padding:14px 16px 16px"><h3 style="margin:0;font-size:20px">${esc(p.swedish_name)}</h3><i style="color:var(--mut)">${esc(p.latin_name)}</i><button class="link3" style="display:block;margin-top:8px" onclick="openPlant(${p.id})">Visa mer om växten</button></div></div></div>
+  return `<div style="display:flex;justify-content:center;padding:12px 16px 0"><div id="dscard" style="width:100%;max-width:360px;touch-action:pan-y;user-select:none;background:var(--surf);border-radius:20px;box-shadow:var(--sh);overflow:hidden">${plantPh(p)}<div style="padding:14px 16px 16px"><h3 style="margin:0;font-size:20px">${esc(p.swedish_name)}</h3><i style="color:var(--mut)">${esc(p.latin_name)}</i><button class="link3" style="display:block;margin-top:8px" onclick="openPlant(${p.id})">Visa mer om växten</button>${imgSearchBtn(p, 'margin-top:6px')}</div></div></div>
   <div style="display:flex;justify-content:center;gap:28px;margin:18px 0 8px"><button class="circ" onclick="dsButton('l')" aria-label="Nästa" style="width:64px;height:64px;font-size:26px">✕</button><button class="circ" onclick="dsButton('r')" aria-label="Lägg i önskelistan" style="width:64px;height:64px;font-size:26px">♥</button></div>
   <p class="mut" style="text-align:center;font-size:13px;margin:0 0 12px">Svep höger för önskelistan, vänster för nästa.</p>`;
 }
@@ -11368,6 +11393,15 @@ function arDraw() {
   c.stroke(); c.fillStyle = '#FFE9B8'; c.font = '700 13px system-ui,sans-serif';
   hrs.forEach(([m, q]) => { c.beginPath(); c.arc(q[0], q[1], 3.5, 0, 7); c.fill(); c.fillText(String(m / 60), q[0], q[1] - 9); });
   c.shadowBlur = 0;
+  if (S.arSpot) arWinDraw(c, P, ds);
+  arPlantsDraw(c, M, W, H, hf);
+  const mo = MOON(sunAt(ds, t), loc.lat, loc.lon);
+  c.save(); c.lineWidth = 2; c.strokeStyle = 'rgba(220,228,240,.55)'; c.setLineDash([3, 7]); c.beginPath(); pen = false;
+  for (let m = 0; m <= 1440; m += 10) { const p = MOON(sunAt(ds, m), loc.lat, loc.lon); if (p.alt < -1) { pen = false; continue; } const qm = P(p.az, p.alt); if (qm) { pen ? c.lineTo(qm[0], qm[1]) : c.moveTo(qm[0], qm[1]); pen = true; } else pen = false; }
+  c.stroke(); c.restore();
+  { const dm = arToDev(M, mo.az, mo.alt), qm = arProj(dm, W, H, hf), mIn = qm && qm[0] > -20 && qm[0] < W + 20 && qm[1] > -20 && qm[1] < H + 20;
+    if (mIn) { moonDisk(c, qm[0], qm[1], 15, mo); c.fillStyle = '#E6EBF2'; c.font = '700 12px system-ui,sans-serif'; c.textAlign = 'center'; c.fillText('Månen', qm[0], qm[1] + 30); }
+    else if (mo.alt > 0) { const an = Math.atan2(-dm.y, dm.x), rr = Math.min(W, H) * 0.28, mx = W / 2 + Math.cos(an) * rr, my = H / 2 + Math.sin(an) * rr; c.save(); c.translate(mx, my); c.rotate(an); c.fillStyle = 'rgba(230,234,240,.9)'; c.beginPath(); c.moveTo(16, 0); c.lineTo(-8, -11); c.lineTo(-3, 0); c.lineTo(-8, 11); c.closePath(); c.fill(); c.restore(); moonDisk(c, mx - Math.cos(an) * 20, my - Math.sin(an) * 20, 8, mo); } }
   const d = arToDev(M, cur.az, cur.alt), q = arProj(d, W, H, hf), inView = q && q[0] > -30 && q[0] < W + 30 && q[1] > -30 && q[1] < H + 30;
   if (inView) {
     c.fillStyle = cur.alt > 0 ? '#FFC83D' : 'rgba(180,190,200,.9)'; c.strokeStyle = '#F08A24'; c.lineWidth = 3; c.beginPath(); c.arc(q[0], q[1], 20, 0, 7); c.fill(); c.stroke();
@@ -11379,7 +11413,108 @@ function arDraw() {
   const camAz = (Math.atan2(-M[2], -M[5]) * 180 / Math.PI + 360) % 360, camAlt = Math.asin(Math.max(-1, Math.min(1, -M[8]))) * 180 / Math.PI;
   const da = ((cur.az - camAz + 540) % 360) - 180, dh = cur.alt - camAlt;
   const pos = `${sunWord(cur.az)} (${Math.round(cur.az)}°), ${Math.round(cur.alt)}° över horisonten`;
-  say(cur.alt <= 0 ? `Kl <b>${hm(t)}</b> är solen under horisonten (${Math.round(cur.az)}° ${sunWord(cur.az)}).` : inView ? `Kl <b>${hm(t)}</b> står solen här: ${pos}.` : `Kl <b>${hm(t)}</b> står solen i ${pos}. Vrid dig <b>${Math.round(Math.abs(da))}° åt ${da > 0 ? 'höger' : 'vänster'}</b>${Math.abs(dh) > 5 ? ' och luta telefonen <b>' + (dh > 0 ? 'uppåt' : 'nedåt') + '</b>' : ''}.`);
+  const say0 = say, mline = '<br><span style="font-size:13.5px;opacity:.9">' + moonTxt(MOON(sunAt(ds, t), loc.lat, loc.lon)) + '</span>';
+  ((txt) => say0(txt + mline))(cur.alt <= 0 ? `Kl <b>${hm(t)}</b> är solen under horisonten (${Math.round(cur.az)}° ${sunWord(cur.az)}).` : inView ? `Kl <b>${hm(t)}</b> står solen här: ${pos}.` : `Kl <b>${hm(t)}</b> står solen i ${pos}. Vrid dig <b>${Math.round(Math.abs(da))}° åt ${da > 0 ? 'höger' : 'vänster'}</b>${Math.abs(dh) > 5 ? ' och luta telefonen <b>' + (dh > 0 ? 'uppåt' : 'nedåt') + '</b>' : ''}.`);
+}
+// ===== Månen: läge och fas (samma förenklade formler som biblioteket SunCalc, ca 1° noggrannhet) =====
+function MOON(date, lat, lon) {
+  const rad = Math.PI / 180, d = date / 864e5 - 0.5 + 2440588 - 2451545, e = rad * 23.4397;
+  const ra = (l, b) => Math.atan2(Math.sin(l) * Math.cos(e) - Math.tan(b) * Math.sin(e), Math.cos(l)), dec = (l, b) => Math.asin(Math.sin(b) * Math.cos(e) + Math.cos(b) * Math.sin(e) * Math.sin(l));
+  const L = rad * (218.316 + 13.176396 * d), M = rad * (134.963 + 13.064993 * d), F = rad * (93.272 + 13.229350 * d), l = L + rad * 6.289 * Math.sin(M), b = rad * 5.128 * Math.sin(F), dist = 385001 - 20905 * Math.cos(M);
+  const mra = ra(l, b), mdec = dec(l, b), phi = rad * lat, H = rad * (280.16 + 360.9856235 * d) - rad * -lon - mra;
+  let h = Math.asin(Math.sin(phi) * Math.sin(mdec) + Math.cos(phi) * Math.cos(mdec) * Math.cos(H)); h -= Math.asin(6378.14 / dist * Math.cos(h)); const hr = Math.max(h, 0); h += 0.0002967 / Math.tan(hr + 0.00312536 / (hr + 0.08901179));
+  const az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(mdec) * Math.cos(phi));
+  const sM = rad * (357.5291 + 0.98560028 * d), sC = rad * (1.9148 * Math.sin(sM) + 0.02 * Math.sin(2 * sM) + 0.0003 * Math.sin(3 * sM)), sL = sM + sC + rad * 102.9372 + Math.PI, sra = ra(sL, 0), sdec = dec(sL, 0), sdist = 149598000;
+  const ph = Math.acos(Math.sin(sdec) * Math.sin(mdec) + Math.cos(sdec) * Math.cos(mdec) * Math.cos(sra - mra)), inc = Math.atan2(sdist * Math.sin(ph), dist - sdist * Math.cos(ph));
+  const ang = Math.atan2(Math.cos(sdec) * Math.sin(sra - mra), Math.sin(sdec) * Math.cos(mdec) - Math.cos(sdec) * Math.sin(mdec) * Math.cos(sra - mra));
+  return { az: (az / rad + 180 + 360) % 360, alt: h / rad, frac: (1 + Math.cos(inc)) / 2, phase: 0.5 + 0.5 * inc * (ang < 0 ? -1 : 1) / Math.PI };
+}
+function moonPhaseWord(p) { return p < 0.03 || p > 0.97 ? 'nymåne' : p < 0.22 ? 'tilltagande skära' : p < 0.28 ? 'första kvarteret' : p < 0.47 ? 'tilltagande' : p < 0.53 ? 'fullmåne' : p < 0.72 ? 'avtagande' : p < 0.78 ? 'sista kvarteret' : 'avtagande skära'; }
+function moonTxt(mo) { return `Månen: ${mo.alt > 0 ? `${sunWord(mo.az)} (${Math.round(mo.az)}°), ${Math.round(mo.alt)}° upp` : `under horisonten (${sunWord(mo.az)})`} · ${Math.round(mo.frac * 100)} % belyst, ${moonPhaseWord(mo.phase)}`; }
+// Ritar månen som en skiva med rätt fas (norra halvklotet: tilltagande måne är belyst till höger).
+function moonDisk(c, x, y, r, mo) {
+  c.save(); c.shadowBlur = 0; c.fillStyle = 'rgba(40,46,56,.9)'; c.strokeStyle = 'rgba(230,234,240,.9)'; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.stroke();
+  if (mo.frac > 0.02) {
+    const wax = mo.phase < 0.5, rx = r * Math.abs(1 - 2 * mo.frac);
+    c.fillStyle = '#EEF1F5'; c.beginPath(); c.moveTo(x, y - r);
+    c.arc(x, y, r, -Math.PI / 2, Math.PI / 2, !wax);
+    c.ellipse(x, y, Math.max(rx, 0.01), r, 0, Math.PI / 2, -Math.PI / 2, wax === (mo.frac < 0.5)); c.closePath(); c.fill();
+  }
+  c.restore();
+}
+// ===== Kamera: fönsterljus från en vald plats i hemmet =====
+// Platser: växter som står på en plats i ett rum, och mitten av varje rum.
+// Utepå placerade växter i kameran. Utgångspunkt: husets mitt (planens rum). Riktningen följer planens norr.
+// Var användaren står: vald plats i kameraläget ("Jag står vid"), annars husets mitt.
+function arOrigin() {
+  const k = store.get('arStand', ''), sp = k && arSpots().find(o => o.k === k);
+  if (sp) return { x: sp.x, y: sp.y, name: sp.label };
+  const R = planRoomsAll(); if (!R.length) return null;
+  let x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9;
+  R.forEach(r => { x1 = Math.min(x1, r.rect.x); y1 = Math.min(y1, r.rect.y); x2 = Math.max(x2, r.rect.x + r.rect.w); y2 = Math.max(y2, r.rect.y + r.rect.h); });
+  return { x: (x1 + x2) / 2, y: (y1 + y2) / 2, name: 'husets mitt' };
+}
+function arStandSel() { const L = arSpots(); if (!L.length) return ''; const cur = store.get('arStand', ''); return `<label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px">Jag står vid <select id="arstand" style="flex:1;min-width:0;height:36px;border-radius:10px;border:0;padding:0 8px;background:rgba(255,255,255,.92);color:#16261D;font-size:14px"><option value="">Husets mitt</option>${L.map(o => `<option value="${esc(o.k)}"${cur === o.k ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>`; }
+function arPlantsDraw(c, M, W, H, hf) {
+  const o = arOrigin(); if (!o) return;
+  const th = northDeg(); let n = 0;
+  (S.mine || []).forEach(m => {
+    const q = minePos(m); if (!q) return;
+    const dx = q.x - o.x, dy = q.y - o.y, L = Math.hypot(dx, dy); if (L < 0.2) return;
+    const az = (((Math.atan2(dx, -dy) * 180 / Math.PI) - th) % 360 + 360) % 360;
+    const p = arProj(arToDev(M, az, 0), W, H, hf);
+    if (!p || p[0] < -40 || p[0] > W + 40 || p[1] < -40 || p[1] > H + 40) return;
+    const pl = plantOf(m) || {}; n++;
+    c.beginPath(); c.arc(p[0], p[1], 7, 0, 7); c.fillStyle = '#4E8B3A'; c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke();
+    c.font = '700 12px system-ui,sans-serif'; c.textAlign = 'center'; c.fillStyle = '#fff'; c.shadowColor = 'rgba(0,0,0,.8)'; c.shadowBlur = 4;
+    c.fillText((m.nickname || pl.swedish_name || 'Växt') + ' · ' + L.toFixed(1).replace('.', ',') + ' m', p[0], p[1] - 12); c.shadowBlur = 0;
+  });
+  if (n) { c.font = '600 11px system-ui,sans-serif'; c.textAlign = 'left'; c.fillStyle = 'rgba(255,255,255,.85)'; c.shadowColor = 'rgba(0,0,0,.8)'; c.shadowBlur = 3; c.fillText('Avstånd från ' + o.name, 10, H - 12); c.shadowBlur = 0; }
+}
+function arSpots() {
+  const out = [];
+  (S.mine || []).forEach(m => { const d = m.details || {}, r = roomOf(m); if (r && r.rect && d.pos && okn(d.pos.x, d.pos.y)) out.push({ k: 'm:' + m.id, label: (m.nickname || (plantOf(m) || {}).swedish_name || 'Växt') + ' (' + (r.name || 'rum') + ')', r, x: d.pos.x, y: d.pos.y }); });
+  (typeof planRoomsAll === 'function' ? planRoomsAll() : []).forEach(r => out.push({ k: 'r:' + r.id, label: 'Mitt i ' + (r.name || 'rummet'), r, x: r.rect.x + r.rect.w / 2, y: r.rect.y + r.rect.h / 2 }));
+  return out;
+}
+function arSpotSel() { const L = arSpots(); if (!L.length) return ''; return `<label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px">Plats <select id="sunarspot" style="flex:1;min-width:0;height:36px;border-radius:10px;border:0;padding:0 8px;background:rgba(255,255,255,.92);color:#16261D;font-size:14px"><option value="">Ingen (visa bara solbanan)</option>${L.map(o => `<option value="${esc(o.k)}"${S.arSpot === o.k ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label><div id="sunarwin" style="font-size:13.5px;margin-bottom:2px;text-shadow:0 1px 3px #000"></div><div style="font-size:12px;opacity:.8;margin-bottom:6px">Stå på platsen och håll telefonen i höjd med växten. Blå ram = fönstret, gul bana = sol som lyser in.</div>`; }
+// Räknar var tionde minut om solen lyser in genom fönstren, och fönstrens hörn som riktningar (grader) från platsen.
+function arWinCalc(ds) {
+  const sp = arSpots().find(o => o.k === S.arSpot); if (!sp) return null;
+  const key = sp.k + '|' + ds + '|' + northDeg() + '|' + sp.x.toFixed(2) + ',' + sp.y.toFixed(2);
+  if (AR.wl && AR.wl.key === key) return AR.wl;
+  const f = winTauFn(sp.r, sp.x, sp.y), loc = sunLoc(), mon = +ds.slice(5, 7), R = Math.PI / 180, pts = [];
+  for (let m = 0; m <= 1430; m += 10) { const p = SUN(sunAt(ds, m), loc.lat, loc.lon); pts.push({ m, az: p.az, alt: p.alt, tau: f && p.alt > 0 ? f({ alt: p.alt * R, az: p.az * R }, mon) : 0 }); }
+  const eye = f ? f.z0 : 1, wins = [];
+  if (f) f.segs.forEach(([q, , za, zb]) => {
+    const lo = za || 0.85, hi = zb || 2.15;
+    wins.push([[q[0], q[1], lo], [q[2], q[3], lo], [q[2], q[3], hi], [q[0], q[1], hi]].map(([px, py, pz]) => {
+      const vx = px - sp.x, vy = py - sp.y, az = ((Math.atan2(vx, -vy) - f.th) / R + 720) % 360, alt = Math.atan2(pz - eye, Math.hypot(vx, vy)) / R;
+      return [az, alt];
+    }));
+  });
+  // Sammanfattning: tider med sol genom fönstret
+  const on = pts.filter(q => q.tau > 0.05), runs = [];
+  pts.forEach((q, i) => { if (q.tau > 0.05 && !(i && pts[i - 1].tau > 0.05)) runs.push([q.m, q.m]); if (q.tau > 0.05) runs[runs.length - 1][1] = q.m + 10; });
+  const H = x => String(Math.round(x * 10) / 10).replace('.', ','), part = on.some(q => q.tau < 0.9);
+  const txt = !f ? `${esc(sp.r.name || 'Rummet')} har inga fönster i ritningen.` : !on.length ? 'Ingen direkt sol genom fönstren den här dagen från den här platsen.'
+    : `Sol genom fönstret kl ${runs.map(([a, b]) => hm(a) + '–' + hm(Math.min(b, 1439))).join(', ')} (ca ${H(on.length / 6)} h)${part ? ', delvis filtrerad av träd' : ''}.`;
+  AR.wl = { key, pts, wins, txt };
+  const el = document.getElementById('sunarwin'); if (el) el.innerHTML = txt;
+  return AR.wl;
+}
+// Ritar fönstrens konturer och färgar solbanan där solen lyser in.
+function arWinDraw(c, P, ds) {
+  const wl = arWinCalc(ds); if (!wl) return;
+  c.lineWidth = 2.5; c.strokeStyle = 'rgba(127,216,255,.95)'; c.fillStyle = 'rgba(127,216,255,.14)';
+  wl.wins.forEach(cs => { const q = cs.map(([az, alt]) => P(az, alt)); if (q.some(v => !v)) return; c.beginPath(); q.forEach((v, i) => i ? c.lineTo(v[0], v[1]) : c.moveTo(v[0], v[1])); c.closePath(); c.fill(); c.stroke(); });
+  c.lineCap = 'round';
+  for (let i = 1; i < wl.pts.length; i++) {
+    const a = wl.pts[i - 1], b = wl.pts[i], tau = Math.min(a.tau, b.tau); if (tau <= 0.05) continue;
+    const qa = P(a.az, a.alt), qb = P(b.az, b.alt); if (!qa || !qb) continue;
+    c.strokeStyle = tau >= 0.9 ? '#FFE14D' : 'rgba(255,240,190,.85)'; c.lineWidth = tau >= 0.9 ? 9 : 6;
+    c.beginPath(); c.moveTo(qa[0], qa[1]); c.lineTo(qb[0], qb[1]); c.stroke();
+  }
 }
 async function arOpen() {
   if (AR) return;
@@ -11389,11 +11524,13 @@ async function arOpen() {
   const el = document.createElement('div'); el.id = 'sunar'; el.style.cssText = 'position:fixed;inset:0;z-index:99999;background:linear-gradient(#1c3a52,#0b1a25);color:#fff;font-family:system-ui,sans-serif;touch-action:none';
   el.innerHTML = `<video playsinline muted autoplay style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video><canvas style="position:absolute;inset:0;width:100%;height:100%"></canvas>
     <div style="position:absolute;top:0;left:0;right:0;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;display:flex;gap:10px;align-items:flex-start;background:linear-gradient(rgba(0,0,0,.65),transparent)"><button id="sunarx" aria-label="Stäng kameran" style="flex:none;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:22px">✕</button><div id="sunarinfo" style="flex:1;font-size:15px;line-height:1.35;text-shadow:0 1px 3px #000"></div></div>
-    <div style="position:absolute;left:0;right:0;bottom:0;padding:14px 16px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.75))"><div style="font-size:14px;margin-bottom:2px">Tid: <b id="sunartl"></b> · ${esc(new Date(sunDay() + 'T12:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' }))} · ${esc(sunLoc().name)}</div><input id="sunarr" type="range" min="0" max="1435" step="5" value="${S.sunT}" style="width:100%;height:44px;accent-color:#FFC83D" aria-label="Tid på dygnet"><div style="font-size:12.5px;opacity:.8">Håll telefonen stående. Dra i reglaget och rikta kameran dit pilen eller solen visar.</div></div>`;
+    <div style="position:absolute;left:0;right:0;bottom:0;padding:14px 16px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.75))">${arStandSel()}${arSpotSel()}<div style="font-size:14px;margin-bottom:2px">Tid: <b id="sunartl"></b> · ${esc(new Date(sunDay() + 'T12:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' }))} · ${esc(sunLoc().name)}</div><input id="sunarr" type="range" min="0" max="1435" step="5" value="${S.sunT}" style="width:100%;height:44px;accent-color:#FFC83D" aria-label="Tid på dygnet"><div style="font-size:12.5px;opacity:.8">Håll telefonen stående. Dra i reglaget och rikta kameran dit pilen eller solen visar.</div></div>`;
   document.body.appendChild(el);
   AR = { el, cv: el.querySelector('canvas'), vid: el.querySelector('video'), info: el.querySelector('#sunarinfo'), tl: el.querySelector('#sunartl'), hfov: 54, o: null };
   el.querySelector('#sunarx').onclick = arClose;
   el.querySelector('#sunarr').oninput = ev => { S.sunT = +ev.target.value; S.sunPin = true; };
+  const stSel = el.querySelector('#arstand'); if (stSel) stSel.onchange = ev => { store.set('arStand', ev.target.value); AR.wl = null; };
+  const spSel = el.querySelector('#sunarspot'); if (spSel) spSel.onchange = ev => { S.arSpot = ev.target.value; AR.wl = null; const w = document.getElementById('sunarwin'); if (w) w.textContent = ''; };
   window.addEventListener('deviceorientationabsolute', arOri, true); window.addEventListener('deviceorientation', arOri, true);
   try { AR.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }); AR.vid.srcObject = AR.stream; AR.vid.play && AR.vid.play().catch(() => {}); }
   catch (e) { AR.noCam = true; toast('Kameran gick inte att starta. Du ser ändå solens bana mot en mörk bakgrund.'); }
