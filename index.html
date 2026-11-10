@@ -1740,7 +1740,7 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 #list>.card{content-visibility:auto;contain-intrinsic-size:auto 160px}
 
 /* Designvarianten Städad: <small> utan egen storlek får närmaste steg */
-:root[data-ui=stad] small{font-size:var(--fs-2)}:root[data-ui=stad] button small,:root[data-ui=stad] .chips2 small{font-size:var(--fs-1)}
+:root[data-ui=stad] small{font-size:var(--fs-1)}:root[data-ui=stad] button small,:root[data-ui=stad] .chips2 small{font-size:var(--fs-1)}
 
 .ti b.na{color:var(--mut);font-weight:600}
 
@@ -1750,7 +1750,41 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 :root[data-ui=stad] nav button.on{color:var(--ink)}
 :root[data-ui=stad] .ti b:not(.bad):not(.na){color:var(--ink)}
 /* STÄDAD-regler (endast designvarianten Städad, felrapporter 99–106): tryckytor 48 px, ingen ren svart, lugnare rörelse */
-:root[data-ui=stad]{--t-press:150ms}
+:root[data-ui=stad]{--t-press:150ms;
+  /* 100/101: fyra textstorlekar, brödtext 16 px */
+  --fs-1:13px;--fs-2:16px;--fs-3:20px;--fs-4:24px;--fs-5:24px;--fs-6:24px;
+  /* 101/105: avstånd i 4/8 px-rutnät som gemensamma tokens */
+  --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;--sp-7:48px;
+  /* 100/101: en enda accentfärg, samma som primärfärgen */
+  --acc:var(--pri);--cop:var(--pri);
+  /* 101/105: Material 3-färgroller som tokens */
+  --primary:var(--pri);--on-primary:var(--onpri);--secondary:var(--pri2);--background:var(--bg);--surface:var(--surf);--on-surface:var(--ink);
+  --surface-variant:var(--soft);--on-surface-variant:var(--mut);--outline:var(--line);--inverse-surface:var(--ink);--inverse-on-surface:var(--bg);
+  --error:#B3261E;--on-error:#FFFFFF;--inverse-primary:#9BC77A;
+  /* 104: rörelse 150–300 ms med standard-easing */
+  --ease-std:cubic-bezier(.2,0,0,1);--dur-s:150ms;--dur-m:250ms;--dur-l:300ms}
+:root[data-ui=stad][data-theme="dark"]{--error:#F2B8B5;--on-error:#601410;--inverse-primary:#1F4D3A}
+@media (prefers-color-scheme:dark){:root[data-ui=stad]:not([data-theme="light"]){--error:#F2B8B5;--on-error:#601410;--inverse-primary:#1F4D3A}}
+/* 100: dämpad text i ljust läge når 4,5:1 i kontrast (var 4,2:1) */
+:root[data-ui=stad][data-theme="light"]{--mut:#655E52}
+@media (prefers-color-scheme:light){:root[data-ui=stad]:not([data-theme="dark"]){--mut:#655E52}}
+:root[data-ui=stad] body{font-size:var(--fs-2)}
+/* 102/105: Ångra-raden använder färgroller i stället för fasta färger */
+:root[data-ui=stad] #undobar{background:var(--inverse-surface)!important;color:var(--inverse-on-surface)!important;border-radius:var(--r-sm)!important;bottom:calc(88px + env(safe-area-inset-bottom,0px))!important}
+:root[data-ui=stad] #undobar button{color:var(--inverse-primary)!important;min-height:48px;min-width:48px}
+/* 102: knappar som väntar på svar är inaktiverade och syns som det */
+:root[data-ui=stad] .btn[aria-busy="true"]{opacity:.6;cursor:progress}
+/* 103: skelettvy i stället för text när något laddas, med reserverad plats */
+:root[data-ui=stad] .skel{color:transparent!important;min-height:72px;border-radius:var(--r-sm);background:linear-gradient(90deg,var(--soft) 25%,var(--line) 50%,var(--soft) 75%);background-size:200% 100%;animation:stadskel 1.4s var(--ease-std) infinite;user-select:none;overflow:hidden}
+@keyframes stadskel{from{background-position:200% 0}to{background-position:-200% 0}}
+/* 104: små framgångar firas kort */
+:root[data-ui=stad] #toast:not([hidden]){animation:stadpop var(--dur-m) var(--ease-std)}
+@keyframes stadpop{from{opacity:0;transform:translateX(-50%) translateY(8px) scale(.96)}to{opacity:1;transform:translateX(-50%)}}
+/* 104: övergångar mellan vyer och kort som öppnas till detaljvy */
+:root[data-ui=stad]::view-transition-old(root),:root[data-ui=stad]::view-transition-new(root){animation-duration:250ms;animation-timing-function:cubic-bezier(.2,0,0,1)}
+:root[data-ui=stad]::view-transition-group(stadcard){animation-duration:300ms;animation-timing-function:cubic-bezier(.2,0,0,1)}
+/* 102: tryckåterkoppling inom 100 ms, med en ljusstråle från det man trycker på */
+:root[data-ui=stad] .btn:active,:root[data-ui=stad] .chips2 button:active,:root[data-ui=stad] .seg2 button:active,:root[data-ui=stad] nav button:active,:root[data-ui=stad] .nrow:active{background-image:radial-gradient(circle at var(--rx,50%) var(--ry,50%),rgba(255,255,255,.28),transparent 60%)}
 :root[data-ui=stad] .btn,:root[data-ui=stad] nav button,:root[data-ui=stad] .chips2 button,:root[data-ui=stad] .seg2 button,:root[data-ui=stad] .x{min-height:48px}
 :root[data-ui=stad] .chips2 button,:root[data-ui=stad] .seg2 button{padding-top:12px;padding-bottom:12px}
 :root[data-ui=stad] .lbimg,:root[data-ui=stad] .idcam,:root[data-ui=stad] #app #ov{background-color:#0D0F0E}
@@ -1790,6 +1824,13 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 <div id="ov"></div><div id="toast" class="toast" hidden role="status"></div>
 </div>
 <script>
+// Städad (felrapport 102): en knapp som startar ett nätverksanrop inaktiveras tills svaret kommit
+let stadBtn = null, stadBtnT = 0;
+document.addEventListener('click', e => { if (document.documentElement.dataset.ui !== 'stad') return; const b = e.target.closest && e.target.closest('.btn'); if (b) { stadBtn = b; stadBtnT = Date.now(); } }, true);
+(() => { const of = window.fetch; if (!of) return; window.fetch = function (...a) {
+  const b = stadBtn && Date.now() - stadBtnT < 400 && document.documentElement.dataset.ui === 'stad' ? stadBtn : null; const pr = of.apply(this, a);
+  if (b && !b.disabled) { b.disabled = true; b.setAttribute('aria-busy', 'true'); const done = () => { b.disabled = false; b.removeAttribute('aria-busy'); }; pr.then(done, done); }
+  return pr; }; })();
 // ===== Inställningar =====
 // Fyll i från Supabase: Project Settings → API. Lämnas de tomma körs appen i demoläge.
 const SUPABASE_URL = 'https://lboomcqxksqahkugpxew.supabase.co';
@@ -2286,9 +2327,9 @@ function navTap(t) {
 function go(t) { if (window.dropKb) dropKb(); stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; S.notifSet = false;
   // Flikmarkeringen byts direkt så att trycket syns på en gång. Innehållet ritas i nästa bildruta.
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  requestAnimationFrame(() => { render(); $('#main').scrollTop = 0; });
+  requestAnimationFrame(() => stadVT(() => { render(); $('#main').scrollTop = 0; }));
   if (t === 'comm') loadFeed(); if (t === 'mine' && S.user && !S.push) refreshPush(); if (t === 'me') loadMe(); if (t === 'me' && !S.feed) api.feed('question').then(f => { S.feed = f; render(); }).catch(() => {}); }
-function openPlant(id, myId) { S.myCur = myId || null; S.sel = id; S.logForm = null; S.logAll = null; render(); $('#main').scrollTop = 0; }
+function openPlant(id, myId) { stadVT(() => { S.myCur = myId || null; S.sel = id; S.logForm = null; S.logAll = null; render(); $('#main').scrollTop = 0; }, '.dtop'); }
 function openModal(m, prefill, latin, ap) { S.modal = m; if (m === 'add' || m === 'addp') S.addRemind = undefined; S.logForm = null; S.logAll = null; S.msg = ''; S.prefill = prefill || ''; S.prefillLatin = latin || ''; if (m === 'add' || m === 'addp') S.ap = ap || null; render(); const f = $('#ov input:not([type=checkbox])'); if (f) f.focus(); }
 const RM = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 let sheetOpen = null;
@@ -7650,10 +7691,11 @@ function modV() {
 }
 // ===== Blockera =====
 async function blockUser(id, on) {
-  if (on && !confirm('Blockera den här personen? Du ser inte längre personens inlägg, och ni kan inte skicka vänförfrågningar till varandra.')) return;
+  const stadU = document.documentElement.dataset.ui === 'stad';
+  if (on && !stadU && !confirm('Blockera den här personen? Du ser inte längre personens inlägg, och ni kan inte skicka vänförfrågningar till varandra.')) return;
   try { await api.block(id, on); } catch (e) { toast(e.message === 'MOD_NOT_READY' ? 'Blockering går inte att använda just nu.' : errMsg(e)); return; }
   S.blocks = (S.blocks || []).filter(x => x !== id); if (on) { S.blocks.push(id); S.follows = (S.follows || []).filter(x => x !== id); S.friends = null; if (S.ucard && S.ucard.id === id) S.ucard.friend_status = 'none'; }
-  S.feed = null; S.blockedL = null; toast(on ? 'Personen är blockerad' : 'Blockeringen är borttagen'); keepMain(); if (S.tab === 'comm') loadFeed();
+  S.feed = null; S.blockedL = null; if (on && stadU) showUndoAct('Personen är blockerad', 'blockUser(' + JSON.stringify(id) + ', false)'); else toast(on ? 'Personen är blockerad' : 'Blockeringen är borttagen'); keepMain(); if (S.tab === 'comm') loadFeed();
 }
 async function loadBlocked() { try { S.blockedL = await api.blockedList(); } catch (e) { S.blockedL = []; } if (S.tool === 'settings') keepMain(); }
 function notifV() {
@@ -9984,6 +10026,8 @@ function showUndo(msg) {
   bar.innerHTML = '<span style="flex:1;font-size:15px">' + esc(msg) + '</span><button onclick="undoRemove()" style="background:none;border:0;color:#9BC77A;font-weight:800;font-size:15px;cursor:pointer">Ångra</button>';
   bar.hidden = false;
 }
+// Städad: Ångra-rad för andra handlingar än att ta bort en växt. Försvinner efter 5 sekunder.
+function showUndoAct(msg, act) { showUndo(msg); const b = document.querySelector('#undobar button'); if (b) b.setAttribute('onclick', 'hideUndo();' + act); clearTimeout(window._undoT); window._undoT = setTimeout(hideUndo, 5000); }
 function hideUndo() { const bar = document.getElementById('undobar'); if (bar) bar.remove(); }
 function removeMine(id) {
   if (S.del !== id) { S.del = id; render(); return; }
@@ -10152,6 +10196,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.338', '10 nov', ['Designvarianten Städad: fyra textstorlekar och två vikter, brödtext 16 px, bättre kontrast, avstånd i ett jämnt rutnät och en enda accentfärg', 'Städad: tryck ger direkt återkoppling och lätt vibration, knappar är låsta medan de väntar på svar, och blockering kan ångras', 'Städad: skelettvyer medan något laddas, mjuka övergångar mellan vyer, och ett växtkort växer till växtsidan när du öppnar det']],
   ['Beta 0.337', '10 nov', ['Förberett för betald Pro: moderatorer kan testa köp och kundportal i Pro-rutan. Pro är fortfarande gratis för alla under testperioden, och moderatorer, admins och experter har alltid Pro']],
   ['Beta 0.336', '10 nov', ['Felrapporterna är fixade: den färgade kanten på kort är borttagen, du kan beskära profilbilden i en cirkel innan du laddar upp den, menyer som går att scrolla åt sidan visar en tona-kant, och Såkalenderns ikon är större', 'Designvarianten Städad: knappar och menyer är minst 48 px höga, ingen ren svart bakgrund i bildvisaren, och mindre rörelse för dig som valt minskad rörelse i systemet']],
   ['Beta 0.335', '10 nov', ['Notifikations-inställningar: alla notiser samlade under Inställningar. Välj vilka du vill få: ny uppdatering, nytt meddelande och vänförfrågningar'] ],
@@ -11787,7 +11832,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.337';
+const APP_VERSION = 'Beta 0.338';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -11795,6 +11840,24 @@ const UI_VARS = [['', 'Nuvarande'], ['stad', 'Städad'], ['lugn', 'Lugn'], ['red
 const UI_FONT = { lugn: 'Inter:wght@400;500;600;650;700', red: 'Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700', lek: 'Nunito:wght@600;700;800;900' };
 const UI_ICON = { lugn: 'light', red: 'thin', lek: 'fill' };
 function uiLink(id, href) { if (document.getElementById(id)) return; const l = document.createElement('link'); l.id = id; l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l); }
+// Städad: tryck ger ljusstråle och lätt haptik direkt (felrapport 102 och 104)
+let stadLastEl = null;
+document.addEventListener('pointerdown', e => {
+  if (document.documentElement.dataset.ui !== 'stad') return; stadLastEl = e.target;
+  const el = e.target.closest && e.target.closest('.btn,.chips2 button,.seg2 button,nav button,.nrow'); if (!el) return;
+  const r = el.getBoundingClientRect(); el.style.setProperty('--rx', (e.clientX - r.left) + 'px'); el.style.setProperty('--ry', (e.clientY - r.top) + 'px');
+  try { if (navigator.vibrate) navigator.vibrate(8); } catch (x) { }
+}, { passive: true });
+// Städad: byte av vy tonar över på 250 ms, och ett kort som öppnas växer till detaljvyn (container transform)
+function stadVT(fn, toSel) {
+  const d = document.documentElement;
+  if (d.dataset.ui !== 'stad' || !document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return fn();
+  const src = toSel && stadLastEl && document.contains(stadLastEl) && stadLastEl.closest ? stadLastEl.closest('.card,.pt,.hmr,.idr,.nrow,.qc,.xrow,.mcard,.prow') : null;
+  if (src) src.style.viewTransitionName = 'stadcard';
+  try {
+    document.startViewTransition(() => { if (src) src.style.viewTransitionName = ''; fn(); const t = src && document.querySelector('#main ' + toSel); if (t) t.style.viewTransitionName = 'stadcard'; });
+  } catch (e) { if (src) src.style.viewTransitionName = ''; fn(); }
+}
 function applyUI() { const v = isMod() ? store.get('ui', '') : ''; const d = document.documentElement;
   tidyCSS(v === 'stad'); if (v === 'stad') { d.dataset.ui = v; }
   else if (v && UI_FONT[v]) { d.dataset.ui = v; delete d.dataset.pal; uiLink('uif-' + v, 'https://fonts.googleapis.com/css2?family=' + UI_FONT[v] + '&display=swap'); uiLink('uii-' + UI_ICON[v], 'https://unpkg.com/@phosphor-icons/web@2.1.1/src/' + UI_ICON[v] + '/style.css'); }
@@ -11802,13 +11865,19 @@ function applyUI() { const v = isMod() ? store.get('ui', '') : ''; const d = doc
 // Ikonerna får variantens vikt (tunn, lätt eller fylld). Nuvarande utseende använder vanliga ikoner.
 // Designvarianten Städad: samma app, men med fyra hörnradier och sex textstorlekar.
 // Stilreglerna skrivs om medan varianten är vald och återställs när man byter tillbaka. Inget sparas i koden för Nuvarande.
-const TIDY_FS = [11, 13, 15, 17, 22, 28], TIDY_ORIG = new Map(); let tidyOn = false;
+const TIDY_FS = [13, 16, 20, 24], TIDY_SP = [4, 8, 12, 16, 24, 32, 48], TIDY_ORIG = new Map(); let tidyOn = false;
 function tidyR(v) { return String(v).replace(/(\d+(?:\.\d+)?)(px|%)/g, (m, n, u) => { n = +n; if (u === '%') return n >= 50 ? 'var(--r-circ)' : m;
   if (n >= 40) return 'var(--r-pill)'; if (n >= 14) return 'var(--r)'; if (n >= 8) return 'var(--r-sm)'; return m; }); }
 function tidyFs(v, sel) { v = String(v); const em = v.match(/^(\d*\.?\d+)em$/); if (em) return +em[1] < 0.9 ? 'var(--fs-1)' : v;
   if (/clamp|vw|min\(|max\(/.test(v)) { const ns = (v.match(/\d+(?:\.\d+)?px/g) || []).map(parseFloat); if (ns.length) v = Math.max(...ns) + 'px'; }
   return v.replace(/(\d+(?:\.\d+)?)px/, (m, n) => { n = +n; let b = TIDY_FS.reduce((a, x) => Math.abs(x - n) <= Math.abs(a - n) ? x : a, TIDY_FS[0]);
-  if (b > 22 && !/num|stat|big|count|val|score|emoji|ico|logo/i.test(sel || '')) b = 22; return 'var(--fs-' + (TIDY_FS.indexOf(b) + 1) + ')'; }); }
+  if (b > 20 && !/h1|num|stat|big|count|val|score|emoji|ico|logo/i.test(sel || '')) b = 20; return 'var(--fs-' + (TIDY_FS.indexOf(b) + 1) + ')'; }); }
+// Städad: avstånd snäpps till 4/8 px-rutnätet och blir tokens (--sp-1 … --sp-7). Hårfina avstånd under 3 px lämnas.
+const TIDY_SPP = ['padding-top', 'padding-right', 'padding-bottom', 'padding-left', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'row-gap', 'column-gap'];
+function tidySp(v) { return String(v).replace(/(-?)(\d+(?:\.\d+)?)px/g, (m, neg, n) => { n = +n; if (n < 3) return m; if (n > 56) return neg + (Math.round(n / 8) * 8) + 'px';
+  const b = TIDY_SP.reduce((a, x) => Math.abs(x - n) < Math.abs(a - n) ? x : a, TIDY_SP[0]), t = 'var(--sp-' + (TIDY_SP.indexOf(b) + 1) + ')'; return neg ? 'calc(-1 * ' + t + ')' : t; }); }
+// Städad: högst två vikter, vanlig (400) och fet (700)
+function tidyFw(v) { v = String(v).trim(); const n = parseInt(v, 10); if (isNaN(n)) return /bold/.test(v) ? '700' : /normal|lighter/.test(v) ? '400' : v; return n >= 600 ? '700' : '400'; }
 function tidyRules(list, fn) { for (const r of list) { if (r.cssRules && !r.style) tidyRules(r.cssRules, fn); else if (r.style) fn(r); } }
 function tidyCSS(on) {
   if (on === tidyOn) return; tidyOn = on;
@@ -11818,12 +11887,18 @@ function tidyCSS(on) {
       const br = st.getPropertyValue('border-radius'); if (br && /px|%/.test(br)) { const n = tidyR(br); if (n !== br) set('border-radius', n); }
       const fs = st.getPropertyValue('font-size'); if (fs && /px/.test(fs)) set('font-size', tidyFs(fs, r.selectorText));
       if (st.getPropertyValue('text-transform') === 'uppercase') { set('text-transform', 'none'); if (st.getPropertyValue('letter-spacing')) set('letter-spacing', 'normal'); }
+      const fw = st.getPropertyValue('font-weight'); if (fw) { const n = tidyFw(fw); if (n !== fw) set('font-weight', n); }
+      TIDY_SPP.forEach(pp => { const v = st.getPropertyValue(pp); if (v && /px/.test(v)) { const n = tidySp(v); if (n !== v) set(pp, n); } });
       if (keep.length) TIDY_ORIG.set(r, keep); }); }
 }
 function tidyInline() { if (!tidyOn) return; document.querySelectorAll('#app [style], #ov [style]').forEach(el => { const st = el.style;
   if (st.borderRadius && /px|%/.test(st.borderRadius)) st.borderRadius = tidyR(st.borderRadius);
   if (st.fontSize && /px/.test(st.fontSize)) st.fontSize = tidyFs(st.fontSize, el.className);
-  if (st.textTransform === 'uppercase') { st.textTransform = 'none'; st.letterSpacing = 'normal'; } }); }
+  if (st.textTransform === 'uppercase') { st.textTransform = 'none'; st.letterSpacing = 'normal'; }
+  if (st.fontWeight) st.fontWeight = tidyFw(st.fontWeight);
+  TIDY_SPP.forEach(pp => { const v = st.getPropertyValue(pp); if (v && /px/.test(v)) st.setProperty(pp, tidySp(v)); }); });
+  // 103: "Hämtar…" och "Laddar…" blir skelettvyer med reserverad plats
+  document.querySelectorAll('#app p.mut, #app p.l3, #app p.empty2').forEach(p => { if (/^(Hämtar|Laddar)/.test(p.textContent.trim())) { p.classList.add('skel'); p.setAttribute('aria-busy', 'true'); } }); }
 function uiIcons() { tidyInline(); const w = UI_ICON[document.documentElement.dataset.ui || ''], all = ['ph-light', 'ph-thin', 'ph-fill'];
   document.querySelectorAll('i.ph').forEach(i => { all.forEach(c => { if (c !== 'ph-' + w) i.classList.remove(c); }); if (w) i.classList.add('ph-' + w); }); }
 function applyPrefs() {
