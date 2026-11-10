@@ -7503,6 +7503,7 @@ async function loadMod() {
     else if (t === 'plants') S.modData = await api.modPlants();
     else if (t === 'team') { S.modData = await api.listStaff(); }
     else if (t === 'fb' || t === 'err') { const all = await api.modFb(); S.modData = all.filter(f => (f.kind === 'bug') === (t === 'err')); }
+    else if (t === 'nyckl') { S.modData = await api.modFb(); }
     else if (t === 'stats') { const P = msPer(); S.msUF = {}; S.msUD = {}; S.msUser = null; const [f, days] = await Promise.all(P.h ? [api.modUsageH(P.h), api.modUsageHours(P.h).then(r => msHourRows(r, P.h))] : [api.modUsage(P.d), api.modUsageDays(P.d)]); const notif = await api.modNotifStats(P.h || P.d * 24).catch(() => null), time = await api.modTime(P.h || P.d * 24).catch(() => null); S.modData = { f, days, notif, time, users: S.msFeat != null ? await (P.h ? api.modUsageUsersH(S.msFeat, P.h) : api.modUsageUsers(S.msFeat, P.d)) : null }; }
     else if (t === 'users') { S.modData = await api.modUsers(S.modUQ || '', 0); S.modUMore = S.modData.length >= (DEMO ? 1e9 : 100); S.modUN = await api.modUserCount().catch(() => null); }
     S.modErr = null; S.modOpen = await api.modOpen(); S.modBestN = await api.modBestCount();
@@ -7657,7 +7658,7 @@ function fbV() { const F = S.fbf || { kind: 'bug' };
 function modFbV(D, t) { const st = { new: 'Ny', seen: 'Sedd', fixed: 'Fixad', wontfix: 'Görs inte' }, kd = { bug: '🐞 Fel', idea: '💡 Förslag', other: 'Annat' };
   const sorted = [...(D || [])].sort(FB_SORTS[S.modFbSort || 'new'][1]);
   return `<div class="pad">${sorted.length ? modStatusGroups(sorted, st).map(([k, L]) => `<details class="mgrp" ${k === 'fixed' || k === 'wontfix' ? '' : 'open'}><summary>${st[k] || 'Övrigt'} <em class="tabn">${L.length}</em></summary>${L.map(f => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">${kd[f.kind] || ''} · ${esc(f.author || '')} · ${ago(f.created_at)} · ${esc(f.version || '')}</small><p style="white-space:pre-wrap;margin:6px 0">${esc(f.body)}</p>${fbUrls(f.photo_url).length ? `<div class="fbshots">${fbUrls(f.photo_url).map((u, i) => `<img class="fbshot" src="${esc(u)}" alt="Bifogad skärmbild ${i + 1}" onclick="this.classList.toggle('big')" onerror="fbBroken(this)">`).join('')}</div>` : ''}<p style="margin:4px 0;font-size:14px"><b>Sida:</b> ${esc(f.view || 'okänd')}</p><small class="mut" style="display:block;word-break:break-all">${esc((f.ua || '').slice(0, 120))}</small>
-    <div class="chips2 sm" style="margin-top:8px">${Object.entries(st).map(([k, n]) => `<button class="${f.status === k ? 'on' : ''}" onclick="modFbSet(${f.id},'${k}')">${n}</button>`).join('')}</div></div>`).join('')}</details>`).join('') : `<p class="mut">${t === 'err' ? 'Inga felrapporter än.' : 'Inga förslag eller annan feedback än.'}</p>`}</div>`; }
+    <div class="chips2 sm" style="margin-top:8px">${Object.entries(st).map(([k, n]) => `<button class="${f.status === k ? 'on' : ''}" onclick="modFbSet(${f.id},'${k}')">${n}</button>`).join('')}</div></div>`).join('')}</details>`).join('') : `<p class="mut">${t === 'err' ? 'Inga felrapporter än.' : t === 'nyckl' ? 'Inget har kommit in via Nycklas än.' : 'Inga förslag eller annan feedback än.'}</p>`}</div>`; }
 async function modFbSet(id, k) { try { await api.modFbSet(id, k); const x = (S.modData || []).find(y => y.id === id); if (x) x.status = k; keepMain(); } catch (e) { toast(errMsg(e)); } }
 function modUsersV(D) {
   const q = S.modUQ || '', n = S.modUN, roleTag = r => r === 'admin' ? '<span class="tag lime">Admin</span>' : r === 'mod' ? '<span class="tag lime">Moderator</span>' : '';
@@ -7682,7 +7683,7 @@ async function modHideUserFromCard(uid, name) {
   try { const n = await api.modHideUser(uid, true); toast('Allt från ' + name + ' är dolt (' + n + ')'); S.uposts = await api.modUserPosts(uid); } catch (e) { toast(errMsg(e)); }
   render();
 }
-const MOD_TREE = [['Granska', [['open', 'Rapporter'], ['best', 'Bästa svar'], ['plants', 'Växter'], ['feed', 'Gemenskap']]], ['Hantering', [['done', 'Hanterade'], ['users', 'Alla användare']]], ['Appen', [['stats', 'Statistik'], ['err', 'Felrapporter'], ['fb', 'Feedback']]], ];
+const MOD_TREE = [['Granska', [['open', 'Rapporter'], ['best', 'Bästa svar'], ['plants', 'Växter'], ['feed', 'Gemenskap']]], ['Hantering', [['done', 'Hanterade'], ['users', 'Alla användare']]], ['Appen', [['stats', 'Statistik']]], ['Nycklas', [['nyckl', 'Alla'], ['err', 'Felrapporter'], ['fb', 'Feedback']]], ];
 function modNavItems(n) { return MOD_TREE.find(([x]) => x === n)[1].concat(n === 'Hantering' && isAdmin() ? [['team', 'Team']] : []); }
 function modSecGo(n) { modTab(modNavItems(n)[0][0]); }
 const MOD_SORTS = { n: ['Flest rapporter', (a, b) => (b.n || 0) - (a.n || 0) || new Date(a.created_at) - new Date(b.created_at)], new: ['Nyast först', (a, b) => new Date(b.created_at) - new Date(a.created_at)], old: ['Äldst först', (a, b) => new Date(a.created_at) - new Date(b.created_at)] };
@@ -7726,7 +7727,7 @@ function modV() {
     body = D.length ? `<div class="pad">${D.map(p => `<div class="card modc" style="padding:14px;margin-bottom:12px"><b>${esc(p.swedish_name || 'Okänd växt')}</b><small class="mut" style="display:block">${esc(p.latin_name || '')}${p.category ? ' · ' + esc(p.category) : ''}</small>${p.toxicity_text ? `<p style="margin:8px 0 0;font-size:14px">${esc(p.toxicity_text)}</p>` : ''}${p.tips ? `<p class="mut" style="margin:6px 0 0;font-size:13px;white-space:pre-line">${esc(p.tips)}</p>` : ''}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="modPlantAct(${+p.id},true)">Godkänn</button><button class="btn sm line" onclick="modPlantAct(${+p.id},false)">Avvisa</button></div></div>`).join('')}</div>` : '<p class="mut" style="margin:16px 18px">Inga växter väntar på granskning.</p>';
   } else if (t === 'stats') {
     body = modStatsV(D);
-  } else if (t === 'fb' || t === 'err') {
+  } else if (t === 'fb' || t === 'err' || t === 'nyckl') {
     body = modFbV(D, t);
   } else if (t === 'users') {
     body = modUsersV(D);
@@ -7740,7 +7741,7 @@ function modV() {
   }
   const sortSel = (opts, cur, fn, count) => `<div class="modbar"><span class="mut">${count} ${count === 1 ? 'ärende' : 'ärenden'}</span><label>Sortera <select onchange="${fn}(this.value)">${Object.keys(opts).map(k => `<option value="${k}" ${cur === k ? 'selected' : ''}>${opts[k][0]}</option>`).join('')}</select></label></div>`;
   const sortBar = D && !S.modErr && (t === 'open' || t === 'done') ? sortSel(MOD_SORTS, S.modSort || 'n', 'setModSort', new Set(D.map(r => r.kind + r.target + r.status)).size)
-    : D && !S.modErr && (t === 'fb' || t === 'err') ? sortSel(FB_SORTS, S.modFbSort || 'new', 'setFbSort', D.length) : '';
+    : D && !S.modErr && (t === 'fb' || t === 'err' || t === 'nyckl') ? sortSel(FB_SORTS, S.modFbSort || 'new', 'setFbSort', D.length) : '';
   return `${topbar('Moderering', 'S.tool=null;render()')}
   ${modTreeV(t)}${sortBar}${body}
   <p class="mut" style="font-size:12.5px;margin:14px 18px 24px">Ett inlägg eller svar döljs automatiskt när tre olika personer har rapporterat det. Du kan välja att behålla det eller dölja det.</p>`;
@@ -9977,14 +9978,15 @@ function closeTool() { navBack(); }
 // Höger = sparas i katalogen Högerswipe (på telefonen). Vänster = hoppar över utan att spara något.
 const dsKey = () => 'swipeR_' + (S.user ? S.user.id : 'anon');
 const dsRight = () => store.get(dsKey(), []);
-const dsF = () => S.dsc || (S.dsc = { pet: false, easy: false, cats: [], zones: [], types: [], light: [], water: [], hum: [], height: [] });
+const DS_COLOR = ['röd', 'rosa', 'orange', 'gul', 'vit', 'lila', 'blå'];
+const dsF = () => S.dsc || (S.dsc = { pet: false, easy: false, cats: [], zones: [], types: [], light: [], water: [], hum: [], height: [], color: [] });
 const DS_HUM = [['low', 'Låg'], ['normal', 'Normal'], ['medium', 'Medel'], ['high', 'Hög']];
 function dsHum(h) { if (!h) return []; const r = []; if (/Låg/.test(h)) r.push('low'); if (/Normal/.test(h)) r.push('normal'); if (/Medel/.test(h)) r.push('medium'); if (/Hög|Mycket|Under vatten/.test(h)) r.push('high'); return r; }
 const dsHeightBand = h => !h ? null : h < 50 ? 's' : h <= 150 ? 'm' : 'l';
 const DS_HEIGHT = [['s', 'Under 50 cm'], ['m', '50–150 cm'], ['l', 'Över 150 cm']];
 const DS_LIGHT = [[1, 'Skugga'], [2, 'Halvskugga'], [3, 'Sol']];
 const DS_WATER = [[1, 'Lite vatten'], [2, 'Måttligt vatten'], [3, 'Mycket vatten']];
-function dsCount() { const c = dsF(); return c.cats.length + c.zones.length + c.types.length + c.light.length + c.water.length + c.hum.length + c.height.length + (c.pet ? 1 : 0) + (c.easy ? 1 : 0); }
+function dsCount() { const c = dsF(); return c.cats.length + c.zones.length + c.types.length + c.light.length + c.water.length + c.hum.length + c.height.length + (c.color || []).length + (c.pet ? 1 : 0) + (c.easy ? 1 : 0); }
 function dsIs(k, v) { const c = dsF(); return Array.isArray(c[k]) ? c[k].includes(v) : !!c[k]; }
 function dsTog(k, v) { const c = dsF(); c[k] = c[k].includes(v) ? c[k].filter(x => x !== v) : c[k].concat([v]); S.dsQ = null; if (S.modal !== 'dsf') dsRender(); else render(); }
 function dsFlag(k) { const c = dsF(); c[k] = !c[k]; S.dsQ = null; if (S.modal !== 'dsf') dsRender(); else render(); }
@@ -9995,7 +9997,8 @@ function dsPool() {
     && (!c.zones.length || (zoneOf(p) && c.zones.some(k => k >= zoneOf(p)[0] && k <= zoneOf(p)[1]))) && (!c.pet || p.pet_safe) && (!c.easy || (p.water_level || 2) <= 1)
     && (!c.types.length || c.types.includes(p.plant_type)) && (!c.hum.length || dsHum(p.humidity).some(h => c.hum.includes(h)))
     && (!c.cats.length || c.cats.includes(p.category)) && (!c.light.length || c.light.includes(p.light_level))
-    && (!c.water.length || c.water.includes(p.water_level)) && (!c.height.length || c.height.includes(dsHeightBand(p.height_cm))));
+    && (!c.water.length || c.water.includes(p.water_level)) && (!c.height.length || c.height.includes(dsHeightBand(p.height_cm)))
+    && (!(c.color || []).length || (p.bloom_color || []).some(x => c.color.includes(x))));
 }
 // Slumpordning. Köaen byggs om när filtren ändras, annars byts kort bara när man svept.
 function dsQueue() {
@@ -10016,6 +10019,7 @@ function dsfV() {
   <label class="fl" style="margin-top:12px">Odlingszon</label><div class="chips2 sm">${own ? `<button class="${dsIs('zones', own) ? 'on' : ''}" aria-pressed="${dsIs('zones', own)}" onclick="dsTog('zones',${own})">Min zon (${own})</button>` : ''}${zoneChips}</div>
   <p class="mut" style="margin:6px 0 0;font-size:12.5px">Visar växter som klarar den zon du väljer, även om den inte är din egen.</p>
   <label class="fl" style="margin-top:12px">Växttyp</label><div class="chips2 sm">${Object.keys(TYPE_G).map(k => o('types', k, TYPE_G[k])).join('')}</div>
+  <label class="fl" style="margin-top:12px">Blomfärg</label><div class="chips2 sm">${DS_COLOR.map(v => o('color', v, v[0].toUpperCase() + v.slice(1))).join('')}</div>
   <label class="fl" style="margin-top:12px">Ljusbehov</label><div class="chips2 sm">${DS_LIGHT.map(([v, l]) => o('light', v, l)).join('')}</div>
   <label class="fl" style="margin-top:12px">Vattenbehov</label><div class="chips2 sm">${DS_WATER.map(([v, l]) => o('water', v, l)).join('')}</div>
   <label class="fl" style="margin-top:12px">Luftfuktighet</label><div class="chips2 sm">${DS_HUM.map(([v, l]) => o('hum', v, l)).join('')}</div>
