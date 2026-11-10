@@ -1,0 +1,13 @@
+-- 088: Stripe-betalning för Roothood Pro
+-- Kör i SQL-redigeraren. Säker att köra om.
+
+alter table public.profiles
+  add column if not exists stripe_customer_id text,
+  add column if not exists stripe_subscription_id text,
+  add column if not exists pro_plan text,
+  add column if not exists pro_status text;
+
+-- Ingen klient får skriva Pro-status direkt. Bara serverfunktioner och webhooken gör det.
+revoke update (is_pro, pro_since, pro_until, pro_trial_used) on public.profiles from anon;
+revoke insert (is_pro, pro_since, pro_until, pro_trial_used) on public.profiles from anon;
+revoke update (is_pro, pro_since, pro_until, pro_trial_used, stripe_customer_id, stripe_subscription_id, pro_plan, pro_status) on public.profiles from authenticated;

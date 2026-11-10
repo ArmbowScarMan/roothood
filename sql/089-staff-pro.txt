@@ -1,0 +1,19 @@
+-- 089: Moderatorer, admins och experter har alltid Pro (gratis)
+-- Kör i SQL-redigeraren. Säker att köra om.
+
+create or replace function public.staff_pro()
+returns trigger language plpgsql as $$
+begin
+  if new.role in ('mod', 'admin') or new.is_expert then
+    new.is_pro := true;
+    new.pro_until := null;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists staff_pro_t on public.profiles;
+create trigger staff_pro_t before insert or update on public.profiles
+  for each row execute function public.staff_pro();
+
+-- Ge redan befintliga moderatorer, admins och experter Pro
+update public.profiles set is_pro = true, pro_until = null where role in ('mod', 'admin') or is_expert;
