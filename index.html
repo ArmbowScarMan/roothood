@@ -1802,6 +1802,19 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 .mt-l{flex:1;min-width:0}
 .mtree .tabn{font-style:normal;display:inline-block;min-width:18px;padding:0 6px;border-radius:99px;background:var(--acc);color:#fff;font-size:11.5px;line-height:18px;text-align:center}
 .mgrp{margin:0 0 10px}
+.modnav{margin:8px 18px 4px}
+.modsecs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:8px}
+.modsecs::-webkit-scrollbar{display:none}
+.modsec{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:transparent;color:inherit;font:inherit;font-weight:700;font-size:14px;padding:8px 14px;border-radius:99px;cursor:pointer}
+.modsec.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.modsubs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:6px 0 10px;border-bottom:1px solid var(--line)}
+.modsubs::-webkit-scrollbar{display:none}
+.modsub{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--mut);font:inherit;font-weight:600;font-size:14px;padding:6px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.modsub.on{color:inherit;background:rgba(160,200,120,.22);font-weight:700}
+.modsec .tabn,.modsub .tabn{font-style:normal;display:inline-block;min-width:18px;padding:0 6px;border-radius:99px;background:var(--acc);color:#fff;font-size:11.5px;line-height:18px;text-align:center}
+.modsec.on .tabn{background:#fff;color:var(--acc)}
+.modbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:12px 18px 4px;font-size:14px}
+.modbar select{width:auto;padding:6px 10px;border-radius:8px}
 .mgrp>summary{cursor:pointer;font-weight:700;padding:8px 0;list-style:none}
 .mgrp>summary .tabn{font-style:normal;display:inline-block;min-width:18px;padding:0 6px;border-radius:99px;background:var(--acc);color:#fff;font-size:11.5px;line-height:18px;text-align:center}
 .sitform{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}.sitform label{display:flex;flex-direction:column;font-size:13px;flex:1;min-width:120px}
@@ -2138,10 +2151,12 @@ const sbApi = {
   async remove(id) { const { error } = await sb.from('user_plants').delete().eq('id', id); if (error) throw error; },
   async getPro() {
     const { data: s } = await sb.auth.getSession(); const uid = s.session && s.session.user.id; if (!uid) return false;
-    let { data, error } = await sb.from('profiles').select('is_pro,pro_until').eq('id', uid);
-    if (error && /pro_until/.test(error.message || '')) ({ data, error } = await sb.from('profiles').select('is_pro').eq('id', uid));
-    const row = data && data[0];
-    return !error && !!(row && row.is_pro) && (!row.pro_until || new Date(row.pro_until) > new Date());
+    let data, error;
+    for (const cols of ['is_pro,pro_until,pay_test,beta_tester', 'is_pro,pro_until,pay_test', 'is_pro,pro_until', 'is_pro']) { ({ data, error } = await sb.from('profiles').select(cols).eq('id', uid)); if (!error) break; }
+    const row = (data && data[0]) || {};
+    PAY_TEST = !!row.pay_test; BETA_TESTER = !!row.beta_tester;
+    if (freePro()) return true;
+    return !error && !!row.is_pro && (!row.pro_until || new Date(row.pro_until) > new Date());
   },
   async setPro(on) {
     // Pro ändras bara via serverfunktioner: provperioden är 7 dagar och bara en gång per konto
@@ -2400,6 +2415,9 @@ async function confirmAddp() {
   S.ap = null; photoWarnCheck(); afterAdd();
 }
 const PRO_FREE = true; // allt öppet under testperioden och vid lansering
+let PAY_TEST = false; // true för kontot som testar betalflödet (kolumnen pay_test i profiles)
+let BETA_TESTER = false; // true för konton som skapats under betatestperioden (kolumnen beta_tester i profiles)
+const freePro = () => PRO_FREE && !PAY_TEST;
 const myItem = id => S.mine.find(x => x.id === id);
 function applyNick(m) { const d = m.details || {}; m.baseName = m.name; m.baseLatin = m.latin; m.sv = d.nick || m.name;
   if (d.sort) { const base = (m.latin || '').replace(/\s*'[^']*'$/, ''); m.latin = base ? `${base} '${d.sort}'` : `'${d.sort}'`; m.name = base ? m.latin : `${m.sv} '${d.sort}'`; } else m.name = m.sv; return m; }
@@ -2788,7 +2806,7 @@ async function checkZone() {
   const local = store.get('zone', 0); if (local) { api.saveZone(local).catch(() => {}); return; }
   zoneAskWhenFree();
 }
-function zoneAskWhenFree() { if (!S.user || store.get('zone', 0)) return; if (S.modal && S.modal !== 'zonepick') return setTimeout(zoneAskWhenFree, 1500); S.zpq = ''; S.zpMap = false; openModal('zonepick'); }
+function zoneAskWhenFree() { if (!S.user || store.get('zone', 0)) return; if (S.modal && S.modal !== 'zonepick') return setTimeout(zoneAskWhenFree, 1500); S.zpq = ''; openModal('zonepick'); }
 function zpCityHits() { const q = (S.zpq || '').trim().toLowerCase(); if (!q) return ''; const hits = Object.keys(CITYZ).filter(c => c.toLowerCase().startsWith(q)).concat(Object.keys(CITYZ).filter(c => !c.toLowerCase().startsWith(q) && c.toLowerCase().includes(q))).slice(0, 8);
   const btns = hits.flatMap(c => [].concat(CITYZ[c]).map(z => `<button onclick="pickZone(${z})">${esc(c)}<span>zon ${z}</span></button>`));
   return btns.length ? btns.join('') : '<p>Hittar inte orten. Välj zon nedan eller titta på kartan.</p>'; }
@@ -2801,8 +2819,9 @@ function zonePickV() {
   <label class="fl" style="margin:14px 0 6px">Eller välj zon direkt</label>
   <div class="chips2 zpchips">${[1, 2, 3, 4, 5, 6, 7, 8].map(z => `<button onclick="pickZone(${z})">Zon ${z}</button>`).join('')}</div>
   <p class="mut" style="font-size:13px;margin:8px 0 0">Zon 1 är mildast (Skåne och kusten i söder) och zon 8 är kallast (fjällen).</p>
-  <button class="link3" style="margin-top:10px" onclick="S.zpMap=!S.zpMap;keepScroll()">${S.zpMap ? 'Dölj zonkartan' : 'Visa zonkartan'}</button>
-  ${S.zpMap ? '<img class="zonkarta" src="zonkarta.jpg" alt="Karta över Sveriges odlingszoner 1 till 8">' : ''}`;
+  <p class="fl" style="margin:16px 0 6px">Zonkartan</p>
+  <img class="zonkarta" src="zonkarta.jpg" alt="Karta över Sveriges odlingszoner 1 till 8">
+  <p class="mut" style="font-size:13px;margin:6px 0 0">Hitta din ort på kartan och välj zonen den ligger i.</p>`;
 }
 async function loadHome() { if (!S.user) return; syncHarvest(); checkZone(); loadSitTasks(); loadFavs(); loadWishes(); loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
 // Ett tryck från Hem: rakt in i rabattplaneringen i ritningen
@@ -6129,7 +6148,7 @@ async function doAuth(form) {
       if (!active) { S.busy = false; S.authMode = 'in'; S.msgOk = true; S.msg = 'Vi har skickat en länk till ' + d.email + '. Klicka på den och logga sedan in här.'; return render(); }
     } else await api.signIn(d.email.trim(), d.pw);
     resetUserState();
-    S.user = await api.user(); S.mine = await api.mine(); S.pro = PRO_FREE || await api.getPro(); loadHome();
+    S.user = await api.user(); S.mine = await api.mine(); S.pro = await api.getPro(); loadHome();
     S.busy = false; S.modal = null; render(); toast('Välkommen, ' + S.user.name + '!');
   } catch (e) {
     S.busy = false; S.msgOk = false; S.msg = errMsg(e);
@@ -6160,7 +6179,7 @@ function newPwV() {
 }
 async function saveNewPw(form) {
   const pw = new FormData(form).get('pw');
-  try { await api.changePassword(pw); S.modal = null; S.user = await api.user(); S.mine = await api.mine(); S.pro = PRO_FREE || await api.getPro(); render(); toast('Nytt lösenord sparat. Du är inloggad!'); }
+  try { await api.changePassword(pw); S.modal = null; S.user = await api.user(); S.mine = await api.mine(); S.pro = await api.getPro(); render(); toast('Nytt lösenord sparat. Du är inloggad!'); }
   catch (e) { S.msgOk = false; S.msg = errMsg(e); render(); }
 }
 async function deleteAccount() {
@@ -6615,7 +6634,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'zonepick' ? zonePickV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'zonepick' ? zonePickV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -6716,6 +6735,8 @@ function applyView(h) {
 }
 window.addEventListener('popstate', e => {
   // Bakåt med en ruta öppen stänger bara rutan
+  // Odlingszonen måste väljas först: bakåt-knappen i webbläsaren får inte ta bort rutan eller ta användaren vidare
+  if (S.modal === 'zonepick' && !store.get('zone', 0)) { history.pushState(history.state, '', location.href); return; }
   if (S.modal) { if (typeof tlStop === 'function') tlStop(); S.modal = null; S.msg = ''; render(); return; }
   // Rutan stängdes redan i appen och historiken har nu hunnit ikapp
   if (location.hash === curHash) return;
@@ -6843,7 +6864,7 @@ function openDb(focus) { stopLight(); S.sel = null; S.modal = null; S.tool = 'db
 function dbV() {
   const n = dbFilterN();
   return `${topbar('Växtbiblioteket', 'closeTool()')}
-  <div style="padding:0 16px 4px"><button class="btn line sm" onclick="openDiscover()">Upptäck nya växter</button></div>
+  <div style="padding:0 16px 4px"><button class="btn line sm" onclick="openDiscover()">Plantswipe</button></div>
   <div class="searchrow dbsr"><div class="search">${ic(I.search, null, 20)}<input type="search" placeholder="Sök växt eller vetenskapligt namn" value="${esc(S.q)}" oninput="S.q=this.value;renderList()" aria-label="Sök växter"></div>
     <button class="dbfb ${n ? 'on' : ''}" onclick="openModal('dbf')" aria-label="Filter${n ? ', ' + n + ' valda' : ''}">${ic('ph-sliders-horizontal', 'currentColor', 20)}${n ? `<em>${n}</em>` : ''}</button></div>
   <div class="seg2 dbenv" role="tablist">${[['all', 'Alla'], ['in', 'Inomhus'], ['out', 'Utomhus']].map(([k, t]) => `<button class="${S.env === k ? 'on' : ''}" role="tab" aria-selected="${S.env === k}" onclick="setEnv('${k}')">${t}</button>`).join('')}</div>
@@ -7612,7 +7633,8 @@ function fbV() { const F = S.fbf || { kind: 'bug' };
   <p class="mut" style="font-size:12.5px;margin:10px 0 0">Vi skickar med vilken sida du var på: <b>${esc(S.fbView || '')}</b>. Även appversion ${APP_VERSION} och vilken telefon du har, så blir felet lättare att hitta.</p>
   <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="fbSend()">${S.busy ? 'Skickar…' : 'Skicka'}</button>`; }
 function modFbV(D, t) { const st = { new: 'Ny', seen: 'Sedd', fixed: 'Fixad', wontfix: 'Görs inte' }, kd = { bug: '🐞 Fel', idea: '💡 Förslag', other: 'Annat' };
-  return `<div class="pad">${(D || []).length ? modStatusGroups(D, st).map(([k, L]) => `<details class="mgrp" ${k === 'fixed' || k === 'wontfix' ? '' : 'open'}><summary>${st[k] || 'Övrigt'} <em class="tabn">${L.length}</em></summary>${L.map(f => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">${kd[f.kind] || ''} · ${esc(f.author || '')} · ${ago(f.created_at)} · ${esc(f.version || '')}</small><p style="white-space:pre-wrap;margin:6px 0">${esc(f.body)}</p>${fbUrls(f.photo_url).length ? `<div class="fbshots">${fbUrls(f.photo_url).map((u, i) => `<img class="fbshot" src="${esc(u)}" alt="Bifogad skärmbild ${i + 1}" onclick="this.classList.toggle('big')" onerror="fbBroken(this)">`).join('')}</div>` : ''}<p style="margin:4px 0;font-size:14px"><b>Sida:</b> ${esc(f.view || 'okänd')}</p><small class="mut" style="display:block;word-break:break-all">${esc((f.ua || '').slice(0, 120))}</small>
+  const sorted = [...(D || [])].sort(FB_SORTS[S.modFbSort || 'new'][1]);
+  return `<div class="pad">${sorted.length ? modStatusGroups(sorted, st).map(([k, L]) => `<details class="mgrp" ${k === 'fixed' || k === 'wontfix' ? '' : 'open'}><summary>${st[k] || 'Övrigt'} <em class="tabn">${L.length}</em></summary>${L.map(f => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">${kd[f.kind] || ''} · ${esc(f.author || '')} · ${ago(f.created_at)} · ${esc(f.version || '')}</small><p style="white-space:pre-wrap;margin:6px 0">${esc(f.body)}</p>${fbUrls(f.photo_url).length ? `<div class="fbshots">${fbUrls(f.photo_url).map((u, i) => `<img class="fbshot" src="${esc(u)}" alt="Bifogad skärmbild ${i + 1}" onclick="this.classList.toggle('big')" onerror="fbBroken(this)">`).join('')}</div>` : ''}<p style="margin:4px 0;font-size:14px"><b>Sida:</b> ${esc(f.view || 'okänd')}</p><small class="mut" style="display:block;word-break:break-all">${esc((f.ua || '').slice(0, 120))}</small>
     <div class="chips2 sm" style="margin-top:8px">${Object.entries(st).map(([k, n]) => `<button class="${f.status === k ? 'on' : ''}" onclick="modFbSet(${f.id},'${k}')">${n}</button>`).join('')}</div></div>`).join('')}</details>`).join('') : `<p class="mut">${t === 'err' ? 'Inga felrapporter än.' : 'Inga förslag eller annan feedback än.'}</p>`}</div>`; }
 async function modFbSet(id, k) { try { await api.modFbSet(id, k); const x = (S.modData || []).find(y => y.id === id); if (x) x.status = k; keepMain(); } catch (e) { toast(errMsg(e)); } }
 function modUsersV(D) {
@@ -7639,14 +7661,23 @@ async function modHideUserFromCard(uid, name) {
   render();
 }
 const MOD_TREE = [['Granska', [['open', 'Rapporter'], ['best', 'Bästa svar'], ['plants', 'Växter'], ['feed', 'Gemenskap']]], ['Hantering', [['done', 'Hanterade'], ['users', 'Alla användare']]], ['Appen', [['stats', 'Statistik'], ['err', 'Felrapporter'], ['fb', 'Feedback']]], ];
+function modNavItems(n) { return MOD_TREE.find(([x]) => x === n)[1].concat(n === 'Hantering' && isAdmin() ? [['team', 'Team']] : []); }
+function modSecGo(n) { modTab(modNavItems(n)[0][0]); }
+const MOD_SORTS = { n: ['Flest rapporter', (a, b) => (b.n || 0) - (a.n || 0) || new Date(a.created_at) - new Date(b.created_at)], new: ['Nyast först', (a, b) => new Date(b.created_at) - new Date(a.created_at)], old: ['Äldst först', (a, b) => new Date(a.created_at) - new Date(b.created_at)] };
+function setModSort(v) { S.modSort = v; keepMain(); }
+const FB_SORTS = { new: ['Nyast först', (a, b) => new Date(b.created_at) - new Date(a.created_at)], old: ['Äldst först', (a, b) => new Date(a.created_at) - new Date(b.created_at)], kind: ['Typ', (a, b) => String(a.kind || '').localeCompare(String(b.kind || '')) || new Date(b.created_at) - new Date(a.created_at)] };
+function setFbSort(v) { S.modFbSort = v; keepMain(); }
 function modSecTog(n) { const c = S.modSec || {}; S.modSec = { ...c, [n]: c[n] !== true }; keepMain(); }
 function modTreeV(t) {
-  const c = S.modSec || {};
-  const secs = MOD_TREE.filter(([n]) => n !== 'Team' || isAdmin());
-  return `<div class="mtree" role="navigation" aria-label="Moderering">${secs.map(([n, items]) => { const open = c[n] === true; return `<div class="mt-sec"><button class="mt-h" onclick="modSecTog('${n}')" aria-expanded="${open}"><span class="mt-car" aria-hidden="true">${open ? '▾' : '▸'}</span>${ic('ph-folder', 'currentColor', 16)}<span class="mt-l">${n}</span></button>${open ? items.map(([k, l]) => { const cnt = k === 'open' ? S.modOpen : k === 'best' ? S.modBestN : 0; return `<button class="mt-i ${t === k ? 'on' : ''}" onclick="modTab('${k}')" aria-current="${t === k}">${ic('ph-file', 'currentColor', 15)}<span class="mt-l">${l}</span>${cnt ? `<em class="tabn">${cnt}</em>` : ''}</button>`; }).join('') : ''}</div>`; }).join('')}</div>`;
+  const cnt = k => k === 'open' ? (S.modOpen || 0) : k === 'best' ? (S.modBestN || 0) : 0;
+  const cur = MOD_TREE.find(([n]) => modNavItems(n).some(([k]) => k === t)) || MOD_TREE[0];
+  return `<div class="modnav" role="navigation" aria-label="Moderering">
+    <div class="modsecs" role="tablist">${MOD_TREE.map(([n]) => { const on = cur[0] === n, badge = modNavItems(n).reduce((a, [k]) => a + cnt(k), 0); return `<button class="modsec ${on ? 'on' : ''}" role="tab" aria-selected="${on}" onclick="modSecGo('${n}')">${n}${badge ? ` <em class="tabn">${badge}</em>` : ''}</button>`; }).join('')}</div>
+    <div class="modsubs" role="tablist">${modNavItems(cur[0]).map(([k, l]) => `<button class="modsub ${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="modTab('${k}')">${l}${cnt(k) ? ` <em class="tabn">${cnt(k)}</em>` : ''}</button>`).join('')}</div>
+  </div>`;
 }
 function modGroups(rows, t) {
-  const byN = [...rows].sort((a, b) => (b.n || 0) - (a.n || 0));
+  const byN = [...rows].sort(MOD_SORTS[S.modSort || 'n'][1]);
   if (t === 'open') return [['Inlägg', byN.filter(r => r.kind === 'post')], ['Svar', byN.filter(r => r.kind === 'answer')], ['Foto', byN.filter(r => r.kind === 'photo')]].filter(([, L]) => L.length);
   return [['Dolda', byN.filter(r => r.hidden)], ['Behållna', byN.filter(r => !r.hidden && r.status === 'keep')], ['Övriga', byN.filter(r => !r.hidden && r.status !== 'keep')]].filter(([, L]) => L.length);
 }
@@ -7685,8 +7716,11 @@ function modV() {
     ${(S.modRes || []).map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name)}</b></span>${D.some(x => x.id === u.id) ? '<small class="mut">Redan i teamet</small>' : `<button class="btn sm" onclick="modRole(${jsArg(u.id)},'mod')">Gör till moderator</button>`}</div>`).join('')}
     ${S.modRes && !S.modRes.length ? '<p class="mut">Ingen hittades.</p>' : ''}<p class="mut" style="font-size:13px">Moderatorer kan granska rapporter och dölja inlägg och svar. Bara du som admin kan lägga till eller ta bort moderatorer.</p></div>`;
   }
+  const sortSel = (opts, cur, fn, count) => `<div class="modbar"><span class="mut">${count} ${count === 1 ? 'ärende' : 'ärenden'}</span><label>Sortera <select onchange="${fn}(this.value)">${Object.keys(opts).map(k => `<option value="${k}" ${cur === k ? 'selected' : ''}>${opts[k][0]}</option>`).join('')}</select></label></div>`;
+  const sortBar = D && !S.modErr && (t === 'open' || t === 'done') ? sortSel(MOD_SORTS, S.modSort || 'n', 'setModSort', new Set(D.map(r => r.kind + r.target + r.status)).size)
+    : D && !S.modErr && (t === 'fb' || t === 'err') ? sortSel(FB_SORTS, S.modFbSort || 'new', 'setFbSort', D.length) : '';
   return `${topbar('Moderering', 'S.tool=null;render()')}
-  ${isAdmin() ? '<div style="display:flex;justify-content:flex-end;margin:10px 18px 0"><button class="btn sm line" onclick="modTab(\'team\')">Hantera team</button></div>' : ''}${modTreeV(t)}${body}
+  ${modTreeV(t)}${sortBar}${body}
   <p class="mut" style="font-size:12.5px;margin:14px 18px 24px">Ett inlägg eller svar döljs automatiskt när tre olika personer har rapporterat det. Du kan välja att behålla det eller dölja det.</p>`;
 }
 // ===== Blockera =====
@@ -8611,10 +8645,14 @@ function qcard(q) {
   const big = false;
   return `<button class="qc${big ? ' big' : ''}${k === 'doc' ? ' warn' : ''}${k === 'bed' ? ' hl' : ''}" onclick="${act}">${icn.startsWith('ph-') ? `<i class="ph ${icn}" aria-hidden="true"></i>` : `<i class="ph" aria-hidden="true">${ic(icn, 'currentColor', 22)}</i>`}<span>${lbl}</span>${pro && !S.pro ? '<em class="pro">PRO</em>' : ''}</button>`;
 }
+function plantswipeW() {
+  const n = dsRight().length;
+  return `<div class="pad"><button class="setrow" onclick="openDiscover()"><span class="tic">${ic('ph-leaf', 'currentColor', 20)}</span><span class="grow"><b>Plantswipe</b><span>${n ? n + ' sparade växter. Svep vidare' : 'Svep höger för att spara en växt, vänster för att hoppa över'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`;
+}
 function quickV() {
   const Q = QUICK(), f = favs().map(k => Q.find(q => q[0] === k)).filter(Boolean).slice(0, 7);
   const ordered = f.filter(q => q[0] === 'id').concat(f.filter(q => q[0] !== 'id'));
-  return `<div class="sec cap2"><h2>Vad vill du göra?</h2></div><div class="qhome">${ordered.map(qcard).join('')}<button class="qc qmore" onclick="openExplore()"><i class="ph ph-squares-four" aria-hidden="true"></i><span>Alla verktyg</span></button></div>`;
+  return `${plantswipeW()}<div class="sec cap2"><h2>Vad vill du göra?</h2></div><div class="qhome">${ordered.map(qcard).join('')}<button class="qc qmore" onclick="openExplore()"><i class="ph ph-squares-four" aria-hidden="true"></i><span>Alla verktyg</span></button></div>`;
 }
 function openExplore() { stopLight(); S.sel = null; S.modal = null; S.tool = 'explore'; S.favEdit = false; render(); $('#main').scrollTop = 0; }
 function togFav(k) { let f = favs(); if (f.includes(k)) f = f.filter(x => x !== k); else { if (f.length >= 7) return toast('Du kan ha högst 7 favoriter på Hem'); f = f.concat(k); } store.set('favQuick', f); if (S.modal) keepScroll(); else keepMain(); }
@@ -8959,7 +8997,7 @@ function mineV() {
   <div class="list" style="padding-top:0">${S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p>Öppna en växt under Växter och tryck Lägg till i min samling, så hamnar den här med vattningspåminnelser. Hjärtat sparar växter du gillar under Favoriter.</p><button class="btn sm" onclick="go('home')">Hitta växter</button></div>`}</div>`;
 }
 // ===== Badges (punkt 12). Beräknas lokalt från samlingen och loggen. Sparas per konto på telefonen tills tabellen user_badges finns. =====
-const BADGES = { vattare: { n: 'Vattenkannans mästare', e: '💧', d: 'Vattna 10 gånger' }, aroid: { n: 'Aroid-entusiasten', e: '🪴', d: 'Ha 5 eller fler aroider i samlingen' } };
+const BADGES = { vattare: { n: 'Vattenkannans mästare', e: '🪷', d: 'Vattna 10 gånger' }, aroid: { n: 'Aroid-entusiasten', e: '🍃', d: 'Ha 5 eller fler aroider i samlingen' }, beta: { n: 'Beta-testare', e: '🌱', d: 'Skapa konto under betatestperioden' } };
 const badgeKey = () => 'badges_' + (S.user ? S.user.id : 'anon');
 function badgesNow() {
   const have = store.get(badgeKey(), {}) || {}; let changed = false;
@@ -8967,6 +9005,7 @@ function badgesNow() {
   const waters = (store.get('log', []) || []).filter(x => x.kind === 'water').length;
   if (aroids >= 5 && !have.aroid) { have.aroid = today(); changed = true; }
   if (waters >= 10 && !have.vattare) { have.vattare = today(); changed = true; }
+  if (BETA_TESTER && !have.beta) { have.beta = today(); changed = true; }
   if (changed) store.set(badgeKey(), have);
   return have;
 }
@@ -9676,9 +9715,9 @@ function proV() {
   ${isMod() ? modPayTestV() : ''}
   ${S.limitHit ? `<p class="formmsg ok">Du har ${FREE_LIMIT} växter, vilket är max för gratiskonton. Bli Pro för att spara fler.</p>` : ''}
   <div class="profeats">${feats.map(f => `<div class="pf"><span class="pfi">${ic(f[0], 'currentColor', 22)}</span><div><b>${f[1]}</b><span>${f[2]}</span></div></div>`).join('')}</div>
-  ${S.pro ? `<p class="formmsg ok">Du är Pro. Tack för att du stöttar Roothood!</p>${PRO_FREE ? `<p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">Pro är gratis under testperioden.</p>` : `<button class="btn wide line" onclick="openProPortalBtn()">Hantera prenumeration</button><p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">Du kan säga upp när som helst. Prenumerationen gäller till sista betalda period.</p>`}`
+  ${S.pro ? `<p class="formmsg ok">Du är Pro. Tack för att du stöttar Roothood!</p>${freePro() ? `<p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">Pro är gratis under testperioden.</p>` : `<button class="btn wide line" onclick="openProPortalBtn()">Hantera prenumeration</button><p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">Du kan säga upp när som helst. Prenumerationen gäller till sista betalda period.</p>`}`
     : `<div class="plans">${PRO_PLANS.map(pl => `<button class="plan ${(S.plan || 'year') === pl.id ? 'on' : ''}" aria-pressed="${(S.plan || 'year') === pl.id}" onclick="S.plan='${pl.id}';render()">${pl.id === 'year' ? '<span class="best">Populärast</span>' : ''}<b>${pl.name}</b><span class="pp">${pl.price}</span><span>${pl.note}</span></button>`).join('')}</div>
-    ${PRO_FREE ? `<button class="btn wide formbtn" onclick="setPro(true)">Prova gratis i 7 dagar</button><p class="mut" style="text-align:center;margin:10px 0 0">Testläge: ingen betalning görs.</p>` : `<label class="fl" for="procode">Rabattkod (valfri)</label><input id="procode" maxlength="30" autocomplete="off" placeholder="Skriv koden här" style="width:100%"><button class="btn wide formbtn" style="margin-top:12px" onclick="startProBuy()">Prova gratis i 7 dagar</button><p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">Efter 7 dagar startar betalningen: ${(PRO_PLANS.find(pl => pl.id === (S.plan || 'year')) || PRO_PLANS[0]).price}. Du kan säga upp när som helst.</p>`}`}`;
+    ${freePro() ? `<button class="btn wide formbtn" onclick="setPro(true)">Prova gratis i 7 dagar</button><p class="mut" style="text-align:center;margin:10px 0 0">Testläge: ingen betalning görs.</p>` : `<label class="fl" for="procode">Rabattkod (valfri)</label><input id="procode" maxlength="30" autocomplete="off" placeholder="Skriv koden här" style="width:100%"><button class="btn wide formbtn" style="margin-top:12px" onclick="startProBuy()">Prova gratis i 7 dagar</button><p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">Efter 7 dagar startar betalningen: ${(PRO_PLANS.find(pl => pl.id === (S.plan || 'year')) || PRO_PLANS[0]).price}. Du kan säga upp när som helst.</p>`}`}`;
 }
 async function startProBuy() {
   const c = ((document.getElementById('procode') || {}).value || '').trim();
@@ -9895,12 +9934,25 @@ function closeTool() { navBack(); }
 // Höger = sparas i katalogen Högerswipe (på telefonen). Vänster = hoppar över utan att spara något.
 const dsKey = () => 'swipeR_' + (S.user ? S.user.id : 'anon');
 const dsRight = () => store.get(dsKey(), []);
-const dsF = () => S.dsc || (S.dsc = { zon: false, pet: false, easy: false, light: 0, cat: 'Alla' });
+const dsF = () => S.dsc || (S.dsc = { pet: false, easy: false, cats: [], zones: [], types: [], light: [], water: [], hum: [], height: [] });
+const DS_HUM = [['low', 'Låg'], ['normal', 'Normal'], ['medium', 'Medel'], ['high', 'Hög']];
+function dsHum(h) { if (!h) return []; const r = []; if (/Låg/.test(h)) r.push('low'); if (/Normal/.test(h)) r.push('normal'); if (/Medel/.test(h)) r.push('medium'); if (/Hög|Mycket|Under vatten/.test(h)) r.push('high'); return r; }
+const dsHeightBand = h => !h ? null : h < 50 ? 's' : h <= 150 ? 'm' : 'l';
+const DS_HEIGHT = [['s', 'Under 50 cm'], ['m', '50–150 cm'], ['l', 'Över 150 cm']];
+const DS_LIGHT = [[1, 'Skugga'], [2, 'Halvskugga'], [3, 'Sol']];
+const DS_WATER = [[1, 'Lite vatten'], [2, 'Måttligt vatten'], [3, 'Mycket vatten']];
+function dsCount() { const c = dsF(); return c.cats.length + c.zones.length + c.types.length + c.light.length + c.water.length + c.hum.length + c.height.length + (c.pet ? 1 : 0) + (c.easy ? 1 : 0); }
+function dsIs(k, v) { const c = dsF(); return Array.isArray(c[k]) ? c[k].includes(v) : !!c[k]; }
+function dsTog(k, v) { const c = dsF(); c[k] = c[k].includes(v) ? c[k].filter(x => x !== v) : c[k].concat([v]); S.dsQ = null; if (S.modal !== 'dsf') dsRender(); else render(); }
+function dsFlag(k) { const c = dsF(); c[k] = !c[k]; S.dsQ = null; if (S.modal !== 'dsf') dsRender(); else render(); }
+function dsReset() { S.dsc = null; S.dsSkip = null; S.dsQ = null; if (S.modal === 'dsf') S.modal = null; dsRender(); }
 function dsPool() {
   const c = dsF(), z = store.get('zone', 0), have = new Set(S.mine.map(m => m.plant_id)), right = new Set(dsRight()), skip = S.dsSkip || (S.dsSkip = new Set());
   return S.plants.filter(p => envCats().includes(p.category) && !have.has(p.id) && !right.has(p.id) && !skip.has(p.id)
-    && (!c.zon || !z || (zoneOf(p) && zoneOf(p)[1] >= z)) && (!c.pet || p.pet_safe) && (!c.easy || (p.water_level || 2) <= 1)
-    && (!c.light || p.light_level === c.light) && (!c.cat || c.cat === 'Alla' || p.category === c.cat));
+    && (!c.zones.length || (zoneOf(p) && c.zones.some(k => k >= zoneOf(p)[0] && k <= zoneOf(p)[1]))) && (!c.pet || p.pet_safe) && (!c.easy || (p.water_level || 2) <= 1)
+    && (!c.types.length || c.types.includes(p.plant_type)) && (!c.hum.length || dsHum(p.humidity).some(h => c.hum.includes(h)))
+    && (!c.cats.length || c.cats.includes(p.category)) && (!c.light.length || c.light.includes(p.light_level))
+    && (!c.water.length || c.water.includes(p.water_level)) && (!c.height.length || c.height.includes(dsHeightBand(p.height_cm))));
 }
 // Slumpordning. Köaen byggs om när filtren ändras, annars byts kort bara när man svept.
 function dsQueue() {
@@ -9910,6 +9962,24 @@ function dsQueue() {
 function dsRender() { render(); setTimeout(dsBind, 30); }
 function openDiscover() { stopLight(); S.sel = null; S.modal = null; S.tool = 'discover'; S.dsView = (S.user && !S.mine.length && !store.get('matchSeen', false)) ? 'match' : ''; if (S.dsView === 'match') { store.set('matchSeen', true); S.mq = null; } S.dsQ = null; render(); $('#main').scrollTop = 0; setTimeout(dsBind, 30); }
 function dsFilter(k, v) { dsF()[k] = v; S.dsQ = null; dsRender(); }
+function dsfV() {
+  const o = (k, v, l) => `<button class="${dsIs(k, v) ? 'on' : ''}" aria-pressed="${dsIs(k, v)}" onclick="dsTog('${k}',${typeof v === 'number' ? v : jsArg(v)})">${esc(l)}</button>`;
+  const f = (k, l) => `<button class="${dsIs(k) ? 'on' : ''}" aria-pressed="${dsIs(k)}" onclick="dsFlag('${k}')">${esc(l)}</button>`;
+  const n = dsPool().length, cnt = dsCount(), own = store.get('zone', 0);
+  const zoneChips = [1, 2, 3, 4, 5, 6, 7, 8].map(z => o('zones', z, 'Zon ' + z)).join('');
+  return `<div class="mh"><h2>Filter</h2></div>
+  <p class="mut" style="margin:0 0 6px;font-size:13px">Välj flera i varje grupp. Tomma grupper visar allt.</p>
+  <label class="fl" style="margin-top:12px">Kategori</label><div class="chips2 sm">${envCats().map(c => o('cats', c, c)).join('')}</div>
+  <label class="fl" style="margin-top:12px">Odlingszon</label><div class="chips2 sm">${own ? `<button class="${dsIs('zones', own) ? 'on' : ''}" aria-pressed="${dsIs('zones', own)}" onclick="dsTog('zones',${own})">Min zon (${own})</button>` : ''}${zoneChips}</div>
+  <p class="mut" style="margin:6px 0 0;font-size:12.5px">Visar växter som klarar den zon du väljer, även om den inte är din egen.</p>
+  <label class="fl" style="margin-top:12px">Växttyp</label><div class="chips2 sm">${Object.keys(TYPE_G).map(k => o('types', k, TYPE_G[k])).join('')}</div>
+  <label class="fl" style="margin-top:12px">Ljusbehov</label><div class="chips2 sm">${DS_LIGHT.map(([v, l]) => o('light', v, l)).join('')}</div>
+  <label class="fl" style="margin-top:12px">Vattenbehov</label><div class="chips2 sm">${DS_WATER.map(([v, l]) => o('water', v, l)).join('')}</div>
+  <label class="fl" style="margin-top:12px">Luftfuktighet</label><div class="chips2 sm">${DS_HUM.map(([v, l]) => o('hum', v, l)).join('')}</div>
+  <label class="fl" style="margin-top:12px">Storlek</label><div class="chips2 sm">${DS_HEIGHT.map(([v, l]) => o('height', v, l)).join('')}</div>
+  <label class="fl" style="margin-top:12px">Egenskaper</label><div class="chips2 sm">${f('pet', 'Husdjurssäker')}${f('easy', 'Lättskött')}</div>
+  <div style="display:flex;gap:10px;align-items:center;margin-top:18px"><button class="btn wide formbtn" style="flex:1" onclick="closeModal()">Visa ${n} ${n === 1 ? 'växt' : 'växter'}</button>${cnt ? `<button class="btn line" onclick="dsReset()">Rensa</button>` : ''}</div>`;
+}
 function dsSwipe(dir) {
   if (S.dsView === 'match') return mSwipe(dir);
   const id = dsQueue()[0]; if (id == null) return;
@@ -9933,21 +10003,16 @@ function dsBind() {
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
 }
 function discoverV() {
-  const c = dsF(), n = [c.zon, c.pet, c.easy, !!c.light, c.cat !== 'Alla'].filter(Boolean).length;
-  const head = topbar('Upptäck', 'closeTool()');
-  if (S.dsView === 'match') return `${head}<div class="seg2" role="tablist"><button onclick="S.dsView='';dsRender()">Upptäck</button><button class="on">Matcha</button></div>${matchV()}`;
-  const tabs = `<div class="seg2" role="tablist"><button class="${S.dsView !== 'saved' ? 'on' : ''}" onclick="S.dsView='';dsRender()">Upptäck</button><button onclick="S.dsView='match';S.mq=null;dsRender()">Matcha</button><button class="${S.dsView === 'saved' ? 'on' : ''}" onclick="S.dsView='saved';dsRender()">Högerswipe (${dsRight().length})</button></div>`;
+  const c = dsF(), n = dsCount();
+  const head = topbar('Plantswipe', 'closeTool()');
+  if (S.dsView === 'match') return `${head}<div class="seg2" role="tablist"><button onclick="S.dsView='';dsRender()">Svep</button><button class="on">Matcha</button></div>${matchV()}`;
+  const tabs = `<div class="seg2" role="tablist"><button class="${S.dsView !== 'saved' ? 'on' : ''}" onclick="S.dsView='';dsRender()">Svep</button><button onclick="S.dsView='match';S.mq=null;dsRender()">Matcha</button><button class="${S.dsView === 'saved' ? 'on' : ''}" onclick="S.dsView='saved';dsRender()">Högerswipe (${dsRight().length})</button></div>`;
   if (S.dsView === 'saved') {
     const L = dsRight().map(id => S.plants.find(p => p.id === id)).filter(Boolean);
     return `${head}${tabs}<div class="pad" style="display:flex;flex-direction:column;gap:10px;margin-top:12px">${L.length ? L.map(p => `<div class="setcard" style="padding:12px 14px;display:flex;gap:10px;align-items:center"><button class="link3" style="flex:1;text-align:left" onclick="openPlant(${p.id})"><b>${esc(p.swedish_name)}</b><small style="display:block;font-style:italic">${esc(p.latin_name)}</small></button><button class="link3" style="color:var(--mut)" onclick="dsRemoveSaved(${p.id})">Ta bort</button></div>`).join('') : `<div class="empty"><p>Här samlas växter du svept åt höger på. Gå till Upptäck och svep höger på en växt du vill ha.</p></div>`}</div>`;
   }
   const q = dsQueue(), p = q.length ? S.plants.find(x => x.id === q[0]) : null;
-  const chips = `<div class="chips2 sm" style="padding:0 16px">
-    <button class="${c.zon ? 'on' : ''}" aria-pressed="${c.zon}" onclick="dsFilter('zon',${!c.zon})">Klarar min zon</button>
-    <button class="${c.pet ? 'on' : ''}" aria-pressed="${c.pet}" onclick="dsFilter('pet',${!c.pet})">Husdjurssäker</button>
-    <button class="${c.easy ? 'on' : ''}" aria-pressed="${c.easy}" onclick="dsFilter('easy',${!c.easy})">Lättskött</button>
-    ${[1, 2, 3].map(l => `<button class="${c.light === l ? 'on' : ''}" aria-pressed="${c.light === l}" onclick="dsFilter('light',${c.light === l ? 0 : l})">Ljus ${l}</button>`).join('')}
-  </div>`;
+  const chips = `<div style="padding:0 16px;display:flex;align-items:center;gap:12px"><button class="btn sm line" onclick="openModal('dsf')">${ic('ph-sliders-horizontal', 'currentColor', 16)} Filter${n ? ' · ' + n : ''}</button>${n ? '<button class="link3" onclick="dsReset()">Rensa</button>' : ''}</div>`;
   let body;
   if (!p) body = `<div class="empty" style="margin:24px 16px"><p>${n ? 'Du har sett alla växter som passar dina filter. Ta bort ett filter för fler.' : 'Du har sett alla växter i biblioteket som du inte har än.'}</p>${n ? `<button class="btn sm" onclick="S.dsc=null;S.dsSkip=null;S.dsQ=null;dsRender()">Rensa filter</button>` : ''}</div>`;
   else body = `<div style="display:flex;justify-content:center;padding:12px 16px 0"><div id="dscard" style="width:100%;max-width:360px;touch-action:pan-y;user-select:none;background:var(--surf);border-radius:20px;box-shadow:var(--sh);overflow:hidden;cursor:grab">
@@ -10185,7 +10250,7 @@ function seasonV() {
   const m = S.smonth, z = store.get('zone', 0), tips = seasonTips(m);
   const groups = Object.keys(SEASON_T).map(k => [k, tips.filter(t => t[0] === k)]).filter(g => g[1].length);
   return `${topbar('Säsongstips', 'closeTool()')}
-  <p class="mut" style="text-align:center;margin:0 18px">${z ? 'Anpassat för zon ' + z : 'Visar tips för mellersta Sverige'} · <button class="link3" onclick="openSettings()">${z ? 'Ändra zon' : 'Välj din zon'}</button></p>
+  <p class="mut" style="text-align:center;margin:0 18px">${z ? 'Anpassat för zon ' + z : 'Visar tips för mellersta Sverige'} · <button class="link3" onclick="openZoneSettings()">${z ? 'Ändra zon' : 'Välj din zon'}</button></p>
   <div class="pad" style="margin-top:8px"><button class="btn sm line" onclick="openSow()">Öppna Såkalendern</button></div>
   <div class="mchips" role="tablist">${MONTH_NAMES.map((n, i) => `<button class="${m === i + 1 ? 'on' : ''}" role="tab" aria-selected="${m === i + 1}" onclick="S.smonth=${i + 1};render()">${n.charAt(0).toUpperCase() + n.slice(1, 3)}</button>`).join('')}</div>
   <div class="sec"><h2>${MONTH_NAMES[m - 1].charAt(0).toUpperCase() + MONTH_NAMES[m - 1].slice(1)}</h2></div>
@@ -10196,6 +10261,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.339', '10 nov', ['Plantswipe (tidigare Upptäck): svep igenom växter, med filter för kategori, odlingszon, växttyp, ljus, vatten, luftfuktighet, storlek och egenskaper. Snabbval på Start', 'Märket Beta-testare för alla som skapar konto under betatestperioden', 'Gratis Pro gäller alla testare utom ett konto som är markerat för betaltest, så att köpflödet kan testas', 'Moderering: tydligare navigering med sektioner och flikar, och sortering av rapporter, felrapporter och feedback', 'Odlingszon: zonväljaren visar zonkartan direkt, och bakåt-knappen tar dig inte förbi valet. Ändra zon öppnar zonvalet i inställningarna', 'Nya märkesikoner: lotusblomma, blad och groddplanta']],
   ['Beta 0.338', '10 nov', ['Designvarianten Städad: fyra textstorlekar och två vikter, brödtext 16 px, bättre kontrast, avstånd i ett jämnt rutnät och en enda accentfärg', 'Städad: tryck ger direkt återkoppling och lätt vibration, knappar är låsta medan de väntar på svar, och blockering kan ångras', 'Städad: skelettvyer medan något laddas, mjuka övergångar mellan vyer, och ett växtkort växer till växtsidan när du öppnar det']],
   ['Beta 0.337', '10 nov', ['Förberett för betald Pro: moderatorer kan testa köp och kundportal i Pro-rutan. Pro är fortfarande gratis för alla under testperioden, och moderatorer, admins och experter har alltid Pro']],
   ['Beta 0.336', '10 nov', ['Felrapporterna är fixade: den färgade kanten på kort är borttagen, du kan beskära profilbilden i en cirkel innan du laddar upp den, menyer som går att scrolla åt sidan visar en tona-kant, och Såkalenderns ikon är större', 'Designvarianten Städad: knappar och menyer är minst 48 px höga, ingen ren svart bakgrund i bildvisaren, och mindre rörelse för dig som valt minskad rörelse i systemet']],
@@ -10607,6 +10673,14 @@ const SOW = CROPS.map(c => [c.n, c.g, c.s, monthsTxt(c.h), c.tip]);
 function monthsTxt(h) { if (!h || !h.length) return ''; const a = h[0], b = h[h.length - 1]; return h.length === 1 ? MONTH_NAMES[a - 1] : MONTH_NAMES[a - 1] + '–' + MONTH_NAMES[b - 1]; }
 
 const sowKeep = () => S.modal ? keepScroll() : keepMain();
+function zoneEditV(z) {
+  return `<div class="sowcity"><input type="search" placeholder="Skriv din ort, t.ex. Umeå" value="${esc(S.sowCq || '')}" oninput="sowCityQ(this.value)" aria-label="Sök ort"><div id="sowcity" class="sowcityh">${sowCityHits()}</div></div>
+  <div class="sowhintr"><p class="sowhint">Eller välj din zon direkt.</p><button class="btn sm line" onclick="S.sowMap=!S.sowMap;sowKeep()">${S.sowMap ? 'Dölj zonkarta' : 'Visa zonkarta'}</button></div>
+  ${S.sowMap ? '<img class="zonkarta" src="zonkarta.jpg" alt="Sveriges odlingszoner, zon 1 till 8 och fjäll" loading="lazy">' : ''}
+  <div class="sowzs">${[1, 2, 3, 4, 5, 6, 7, 8].map(k => `<button class="${z === k ? 'on' : ''}" aria-pressed="${z === k}" onclick="setPref('zone',${k})"><b>${k}</b><span>${SOWZN[k]}</span></button>`).join('')}</div>`;
+}
+// "Ändra zon" i Säsongstips: öppna inställningarna och scrolla direkt till zonvalet
+function openZoneSettings() { openSettings(); setTimeout(() => { const el = $('#szonesec'); if (el) el.scrollIntoView({ block: 'start' }); }, 400); }
 const sowZ = () => store.get('zone', 0) || 0;
 const sowZE = () => Math.min(8, Math.max(1, sowZ() || 3));
 const sowF = y => { const f = FROST[sowZE()]; return new Date(y || new Date().getFullYear(), f[0] - 1, f[1]); };
@@ -11832,7 +11906,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.338';
+const APP_VERSION = 'Beta 0.339';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -12054,10 +12128,10 @@ function settingsV() {
     <label class="fl" style="margin-top:14px">Textstorlek</label>${seg3([[1, 'Normal'], [1.1, 'Större'], [1.2, 'Störst']], ts, "(v=>setPref('textsize',v))")}
     ${isMod() ? `<label class="fl" style="margin-top:14px">Designvariant (test)</label><div class="chips2 sm">${UI_VARS.map(([k, n]) => `<button class="${store.get('ui', '') === k ? 'on' : ''}" aria-pressed="${store.get('ui', '') === k}" onclick="setPref('ui','${k}')">${n}</button>`).join('')}</div><p class="mut" style="font-size:12.5px;margin:6px 0 0">Bara moderatorer ser det här. Det ändrar bara utseendet på den här telefonen.</p>` : ''}
   </div></div>
-  <div class="sec"><h2>Trädgård</h2></div><div class="pad"><div class="setcard">
-    <label class="fl" for="szone">Min odlingszon</label>
-    <select id="szone" onchange="setPref('zone', +this.value)"><option value="0" ${!zone ? 'selected' : ''}>Vet inte</option>${[1, 2, 3, 4, 5, 6, 7, 8].map(z => `<option value="${z}" ${zone === z ? 'selected' : ''}>Zon ${z}${z === 1 ? ' (mildast, t.ex. Skåne)' : z === 8 ? ' (kallast, fjällen)' : ''}</option>`).join('')}</select>
-    <p class="mut" style="margin:8px 0 0;font-size:13px">Sverige delas in i odlingszoner från 1 (mildast) till 8. Växtsidorna visar då om en trädgårdsväxt klarar vintern där du bor.</p>
+  <div class="sec"><h2>Trädgård</h2></div><div class="pad"><div class="setcard" id="szonesec">
+    <label class="fl">Min odlingszon</label>
+    <p class="mut" style="margin:0 0 10px;font-size:13px">${zone ? 'Zon ' + zone + ' (' + SOWZN[zone] + ')' : 'Ingen zon vald ännu'}. Sverige delas in i odlingszoner från 1 (mildast) till 8. Växtsidorna visar då om en trädgårdsväxt klarar vintern där du bor.</p>
+    ${zoneEditV(zone)}
   </div></div>
   <div class="sec"><h2>Notifikationer</h2></div><div class="pad"><button class="btn wide" onclick="S.notifSet=true;render()">${ic(BELL, 'currentColor', 18)} Notifikations-inställningar</button></div>
   ${S.user ? `<div class="sec"><h2>Blockerade</h2></div><div class="pad"><div class="setcard">${S.blockedL == null ? (loadBlocked(), '<p class="mut" style="margin:0">Hämtar…</p>') : S.blockedL.length ? S.blockedL.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b></span><button class="btn sm line" onclick="blockUser(${jsArg(u.id)},false)">Avblockera</button></div>`).join('') : '<p class="mut" style="margin:0">Du har inte blockerat någon.</p>'}</div></div>` : ''}
@@ -12296,7 +12370,7 @@ async function init() {
     S.plants = await api.plants();
     S.user = await api.user();
     S.mine = S.user ? await api.mine() : [];
-    S.pro = PRO_FREE || (S.user ? await api.getPro() : false);
+    S.pro = S.user ? await api.getPro() : PRO_FREE;
     if (S.user) { try { const pr = await api.getProfile(); S.city = pr.city || ''; applyInterests(pr.interests);
       if (!DEMO && S.user.gname && (!pr.display_name || pr.display_name.includes('@'))) { await api.fixName(S.user.gname); S.meCard = undefined; } } catch (e) { console.warn('Roothood:', e); } }
     if (S.user) loadHome();
