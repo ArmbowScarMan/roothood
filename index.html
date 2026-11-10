@@ -2447,7 +2447,10 @@ async function confirmAddp() {
 const PRO_FREE = true; // allt öppet under testperioden och vid lansering
 let PAY_TEST = false; // true för kontot som testar betalflödet (kolumnen pay_test i profiles)
 let BETA_TESTER = false; // true för konton som skapats under betatestperioden (kolumnen beta_tester i profiles)
-const freePro = () => PRO_FREE && !PAY_TEST;
+// Play-appen (TWA se.roothood.app): ingen försäljning via Stripe enligt Google Plays betalningsregler. Pro är gratis där tills Google Play Billing finns.
+// sessionStorage, inte localStorage, eftersom Chrome delar lagring med TWA:n för samma domän.
+const IS_TWA = (() => { try { if (/^android-app:\/\/se\.roothood\.app/.test(document.referrer)) sessionStorage.setItem('rhTwa', '1'); return sessionStorage.getItem('rhTwa') === '1'; } catch (e) { return false; } })();
+const freePro = () => IS_TWA || (PRO_FREE && !PAY_TEST);
 const myItem = id => S.mine.find(x => x.id === id);
 function applyNick(m) { const d = m.details || {}; m.baseName = m.name; m.baseLatin = m.latin; m.sv = d.nick || m.name;
   if (d.sort) { const base = (m.latin || '').replace(/\s*'[^']*'$/, ''); m.latin = base ? `${base} '${d.sort}'` : `'${d.sort}'`; m.name = base ? m.latin : `${m.sv} '${d.sort}'`; } else m.name = m.sv; return m; }
@@ -5360,11 +5363,11 @@ function plSunLight(r, X, Y) {
 const SOL_HEAT = { full: 'rgba(239, 68, 68, 0.38)', semi: 'rgba(34, 197, 94, 0.35)', shade: 'rgba(59, 130, 246, 0.38)' };
 // Solbana steg 3: popup vid klick i Solkartan. Visar soltimmar och filtrerar Plantswipe på ljusbehov.
 function solPop(x, y) {
-  const h = sunHours(x, y), c = sunCls(h), name = c === 3 ? 'Full sol' : c === 2 ? 'Halvskugga' : 'Skugga';
+  const h = sunHours(x, y, [6]), c = sunCls(h), name = c === 3 ? 'Full sol' : c === 2 ? 'Halvskugga' : 'Skugga';
   document.querySelectorAll('.solpop').forEach(n => n.remove());
   const el = document.createElement('div'); el.className = 'solpop';
   el.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;background:var(--surf);border-radius:16px;box-shadow:var(--sh);padding:14px 16px;';
-  el.innerHTML = `<div style="display:flex;justify-content:space-between;gap:8px"><b>Denna plats får ${sunFmt(h)} sol under sommarhalvåret</b><button class="link3" aria-label="Stäng">✕</button></div><p class="mut" style="margin:6px 0 10px;font-size:14px">${name} här.</p><button class="btn sm wide">Filtrera fram växter som trivs här</button>`;
+  el.innerHTML = `<div style="display:flex;justify-content:space-between;gap:8px"><b>Denna plats får ${sunFmt(h)} sol i juni</b><button class="link3" aria-label="Stäng">✕</button></div><p class="mut" style="margin:6px 0 10px;font-size:14px">${name} här.</p><button class="btn sm wide">Filtrera fram växter som trivs här</button>`;
   el.querySelector('button.link3').onclick = () => el.remove();
   el.querySelector('button.btn').onclick = () => { const f = dsF(); f.light = [c]; S.dsQ = null; el.remove(); openDiscover(); };
   document.body.appendChild(el);
@@ -8034,25 +8037,27 @@ function sunObst() {
   for (const k of CUSTOM) {
     if (k.t === 'fence') { const dx = k.x2 - k.x1, dy = k.y2 - k.y1, L = Math.hypot(dx, dy) || 1, nx = -dy / L * 0.1, ny = dx / L * 0.1; polys.push({ pts: [[k.x1 + nx, k.y1 + ny], [k.x2 + nx, k.y2 + ny], [k.x2 - nx, k.y2 - ny], [k.x1 - nx, k.y1 - ny]], h: k.h }); }
     else if (k.t === 'house') polys.push({ pts: [[k.x, k.y], [k.x + k.len, k.y], [k.x + k.len, k.y + k.len], [k.x, k.y + k.len]], h: k.h });
-    else customTrees.push({ x: k.x, y: k.y, r: k.t === 'conifer' ? 1.5 : 2.5, h: k.h });
+    else customTrees.push({ x: k.x, y: k.y, r: k.t === 'conifer' ? 1.5 : 2.5, h: k.h, tau: k.t === 'conifer' ? 0.10 : 0.35 });
   }
   polys.forEach(p => { const xs = p.pts.map(q => q[0]), ys = p.pts.map(q => q[1]); p.bb = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; });
-  const trees = planGarden().filter(g => GR[g.t]).map(g => ({ x: g.x, y: g.y, r: g.r || GR[g.t], h: +g.h || gDefH(g) })).concat(customTrees);
+  const trees = planGarden().filter(g => GR[g.t]).map(g => ({ x: g.x, y: g.y, r: g.r || GR[g.t], h: +g.h || gDefH(g), tau: g.t === 'conifer' ? 0.10 : 0.35 })).concat(customTrees);
   return { polys, trees };
 }
 function sunSlab(x, y, dx, dy, bb) { let lo = -Infinity, hi = Infinity; for (const [p, d, a, b] of [[x, dx, bb[0], bb[2]], [y, dy, bb[1], bb[3]]]) { if (Math.abs(d) < 1e-9) { if (p < a || p > b) return null; } else { let t0 = (a - p) / d, t1 = (b - p) / d; if (t0 > t1) [t0, t1] = [t1, t0]; lo = Math.max(lo, t0); hi = Math.min(hi, t1); } } return hi < lo ? null : [lo, hi]; }
-function sunShaded(x, y, s, O) {
+// Andel solljus som når punkten: 0 bakom hus/plank, annars trädens genomsläpplighet (lövträd 35 %, barrträd 10 %)
+function sunTau(x, y, s, O) {
   const th = northDeg() * Math.PI / 180, dx = Math.sin(s.az + th), dy = -Math.cos(s.az + th), tA = Math.tan(s.alt);
-  for (const g of O.trees) { const tx = g.x - x, ty = g.y - y, t = tx * dx + ty * dy; if (t > 0 && Math.abs(tx * dy - ty * dx) < g.r && 0.3 + t * tA < g.h) return true; }
-  for (const p of O.polys) { const r = sunSlab(x, y, dx, dy, p.bb); if (!r) continue; const t0 = Math.max(r[0], 0), t1 = Math.min(r[1], (p.h - 0.3) / tA); for (let t = t0; t <= t1 + 1e-9; t += 0.25) if (inPoly(x + dx * t, y + dy * t, p.pts)) return true; }
-  return false;
+  let tau = 1;
+  for (const g of O.trees) { const tx = g.x - x, ty = g.y - y, t = tx * dx + ty * dy; if (t > 0 && Math.abs(tx * dy - ty * dx) < g.r && 0.3 + t * tA < g.h) tau *= (g.tau ?? 0.35); }
+  for (const p of O.polys) { const r = sunSlab(x, y, dx, dy, p.bb); if (!r) continue; const t0 = Math.max(r[0], 0), t1 = Math.min(r[1], (p.h - 0.3) / tA); for (let t = t0; t <= t1 + 1e-9; t += 0.25) if (inPoly(x + dx * t, y + dy * t, p.pts)) return 0; }
+  return tau;
 }
-function sunHours(x, y) {
-  const key = x.toFixed(1) + ',' + y.toFixed(1) + '|' + northDeg() + '|' + sunLoc().lat.toFixed(1) + '|' + planRooms().length + ':' + planFurnAll().length + ':' + planGarden().map(g => g.t + g.x.toFixed(1) + g.y.toFixed(1)).join('');
+function sunHours(x, y, months = [5, 6, 7, 8]) {
+  const key = x.toFixed(1) + ',' + y.toFixed(1) + '|' + northDeg() + '|' + sunLoc().lat.toFixed(1) + '|' + planRooms().length + ':' + planFurnAll().length + ':' + planGarden().map(g => g.t + g.x.toFixed(1) + g.y.toFixed(1)).join('') + '|' + months.join('');
   if (SUNC.has(key)) return SUNC.get(key); if (SUNC.size > 2000) SUNC.clear();
   const O = sunObst(); let tot = 0;
-  if (!O.polys.some(p => inPoly(x, y, p.pts))) for (const m of [5, 6, 7, 8]) for (let h = 3; h <= 23; h += 0.5) { const s = sunAtMH(m, h); if (s.alt > 0.05 && !sunShaded(x, y, s, O)) tot += 0.5; }
-  const v = tot / 4; SUNC.set(key, v); return v;
+  if (!O.polys.some(p => inPoly(x, y, p.pts))) for (const m of months) for (let h = 3; h <= 23; h += 0.5) { const s = sunAtMH(m, h); if (s.alt > 0.05) tot += 0.5 * sunTau(x, y, s, O); }
+  const v = tot / months.length; SUNC.set(key, v); return v;
 }
 const sunCls = h => h >= 6 ? 3 : h >= 3 ? 2 : 1;
 const sunFmt = h => String(Math.round(h * 2) / 2).replace('.', ',') + ' h';
@@ -9885,11 +9890,11 @@ function proIntroCheck(tries) {
 function proV() {
   const feats = PRO_FEATS;
   return `<div class="mh"><h2>Roothood Pro</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
-  ${isMod() ? modPayTestV() : ''}
+  ${isMod() && !IS_TWA ? modPayTestV() : ''}
   ${S.limitHit ? `<p class="formmsg ok">Du har ${FREE_LIMIT} växter, vilket är max för gratiskonton. Bli Pro för att spara fler.</p>` : ''}
   <div class="profeats">${feats.map(f => `<div class="pf"><span class="pfi">${ic(f[0], 'currentColor', 22)}</span><div><b>${f[1]}</b><span>${f[2]}</span></div></div>`).join('')}</div>
-  ${S.pro ? `<p class="formmsg ok">Du är Pro. Tack för att du stöttar Roothood!</p>${freePro() ? `<p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">Pro är gratis under testperioden.</p>` : `<button class="btn wide line" onclick="openProPortalBtn()">Hantera prenumeration</button><p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">Du kan säga upp när som helst. Prenumerationen gäller till sista betalda period.</p>`}`
-    : `<div class="plans">${PRO_PLANS.map(pl => `<button class="plan ${(S.plan || 'year') === pl.id ? 'on' : ''}" aria-pressed="${(S.plan || 'year') === pl.id}" onclick="S.plan='${pl.id}';render()">${pl.id === 'year' ? '<span class="best">Populärast</span>' : ''}<b>${pl.name}</b><span class="pp">${pl.price}</span><span>${pl.note}</span></button>`).join('')}</div>
+  ${S.pro ? `<p class="formmsg ok">Du är Pro. Tack för att du stöttar Roothood!</p>${freePro() ? `<p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">${IS_TWA ? 'Pro ingår gratis i Android-appen just nu.' : 'Pro är gratis under testperioden.'}</p>` : `<button class="btn wide line" onclick="openProPortalBtn()">Hantera prenumeration</button><p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">Du kan säga upp när som helst. Prenumerationen gäller till sista betalda period.</p>`}`
+    : IS_TWA ? `<button class="btn wide formbtn" onclick="setPro(true)">Aktivera Pro gratis</button>` : `<div class="plans">${PRO_PLANS.map(pl => `<button class="plan ${(S.plan || 'year') === pl.id ? 'on' : ''}" aria-pressed="${(S.plan || 'year') === pl.id}" onclick="S.plan='${pl.id}';render()">${pl.id === 'year' ? '<span class="best">Populärast</span>' : ''}<b>${pl.name}</b><span class="pp">${pl.price}</span><span>${pl.note}</span></button>`).join('')}</div>
     ${freePro() ? `<button class="btn wide formbtn" onclick="setPro(true)">Prova gratis i 7 dagar</button><p class="mut" style="text-align:center;margin:10px 0 0">Testläge: ingen betalning görs.</p>` : `<label class="fl" for="procode">Rabattkod (valfri)</label><input id="procode" maxlength="30" autocomplete="off" placeholder="Skriv koden här" style="width:100%"><button class="btn wide formbtn" style="margin-top:12px" onclick="startProBuy()">Prova gratis i 7 dagar</button><p class="mut" style="text-align:center;margin:8px 0 0;font-size:13px">Efter 7 dagar startar betalningen: ${(PRO_PLANS.find(pl => pl.id === (S.plan || 'year')) || PRO_PLANS[0]).price}. Du kan säga upp när som helst.</p>`}`}`;
 }
 async function startProBuy() {
@@ -12076,7 +12081,7 @@ function stopLight() {
 }
 function proCard() {
   if (PRO_FREE && !S.user) return '';
-  return `<button class="procard" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 24)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Roothood Pro'}</b><span>${S.pro ? 'Kamera, ljusmätare och obegränsad samling' : 'Lås upp kamera, ljusmätare och mer'}</span></span>${S.pro ? '' : `<span class="protag">${PRO_PRICE}</span>`}</button>`;
+  return `<button class="procard" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 24)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Roothood Pro'}</b><span>${S.pro ? 'Kamera, ljusmätare och obegränsad samling' : 'Lås upp kamera, ljusmätare och mer'}</span></span>${S.pro || IS_TWA ? '' : `<span class="protag">${PRO_PRICE}</span>`}</button>`;
 }
 
 
