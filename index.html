@@ -2235,14 +2235,24 @@ async function wqFlush() {
       const hd = Object.assign({}, it.h);
       if (hd.Authorization && sb && sb.auth && sb.auth.getSession) { try { const { data } = await sb.auth.getSession(); if (data && data.session) hd.Authorization = 'Bearer ' + data.session.access_token; } catch (e) { } }
       let r; try { r = await fetch(it.u, { method: it.m, headers: hd, body: it.b }); } catch (e) { break; } // nätet försvann igen, behåll kön
-      if (r.status === 401 || r.status === 408 || r.status === 429 || r.status >= 500) break; // tillfälligt fel, prova igen senare
-      wqSet(wqGet().slice(1)); sent++; // skickad, eller avvisad av servern (då kan den inte skickas om)
+      if (r.ok) { wqSet(wqGet().slice(1)); sent++; continue; }
+      // Tillfälliga fel (inloggning gick ut, för många anrop, server nere) väntar. Fel som servern alltid säger nej till räknas.
+      const hard = r.status >= 500 || (r.status >= 400 && ![401, 408, 429].includes(r.status));
+      if (hard) {
+        const q = wqGet(); if (q[0]) q[0].f = (q[0].f || 0) + 1;
+        if (q[0] && q[0].f >= 5) { wqSet(q.slice(1)); toast('En ändring kunde inte sparas och togs bort'); continue; }
+        wqSet(q);
+      }
+      break; // stoppa här så att ändringar går i samma ordning som de gjordes
     }
   } finally { wqBusy = false; wqShow(); }
   if (sent) { toast('Ändringar skickade: ' + sent); if (S.user) { try { S.mine = await api.mine(); } catch (e) { } render(); } }
 }
-function wqShow() { const el = document.getElementById('offline'), n = wqGet().length; if (!el) return; el.textContent = navigator.onLine ? (n ? n + ' ändringar väntar på att skickas' : '') : 'Du är offline. Det du såg senast finns kvar.' + (n ? ' ' + n + ' ändringar sparas i telefonen och skickas när nätet är tillbaka.' : ' Nya ändringar sparas i telefonen och skickas när nätet är tillbaka.'); el.hidden = navigator.onLine && !n; }
+function wqShow() { const el = document.getElementById('offline'), n = wqGet().length; if (!el) return; el.textContent = navigator.onLine ? (n ? n + (n === 1 ? ' ändring har' : ' ändringar har') + ' inte kommit fram än. Tryck här för att skicka nu.' : '') : 'Du är offline. Det du såg senast finns kvar.' + (n ? ' ' + n + ' ändringar sparas i telefonen och skickas när nätet är tillbaka.' : ' Nya ändringar sparas i telefonen och skickas när nätet är tillbaka.'); el.hidden = navigator.onLine && !n; el.style.cursor = n && navigator.onLine ? 'pointer' : ''; el.onclick = n && navigator.onLine ? () => { toast('Skickar…'); wqFlush(); } : null; }
 window.addEventListener('online', () => { wqShow(); wqFlush(); });
+// Försök igen var minut, och när appen kommer tillbaka i förgrunden
+setInterval(() => { if (wqGet().length) wqFlush(); }, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && wqGet().length) wqFlush(); });
 async function run(fn, ok) {
   try { await fn(); if (!navigator.onLine) { toast('Sparat i telefonen. Skickas när nätet är tillbaka'); render(); return; } S.mine = await api.mine(); if (ok) toast(ok); }
   catch (e) { toast(errMsg(e)); }
@@ -10080,6 +10090,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.334', '10 nov', ['Ändringar som inte kom fram skickas igen var minut, och när du går tillbaka till appen. Rutan säger hur många som väntar, och du kan trycka för att skicka direkt'] ],
   ['Beta 0.333', '9 nov', ['Felknappen, nyckelpigan, heter nu Nycklas. Den syns i Profil och i rubriken när du rapporterar'] ],
   ['Beta 0.332', '9 nov', ['Ändringar sparas i telefonen när nätet är borta, och skickas i ordning när det är tillbaka. Bilder ingår inte än'] ],
   ['Beta 0.331', '9 nov', ['Ljuszoner i 3D: varje växtlampa har en röd ring på golvet under sig, som syns hela tiden'] ],
@@ -11711,7 +11722,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.333';
+const APP_VERSION = 'Beta 0.334';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
