@@ -7611,6 +7611,7 @@ async function loadMod() {
     else if (t === 'best') S.modData = await api.modBest();
     else if (t === 'plants') S.modData = await api.modPlants();
     else if (t === 'team') { S.modData = await api.listStaff(); }
+    else if (t === 'sentry') { S.modData = []; }
     else if (t === 'fb' || t === 'err') { const all = await api.modFb(); S.modData = all.filter(f => (f.kind === 'bug') === (t === 'err')); }
     else if (t === 'nyckl') { S.modData = await api.modFb(); }
     else if (t === 'stats') { const P = msPer(); S.msUF = {}; S.msUD = {}; S.msUser = null; const [f, days] = await Promise.all(P.h ? [api.modUsageH(P.h), api.modUsageHours(P.h).then(r => msHourRows(r, P.h))] : [api.modUsage(P.d), api.modUsageDays(P.d)]); const notif = await api.modNotifStats(P.h || P.d * 24).catch(() => null), time = await api.modTime(P.h || P.d * 24).catch(() => null); S.modData = { f, days, notif, time, users: S.msFeat != null ? await (P.h ? api.modUsageUsersH(S.msFeat, P.h) : api.modUsageUsers(S.msFeat, P.d)) : null }; }
@@ -7793,7 +7794,10 @@ async function modHideUserFromCard(uid, name) {
   render();
 }
 const MOD_TREE = [['Granska', [['open', 'Rapporter'], ['best', 'Bästa svar'], ['plants', 'Växter'], ['feed', 'Gemenskap']]], ['Hantering', [['done', 'Hanterade'], ['users', 'Alla användare']]], ['Appen', [['stats', 'Statistik']]], ['Nycklas', [['nyckl', 'Alla'], ['err', 'Felrapporter'], ['fb', 'Feedback']]], ];
-function modNavItems(n) { return MOD_TREE.find(([x]) => x === n)[1].concat(n === 'Hantering' && isAdmin() ? [['team', 'Team']] : []); }
+function modNavItems(n) { return MOD_TREE.find(([x]) => x === n)[1].concat(n === 'Hantering' && isAdmin() ? [['team', 'Team']] : []).concat(n === 'Appen' && isAdmin() ? [['sentry', 'Sentry-test']] : []); }
+// Testknapp för Sentry: skickar ett testfel så att man ser att felrapporteringen fungerar. Bara för admins.
+function sentryTest() { const msg = document.getElementById('sentrymsg'); const id = (window.Sentry && Sentry.captureException) ? Sentry.captureException(new Error('Roothood testfel från adminknappen ' + new Date().toISOString())) : null; if (msg) msg.textContent = id ? 'Skickat. Event-id: ' + id : 'Sentry är inte laddat. Ladda om appen och försök igen.'; }
+function sentryTestV() { return `<div class="pad"><p>Skickar ett testfel till Sentry. Kontrollera sedan i Sentry-projektet roothood-web.</p><button class="btn" onclick="sentryTest()">Skicka testfel</button><p id="sentrymsg" class="mut" style="margin-top:10px"></p></div>`; }
 function modSecGo(n) { modTab(modNavItems(n)[0][0]); }
 const MOD_SORTS = { n: ['Flest rapporter', (a, b) => (b.n || 0) - (a.n || 0) || new Date(a.created_at) - new Date(b.created_at)], new: ['Nyast först', (a, b) => new Date(b.created_at) - new Date(a.created_at)], old: ['Äldst först', (a, b) => new Date(a.created_at) - new Date(b.created_at)] };
 function setModSort(v) { S.modSort = v; keepMain(); }
@@ -7838,6 +7842,8 @@ function modV() {
     body = modStatsV(D);
   } else if (t === 'fb' || t === 'err' || t === 'nyckl') {
     body = modFbV(D, t);
+  } else if (t === 'sentry') {
+    body = sentryTestV();
   } else if (t === 'users') {
     body = modUsersV(D);
   } else if (t === 'feed') {
