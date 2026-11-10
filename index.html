@@ -1749,6 +1749,13 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 :root[data-ui=stad] .welc,:root[data-ui=stad] .frcard{border-color:var(--line)}
 :root[data-ui=stad] nav button.on{color:var(--ink)}
 :root[data-ui=stad] .ti b:not(.bad):not(.na){color:var(--ink)}
+/* STÄDAD-regler (endast designvarianten Städad, felrapporter 99–106): tryckytor 48 px, ingen ren svart, lugnare rörelse */
+:root[data-ui=stad]{--t-press:150ms}
+:root[data-ui=stad] .btn,:root[data-ui=stad] nav button,:root[data-ui=stad] .chips2 button,:root[data-ui=stad] .seg2 button,:root[data-ui=stad] .x{min-height:48px}
+:root[data-ui=stad] .chips2 button,:root[data-ui=stad] .seg2 button{padding-top:12px;padding-bottom:12px}
+:root[data-ui=stad] .lbimg,:root[data-ui=stad] .idcam,:root[data-ui=stad] #app #ov{background-color:#0D0F0E}
+:root[data-ui=stad] nav button{min-width:48px}
+@media (prefers-reduced-motion:reduce){:root[data-ui=stad] *,:root[data-ui=stad] *::before,:root[data-ui=stad] *::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 
 .freebar{position:absolute;top:12px;left:12px;right:84px;z-index:3;display:flex;flex-wrap:wrap;gap:8px}.freebar .newroomb{position:static;transform:none;padding:8px 12px;font-size:13px}.freebar .newroomb:disabled{opacity:.45}
 .mtree{display:block;margin:8px 18px 12px;border:1px solid var(--line);border-radius:10px;padding:4px 0;text-align:left}
@@ -6209,7 +6216,7 @@ const I = {
 const SCISS = 'ph-scissors';
 const PEN = 'ph-pencil-simple';
 const POT = 'ph-plant';
-const SOWI = '<path d="M12 21v-9"/><path d="M12 12c0-3 2.5-5.5 6-5.5 0 3.5-2.5 5.5-6 5.5z"/><path d="M12 15c0-3-2.5-5.5-6-5.5 0 3.5 2.5 5.5 6 5.5z"/>';
+const SOWI = '<g transform="translate(12 12) scale(1.45) translate(-12 -12)"><path d="M12 21v-9"/><path d="M12 12c0-3 2.5-5.5 6-5.5 0 3.5-2.5 5.5-6 5.5z"/><path d="M12 15c0-3-2.5-5.5-6-5.5 0 3.5 2.5 5.5 6 5.5z"/></g>';
 const LOGK = { water: ['Vattnat', I.drop, 'var(--wat)'], feed: ['Gödslat', I.leaf, 'var(--pri2)'], repot: ['Omplanterat', POT, '#A0703F'], prune: ['Beskuret', SCISS, 'var(--acc)'], note: ['Anteckning', PEN, 'var(--mut)'] };
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 function whenTxt(d) {
@@ -6530,8 +6537,9 @@ function iconize(root) {
     n.parentNode.replaceChild(frag, n);
   }
 }
-function rowCenter() { document.querySelectorAll('.tabs, .scrx, .chips2.qfilt').forEach(p => { const ov = p.scrollWidth > p.clientWidth + 2; p.classList.toggle('ovf', ov); if (!ov || p.dataset.c === (p.querySelector('.on') || {}).textContent) return; const on = p.querySelector('.on'); if (!on) return; p.dataset.c = on.textContent; const a = p.getBoundingClientRect(), b = on.getBoundingClientRect(); p.scrollLeft += (b.left + b.width / 2) - (a.left + a.width / 2); });
-  document.querySelectorAll('.tabs.ovf, .scrx.ovf, .chips2.qfilt.ovf').forEach(p => { if (p.dataset.sl) return; p.dataset.sl = 1; p.addEventListener('scroll', () => p.classList.toggle('end', p.scrollLeft + p.clientWidth >= p.scrollWidth - 4), { passive: true }); }); }
+const SCRX_SEL = '.tabs, .scrx, .chips2.qfilt, .gwrow, .mfilt, .qfilt, .mycards, .similar, .mchips, .idshots, .gallery, .seg2.ctabs';
+function rowCenter() { document.querySelectorAll(SCRX_SEL).forEach(p => { const ov = p.scrollWidth > p.clientWidth + 2; p.classList.toggle('ovf', ov); if (!ov || p.dataset.c === (p.querySelector('.on') || {}).textContent) return; const on = p.querySelector('.on'); if (!on) return; p.dataset.c = on.textContent; const a = p.getBoundingClientRect(), b = on.getBoundingClientRect(); p.scrollLeft += (b.left + b.width / 2) - (a.left + a.width / 2); });
+  document.querySelectorAll(SCRX_SEL.split(', ').map(x => x + '.ovf').join(', ')).forEach(p => { if (p.dataset.sl) return; p.dataset.sl = 1; p.addEventListener('scroll', () => p.classList.toggle('end', p.scrollLeft + p.clientWidth >= p.scrollWidth - 4), { passive: true }); }); }
 function render() {
   applyGrowlight();
   requestAnimationFrame(rowCenter); requestAnimationFrame(uiIcons);
@@ -9040,10 +9048,38 @@ async function insertUP(row) {
   if (r.error && /photos/.test(r.error.message || '')) { delete row.photos; r = await sb.from('user_plants').insert(row); }
   if (r.error) throw r.error;
 }
+// Beskärning i en cirkel, så att det man ser är exakt det som blir profilbild (felrapport #96)
+function avatarCrop(file) {
+  return new Promise(resolve => {
+    const src = URL.createObjectURL(file), img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(src); resolve(null); };
+    img.onload = () => {
+      const W = 280, iw = img.naturalWidth, ih = img.naturalHeight, st = { z: 1, x: 0, y: 0 };
+      const sc = z => Math.max(W / iw, W / ih) * z;
+      const clampPos = () => { const s = sc(st.z), mx = Math.max(0, (iw * s - W) / 2), my = Math.max(0, (ih * s - W) / 2); st.x = Math.max(-mx, Math.min(mx, st.x)); st.y = Math.max(-my, Math.min(my, st.y)); };
+      const draw = (ctx, size, k) => { const s = sc(st.z) * k; ctx.clearRect(0, 0, size, size); ctx.drawImage(img, size / 2 + st.x * k - iw * s / 2, size / 2 + st.y * k - ih * s / 2, iw * s, ih * s); };
+      const ov = document.createElement('div'); ov.className = 'psheet';
+      ov.innerHTML = `<div class="pbox" role="dialog" aria-label="Beskär profilbilden" style="text-align:center"><b>Beskär profilbilden</b><p class="mut" style="margin:4px 0 10px;font-size:13px">Dra för att flytta bilden och zooma. Det som syns i cirkeln blir din profilbild.</p><canvas id="acv" width="${W}" height="${W}" style="width:${W}px;height:${W}px;max-width:100%;border-radius:50%;background:#1b1f1d;touch-action:none;cursor:grab"></canvas><input id="acz" type="range" min="1" max="3" step="0.01" value="1" style="width:100%;margin-top:12px" aria-label="Zoom"><div style="display:flex;gap:8px;margin-top:12px"><button class="btn line" id="acn" style="flex:1">Avbryt</button><button class="btn" id="aco" style="flex:1">Använd bilden</button></div></div>`;
+      document.body.appendChild(ov);
+      const cv = ov.querySelector('#acv'), ctx = cv.getContext('2d');
+      const paint = () => { clampPos(); draw(ctx, W, 1); };
+      let drag = null;
+      cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, sx: st.x, sy: st.y }; cv.setPointerCapture(e.pointerId); });
+      cv.addEventListener('pointermove', e => { if (!drag) return; st.x = drag.sx + (e.clientX - drag.x); st.y = drag.sy + (e.clientY - drag.y); paint(); });
+      cv.addEventListener('pointerup', () => { drag = null; });
+      ov.querySelector('#acz').addEventListener('input', e => { st.z = +e.target.value; paint(); });
+      const done = v => { ov.remove(); URL.revokeObjectURL(src); resolve(v); };
+      ov.querySelector('#acn').onclick = () => done(null);
+      ov.querySelector('#aco').onclick = () => { const out = document.createElement('canvas'); out.width = out.height = 400; draw(out.getContext('2d'), 400, 400 / W); out.toBlob(b => done(b), 'image/jpeg', 0.9); };
+      paint();
+    };
+    img.src = src;
+  });
+}
 async function changeAvatar(file) {
   if (!file) return; if (!S.user) return openModal('login');
   try {
-    const blob = (await fileShrink(file, 400)) || file;
+    const blob = await avatarCrop(file); if (!blob) return;
     let url;
     if (DEMO) { url = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); }); }
     else { const path = S.user.id + '/avatar-' + Date.now() + '.jpg'; const { error } = await sb.storage.from('plant-photos').upload(path, blob, { contentType: 'image/jpeg' }); if (error) throw error; url = sb.storage.from('plant-photos').getPublicUrl(path).data.publicUrl; }
@@ -9884,7 +9920,7 @@ function applyGrowlight() {
 // ===== Törstig-widget på startsidan (punkt 7) =====
 function thirstyCard(due) {
   const names = due.slice(0, 3).map(m => esc(m.name)).join(', ') + (due.length > 3 ? ' och ' + (due.length - 3) + ' till' : '');
-  return `<div class="setcard" style="margin:12px 16px;display:flex;gap:12px;align-items:center;border-left:4px solid #f44336"><span style="font-size:22px">💧</span><div style="flex:1"><b>${due.length} ${due.length === 1 ? 'växt behöver' : 'växter behöver'} din uppmärksamhet idag</b><small style="display:block;color:var(--mut)">${names}</small></div><button class="btn sm" onclick="openMine(${due[0].id})">Visa</button></div>`;
+  return `<div class="setcard" style="margin:12px 16px;display:flex;gap:12px;align-items:center;border:1px solid rgba(244,67,54,.45)"><span style="font-size:22px">💧</span><div style="flex:1"><b>${due.length} ${due.length === 1 ? 'växt behöver' : 'växter behöver'} din uppmärksamhet idag</b><small style="display:block;color:var(--mut)">${names}</small></div><button class="btn sm" onclick="openMine(${due[0].id})">Visa</button></div>`;
 }
 
 // ===== Matchmaking (punkt 11): tre frågor, sedan kort att svepa på =====
@@ -10092,6 +10128,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.336', '10 nov', ['Felrapporterna är fixade: den färgade kanten på kort är borttagen, du kan beskära profilbilden i en cirkel innan du laddar upp den, menyer som går att scrolla åt sidan visar en tona-kant, och Såkalenderns ikon är större', 'Designvarianten Städad: knappar och menyer är minst 48 px höga, ingen ren svart bakgrund i bildvisaren, och mindre rörelse för dig som valt minskad rörelse i systemet']],
   ['Beta 0.335', '10 nov', ['Notifikations-inställningar: alla notiser samlade under Inställningar. Välj vilka du vill få: ny uppdatering, nytt meddelande och vänförfrågningar'] ],
   ['Beta 0.334', '10 nov', ['Ändringar som inte kom fram skickas igen var minut, och när du går tillbaka till appen. Rutan säger hur många som väntar, och du kan trycka för att skicka direkt'] ],
   ['Beta 0.333', '9 nov', ['Felknappen, nyckelpigan, heter nu Nycklas. Den syns i Profil och i rubriken när du rapporterar'] ],
@@ -11725,7 +11762,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.335';
+const APP_VERSION = 'Beta 0.336';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
