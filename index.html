@@ -2344,7 +2344,7 @@ async function wqFlush() {
       break; // stoppa här så att ändringar går i samma ordning som de gjordes
     }
   } finally { wqBusy = false; wqShow(); }
-  if (sent) { toast('Ändringar skickade: ' + sent); if (S.user) { try { S.mine = await api.mine(); } catch (e) { } render(); } }
+  if (sent) { if (S.user) { try { S.mine = await api.mine(); } catch (e) { } render(); } }
 }
 function wqShow() { const el = document.getElementById('offline'), n = wqGet().length; if (!el) return; el.textContent = navigator.onLine ? (n ? n + (n === 1 ? ' ändring har' : ' ändringar har') + ' inte kommit fram än. Tryck här för att skicka nu.' : '') : 'Du är offline. Det du såg senast finns kvar.' + (n ? ' ' + n + ' ändringar sparas i telefonen och skickas när nätet är tillbaka.' : ' Nya ändringar sparas i telefonen och skickas när nätet är tillbaka.'); el.hidden = navigator.onLine; el.style.cursor = n && navigator.onLine ? 'pointer' : ''; el.onclick = n && navigator.onLine ? () => { toast('Skickar…'); wqFlush(); } : null; }
 window.addEventListener('online', () => { wqShow(); wqFlush(); });
