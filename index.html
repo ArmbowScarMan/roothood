@@ -1980,6 +1980,7 @@ const sbApi = {
     const good = new Set(ok.data || []); return all.filter(x => good.has(x.url));
   },
   async setShare(on) { const { error } = await sb.from('profiles').update({ share_photos: on }).eq('id', S.user.id); if (error) throw error; },
+  async saveNotifPrefs(p) { const { error } = await sb.from('profiles').update({ notif_prefs: p }).eq('id', S.user.id); if (error) throw /notif_prefs/.test(error.message || '') ? new Error('Notisinställningarna är inte påslagna än. Kör SQL-filen 087 i Supabase.') : error; },
   async log(upId) { const { data, error } = await sb.from('care_log').select('id,user_plant_id,kind,done_on,note,created_at').eq('user_plant_id', upId).order('done_on', { ascending: false }); if (error) throw error; return data; },
   async addLog(upId, kind, date, note) { const { error } = await sb.from('care_log').insert({ user_plant_id: upId, kind, done_on: date, note: note || null }); if (error) throw error; },
   async delLog(id) { const { error } = await sb.from('care_log').delete().eq('id', id); if (error) throw error; },
@@ -2006,7 +2007,8 @@ const sbApi = {
   async myZone() { const { data, error } = await sb.from('profiles').select('zone').eq('id', S.user.id); if (error) return undefined; return (data && data[0] && data[0].zone) || null; },
   async saveAvatar(url) { const { error } = await sb.from('profiles').update({ avatar_url: url }).eq('id', S.user.id); if (error) throw /avatar/.test(error.message || '') ? new Error('AVATAR_NOT_READY') : error; },
   async getProfile() {
-    let { data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos,vis,avatar_url').eq('id', S.user.id);
+    let { data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos,vis,avatar_url,notif_prefs').eq('id', S.user.id);
+    if (error && /notif_prefs/.test(error.message || '')) ({ data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos,vis,avatar_url').eq('id', S.user.id));
     if (error && /avatar/.test(error.message || '')) ({ data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos,vis').eq('id', S.user.id));
     if (error && /vis/.test(error.message || '')) ({ data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos').eq('id', S.user.id));
     if (error) throw error;
@@ -2264,7 +2266,7 @@ function navTap(t) {
   if (S.tab === t && !S.tool && S.sel == null && !S.post && !S.modal) { const mm = $('#main'); if (mm) mm.scrollTo({ top: 0, behavior: RM() ? 'auto' : 'smooth' }); return; }
   go(t);
 }
-function go(t) { if (window.dropKb) dropKb(); stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null;
+function go(t) { if (window.dropKb) dropKb(); stopLight(); S.tool = null; S.tab = t; S.sel = null; S.del = null; S.post = null; S.notifSet = false;
   // Flikmarkeringen byts direkt så att trycket syns på en gång. Innehållet ritas i nästa bildruta.
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
   requestAnimationFrame(() => { render(); $('#main').scrollTop = 0; });
@@ -10090,6 +10092,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.335', '10 nov', ['Notifikations-inställningar: alla notiser samlade under Inställningar. Välj vilka du vill få: ny uppdatering, nytt meddelande och vänförfrågningar'] ],
   ['Beta 0.334', '10 nov', ['Ändringar som inte kom fram skickas igen var minut, och när du går tillbaka till appen. Rutan säger hur många som väntar, och du kan trycka för att skicka direkt'] ],
   ['Beta 0.333', '9 nov', ['Felknappen, nyckelpigan, heter nu Nycklas. Den syns i Profil och i rubriken när du rapporterar'] ],
   ['Beta 0.332', '9 nov', ['Ändringar sparas i telefonen när nätet är borta, och skickas i ordning när det är tillbaka. Bilder ingår inte än'] ],
@@ -11722,7 +11725,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.334';
+const APP_VERSION = 'Beta 0.335';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -11878,6 +11881,7 @@ function seg3(items, cur, fn) {
 }
 function digitalGoodsRow() { const ok = typeof window.getDigitalGoodsService === 'function'; return `<div class="setcard" style="margin-top:12px;padding:14px"><b>Köp i appen</b><p style="margin:6px 0 0">${ok ? 'Stöds i den här installationen.' : 'Stöds inte här. Kontrollen fungerar bara i appen från Play Store.'}</p></div>`; }
 function settingsV() {
+  if (S.notifSet) return notifSetV();
   const th = store.get('theme', 'dark'), ts = store.get('textsize', 1), zone = store.get('zone', 0);
   const P = S.prof;
   const profile = !S.user ? `<div class="setcard"><p class="mut" style="margin:0 0 12px">Logga in för att ändra din profil.</p><button class="btn sm" onclick="openModal('login')">Logga in eller skapa konto</button></div>`
@@ -11918,7 +11922,7 @@ function settingsV() {
     <select id="szone" onchange="setPref('zone', +this.value)"><option value="0" ${!zone ? 'selected' : ''}>Vet inte</option>${[1, 2, 3, 4, 5, 6, 7, 8].map(z => `<option value="${z}" ${zone === z ? 'selected' : ''}>Zon ${z}${z === 1 ? ' (mildast, t.ex. Skåne)' : z === 8 ? ' (kallast, fjällen)' : ''}</option>`).join('')}</select>
     <p class="mut" style="margin:8px 0 0;font-size:13px">Sverige delas in i odlingszoner från 1 (mildast) till 8. Växtsidorna visar då om en trädgårdsväxt klarar vintern där du bor.</p>
   </div></div>
-  <div class="sec"><h2>Påminnelser</h2></div><div class="pad">${pushCard()}</div>
+  <div class="sec"><h2>Notifikationer</h2></div><div class="pad"><button class="btn wide" onclick="S.notifSet=true;render()">${ic(BELL, 'currentColor', 18)} Notifikations-inställningar</button></div>
   ${S.user ? `<div class="sec"><h2>Blockerade</h2></div><div class="pad"><div class="setcard">${S.blockedL == null ? (loadBlocked(), '<p class="mut" style="margin:0">Hämtar…</p>') : S.blockedL.length ? S.blockedL.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b></span><button class="btn sm line" onclick="blockUser(${jsArg(u.id)},false)">Avblockera</button></div>`).join('') : '<p class="mut" style="margin:0">Du har inte blockerat någon.</p>'}</div></div>` : ''}
   ${famV()}
   ${account}
@@ -12025,6 +12029,28 @@ async function testPush() {
 function setPushPref(k, v) {
   const pp = Object.assign({ w: true, h: true }, store.get('pushPref', {})); pp[k] = v; store.set('pushPref', pp);
   api.setPushPrefs(pp.w !== false, pp.h !== false).then(() => toast('Sparat')).catch(() => toast('Kunde inte spara. Försök igen senare.'));
+}
+// Notifikations-inställningar: allt som har med notiser, under en egen knapp i Inställningar
+const NOTIF_KINDS = [
+  ['update', 'Ny uppdatering i appen', 'När en ny version av Roothood publiceras'],
+  ['msg', 'Nytt meddelande', 'När någon skickar dig ett meddelande'],
+  ['friend', 'Vänförfrågningar', 'När någon vill bli din vän, eller accepterar din förfrågan'],
+];
+const notifPrefOn = k => { const p = (S.prof && S.prof.notif_prefs) || {}; return p[k] !== false; };
+async function notifPrefSet(k, v) {
+  const p = Object.assign({}, (S.prof && S.prof.notif_prefs) || {}, { [k]: v });
+  if (S.prof) S.prof.notif_prefs = p;
+  try { await api.saveNotifPrefs(p); toast('Sparat'); } catch (e) { toast(errMsg(e)); }
+  render();
+}
+function notifSetV() {
+  const def = store.get('remindDefault', true);
+  return `<div class="pad"><button class="btn sm line" onclick="S.notifSet=false;render()">← Inställningar</button></div>
+  <div class="sec"><h2>Notifikations-inställningar</h2></div>
+  <div class="pad"><p class="mut" style="margin:0 0 10px;font-size:13.5px">Här väljer du vilka notiser du vill få i mobilen, även när appen är stängd.</p>
+  <div class="setcard" style="padding:12px 14px"><p style="margin:0 0 8px"><b>Vattning och skötsel</b></p>${pushCard()}</div>
+  <div class="setcard" style="padding:12px 14px;margin-top:12px"><p style="margin:0 0 8px"><b>Övriga notiser</b></p>${S.user ? NOTIF_KINDS.map(([k, n, d]) => `<label class="remrow"><input type="checkbox" ${notifPrefOn(k) ? 'checked' : ''} onchange="notifPrefSet('${k}', this.checked)" aria-label="${n}"><span><b>${n}</b><small>${d}</small></span></label>`).join('') : '<p class="mut" style="margin:0">Logga in för att välja notiser.</p>'}
+  <p class="mut" style="margin:10px 0 0;font-size:12.5px">Taggning och nya inlägg om en växt finns inte i appen än. Då går de inte att välja här.</p></div></div>`;
 }
 function pushCard() {
   const st = S.push, busy = S.pushBusy ? ' disabled' : '';

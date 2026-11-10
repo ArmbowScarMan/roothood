@@ -209,8 +209,13 @@ Deno.serve(async (req) => {
   if (!onlyUser) {
     const ver = await currentVersion();
     if (ver) {
+      // Mottagare som stängt av "Ny uppdatering" under Notifikations-inställningar får ingen notis
+      const { data: upm } = await db.from("profiles").select("id,notif_prefs").in("id", users);
+      const pmap: Record<string, Record<string, boolean>> = {};
+      for (const x of upm || []) pmap[x.id] = (x.notif_prefs || {});
       for (const s of subs) {
         if (s.last_version === ver.v) continue;
+        if (pmap[s.user_id]?.update === false) { await db.from("push_subscriptions").update({ last_version: ver.v }).eq("id", s.id); continue; }
         if (s.last_version == null) { await db.from("push_subscriptions").update({ last_version: ver.v }).eq("id", s.id); continue; }
         try {
           await webpush.sendNotification(
