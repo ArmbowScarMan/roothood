@@ -1,5 +1,18 @@
 <!doctype html>
 <html lang="sv"><head><meta charset="utf-8">
+<script src="https://js.sentry-cdn.com/bccb5dfe8539399d223e5a395f1b2355.min.js" crossorigin="anonymous"></script>
+<script>
+  window.sentryOnLoad = function () {
+    Sentry.init({
+      environment: 'production',
+      tracesSampleRate: 0,
+      replaysSessionSampleRate: 0,
+      replaysOnErrorSampleRate: 0,
+      sendDefaultPii: false
+    });
+    Sentry.setTag('version', typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'okänd');
+  };
+</script>
 <link rel="stylesheet" href="./phosphor/style.css">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Roothood</title>
@@ -1802,6 +1815,15 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 .mt-l{flex:1;min-width:0}
 .mtree .tabn{font-style:normal;display:inline-block;min-width:18px;padding:0 6px;border-radius:99px;background:var(--acc);color:#fff;font-size:11.5px;line-height:18px;text-align:center}
 .mgrp{margin:0 0 10px}
+.pslides{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -4px}
+.pslides::-webkit-scrollbar{display:none}
+.pslide{flex:0 0 100%;scroll-snap-align:start;text-align:center;padding:18px 10px;box-sizing:border-box;min-height:230px}
+.pslide b{display:block;font-size:18px;margin:4px 0 8px}
+.pslide p{margin:0;font-size:15px;line-height:1.5;color:var(--mut)}
+.psi{width:76px;height:76px;margin:0 auto 10px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(160,200,120,.2);color:var(--acc)}
+.pdots{display:flex;gap:6px;justify-content:center;margin-top:6px}
+.pdot{width:8px;height:8px;border-radius:99px;border:0;background:var(--line);padding:0;cursor:pointer;min-height:0}
+.pdot.on{background:var(--acc);width:22px}
 .modnav{margin:8px 18px 4px}
 .modsecs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:8px}
 .modsecs::-webkit-scrollbar{display:none}
@@ -6634,7 +6656,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'zonepick' ? zonePickV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'zonepick' ? zonePickV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -9695,8 +9717,7 @@ async function setPro(on) {
 function modPayTestV() {
   return `<div class="setcard" style="margin:10px 0"><b>Betalningstest (bara moderatorer)</b><p class="mut" style="font-size:13px;margin:4px 0 8px">Använd testkortet 4242 4242 4242 4242 med valfritt framtida datum och valfri CVC.</p><label class="fl" for="procode" style="margin-top:0">Rabattkod (valfri)</label><input id="procode" maxlength="30" autocomplete="off" placeholder="ROOTHOOD29" style="width:100%"><button class="btn wide formbtn" style="margin-top:10px" onclick="startProBuy()">Testa köp i sandboxen</button><button class="btn wide line" style="margin-top:8px" onclick="openProPortalBtn()">Testa kundportalen</button></div>`;
 }
-function proV() {
-  const feats = [[CAM, 'Identifiera växter med kameran', 'Fota ett blad eller en blomma och få veta vad det är.'],
+const PRO_FEATS = [[CAM, 'Identifiera växter med kameran', 'Fota ett blad eller en blomma och få veta vad det är.'],
     [I.sun, 'Ljusmätare', 'Mät ljuset där växten ska stå och få förslag på växter som trivs.'],
     [XPI, 'Fråga växtexperter', 'Ställ egna frågor med foto till trädgårdsmästare och specialister och få personliga svar.'],
     [DOORI, 'Mitt hem', 'Rita ditt hem med rum, fönster och trädgård, se det i 3D och få tips om var växterna trivs.'],
@@ -9711,6 +9732,28 @@ function proV() {
     [I.leaf, 'Säsongstips', 'Se vad du kan göra just nu i trädgården, månad för månad.'],
     [INSPI, 'Odlare att följa', 'Odlare på YouTube och Instagram som du kan följa för tips och inspiration.'],
     [I.leaf, 'Obegränsad samling', `Gratis kan du spara ${FREE_LIMIT} växter. Med Pro finns ingen gräns.`]];
+// Efter köp: svepbara kort som förklarar varje Pro-funktion. Visas en gång.
+function proIntroV() {
+  const L = PRO_FEATS;
+  return `<div class="mh"><h2>Välkommen till Pro 🌿</h2></div>
+  <p class="mut" style="margin:0 0 6px;font-size:14px">Svep eller tryck på Nästa för att se vad du fått.</p>
+  <div class="pslides" id="pslides" onscroll="proIntroDot()">${L.map(([icn, t, d], k) => `<section class="pslide" aria-label="${k + 1} av ${L.length}"><div class="psi">${ic(icn, 'currentColor', 36)}</div><b>${esc(t)}</b><p>${esc(d)}</p></section>`).join('')}</div>
+  <div class="pdots">${L.map((_, k) => `<button class="pdot ${k === 0 ? 'on' : ''}" onclick="proIntroGo(${k})" aria-label="Gå till funktion ${k + 1}"></button>`).join('')}</div>
+  <div style="display:flex;gap:10px;margin-top:14px"><button class="btn line" style="flex:1" onclick="proIntroGo(proIntroIdx() - 1)">Tillbaka</button><button id="pnext" class="btn formbtn" style="flex:1" onclick="proIntroNext()">Nästa</button></div>
+  ${S.pro && !freePro() ? '<p style="text-align:center;margin:12px 0 0"><button class="link3" onclick="openProPortalBtn()">Hantera prenumeration</button></p>' : ''}`;
+}
+function proIntroIdx() { const el = $('#pslides'); return el && el.clientWidth ? Math.round(el.scrollLeft / el.clientWidth) : 0; }
+function proIntroGo(k) { const el = $('#pslides'); if (!el) return; const i = Math.max(0, Math.min(PRO_FEATS.length - 1, k)); el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' }); setTimeout(proIntroDot, 350); }
+function proIntroDot() { const i = proIntroIdx(); document.querySelectorAll('.pdot').forEach((d, k) => d.classList.toggle('on', k === i)); const b = $('#pnext'); if (b) b.textContent = i >= PRO_FEATS.length - 1 ? 'Klar' : 'Nästa'; }
+function proIntroNext() { if (proIntroIdx() >= PRO_FEATS.length - 1) { store.set('proIntroSeen', true); closeModal(); } else proIntroGo(proIntroIdx() + 1); }
+// Efter köp kommer man tillbaka med ?pro=ok. Visa introt när Pro är aktivt (webhooken kan dröja några sekunder).
+function proIntroCheck(tries) {
+  if (!S.user || !store.get('proIntroPending', false)) return;
+  if (S.pro) { store.set('proIntroPending', false); openModal('prointro'); return; }
+  const t = tries || 0; if (t < 15) setTimeout(async () => { try { S.pro = await api.getPro(); } catch (e) {} proIntroCheck(t + 1); }, 2000);
+}
+function proV() {
+  const feats = PRO_FEATS;
   return `<div class="mh"><h2>Roothood Pro</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   ${isMod() ? modPayTestV() : ''}
   ${S.limitHit ? `<p class="formmsg ok">Du har ${FREE_LIMIT} växter, vilket är max för gratiskonton. Bli Pro för att spara fler.</p>` : ''}
@@ -12138,7 +12181,7 @@ function settingsV() {
   ${famV()}
   ${account}
   <div class="sec"><h2>Nytt i appen</h2></div><div class="pad"><button class="setrow" onclick="openNews()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Uppdateringslogg</b><span>Se vad som är nytt i version ${APP_VERSION}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
-  ${PRO_FREE && !S.user ? '' : `<div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="openModal('pro')"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`}
+  ${PRO_FREE && !S.user ? '' : `<div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="${S.pro ? "openModal('prointro')" : "openModal('pro')"}"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`}
   <div class="sec"><h2>Om Roothood</h2></div><div class="pad"><div class="setcard about2">
     <img src="${LOGO}" alt="" width="56" height="56"><div><b>Roothood ${APP_VERSION}</b><span>Växtfolk som hjälper varandra.</span><span>Foton: Wikipedia. Identifiering: Pl@ntNet.</span></div></div>
     <a class="btn wide line" style="margin-top:12px;display:flex;justify-content:center;text-decoration:none" href="licenser.html" target="_blank" rel="noopener">Källor och licenser</a>
@@ -12370,7 +12413,9 @@ async function init() {
     S.plants = await api.plants();
     S.user = await api.user();
     S.mine = S.user ? await api.mine() : [];
+    if (new URLSearchParams(location.search).get('pro') === 'ok') { store.set('proIntroPending', true); history.replaceState(null, '', location.pathname + location.hash); }
     S.pro = S.user ? await api.getPro() : PRO_FREE;
+    proIntroCheck();
     if (S.user) { try { const pr = await api.getProfile(); S.city = pr.city || ''; applyInterests(pr.interests);
       if (!DEMO && S.user.gname && (!pr.display_name || pr.display_name.includes('@'))) { await api.fixName(S.user.gname); S.meCard = undefined; } } catch (e) { console.warn('Roothood:', e); } }
     if (S.user) loadHome();
