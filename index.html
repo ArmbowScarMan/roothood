@@ -99,6 +99,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 #list.grid{grid-template-columns:repeat(3,1fr);gap:14px 10px}
 #list .card{min-width:0}
 #list .card .ph{aspect-ratio:1/1;border-radius:18px;width:100%}
+#dscard .ph{aspect-ratio:1/1;width:100%;border-radius:20px 20px 0 0}
 #list .card h3{margin:7px 1px 0;font-size:13px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 #list .card i{font-size:11px;margin:1px 1px 0}
 #list .card .heart{top:6px;right:6px;width:30px;height:30px}
@@ -2345,7 +2346,7 @@ async function wqFlush() {
   } finally { wqBusy = false; wqShow(); }
   if (sent) { toast('Ändringar skickade: ' + sent); if (S.user) { try { S.mine = await api.mine(); } catch (e) { } render(); } }
 }
-function wqShow() { const el = document.getElementById('offline'), n = wqGet().length; if (!el) return; el.textContent = navigator.onLine ? (n ? n + (n === 1 ? ' ändring har' : ' ändringar har') + ' inte kommit fram än. Tryck här för att skicka nu.' : '') : 'Du är offline. Det du såg senast finns kvar.' + (n ? ' ' + n + ' ändringar sparas i telefonen och skickas när nätet är tillbaka.' : ' Nya ändringar sparas i telefonen och skickas när nätet är tillbaka.'); el.hidden = navigator.onLine && !n; el.style.cursor = n && navigator.onLine ? 'pointer' : ''; el.onclick = n && navigator.onLine ? () => { toast('Skickar…'); wqFlush(); } : null; }
+function wqShow() { const el = document.getElementById('offline'), n = wqGet().length; if (!el) return; el.textContent = navigator.onLine ? (n ? n + (n === 1 ? ' ändring har' : ' ändringar har') + ' inte kommit fram än. Tryck här för att skicka nu.' : '') : 'Du är offline. Det du såg senast finns kvar.' + (n ? ' ' + n + ' ändringar sparas i telefonen och skickas när nätet är tillbaka.' : ' Nya ändringar sparas i telefonen och skickas när nätet är tillbaka.'); el.hidden = navigator.onLine; el.style.cursor = n && navigator.onLine ? 'pointer' : ''; el.onclick = n && navigator.onLine ? () => { toast('Skickar…'); wqFlush(); } : null; }
 window.addEventListener('online', () => { wqShow(); wqFlush(); });
 // Försök igen var minut, och när appen kommer tillbaka i förgrunden
 setInterval(() => { if (wqGet().length) wqFlush(); }, 60000);
