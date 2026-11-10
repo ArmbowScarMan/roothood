@@ -2,15 +2,22 @@
 <html lang="sv"><head><meta charset="utf-8">
 <script src="https://js-de.sentry-cdn.com/bccb5dfe8539399d223e5a395f1b2355.min.js" crossorigin="anonymous"></script>
 <script>
+  // APP_VERSION skapas längre ner i sidan, så versionen läses först när ett fel skickas.
+  function rhVersion() { try { return APP_VERSION; } catch (e) { return 'okänd'; } }
   window.sentryOnLoad = function () {
     Sentry.init({
       environment: 'production',
       tracesSampleRate: 0,
       replaysSessionSampleRate: 0,
       replaysOnErrorSampleRate: 0,
-      sendDefaultPii: false
+      sendDefaultPii: false,
+      beforeSend: function (event) {
+        var v = rhVersion();
+        if (v !== 'okänd') event.release = 'roothood@' + v.replace(/\s+/g, '-');
+        event.tags = Object.assign({}, event.tags, { version: v });
+        return event;
+      }
     });
-    Sentry.setTag('version', typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'okänd');
   };
 </script>
 <link rel="stylesheet" href="./phosphor/style.css">
