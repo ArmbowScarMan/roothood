@@ -28,9 +28,11 @@ Deno.serve(async (req) => {
 
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const active = sub.status === "trialing" || sub.status === "active";
+  // Nyare Stripe-versioner har current_period_end på prenumerationens rad (items), inte på prenumerationen
+  const periodEnd = sub.current_period_end ?? sub.items?.data?.[0]?.current_period_end;
   const patch: Record<string, unknown> = {
     is_pro: active,
-    pro_until: active ? new Date(sub.current_period_end * 1000).toISOString() : null,
+    pro_until: active && periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
     pro_status: sub.status,
     pro_plan: sub.metadata?.plan || null,
     stripe_subscription_id: sub.id,
