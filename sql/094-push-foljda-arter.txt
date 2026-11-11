@@ -1,0 +1,21 @@
+-- 094: Notis i mobilen när någon ställer en fråga om en art du följer (045 gav bara notis inne i appen).
+-- Kräver 032 (push_event) och 045 (plant_follows). Går att köra flera gånger.
+create or replace function public.trg_push_follow() returns trigger language plpgsql security definer set search_path = public as $$
+declare r record;
+begin
+  if new.kind is distinct from 'question' or coalesce(new.hidden, false) then return new; end if;
+  for r in
+    select distinct on (f.user_id) f.user_id, f.species from public.plant_follows f
+    where f.user_id <> new.user_id
+      and lower(coalesce(new.body, '') || ' ' || coalesce(new.title, ''))
+          like '%' || lower(replace(replace(replace(f.species, '\', '\\'), '%', '\%'), '_', '\_')) || '%'
+  loop
+    perform public.push_event('follow_q', r.user_id, new.user_id, r.species || ': ' || coalesce(nullif(new.body, ''), new.title, ''));
+  end loop;
+  return new;
+exception when others then
+  return new; -- en notis får aldrig stoppa en fråga
+end $$;
+revoke all on function public.trg_push_follow() from public, anon, authenticated;
+drop trigger if exists push_follow_t on public.posts;
+create trigger push_follow_t after insert on public.posts for each row execute function public.trg_push_follow();
