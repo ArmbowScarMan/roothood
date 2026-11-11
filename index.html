@@ -537,6 +537,8 @@ button,[role=tab],.nrow,.prow,.setrow,.upl,label.tog{-webkit-user-select:none;us
 .modal .idr{box-shadow:none}
 .addpimg .ph{height:200px;border-radius:22px}
 .myphoto{display:flex;gap:16px;justify-content:center;padding:8px 18px 0;flex-wrap:wrap}
+.sitp{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:10px 0 2px;cursor:pointer}.sitp b{flex:1}.sitp small{flex:none}.sitp>span{color:var(--mut);font-size:20px;line-height:1}
+.ulink{display:inline;border:0;background:none;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 45%,transparent);text-underline-offset:3px}
 .link3{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--pri);font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:4px 0}
 .pbtn{width:34px;height:34px;border-radius:50%;background:var(--bg);color:var(--mut);display:grid;place-items:center;cursor:pointer;margin-bottom:4px}
 .pbtn:focus-within{outline:2px solid var(--pri)}
@@ -2640,7 +2642,7 @@ const demoApi = {
   async modUsageUsersH(f) { return this.modUsageUsers(f); },
   async modUsageUserFeaturesH(u) { return this.modUsageUserFeatures(u); },
   async saveZone(z) { store.set('demoZone', z); }, async myZone() { return store.get('demoZone', null); },
-  async sitterList() { return []; }, async sitterAdd() { return null; }, async sitterDel() { }, async sitterTasks() { return []; }, async sitterBeds() { return []; },
+  async sitterList() { return []; }, async sitterAdd() { return null; }, async sitterDel() { }, async sitInbox() { return []; }, async sitAnswer() { }, async sitEnd() { }, async sitterTasks() { return []; }, async sitterBeds() { return []; },
   async modUsageUserDays(u, d) { const out = []; for (let i = d - 1; i >= 0; i--) { const n = (i * 7 + 3) % 5; if (n) out.push({ day: new Date(Date.now() - i * 864e5).toISOString().slice(0, 10), uses: n }); } return out; },
   async modUsageUserFeatures(u) { return ['hem', 'db', 'ask', 'house', 'doc', 'news'].map((f, i) => ({ feature: f, uses: Math.max(1, 20 - i * 4), last_day: new Date().toISOString().slice(0, 10) })); },
   async modUsageUsers(f) { return this._people().slice(0, 5).map((u, i) => ({ user_id: u.id, display_name: u.display_name, uses: 30 - i * 5, features: 6 - i, last_day: new Date().toISOString().slice(0, 10) })); },
@@ -2679,6 +2681,9 @@ const sbApi = {
   async sitterList() { const { data, error } = await sb.from('plant_sitters').select('id,sitter_id,starts_on,ends_on').order('starts_on', { ascending: false }); if (error) throw error; return data || []; },
   async sitterAdd(sitterId, from, to) { const { error } = await sb.from('plant_sitters').insert({ owner_id: S.user.id, sitter_id: sitterId, starts_on: from, ends_on: to }); if (error) throw error; },
   async sitterDel(id) { const { error } = await sb.from('plant_sitters').delete().eq('id', id); if (error) throw error; },
+  async sitInbox() { const { data, error } = await sb.rpc('sitter_inbox'); if (error) { if (/sitter_inbox|does not exist|schema cache/.test(error.message || '')) return null; throw error; } return data || []; },
+  async sitAnswer(id, ok) { const { error } = await sb.rpc('sitter_answer', { p_id: id, p_accept: ok }); if (error) throw /sitter_answer|schema cache/.test(error.message || '') ? new Error('Passningsförfrågningar går inte att använda just nu.') : error; },
+  async sitEnd(id) { const { error } = await sb.rpc('sitter_end', { p_id: id }); if (error) throw /sitter_end|schema cache/.test(error.message || '') ? new Error('Det går inte att avsluta passningar just nu.') : error; },
   async sitterTasks() { const { data, error } = await sb.rpc('sitter_tasks'); if (error) throw error; return data || []; },
   async sitterBeds() { const { data, error } = await sb.rpc('sitter_beds'); if (error) throw error; return data || []; },
   async saveVis(vis, share) { const { error } = await sb.from('profiles').update({ vis, share_photos: share }).eq('id', S.user.id); if (error) throw /vis/.test(error.message || '') ? new Error('FRIENDS_NOT_READY') : error; },
@@ -2907,6 +2912,11 @@ const sbApi = {
     try { const fr = await sb.from('friend_requests').select('*').or(`to_user.eq.${me},from_user.eq.${me}`).order('created_at', { ascending: false }).limit(40);
       if (!fr.error && fr.data.length) { const ids = [...new Set(fr.data.map(f => f.from_user === me ? f.to_user : f.from_user))], pr = await sb.rpc('profile_names', { p_ids: ids }), nm = Object.fromEntries(((pr.data) || []).map(x => [x.id, x.display_name]));
         fr.data.forEach(f => { if (f.status === 'pending' && f.to_user === me) out.push({ t: 'friend', pending: true, at: f.created_at, who: nm[f.from_user], req: f.id, from: f.from_user, msg: f.message || '' }); else if (f.status === 'accepted' && f.from_user === me) out.push({ t: 'friend_ok', at: f.responded_at || f.created_at, who: nm[f.to_user], from: f.to_user }); }); } } catch (e) { console.warn('Roothood:', e); }
+    // Växtpassning: förfrågningar till mig, svar på mina förfrågningar och passningar som den andra har avslutat
+    try { const L = await this.sitInbox(); S.sitIn = L; (L || []).forEach(r => {
+      if (!r.me_owner && r.status === 'pending') out.push({ t: 'sit', pending: true, at: r.created_at, req: r.id, who: r.owner_name, from: r.owner_id, starts: r.starts_on, ends: r.ends_on });
+      else if (r.me_owner && (r.status === 'accepted' || r.status === 'declined') && r.responded_at) out.push({ t: 'sit_ans', ok: r.status === 'accepted', at: r.responded_at, req: r.id, who: r.sitter_name, from: r.sitter_id, starts: r.starts_on, ends: r.ends_on });
+      else if (r.status === 'ended' && r.ended_at && r.ended_by && r.ended_by !== me) out.push({ t: 'sit_end', at: r.ended_at, req: r.id, who: r.me_owner ? r.sitter_name : r.owner_name, from: r.me_owner ? r.sitter_id : r.owner_id, owner: r.me_owner }); }); } catch (e) { console.warn('Roothood:', e); }
     const xq = await sb.from('expert_questions').select('id,answer,answered_at').eq('asker', me).not('answer', 'is', null).order('answered_at', { ascending: false }).limit(20);
     if (!xq.error) xq.data.forEach(q => out.push({ t: 'expert', at: q.answered_at, who: 'En expert', body: q.answer }));
     return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 60);
@@ -3165,7 +3175,7 @@ function lbV() {
   const nav = L.length > 1 ? `<div style="display:flex;gap:10px;justify-content:center;margin-top:12px"><button class="btn sm line" onclick="S.lb.i=(S.lb.i+${L.length - 1})%${L.length};render()">‹ Förra</button><span class="mut" style="align-self:center">${S.lb.i + 1} / ${L.length}</span><button class="btn sm line" onclick="S.lb.i=(S.lb.i+1)%${L.length};render()">Nästa ›</button></div>` : '';
   return `<div class="mh"><h2>${esc(p ? p.swedish_name : 'Bild')}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <img class="lbimg" src="${esc(x.url)}" alt="${esc((p ? p.swedish_name : 'Växt') + ' fotograferad av ' + (x.display_name || 'en växtvän'))}">
-  <div style="display:flex;align-items:center;margin-top:10px"><p class="mut" style="margin:0;flex:1">Foto: <b>${esc(x.display_name || 'Växtvän')}</b></p><button class="x" onclick="reportPhoto()">Rapportera bild</button></div>${nav}`;
+  <div style="display:flex;align-items:center;margin-top:10px"><p class="mut" style="margin:0;flex:1">Foto: <b>${ulink(x.user_id, x.display_name, 'Växtvän')}</b></p><button class="x" onclick="reportPhoto()">Rapportera bild</button></div>${nav}`;
 }
 const VIS_ITEMS = [['city', 'Ort'], ['interests', 'Intressen'], ['plants', 'Mina växter'], ['pets', 'Mina djur'], ['home', 'Mitt hem'], ['posts', 'Inlägg']];
 const visOf = k => { const v = S.prof && S.prof.vis && S.prof.vis[k]; return v || (k === 'pets' || k === 'home' ? 'friends' : k === 'plants' && S.prof && S.prof.share_photos === false ? 'none' : 'all'); };
@@ -6867,6 +6877,42 @@ function smartV() {
   <div style="height:20px"></div>`;
 }
 
+// ===== Växtpassning =====
+// En vän ber dig passa sina växter. Du får en förfrågan som du accepterar eller tackar nej till, och båda kan avsluta passningen.
+const SIT_ST = { pending: 'Väntar på svar', accepted: 'Accepterad', declined: 'Nekad', ended: 'Avslutad' };
+const sitSpan = r => `${sitDate(r.starts || r.starts_on)} – ${sitDate(r.ends || r.ends_on)}`;
+async function sitAnswer(id, ok) { try { await api.sitAnswer(id, ok); toast(ok ? 'Du passar nu växterna. De syns under Passar för andra.' : 'Du har tackat nej'); } catch (e) { toast(errMsg(e)); } await sitRefresh(); }
+async function sitEnd(id) { if (S.del !== 'sitend' + id) { S.del = 'sitend' + id; return keepMain(); } S.del = null; try { await api.sitEnd(id); toast('Passningen är avslutad'); } catch (e) { toast(errMsg(e)); } await sitRefresh(); }
+async function sitRefresh() { try { S.sitIn = await api.sitInbox(); } catch (e) {} try { S.sitters = await api.sitterList(); } catch (e) {} loadSitTasks(); if (typeof loadNotifs === 'function') await loadNotifs(); keepMain(); }
+function sitReqBtns(r) { return `<span class="fbtns"><button class="btn sm" onclick="sitAnswer(${+r.req},true)">Acceptera</button><button class="btn sm line" onclick="sitAnswer(${+r.req},false)">Tacka nej</button><button class="link3" onclick="openUser(${jsArg(r.from)})">Visa profil</button></span>`; }
+// Kort på startsidan när någon har bett dig passa sina växter
+function sitReqCard() {
+  const l = (S.notifs || []).filter(n => n.t === 'sit'); if (!S.user || !l.length) return '';
+  return `<div class="frcard">${l.slice(0, 3).map(n => `<div class="frc"><span class="frem">🪴</span><div class="grow"><b>${ulink(n.from, n.who, 'En vän')} ber dig passa sina växter</b><span>${esc(sitSpan(n))}. Du ser vad som behöver vattnas, och kan avsluta när du vill.</span>${sitReqBtns(n)}</div></div>`).join('')}</div>`;
+}
+// Notisrader för passning (förfrågningar med knappar, svar och avslut)
+function sitNotifV() {
+  const N = (S.notifs || []).filter(n => /^sit/.test(n.t)); if (!N.length) return '';
+  const row = n => n.t === 'sit' ? `<div class="nrow new frow"><span class="nic">🪴</span><span class="grow"><b>${ulink(n.from, n.who, 'En vän')} ber dig passa sina växter</b><span>${esc(sitSpan(n))}</span>${sitReqBtns(n)}</span><small>${ago(n.at)}</small></div>`
+    : `<button class="nrow old" onclick="openSit()"><span class="nic">${n.t === 'sit_ans' ? (n.ok ? '🤝' : '🙅') : '🛑'}</span><span class="grow"><b>${esc(n.who || 'Någon')} ${n.t === 'sit_ans' ? (n.ok ? 'passar dina växter' : 'tackade nej till att passa dina växter') : n.owner ? 'avslutade passningen av dina växter' : 'avslutade passningen av sina växter'}</b><span>${esc(sitSpan(n))}</span></span><small>${ago(n.at)}</small></button>`;
+  return `<div class="sec"><h2>Växtpassning</h2></div><div class="pad nlist">${N.map(row).join('')}</div>`;
+}
+function openSit() { stopLight(); S.sel = null; S.modal = null; S.tool = 'sit'; S.sitIn = S.sitIn || null; render(); $('#main').scrollTop = 0; sitRefresh(); }
+// Verktyget Växtpassning: allt på ett ställe
+function sitV() {
+  const L = S.sitIn, me = S.user;
+  if (!me) return `${topbar('Växtpassning', 'closeTool()')}<div class="empty"><p>Logga in för att be en vän passa dina växter, eller passa någon annans.</p><button class="btn sm" onclick="openModal('login')">Logga in</button></div>`;
+  const inc = (L || []).filter(r => !r.me_owner && r.status === 'pending'), act = (L || []).filter(r => !r.me_owner && r.status === 'accepted'), mine = (L || []).filter(r => r.me_owner);
+  const endB = r => `<button class="btn sm line ${S.del === 'sitend' + r.id ? 'danger' : ''}" onclick="sitEnd(${r.id})">${S.del === 'sitend' + r.id ? 'Tryck igen för att avsluta' : r.status === 'pending' ? 'Dra tillbaka' : 'Avsluta passningen'}</button>`;
+  const card = (r, who, whoId, body) => `<div class="card" style="padding:14px;margin-bottom:10px"><b>${ulink(whoId, who, 'Vän')}</b><small class="mut" style="display:block">${esc(sitSpan(r))} · ${SIT_ST[r.status] || ''}</small>${body || ''}</div>`;
+  return `${topbar('Växtpassning', 'closeTool()')}
+  <p class="mut" style="margin:0 18px 6px;font-size:14px">Be en vän passa dina växter när du är bortrest, eller passa någon annans. Den som passar ser vad som behöver vattnas och får skötselråd för varje växt.</p>
+  ${L === null ? '<p class="formmsg" style="margin:10px 18px">Passningsförfrågningar är inte påslagna i databasen än.</p>' : L === undefined ? '<p class="mut" style="margin:10px 18px">Hämtar…</p>' : ''}
+  ${inc.length ? `<div class="sec"><h2>Förfrågningar till dig</h2></div><div class="pad">${inc.map(r => card(r, r.owner_name, r.owner_id, `<p style="margin:8px 0 0;font-size:14px">${ulink(r.owner_id, r.owner_name, 'En vän')} ber dig passa sina växter.</p>${sitReqBtns({ req: r.id, from: r.owner_id })}`)).join('')}</div>` : ''}
+  <div class="sec"><h2>Du passar åt</h2></div><div class="pad">${act.length ? act.map(r => card(r, r.owner_name, r.owner_id, `<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="S.tool=null;S.tab='home';render()">Se växterna och vad som ska göras</button>${endB(r)}</div>`)).join('') : '<p class="mut" style="margin:0;font-size:14px">Du passar inte åt någon just nu.</p>'}</div>
+  <div class="sec"><h2>Dina växter</h2></div><div class="pad">${mine.filter(r => r.status === 'pending' || r.status === 'accepted').map(r => card(r, r.sitter_name, r.sitter_id, `<div style="margin-top:10px">${endB(r)}</div>`)).join('')}${mine.filter(r => r.status === 'declined' || r.status === 'ended').slice(0, 5).map(r => card(r, r.sitter_name, r.sitter_id)).join('')}</div>
+  ${sitterOwnerV(true)}`;
+}
 function friendReqCard() {
   const l = (S.notifs || []).filter(n => n.t === 'friend');
   if (!S.user || !l.length) return '';
@@ -7392,13 +7438,14 @@ function journalAllV() { if (!S.mine.length) return ''; const sel = S.jsel && S.
 // ===== Växtpassning =====
 async function loadSitters() { S.sitLoad = true; try { S.sitters = await api.sitterList(); if (S.friends == null) S.friends = await api.myFriends(); } catch (e) { S.sitters = []; if (S.friends == null) S.friends = []; toast(errMsg(e)); } S.sitLoad = false; keepMain(); }
 async function loadSitTasks() { try { S.sitTasks = await api.sitterTasks(); } catch (e) { S.sitTasks = []; } try { S.sitBeds = await api.sitterBeds(); } catch (e) { S.sitBeds = []; } if (!S.tool && !S.modal) render(); }
-function sitterOwnerV() {
+function sitterOwnerV(noList) {
   if (!S.user) return '';
   if (S.sitters == null) { if (!S.sitLoad) loadSitters(); return ''; }
   const F = S.friends || [];
   const nameOf = id => (F.find(f => String(f.id) === String(id)) || {}).display_name || 'Vän';
   const today = new Date().toISOString().slice(0, 10), plus7 = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
-  const list = S.sitters.map(s => `<div class="prow2"><span class="grow"><b>${esc(nameOf(s.sitter_id))}</b><span>${esc(s.starts_on)} – ${esc(s.ends_on)}</span></span><button class="link3 ${S.del === 'sit' + s.id ? 'danger' : ''}" onclick="sitterDel(${s.id})">${S.del === 'sit' + s.id ? 'Tryck igen' : 'Ta bort'}</button></div>`).join('');
+  const stOf = id => ((S.sitIn || []).find(r => r.id === id) || {}).status;
+  const list = noList ? '' : S.sitters.map(s => `<div class="prow2"><span class="grow"><b>${ulink(s.sitter_id, nameOf(s.sitter_id))}</b><span>${esc(sitDate(s.starts_on))} – ${esc(sitDate(s.ends_on))}${stOf(s.id) ? ' · ' + SIT_ST[stOf(s.id)] : ''}</span></span><button class="link3 ${S.del === 'sit' + s.id ? 'danger' : ''}" onclick="sitterDel(${s.id})">${S.del === 'sit' + s.id ? 'Tryck igen' : 'Ta bort'}</button></div>`).join('');
   const opts = F.map(f => `<option value="${esc(String(f.id))}">${esc(f.display_name || 'Vän')}</option>`).join('');
   return `<div class="sec"><h2>Passning</h2></div><div class="pad">
   <p class="mut" style="font-size:14px;margin:0 0 8px">Låt en vän se vad som behöver göras med dina växter under en period. Bara skötselinfo visas.</p>
@@ -7409,7 +7456,7 @@ async function sitterSave(f) {
   const sid = f.fr.value, from = f.f.value, to = f.t.value;
   if (!sid || !from || !to) return toast('Fyll i alla fält');
   if (to < from) return toast('Slutdatum måste vara efter startdatum');
-  try { await api.sitterAdd(sid, from, to); toast('Passningen är tillagd'); S.sitters = await api.sitterList(); } catch (e) { toast(errMsg(e)); }
+  try { await api.sitterAdd(sid, from, to); toast('Förfrågan är skickad. Passningen börjar när din vän accepterar.'); await sitRefresh(); } catch (e) { toast(errMsg(e)); }
   keepMain();
 }
 async function sitterDel(id) {
@@ -7422,21 +7469,27 @@ async function sitterDel(id) {
 function bedsSitterHtml(B) {
   if (!B.length) return '';
   const by = {};
-  B.forEach(r => { const o = by[r.owner_id] = by[r.owner_id] || { name: r.owner_name || 'Vän', ends: r.ends_on, beds: {} }; (o.beds[r.bed_type] = o.beds[r.bed_type] || []).push(r); });
-  return Object.values(by).map(o => `<div class="card" style="padding:14px;margin-bottom:10px"><b>${esc(o.name)}s rabatter</b><small class="mut" style="display:block">Passningen slutar ${esc(o.ends)}</small>${Object.entries(o.beds).map(([t, rows]) => {
+  B.forEach(r => { const o = by[r.owner_id] = by[r.owner_id] || { id: r.owner_id, name: r.owner_name || 'Vän', ends: r.ends_on, beds: {} }; (o.beds[r.bed_type] = o.beds[r.bed_type] || []).push(r); });
+  return Object.values(by).map(o => `<div class="card" style="padding:14px;margin-bottom:10px"><b>${ulink(o.id, o.name)}s rabatter</b><small class="mut" style="display:block">Passningen gäller till och med ${esc(sitDate(o.ends))}</small>${Object.entries(o.beds).map(([t, rows]) => {
     const uniq = [...new Map(rows.map(r => [r.plant_name, r])).values()];
-    return `<p style="margin:8px 0 0"><b>${esc((UK_M[t] || [0, t])[1])}</b>${uniq.map(r => `<br><small class="mut">${esc(r.plant_name || 'Växt')}${r.water_level ? ' · Vatten: ' + WATER[r.water_level - 1] : ''}${r.light_level ? ' · Ljus: ' + LIGHT[r.light_level - 1] : ''}</small>`).join('')}</p>`;
+    return `<p style="margin:8px 0 0"><b>${esc((UK_M[t] || [0, t])[1])}</b>${uniq.map(r => `<br><button type="button" class="ulink mut" style="font-size:13px" onclick="sitPlantOpen(${+r.plant_id || 0},${jsArg(r.plant_name || '')})">${esc(r.plant_name || 'Växt')}</button><small class="mut">${r.water_level ? ' · Vatten: ' + WATER[r.water_level - 1] : ''}${r.light_level ? ' · Ljus: ' + LIGHT[r.light_level - 1] : ''}</small>`).join('')}</p>`;
   }).join('')}</div>`).join('');
 }
+// Ett användarnamn som går att trycka på och leder till profilen. Utan id visas bara namnet.
+function ulink(id, name, fb) { const n = esc(name || fb || 'Växtvän'); return id ? `<button type="button" class="ulink" onclick="event.stopPropagation();openUser(${jsArg(id)})">${n}</button>` : n; }
+// Växt i en passning: öppnar växtens sida i växtbiblioteket med skötselråd
+function sitPlantOpen(pid, name) { const p = (pid && S.plants.find(x => x.id === pid)) || S.plants.find(x => (x.swedish_name || '').toLowerCase() === String(name || '').toLowerCase()); if (!p) return toast('Hittar inte ' + (name || 'växten') + ' i växtbiblioteket'); openPlant(p.id); }
+const sitDate = d => d ? new Date(d + 'T12:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' }) : '';
 function sitterTasksHtml() {
   const T = S.sitTasks || [], B = S.sitBeds || []; if (!T.length && !B.length) return '';
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const byO = {};
-  T.forEach(t => { (byO[t.owner_id] = byO[t.owner_id] || { name: t.owner_name || 'Vän', ends: t.ends_on, rows: [] }).rows.push(t); });
-  return `<div class="sec"><h2>Passar för andra</h2></div><div class="pad">${bedsSitterHtml(B)}${Object.values(byO).map(o => `<div class="card" style="padding:14px;margin-bottom:10px"><b>${esc(o.name)}s växter</b><small class="mut" style="display:block">Passningen slutar ${esc(o.ends)}</small>${o.rows.map(t => {
+  T.forEach(t => { (byO[t.owner_id] = byO[t.owner_id] || { id: t.owner_id, name: t.owner_name || 'Vän', ends: t.ends_on, rows: [] }).rows.push(t); });
+  const endFor = oid => { const r = (S.sitIn || []).find(x => !x.me_owner && x.status === 'accepted' && x.owner_id === oid); return r ? `<button class="link3 ${S.del === 'sitend' + r.id ? 'danger' : ''}" style="margin-top:6px" onclick="sitEnd(${r.id})">${S.del === 'sitend' + r.id ? 'Tryck igen för att avsluta' : 'Avsluta passningen'}</button>` : ''; };
+  return `<div class="sec"><h2>Passar för andra</h2><button class="viewall" onclick="openSit()">Hantera</button></div><div class="pad">${bedsSitterHtml(B)}${Object.values(byO).map(o => `<div class="card" style="padding:14px;margin-bottom:10px"><b>${ulink(o.id, o.name)}s växter</b><small class="mut" style="display:block">${ulink(o.id, o.name)} har bett dig passa sina växter till och med ${esc(sitDate(o.ends))}. Tryck på en växt för skötselråd.</small>${o.rows.map(t => {
     let st = 'Ingen vattning registrerad';
     if (t.last_watered && t.water_interval_days) { const due = new Date(t.last_watered + 'T00:00:00'); due.setDate(due.getDate() + t.water_interval_days); const d = Math.round((due - today) / 864e5); st = d <= 0 ? '<span class="due-t">Vattna idag</span>' : `Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}`; }
-    return `<p style="margin:8px 0 0"><b>${esc(t.plant_name || 'Växt')}</b><br><small class="mut">${st}</small></p>`; }).join('')}</div>`).join('')}</div>`;
+    return `<button type="button" class="sitp" onclick="sitPlantOpen(${+t.plant_id || 0},${jsArg(t.plant_name || '')})"><b>${esc(t.plant_name || 'Växt')}</b><small class="mut">${st}</small><span aria-hidden="true">›</span></button>`; }).join('')}${endFor(o.id)}</div>`).join('')}</div>`;
 }
 function careV() {
   if (!S.user) return `${topbar('Min samling')}${mtabBar()}<div class="list"><div class="empty"><p>Logga in för att få en skötselplan för dina växter.</p><button class="btn sm" onclick="openModal('login')">Logga in eller skapa konto</button></div></div>`;
@@ -7879,7 +7932,7 @@ async function sendExpertQ() {
 async function sendExpertAnswer(id) { const t = ($('#xa' + id) || {}).value || ''; if (t.trim().length < 10) return toast('Skriv ett lite längre svar.'); try { await api.answerExpert(id, t.trim()); toast('Svaret är skickat'); await loadExperts(); } catch (e) { toast(errMsg(e)); } }
 function expertName(id) { const x = (S.experts || []).find(e => e.id === id); return x ? x.display_name : null; }
 function expertCard(x) {
-  return `<div class="xcard"><div class="xtop">${avBig(x.display_name)}<div class="grow"><b>${esc(x.display_name)}</b><span class="xtitle">🎓 ${esc(x.expert_title || 'Växtexpert')}</span></div><span class="xans">${x.answered || 0}<small>svar</small></span></div>
+  return `<div class="xcard"><div class="xtop">${avBig(x.display_name)}<div class="grow"><b>${ulink(x.id, x.display_name)}</b><span class="xtitle">🎓 ${esc(x.expert_title || 'Växtexpert')}</span></div><span class="xans">${x.answered || 0}<small>svar</small></span></div>
     ${x.expert_bio ? `<p>${esc(x.expert_bio)}</p>` : ''}${(x.expert_tags || []).length ? `<div class="chips2">${x.expert_tags.map(t => `<span class="tag lime">${esc(t)}</span>`).join('')}</div>` : ''}
     <button class="btn sm ${S.pro ? '' : 'line'}" style="margin-top:10px" onclick="${S.pro ? `S.xpick=${jsArg(x.id)};openExperts(${jsArg(x.id)})` : "openModal('pro')"}">Fråga ${esc(x.display_name.split(' ')[0])}${S.pro ? '' : ' ' + proBadge()}</button></div>`;
 }
@@ -8698,8 +8751,8 @@ function notifV() {
   const what = { question: 'din fråga', thread: 'din tråd', listing: 'din annons', mystery: 'ditt detektivfall' };
   const row = (icon, title, sub, at, act, isNew, key) => `<button class="nrow ${isNew ? 'new' : 'old'}" onclick="${key ? `notifOpen(${jsArg(key)});` : ''}${act}"><span class="nic">${icon}</span><span class="grow"><b>${title}</b>${sub ? `<span>${sub}</span>` : ''}</span>${at ? `<small>${ago(at)}</small>` : ''}</button>`;
   const todo = stadUI() ? due.map(waterRowS).concat(out.map(([m, t]) => rowS(myPh(m), 'ph-cloud-sun', esc(m.name), '', esc(t.split('.')[0]), null, `S.tool=null;openMine(${m.id})`, false))) : due.map(m => row('💧', `${esc(m.name)} behöver vatten idag`, 'Räknas i klockan tills du vattnat', null, `S.tool=null;openMine(${m.id})`, true)).concat(out.map(([m, t]) => row('🌦️', esc(m.name), esc(t.split('.')[0]), null, `S.tool=null;openMine(${m.id})`, false)));
-  const frq = (N || []).filter(n => n.t === 'friend').map(n => `<div class="nrow new frow"><span class="nic">👋</span><span class="grow"><b>${esc(n.who || 'Någon')} vill bli din vän</b>${n.msg ? `<span>”${esc(n.msg)}”</span>` : ''}<span class="fbtns"><button class="btn sm" onclick="friendAnswer(${jsArg(String(n.req))},${jsArg(n.from)},true)">Acceptera</button><button class="btn sm line" onclick="friendAnswer(${jsArg(String(n.req))},${jsArg(n.from)},false)">Neka</button><button class="link3" onclick="openUser(${jsArg(n.from)})">Visa profil</button></span></span><small>${ago(n.at)}</small></div>`);
-  const actL = (N || []).filter(n => n.t !== 'friend').sort((a, b) => Date.parse(b.at) - Date.parse(a.at)), isN = n => !opened.has(NKEY(n));
+  const sitN = sitNotifV(), frq = (N || []).filter(n => n.t === 'friend').map(n => `<div class="nrow new frow"><span class="nic">👋</span><span class="grow"><b>${esc(n.who || 'Någon')} vill bli din vän</b>${n.msg ? `<span>”${esc(n.msg)}”</span>` : ''}<span class="fbtns"><button class="btn sm" onclick="friendAnswer(${jsArg(String(n.req))},${jsArg(n.from)},true)">Acceptera</button><button class="btn sm line" onclick="friendAnswer(${jsArg(String(n.req))},${jsArg(n.from)},false)">Neka</button><button class="link3" onclick="openUser(${jsArg(n.from)})">Visa profil</button></span></span><small>${ago(n.at)}</small></div>`);
+  const actL = (N || []).filter(n => n.t !== 'friend' && !/^sit/.test(n.t)).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)), isN = n => !opened.has(NKEY(n));
   const act = stadUI() ? actL.map(n => actRowS(n, isN(n))) : actL.map(n => { const k = NKEY(n), nw = isN(n); return n.t === 'follow' ? row('🌿', `Ny fråga om ${esc(n.species)}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `goPost('question',${n.post_id},${jsArg(n.cat || '')})`, nw, k) : n.t === 'friend_ok' ? row('🤝', `${esc(n.who || 'Någon')} accepterade din vänförfrågan`, 'Ni är nu vänner', n.at, `openUser(${jsArg(n.from)})`, nw, k) : n.t === 'expert' ? row('🎓', `${esc(n.who || 'En expert')} har svarat på din expertfråga`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”`, n.at, `openExperts()`, nw, k)
     : row(n.kind === 'mystery' ? '🔎' : n.kind === 'listing' ? '🔁' : '💬', `${esc(n.who || 'Någon')} svarade på ${what[n.kind] || 'ditt inlägg'}`, `”${esc(n.body.slice(0, 90))}${n.body.length > 90 ? '…' : ''}”${n.ptitle ? ` · ${esc(n.ptitle.slice(0, 40))}` : ''}`, n.at, `goPost('${n.kind}',${n.post_id},${jsArg(n.cat || '')})`, nw, k); });
   const unreadChats = (S.inbox || []).filter(c => c.unread);
@@ -8708,7 +8761,7 @@ function notifV() {
   const fbRow = S.inboxC && S.inboxC.fb ? `<div class="sec"><h2>Felrapporter</h2></div><div class="pad nlist"><button class="nrow ${stadN ? 'old' : 'new'}" onclick="openMod('err')"><span class="nic">🐞</span><span class="grow"><b>${S.inboxC.fb} ${S.inboxC.fb === 1 ? 'ny rapport eller förslag' : 'nya rapporter och förslag'}</b><span>Tryck för att läsa och svara</span></span></button></div>` : '';
   return `${topbar('Notiser', 'S.tool=null;render()', stadUI() && N && N.some(n => !opened.has(NKEY(n))) ? '<button class="tlink" onclick="notifAllRead()">Markera alla som lästa</button>' : '')}
   ${S.notifErr ? retryBox('loadNotifs().then(render)') : ''}
-  ${frq.length ? `<div class="sec"><h2>Vänförfrågningar</h2></div><div class="pad nlist">${frq.join('')}</div>` : ''}
+  ${sitN}${frq.length ? `<div class="sec"><h2>Vänförfrågningar</h2></div><div class="pad nlist">${frq.join('')}</div>` : ''}
   ${unreadChats.length ? `<div class="sec"><h2>Olästa meddelanden <span class="ncount">${msgUnread()}</span></h2></div><div class="pad nlist">${unreadChats.slice(0, 5).map(c => `<button class="nrow new" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">💬</span><span class="grow"><b>${esc(c.name || 'Någon')}</b><span>${esc((c.last_body || '').slice(0, 70) || '📷 Bild')}</span></span><small>${c.unread} ${c.unread === 1 ? 'ny' : 'nya'}</small></button>`).join('')}${unreadChats.length > 5 ? `<button class="viewall" onclick="openMsgs()">Visa alla ${unreadChats.length} samtal</button>` : ''}</div>` : ''}
   ${isMod() && S.modOpen ? `<div class="sec"><h2>Moderering</h2></div><div class="pad nlist"><button class="nrow new" onclick="openMod('open')"><span class="nic">🛡️</span><span class="grow"><b>${S.modOpen} ${S.modOpen === 1 ? 'rapport väntar' : 'rapporter väntar'}</b><span>Tryck för att granska</span></span></button></div>` : ''}
   ${stadN ? '' : fbRow}
@@ -9536,10 +9589,10 @@ async function wallComm(uid, id) { const t = $('#wc' + id), b = ((t && t.value) 
 async function wallDel(uid, id) { if (S.del !== 'w' + id) { S.del = 'w' + id; return keepMain(); } S.del = null; try { await api.wallDelete(id); toast('Inlägget är borttaget'); wallLoad(uid, true); } catch (e) { toast(errMsg(e)); } }
 async function wallCDel(uid, pid, cid) { try { await api.wallCommentDelete(pid, cid); wallLoad(uid, true); } catch (e) { toast(errMsg(e)); } }
 function wallCard(p, uid) { const me = S.user && S.user.id, liked = (p.likers || []).includes(me), mine = p.user_id === me, wallMine = uid === me;
-  return `<div class="wpost"><div class="wph">${avSmall(p.author)}<div class="grow"><b>${esc(p.author)}</b><small class="mut">${ago(p.created_at)}</small></div>${mine || isMod() ? `<button class="link3 ${S.del === 'w' + p.id ? 'danger' : ''}" onclick="wallDel(${jsArg(uid)},${p.id})">${S.del === 'w' + p.id ? 'Tryck igen för att ta bort' : 'Ta bort'}</button>` : ''}</div>
+  return `<div class="wpost"><div class="wph">${avSmall(p.author)}<div class="grow"><b>${ulink(p.user_id, p.author)}</b><small class="mut">${ago(p.created_at)}</small></div>${mine || isMod() ? `<button class="link3 ${S.del === 'w' + p.id ? 'danger' : ''}" onclick="wallDel(${jsArg(uid)},${p.id})">${S.del === 'w' + p.id ? 'Tryck igen för att ta bort' : 'Ta bort'}</button>` : ''}</div>
     ${p.body ? `<p class="wbody">${esc(p.body)}</p>` : ''}${postImg(p)}
     <div class="wact"><button class="${liked ? 'on' : ''}" aria-pressed="${liked}" onclick="wallLikeT(${jsArg(uid)},${p.id})">${ic(liked ? 'ph-heart-fill' : 'ph-heart', 'currentColor', 17)} ${(p.likers || []).length || ''} Gilla</button><span class="mut">${(p.comments || []).length ? (p.comments.length + (p.comments.length === 1 ? ' kommentar' : ' kommentarer')) : ''}</span></div>
-    ${(p.comments || []).map(c => `<div class="wcom"><b>${esc(c.author)}</b> ${esc(c.body)} <small class="mut">${ago(c.created_at)}</small>${c.user_id === me || wallMine || isMod() ? ` <button class="link3" onclick="wallCDel(${jsArg(uid)},${p.id},${c.id})" aria-label="Ta bort kommentaren">×</button>` : ''}</div>`).join('')}
+    ${(p.comments || []).map(c => `<div class="wcom"><b>${ulink(c.user_id, c.author)}</b> ${esc(c.body)} <small class="mut">${ago(c.created_at)}</small>${c.user_id === me || wallMine || isMod() ? ` <button class="link3" onclick="wallCDel(${jsArg(uid)},${p.id},${c.id})" aria-label="Ta bort kommentaren">×</button>` : ''}</div>`).join('')}
     ${S.user ? `<div class="wcin"><input id="wc${p.id}" maxlength="1000" placeholder="Skriv en kommentar" onkeydown="if(event.key==='Enter'){event.preventDefault();wallComm(${jsArg(uid)},${p.id})}"><button class="btn sm" onclick="wallComm(${jsArg(uid)},${p.id})">Skicka</button></div>` : ''}</div>`; }
 function wallSec(c, self) { if (!S.user || !c || !c.id) return ''; const uid = c.id; wallLoad(uid); const W = (S.wall || {})[uid] || {};
   if (W.err === 'NR') return self ? `<div class="sec"><h2>Min vägg</h2></div><div class="pad"><p class="mut" style="margin:0;font-size:14px">Väggen är inte påslagen än.</p></div>` : '';
@@ -9597,7 +9650,7 @@ function homeBlocks(intro) {
   const L = homeLayout().filter(x => x.on), out = []; let tiles = [];
   const qfav = L.some(x => x.k === 'quick') ? favs().slice(0, 7) : [];
   if (!store.get('welcomeDone', false)) out.push(welcomeV());
-  out.push(friendReqCard());
+  out.push(friendReqCard()); out.push(sitReqCard());
   // Nya användare utan växter: bara första steget, resten visas när det finns något att visa
   if (!(S.mine && S.mine.length)) { out.push(intro || ''); if (S.user) out.push(`<div class="pad" style="margin-top:12px"><button class="btn wide line" onclick="openDb()">Bläddra bland ${S.plants.length} växter</button></div>`); return out.join('\n'); }
   // Växtbiblioteket: alltid en tydlig väg dit, eftersom den är det mest använda verktyget
@@ -9623,17 +9676,17 @@ const CHATI = 'ph-chats-circle', PEOPLEI = 'ph-users';
 const EXPI = 'ph-compass', SWAPI = 'ph-arrows-left-right', BELLI = I.bell, BEDI = 'ph-flower';
 // [nyckel, namn, ikon, färgklass, handling, pro]
 const QUICK = () => [
-  ['ask', 'Snabbfråga', 'ph-sparkle', 'xp', 'openAsk()'], ['db', 'Sök växter', I.search, 'db', 'openDb()'], ['id', 'Identifiera', CAM, '', "openTool('id')", 1], ['doc', 'Växtdoktorn', DOCI, 'doc', 'openDoc()', 1],  ['house', 'Mitt hem', DOORI, 'house', 'openHouse()', 1], ['bed', 'Planera rabatt', BEDI, 'db', "openBedPlan()", 1], ['light', 'Ljusmätare', I.sun, 'sun', "openTool('light')", 1], ['nearby', 'Trädgårdar nära dig', 'ph-map-pin', 'inspo', 'openNearby()', 1], ['compass', 'Kompass', 'ph-compass', 'sun', 'openCompass()'], ['sunpath', 'Solbana', 'ph-sun-horizon', 'sun', 'openSunPath()'], ['elev', 'Marknivå', 'ph-mountains', 'sun', 'openElev()'], ['rain', 'Regnvatten', 'ph-cloud-rain', 'xp', 'openRain()'], ['pets', 'Mina djur', I.paw, 'pets', 'openPets()', 1], ['smart', 'Smarta hemmet', HOMEI, 'smart', 'openSmart()', 1],
+  ['ask', 'Snabbfråga', 'ph-sparkle', 'xp', 'openAsk()'], ['db', 'Sök växter', I.search, 'db', 'openDb()'], ['id', 'Identifiera', CAM, '', "openTool('id')", 1], ['doc', 'Växtdoktorn', DOCI, 'doc', 'openDoc()', 1],  ['house', 'Mitt hem', DOORI, 'house', 'openHouse()', 1], ['bed', 'Planera rabatt', BEDI, 'db', "openBedPlan()", 1], ['light', 'Ljusmätare', I.sun, 'sun', "openTool('light')", 1], ['nearby', 'Trädgårdar nära dig', 'ph-map-pin', 'inspo', 'openNearby()', 1], ['compass', 'Kompass', 'ph-compass', 'sun', 'openCompass()'], ['sunpath', 'Solbana', 'ph-sun-horizon', 'sun', 'openSunPath()'], ['elev', 'Marknivå', 'ph-mountains', 'sun', 'openElev()'], ['sit', 'Växtpassning', 'ph-hand-heart', 'house', 'openSit()'], ['rain', 'Regnvatten', 'ph-cloud-rain', 'xp', 'openRain()'], ['pets', 'Mina djur', I.paw, 'pets', 'openPets()', 1], ['smart', 'Smarta hemmet', HOMEI, 'smart', 'openSmart()', 1],
   ['comm', 'Frågor', CHATI, 'db', "go('comm');setCtab('q')"], ['forum', 'Forum', CHATI, 'xp', "go('comm');setCtab('forum')"], ['swap', 'Byt & ge bort', SWAPI, 'inspo', "go('comm');setCtab('swap')"], ['detect', 'Växtdetektiver', I.search, 'sun', 'openDetect()', 1],
   ['people', 'Hitta vänner', PEOPLEI, 'xp', 'openPeople()'], ['inspo', 'Odlare att följa', INSPI, 'inspo', 'openInspo()', 1], ['season', 'Säsongstips', I.leaf, 'sun', 'openSeason()', 1], ['sow', 'Såkalender', SOWI, 'db', 'openSow()', 1], ['perma', 'Permakultur', I.leaf, 'inspo', 'openPerma()', 1], ['jord', 'Jord och substrat', 'ph-shovel', 'db', "openLearn('jord')", 1], ['hydro', 'Hydroponi', 'ph-drop', 'xp', "openLearn('hydro')", 1], ['naring', 'Gödsel och näring', 'ph-flask', 'sun', "openLearn('naring')", 1], ['ljuslara', 'Ljus', I.sun, 'sun', "openLearn('ljus')", 1], ['rosor', 'Rosor', 'ph-flower', 'inspo', "openLearn('rosor')", 1],
   ['mine', 'Min samling', I.plant || I.leaf, 'db', "S.mtab='mine';go('mine')"], ['care', 'Växtjournalen', CALI, 'sun', 'openCare()'], ['notif', 'Notiser', BELLI, 'house', 'openNotif()'], ['cfg', 'Anpassa Hem', PEN, 'smart', "go('home');openHomeCfg()"],
 ];
-const QGROUPS = [['Växter', ['db', 'id', 'care', 'season', 'sow']], ['Verktyg', ['light', 'sunpath', 'rain', 'elev', 'compass', 'nearby']], ['Hjälp med växterna', ['ask', 'doc', 'expert', 'detect']], ['Gemenskap', ['comm', 'forum', 'swap', 'people', 'inspo']], ['Mitt', ['mine']], ['Fördjupning: hem och trädgård', ['house', 'bed', 'smart']], ['Fördjupning: djur', ['pets']], ['Fördjupning: lär dig', ['jord', 'hydro', 'naring', 'ljuslara', 'rosor', 'perma']]];
+const QGROUPS = [['Växter', ['db', 'id', 'care', 'sit', 'season', 'sow']], ['Verktyg', ['light', 'sunpath', 'rain', 'elev', 'compass', 'nearby']], ['Hjälp med växterna', ['ask', 'doc', 'expert', 'detect']], ['Gemenskap', ['comm', 'forum', 'swap', 'people', 'inspo']], ['Mitt', ['mine']], ['Fördjupning: hem och trädgård', ['house', 'bed', 'smart']], ['Fördjupning: djur', ['pets']], ['Fördjupning: lär dig', ['jord', 'hydro', 'naring', 'ljuslara', 'rosor', 'perma']]];
 const favs = () => { const f = store.get('favQuick', null); if (Array.isArray(f)) { if (!store.get('askFavAdded', false)) { store.set('askFavAdded', true); if (!f.includes('ask')) { f.unshift('ask'); store.set('favQuick', f); } } if (!store.get('careFavAdded', false)) { store.set('careFavAdded', true); if (!f.includes('care') && f.length < 7) { f.push('care'); store.set('favQuick', f); } } if (!store.get('petsFavAdded', false)) { store.set('petsFavAdded', true); if (!f.includes('pets') && f.length < 7) { f.push('pets'); store.set('favQuick', f); } } if (!store.get('bedFavAdded', false)) { store.set('bedFavAdded', true); if (!f.includes('bed') && f.length < 7) { f.push('bed'); store.set('favQuick', f); } } return f; } return ['ask', 'db', 'id', 'care', 'doc', 'pets', 'bed']; };
 
 const SEEDLING = '<path d="M12 21v-9"/><path d="M12 12c0-4 3-6.5 7.5-6.5 0 4.5-3 6.5-7.5 6.5z"/><path d="M12 14.5c0-3.5-2.5-5.5-6.5-5.5 0 3.5 2.5 5.5 6.5 5.5z"/><path d="M7 21h10"/>';
 const WATER_CAN = '<path d="M3 10h12v7a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M15 13l5-7"/><path d="M7 10V7a3 3 0 0 1 6 0"/><path d="M19.5 4.5l1.5-1.5"/><path d="M6 21.5v.5M10 21.5v.5"/>';
-const QPH = { elev: ['ph-mountains', 'Marknivå'], rain: ['ph-cloud-rain', 'Regnvatten'], sunpath: ['ph-sun-horizon', 'Solbana'], jord: ['ph-shovel', 'Jord och substrat'], hydro: ['ph-drop', 'Hydroponi'], naring: ['ph-flask', 'Gödsel och näring'], ljuslara: ['ph-sun', 'Ljus'], rosor: ['ph-flower', 'Rosor'], ask: ['ph-sparkle', 'Snabbfråga'], bed: ['ph-flower-tulip', 'Planera rabatt'], db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-notebook', 'Växtjournalen'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-seal-check', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Mina djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: [SEEDLING, 'Såkalender'], perma: ['ph-recycle', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Detektiver'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
+const QPH = { sit: ['ph-hand-heart', 'Växtpassning'], elev: ['ph-mountains', 'Marknivå'], rain: ['ph-cloud-rain', 'Regnvatten'], sunpath: ['ph-sun-horizon', 'Solbana'], jord: ['ph-shovel', 'Jord och substrat'], hydro: ['ph-drop', 'Hydroponi'], naring: ['ph-flask', 'Gödsel och näring'], ljuslara: ['ph-sun', 'Ljus'], rosor: ['ph-flower', 'Rosor'], ask: ['ph-sparkle', 'Snabbfråga'], bed: ['ph-flower-tulip', 'Planera rabatt'], db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-notebook', 'Växtjournalen'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-seal-check', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Mina djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: [SEEDLING, 'Såkalender'], perma: ['ph-recycle', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Detektiver'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
 // Mina växter på Hem: kort med bild, de som behöver vatten först
 function mineStrip(sz) { const n = { s: 4, m: 8, l: 14 }[sz || 'm'], L = S.mine.slice().sort((a, b) => { const x = left(a), y = left(b); return (x === null ? 99 : x) - (y === null ? 99 : y); }).slice(0, n);
   // Städad (109): karusell med kort på ca 42 % bredd, alltid riktigt foto eller initial med "Lägg till foto", status som pill och "Visa alla ›"
@@ -9654,8 +9707,8 @@ function plantswipeW() {
 }
 // ===== Städad: startsidan (felrapport 108–111) =====
 // Snabbåtgärder: fyra i en rad med samma gröna ikonfärg. Fråga har en egen ikon i stället för gnistan, och Såkalendern en ikon som fungerar.
-const QPH_STAD = { sunpath: ['ph-sun-horizon', 'Solbana'], rain: ['ph-cloud-rain', 'Regnvatten'], nearby: ['ph-map-pin', 'Trädgårdar'], ask: ['ph-chat-circle-text', 'Fråga'], db: ['ph-magnifying-glass', 'Sök'], id: ['ph-camera', 'Identifiera'], sow: ['ph-plant', 'Såkalender'], light: ['ph-sun', 'Ljusmätare'], care: ['ph-notebook', 'Växtjournal'], doc: ['ph-first-aid-kit', 'Växtdoktor'], inspo: ['ph-video', 'Odlare att följa'], smart: ['ph-lightbulb', 'Smarta hemmet'] };
-const ALL_TOOLS = ['care', 'doc', 'sow', 'pets', 'light', 'inspo', 'smart', 'house', 'bed', 'sunpath', 'rain', 'compass', 'nearby', 'season', 'perma', 'detect', 'jord', 'hydro', 'naring', 'ljuslara', 'rosor'];
+const QPH_STAD = { sit: ['ph-hand-heart', 'Växtpassning'], sunpath: ['ph-sun-horizon', 'Solbana'], rain: ['ph-cloud-rain', 'Regnvatten'], nearby: ['ph-map-pin', 'Trädgårdar'], ask: ['ph-chat-circle-text', 'Fråga'], db: ['ph-magnifying-glass', 'Sök'], id: ['ph-camera', 'Identifiera'], sow: ['ph-plant', 'Såkalender'], light: ['ph-sun', 'Ljusmätare'], care: ['ph-notebook', 'Växtjournal'], doc: ['ph-first-aid-kit', 'Växtdoktor'], inspo: ['ph-video', 'Odlare att följa'], smart: ['ph-lightbulb', 'Smarta hemmet'] };
+const ALL_TOOLS = ['care', 'sit', 'doc', 'sow', 'pets', 'light', 'inspo', 'smart', 'house', 'bed', 'sunpath', 'rain', 'compass', 'nearby', 'season', 'perma', 'detect', 'jord', 'hydro', 'naring', 'ljuslara', 'rosor'];
 function qtileS(k, n, act) { const [icn, lbl] = QPH_STAD[k] || QPH[k] || ['ph-star', n]; return `<button class="qt2" onclick="${act}"><i class="ph ${icn.startsWith('ph-') ? icn : 'ph-star'}" aria-hidden="true"></i><span>${lbl}</span></button>`; }
 // Alla verktyg öppnas som ett fönster nerifrån, i appens vanliga fönstersystem så att det ligger över menyraden
 function allToolsModalV() { const Q = QUICK();
@@ -9678,7 +9731,7 @@ function quickV() {
 }
 function openExplore() { stopLight(); S.sel = null; S.modal = null; S.tool = 'explore'; S.favEdit = false; render(); $('#main').scrollTop = 0; }
 function togFav(k) { let f = favs(); if (f.includes(k)) f = f.filter(x => x !== k); else { if (f.length >= 7) return toast('Du kan ha högst 7 favoriter på Hem'); f = f.concat(k); } store.set('favQuick', f); if (S.modal) keepScroll(); else keepMain(); }
-const XDESC = { elev: 'Höjdskillnader runt en adress', rain: 'Hur mycket regnvatten taket samlar', sunpath: 'Var solen går och hur många soltimmar en plats får', ask: 'Skriv en fråga och få svar direkt', detect: 'Experter tar reda på vad växten heter', jord: 'Krukjord, bark, leca, pon och trädgårdsjord', hydro: 'Odla i vatten, leca och pon', naring: 'När och hur du gödslar', ljuslara: 'Fönster, lux och växtlampor', db: 'Hitta växter i växtbiblioteket', id: 'Ta ett foto och få reda på vad det är', care: 'Vattning, gödsling och anteckningar', doc: 'Felsök gula blad, skadedjur och mer', expert: 'Fråga en expert med foto', house: 'Rum, fönster och växter i ditt hem', light: 'Mät ljuset där växten står', nearby: 'Trädgårdar och handelsträdgårdar nära dig', compass: 'Hitta norr', pets: 'Husdjur, fåglar, fiskar och terrarier', smart: 'Sensorer, lampor och bevattning', season: 'Vad du kan göra just nu', sow: 'När du sår och förkultiverar', perma: 'Permakultur och zonplanering', inspo: 'Odlare att följa på YouTube och Instagram', comm: 'Frågor och svar', forum: 'Diskussioner i kategorier', swap: 'Ge bort, byt eller önska', detect: 'Gissa vilken växt det är', people: 'Vänner och meddelanden', mine: 'Dina växter och påminnelser', notif: 'Påminnelser och svar', cfg: 'Ändra ordning på startskärmen' };
+const XDESC = { sit: 'Be en vän passa dina växter, eller passa någon annans', elev: 'Höjdskillnader runt en adress', rain: 'Hur mycket regnvatten taket samlar', sunpath: 'Var solen går och hur många soltimmar en plats får', ask: 'Skriv en fråga och få svar direkt', detect: 'Experter tar reda på vad växten heter', jord: 'Krukjord, bark, leca, pon och trädgårdsjord', hydro: 'Odla i vatten, leca och pon', naring: 'När och hur du gödslar', ljuslara: 'Fönster, lux och växtlampor', db: 'Hitta växter i växtbiblioteket', id: 'Ta ett foto och få reda på vad det är', care: 'Vattning, gödsling och anteckningar', doc: 'Felsök gula blad, skadedjur och mer', expert: 'Fråga en expert med foto', house: 'Rum, fönster och växter i ditt hem', light: 'Mät ljuset där växten står', nearby: 'Trädgårdar och handelsträdgårdar nära dig', compass: 'Hitta norr', pets: 'Husdjur, fåglar, fiskar och terrarier', smart: 'Sensorer, lampor och bevattning', season: 'Vad du kan göra just nu', sow: 'När du sår och förkultiverar', perma: 'Permakultur och zonplanering', inspo: 'Odlare att följa på YouTube och Instagram', comm: 'Frågor och svar', forum: 'Diskussioner i kategorier', swap: 'Ge bort, byt eller önska', detect: 'Gissa vilken växt det är', people: 'Vänner och meddelanden', mine: 'Dina växter och påminnelser', notif: 'Påminnelser och svar', cfg: 'Ändra ordning på startskärmen' };
 function xRow(q, e) {
   const [k, n, , , act, pro] = q, [icn, lbl] = QPH[k] || ['ph-star', n], on = favs().includes(k);
   return `<button class="xrow" onclick="${e ? `togFav('${k}')` : act}"><span class="xic">${ic(icn, 'currentColor', 20)}</span><span class="grow"><b>${lbl}</b><small>${XDESC[k] || ''}</small></span>${e ? `<i class="fav ${on ? 'on' : ''}">${on ? '★' : '☆'}</i>` : ''}${pro && !S.pro ? '<em class="pro">PRO</em>' : ''}</button>`;
@@ -10693,7 +10746,7 @@ function swapV() {
     .sort((a, b) => (a.taken - b.taken) || b.created_at.localeCompare(a.created_at));
   const body = st && (S.feedErr || !S.listings) ? st
     : !list.length ? `<div class="empty"><p>${S.listings.length ? 'Inga annonser matchar. Prova en annan ort eller "Alla".' : 'Inga annonser än. Har du en stickling att ge bort?'}</p></div>`
-    : list.map(p => `<button class="lcard ${p.taken ? 'taken' : ''}" onclick="openPost(${p.id})">${lThumb(p)}<span class="grow">${ltPill(p)}${p.taken ? ' <span class="pill">Bortlovad</span>' : ''}<b>${esc(p.title || '')}</b><span class="mut">${p.city ? esc(p.city) + ' · ' : ''}${esc(p.author)} · ${ago(p.created_at)}</span>${p.answers.length ? `<span class="mut" style="display:block">${p.answers.length} svar</span>` : ''}</span></button>`).join('');
+    : list.map(p => `<button class="lcard ${p.taken ? 'taken' : ''}" onclick="openPost(${p.id})">${lThumb(p)}<span class="grow">${ltPill(p)}${p.taken ? ' <span class="pill">Bortlovad</span>' : ''}<b>${esc(p.title || '')}</b><span class="mut">${p.city ? esc(p.city) + ' · ' : ''}${ulink(p.user_id, p.author)} · ${ago(p.created_at)}</span>${p.answers.length ? `<span class="mut" style="display:block">${p.answers.length} svar</span>` : ''}</span></button>`).join('');
   return `${topbar('Gemenskap')}${segBar()}
   ${document.documentElement.getAttribute('data-ui') === 'stad' ? cityRowL() : ''}
   <div class="lfil"><div class="chips2">${['Alla'].concat(LTYPES.map(x => x[0])).map(t => `<button class="${S.lf === t ? 'on' : ''}" onclick="S.lf='${t}';render()">${t}</button>`).join('')}</div></div>
@@ -10850,7 +10903,7 @@ function caseV() {
   return `${topbar('Detektiver', 'S.post=null;S.del=null;render()')}<div class="pad">
   <div class="post" style="margin-top:10px;padding:0;overflow:hidden">${caseImg(c, 'cbig')}<div style="padding:16px">${whoP(c, 'Upplagd i ' + (c.title || c.city || '') + ' · ' + ago(c.created_at), best ? '<span class="pill ok">Löst</span>' : '<span class="pill">Olöst</span>')}
   <h2 style="font-size:21px;margin:6px 0">${best ? esc(best.body) : 'Okänd växt (' + esc(c.title || '') + ')'}</h2><p style="margin:0;white-space:pre-line">${esc(c.body || '')}</p>
-  ${best ? `<p class="mut" style="margin:8px 0 0">Löst av <b>${esc(best.author)}</b>, som fick ${CASE_PTS} p.</p>${bp ? `<button class="btn sm" style="margin-top:10px" onclick="S.tab='home';openPlant(${bp.id})">Se skötselråd för ${esc(bp.swedish_name)}</button>` : ''}` : ''}
+  ${best ? `<p class="mut" style="margin:8px 0 0">Löst av <b>${ulink(best.user_id, best.author)}</b>, som fick ${CASE_PTS} p.</p>${bp ? `<button class="btn sm" style="margin-top:10px" onclick="S.tab='home';openPlant(${bp.id})">Se skötselråd för ${esc(bp.swedish_name)}</button>` : ''}` : ''}
   <div class="prow"><span class="grow"></span>${moreBtn('p', c.id, mine)}</div></div></div>
   ${!best && !mine ? `<div class="setcard" style="margin-top:12px"><b>Vad tror du att det är?</b>
     <div style="display:flex;gap:8px;margin-top:10px"><input id="gname" list="gplants" maxlength="80" placeholder="Skriv växtens namn" style="flex:1"><button class="btn sm cop" onclick="sendGuess(${c.id})">Gissa</button></div>
@@ -10882,7 +10935,7 @@ function forumCatV() {
   const form = S.newThread ? `<div class="ask" style="margin:12px 0 4px"><label class="sr" for="tt">Rubrik</label><input id="tt" maxlength="120" placeholder="Rubrik" value="${esc(S.tt)}" oninput="S.tt=this.value" style="margin-bottom:10px;background:var(--bg);border:0">
     <textarea rows="5" maxlength="5000" placeholder="Vad vill du berätta eller diskutera?" aria-label="Inlägg" oninput="S.tb=this.value">${esc(S.tb)}</textarea>
     <div class="askrow"><button class="btn sm line" onclick="S.newThread=false;S.cph=null;render()">Avbryt</button>${cPhotoBtn()}<span class="grow" style="flex:1"></span><button class="btn sm" onclick="sendThread()">Publicera tråd</button></div></div>` : '';
-  const list = ts.length ? ts.map(t => `<button class="thr" onclick="openPost(${t.id})"><b>${esc(t.title || t.body.slice(0, 60))}</b><span class="mut">${esc(t.author)}, ${ago(t.created_at)}</span><span class="tmeta"><span>${ic('<path d="M5 5h14v10h-7l-4 4v-4H5z"/>', 'currentColor', 15)}${t.answers.length} svar</span><span>${ic('ph-heart', 'currentColor', 15)}${t.likers.length}</span>${t.photo_url ? '<span>' + ic('ph-image', 'currentColor', 15) + '</span>' : ''}</span></button>`).join('')
+  const list = ts.length ? ts.map(t => `<button class="thr" onclick="openPost(${t.id})"><b>${esc(t.title || t.body.slice(0, 60))}</b><span class="mut">${ulink(t.user_id, t.author)}, ${ago(t.created_at)}</span><span class="tmeta"><span>${ic('<path d="M5 5h14v10h-7l-4 4v-4H5z"/>', 'currentColor', 15)}${t.answers.length} svar</span><span>${ic('ph-heart', 'currentColor', 15)}${t.likers.length}</span>${t.photo_url ? '<span>' + ic('ph-image', 'currentColor', 15) + '</span>' : ''}</span></button>`).join('')
     : `<div class="empty"><p>Inga trådar här än. Starta den första!</p></div>`;
   return `${topbar(f.id, 'S.forum=null;S.newThread=false;render()')}<p class="mut" style="text-align:center;margin:0 18px">${esc(f.d)}</p>
   <div class="pad">${S.newThread ? form : `<div class="addbar" style="padding:14px 0 4px"><button class="btn wide" onclick="startThread()">+ Ny tråd</button></div>`}
@@ -11623,7 +11676,7 @@ function elvV() { const E = elvS(), D = E.d, C = D ? elvContours(E) : null, num 
     <small class="mut" style="display:block;margin-top:10px">${D ? 'Källa: ' + esc(D.src) + '. Markhöjden är en uppskattning från satellitdata, inte en mätning.' : ''}</small>
   </div>`; }
 
-function toolV() { return S.tool === 'elev' ? elvV() : S.tool === 'rain' ? rainV() : S.tool === 'learn' ? learnV() : S.tool === 'ask' ? askV() : S.tool === 'explore' ? exploreV() : S.tool === 'notif' ? notifV() : S.tool === 'msgs' ? msgsV() : S.tool === 'chat' ? chatV() : S.tool === 'mod' ? modV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'news' ? newsV() : S.tool === 'sow' ? sowV() : S.tool === 'perma' ? permaV() : S.tool === 'smart' ? smartV() : S.tool === 'sunpath' ? sunPathV() : S.tool === 'compass' ? compassV() : S.tool === 'nearby' ? nbV() : S.tool === 'discover' ? discoverV() : lightV(); }
+function toolV() { return S.tool === 'sit' ? sitV() : S.tool === 'elev' ? elvV() : S.tool === 'rain' ? rainV() : S.tool === 'learn' ? learnV() : S.tool === 'ask' ? askV() : S.tool === 'explore' ? exploreV() : S.tool === 'notif' ? notifV() : S.tool === 'msgs' ? msgsV() : S.tool === 'chat' ? chatV() : S.tool === 'mod' ? modV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'news' ? newsV() : S.tool === 'sow' ? sowV() : S.tool === 'perma' ? permaV() : S.tool === 'smart' ? smartV() : S.tool === 'sunpath' ? sunPathV() : S.tool === 'compass' ? compassV() : S.tool === 'nearby' ? nbV() : S.tool === 'discover' ? discoverV() : lightV(); }
 
 // --- Säsongstips ---
 // Varje tips: [typ, rubrik, text, månader i zon 1–2, zon 3–5, zon 6–8]. En lista gäller alla zoner.
@@ -11727,6 +11780,9 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.362', '11 nov', ['Växtpassning: nytt verktyg under Växter. Den du ber passa dina växter får en förfrågan i notiserna och väljer Acceptera eller Tacka nej. Både du och passaren kan avsluta en pågående passning']],
+  ['Beta 0.361', '11 nov', ['Växtpassning: namnet på den du passar åt och varje växt går att trycka på. Användarnamn i inlägg, vägg, kommentarer, bilder och experter leder till profilen']],
+  ['Beta 0.360', '11 nov', ['Solbana: nytt läge Skuggor med djup (Chrome på Android med ARCore). Kameran känner själv av väggar, häckar och annat runt dig och bygger upp dem medan du vänder telefonen. Tillsammans med husen från kartan visas var skuggan faller vid den tid du väljer']],
   ['Beta 0.359', '11 nov', ['Solbana: byggnader hämtas från flera kartservrar samtidigt, så det går snabbare och oftare. Ritningen av ditt hem visas bara i kameran när du är hemma, och hinder du markerat visas bara där du markerade dem. Byggnaden du står i ritas inte som väggar runt dig']],
   ['Beta 0.358', '11 nov', ['Solbana: skuggorna i kameraläget ritas nu som i Skuggfoto, med husens riktiga form och mjuka kanter']],
   ['Beta 0.357', '11 nov', ['Solbana: nytt Skuggfoto. Ta ett foto och välj plats, datum och tid, så visar bilden var skuggorna från husen och träden på kartan faller. Bilden går att spara']],
@@ -12592,7 +12648,7 @@ function sunPlants(L) {
 }
 // Från Solbanan till 3D-vyn med samma datum och klockslag
 function sunTo3d() { S.sunPin = true; if (S.sunT == null) S.sunT = sunNowMin(); openHouse(); S.hview = '3d'; render(); }
-function openSunPath() { stopLight(); S.sel = null; S.modal = null; S.tool = 'sunpath'; render(); $('#main').scrollTop = 0; }
+function openSunPath() { stopLight(); S.sel = null; S.modal = null; S.tool = 'sunpath'; render(); $('#main').scrollTop = 0; if (S.xrAR == null) xrCheck().then(ok => { if (ok && S.tool === 'sunpath') keepMain(); }); }
 function sunPSet(k, v) { S[k] = v; if (k === 'sunD' || k === 'sunT') S.sunPin = true; keepMain(); }
 function sunHere() { if (!navigator.geolocation) return toast('Mobilen kan inte ge din position'); toast('Hämtar din position…'); navigator.geolocation.getCurrentPosition(p => { store.set('sunLoc', { lat: +p.coords.latitude.toFixed(4), lon: +p.coords.longitude.toFixed(4), name: 'Min position' }); keepMain(); }, () => toast('Fick inte din position. Sök på orten i stället.'), { enableHighAccuracy: false, timeout: 12000, maximumAge: 6e5 }); }
 async function sunFind() {
@@ -12718,6 +12774,138 @@ function arMarkGo() {
   L.push({ id: Date.now(), name: 'Hinder ' + (L.length + 1) + ' (kamera)', dir: Math.round(dir), w: Math.round(w), ang: Math.max(0, Math.round(altT * 10) / 10), h, d: Math.round(m.d * 10) / 10, cam: true, geo: AR.geo ? { lat: AR.geo.lat, lon: AR.geo.lon } : null });
   store.set('sunObs', L); AR.shP = null; arMarkStep(-1);
   toast(`Hindret är sparat: ca ${String(h).replace('.', ',')} m högt, ${Math.round(m.d)} m bort, i ${sunWord(dir)}.`);
+}
+// ===== Skuggor med djup (WebXR med djupavkänning, Chrome på Android med ARCore) =====
+// Kameran mäter avståndet till det den ser. Allt som sticker upp minst 25 cm över marken läggs in i en höjdkarta
+// (48 × 48 m, rutor på 30 cm) som byggs på medan du vänder telefonen. Husen och träden från kartan läggs in i samma höjdkarta,
+// så att även hus längre bort än djupkameran når kastar skugga. Varje hinder kastar skugga längs solens riktning och skuggan
+// ritas på marken. En riktig vägg som står framför skuggan döljer den, eftersom djupet visar vad som är närmast.
+let XR = null;
+const XR_N = 160, XR_CELL = 0.3, XR_HALF = XR_N * XR_CELL / 2, XR_DW = 40, XR_DH = 30;
+async function xrCheck() { try { S.xrAR = !!(navigator.xr && navigator.xr.isSessionSupported && await navigator.xr.isSessionSupported('immersive-ar')); } catch (e) { S.xrAR = false; } return S.xrAR; }
+const circMean = L => { let sx = 0, sy = 0; L.forEach(a => { sx += Math.sin(a * Math.PI / 180); sy += Math.cos(a * Math.PI / 180); }); return (Math.atan2(sx, sy) * 180 / Math.PI + 360) % 360; };
+function xrState(over) { return Object.assign({ floorY: 0, floorKnown: true, lows: [], Hd: new Float32Array(XR_N * XR_N), Cn: new Uint8Array(XR_N * XR_N), Ho: new Float32Array(XR_N * XR_N), To: new Float32Array(XR_N * XR_N), Sh: new Float32Array(XR_N * XR_N), D: new Float32Array(XR_DW * XR_DH), yaw: null, yawS: [], adj: +store.get('arNorthAdj', 0) || 0, cal: false, dirty: true, dirtyO: true, lastSh: -1e9, frame: 0, dots: true, geo: null, osm: null, shKey: '', st: '' }, over || {}); }
+async function xrOpen() {
+  if (XR || AR) return; if (S.sunT == null) S.sunT = sunNowMin();
+  const root = document.createElement('div'); root.id = 'xrov'; root.style.cssText = 'position:fixed;inset:0;z-index:99999;color:#fff;font-family:system-ui,sans-serif;pointer-events:none';
+  const bs = 'height:40px;border-radius:12px;border:0;padding:0 12px;background:rgba(255,255,255,.92);color:#16261D;font-size:14px';
+  root.innerHTML = `<canvas style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+    <div style="position:absolute;top:0;left:0;right:0;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;display:flex;gap:10px;align-items:flex-start;background:linear-gradient(rgba(0,0,0,.6),transparent);pointer-events:auto"><button id="xrx" aria-label="Stäng" style="flex:none;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:22px">✕</button><div id="xri" style="flex:1;font-size:14.5px;line-height:1.35;text-shadow:0 1px 3px #000">Startar kameran…</div></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.75));pointer-events:auto">
+      <div style="display:flex;gap:8px;margin-bottom:8px"><button id="xrcal" style="flex:1;${bs}">Kalibrera mot solen</button><button id="xrdots" style="flex:1;${bs}">Visa hinder: På</button></div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px">Justera norr <input id="xradj" type="range" min="-30" max="30" step="1" value="${+store.get('arNorthAdj', 0) || 0}" style="flex:1;accent-color:#FFC83D"><span id="xradjv" style="min-width:40px;text-align:right">${+store.get('arNorthAdj', 0) || 0}°</span></label>
+      <div style="font-size:14px">Tid: <b id="xrtl">${hm(S.sunT)}</b> · <input id="xrd" type="date" value="${sunDay()}" aria-label="Datum" style="height:30px;border-radius:8px;border:0;padding:0 6px;background:rgba(255,255,255,.92);color:#16261D;font-size:14px"></div>
+      <input id="xrt" type="range" min="0" max="1435" step="5" value="${S.sunT}" style="width:100%;height:40px;accent-color:#FFC83D" aria-label="Tid på dygnet">
+      <div id="xrst" style="font-size:12.5px;opacity:.85;min-height:16px"></div></div>`;
+  document.body.appendChild(root);
+  const gl = document.createElement('canvas').getContext('webgl', { xrCompatible: true, alpha: true, antialias: false });
+  let session;
+  try { session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['depth-sensing', 'dom-overlay'], optionalFeatures: ['local-floor'], domOverlay: { root }, depthSensing: { usagePreference: ['cpu-optimized'], dataFormatPreference: ['luminance-alpha', 'float32'] } }); }
+  catch (e) { root.remove(); toast('Den här telefonen kan inte mäta djup i webbläsaren. Den vanliga kameran öppnas i stället.'); return arOpen(); }
+  try { if (gl.makeXRCompatible) await gl.makeXRCompatible(); session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) }); } catch (e) { try { session.end(); } catch (x) {} root.remove(); return toast('Djupkameran gick inte att starta.'); }
+  let space, floorKnown = true; try { space = await session.requestReferenceSpace('local-floor'); } catch (e) { space = await session.requestReferenceSpace('local'); floorKnown = false; }
+  XR = xrState({ session, gl, space, root, cv: root.querySelector('canvas'), floorKnown, floorY: floorKnown ? 0 : null });
+  const $r = id => root.querySelector('#' + id);
+  $r('xrx').onclick = () => session.end();
+  $r('xrt').oninput = e => { S.sunT = +e.target.value; S.sunPin = true; $r('xrtl').textContent = hm(S.sunT); };
+  $r('xrd').onchange = e => { if (e.target.value) { S.sunD = e.target.value; S.sunPin = true; } };
+  $r('xradj').oninput = e => { XR.adj = +e.target.value; store.set('arNorthAdj', XR.adj); $r('xradjv').textContent = e.target.value + '°'; XR.dirtyO = true; };
+  $r('xrdots').onclick = () => { XR.dots = !XR.dots; $r('xrdots').textContent = 'Visa hinder: ' + (XR.dots ? 'På' : 'Av'); };
+  $r('xrcal').onclick = xrCalibrate;
+  window.addEventListener('deviceorientationabsolute', xrOri, true); window.addEventListener('deviceorientation', xrOri, true);
+  session.addEventListener('end', xrEnd);
+  xrGeo(); session.requestAnimationFrame(xrFrame);
+}
+function xrEnd() { window.removeEventListener('deviceorientationabsolute', xrOri, true); window.removeEventListener('deviceorientation', xrOri, true); if (XR && XR.root) XR.root.remove(); XR = null; if (S.tool === 'sunpath') keepMain(); }
+function xrOri(e) { if (!XR) return; let a = e.alpha; if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) a = (360 - e.webkitCompassHeading) % 360; else if (e.type === 'deviceorientationabsolute') XR.abs = true; else if (!e.absolute || XR.abs) return; if (a == null || e.beta == null) return; XR.cmp = { a, b: e.beta, g: e.gamma || 0 }; }
+function xrLL() { return XR && XR.geo ? XR.geo : sunLoc(); }
+// Rikta krysset mitt i bilden mot solen och tryck: då vet appen exakt var norr ligger
+function xrCalibrate() { if (!XR || !XR.cam) return; const l = xrLL(), now = SUN(new Date(), l.lat, l.lon); if (now.alt <= 0) return toast('Solen är under horisonten just nu. Använd kompassen och Justera norr.');
+  XR.yaw = ((now.az - XR.cam.xrAz) % 360 + 360) % 360; XR.adj = 0; const a = XR.root.querySelector('#xradj'); if (a) { a.value = 0; XR.root.querySelector('#xradjv').textContent = '0°'; } XR.cal = true; XR.dirtyO = true; toast('Kalibrerat mot solen'); }
+function xrGeo() {
+  if (!XR) return; XR.st = 'Hämtar din position…';
+  const go = async (lat, lon, acc) => { if (!XR) return; XR.geo = { lat, lon, acc: acc || 0 }; XR.st = 'Hämtar byggnader och träd från kartan…'; const d = await osmLoad(lat, lon); if (!XR) return; XR.osm = d; XR.dirtyO = true; XR.st = d ? `Från kartan: ${d.b.length} ${d.b.length === 1 ? 'byggnad' : 'byggnader'} och ${d.t.length} träd.` : 'Kunde inte hämta kartan just nu.'; };
+  if (!navigator.geolocation) { XR.st = ''; return; }
+  navigator.geolocation.getCurrentPosition(p => go(p.coords.latitude, p.coords.longitude, p.coords.accuracy), () => { if (XR) XR.st = 'Utan din position hämtas inga byggnader från kartan.'; }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+}
+// Kartans byggnader och träd in i höjdkartan, vridna efter norr. Byggnaden du står i hoppas över.
+function xrRasterOsm(X) {
+  X.Ho.fill(0); X.To.fill(0); if (!X.osm || X.yaw == null) return;
+  const yaw = X.yaw + X.adj, toXR = (e, n) => { const b = (Math.atan2(e, n) * 180 / Math.PI - yaw) * Math.PI / 180, d = Math.hypot(e, n); return [Math.sin(b) * d, -Math.cos(b) * d]; };
+  const ownR = Math.max(3, Math.min(25, (X.geo && X.geo.acc) || 10)), segD = (p, q) => { const dx = q[0] - p[0], dy = q[1] - p[1], t = Math.max(0, Math.min(1, -(p[0] * dx + p[1] * dy) / (dx * dx + dy * dy || 1))); return Math.hypot(p[0] + dx * t, p[1] + dy * t); };
+  X.osm.b.forEach(b => { if (inPoly(0, 0, b.pts) || b.pts.some((p, i) => segD(p, b.pts[(i + 1) % b.pts.length]) < ownR)) return;
+    const pts = b.pts.map(([e, n]) => toXR(e, n)), xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
+    const i0 = Math.max(0, Math.floor((Math.min(...xs) + XR_HALF) / XR_CELL)), i1 = Math.min(XR_N - 1, Math.floor((Math.max(...xs) + XR_HALF) / XR_CELL)), k0 = Math.max(0, Math.floor((Math.min(...zs) + XR_HALF) / XR_CELL)), k1 = Math.min(XR_N - 1, Math.floor((Math.max(...zs) + XR_HALF) / XR_CELL));
+    for (let k = k0; k <= k1; k++) for (let i = i0; i <= i1; i++) { const x = (i + 0.5) * XR_CELL - XR_HALF, z = (k + 0.5) * XR_CELL - XR_HALF; if (inPoly(x, z, pts)) { const j = k * XR_N + i; if (b.h > X.Ho[j]) { X.Ho[j] = b.h; X.To[j] = 1; } } } });
+  X.osm.t.forEach(t => { const [x, z] = toXR(t.e, t.n), rc = Math.ceil(t.r / XR_CELL), ci = Math.floor((x + XR_HALF) / XR_CELL), ck = Math.floor((z + XR_HALF) / XR_CELL);
+    for (let k = ck - rc; k <= ck + rc; k++) for (let i = ci - rc; i <= ci + rc; i++) { if (i < 0 || k < 0 || i >= XR_N || k >= XR_N) continue; if (Math.hypot((i - ci) * XR_CELL, (k - ck) * XR_CELL) > t.r) continue; const j = k * XR_N + i; if (t.h > X.Ho[j]) { X.Ho[j] = t.h; X.To[j] = 0.6; } } });
+}
+// En uppmätt punkt (i AR-rummet) in i höjdkartan
+function xrAddPoint(X, wx, wy, wz) {
+  const i = Math.floor((wx + XR_HALF) / XR_CELL), k = Math.floor((wz + XR_HALF) / XR_CELL); if (i < 0 || k < 0 || i >= XR_N || k >= XR_N || X.floorY == null) return;
+  const h = wy - X.floorY; if (h < 0.25 || h > 25) return; const j = k * XR_N + i; if (h > X.Hd[j]) X.Hd[j] = h; if (X.Cn[j] < 255) X.Cn[j]++; X.dirty = true;
+}
+const xrH = (X, j) => Math.max(X.Cn[j] >= 2 ? X.Hd[j] : 0, X.Ho[j]);
+// Skuggan på marken: varje hinder kastar skugga bort från solen, så långt som höjden och solens vinkel ger
+function xrShadows(X, sun) {
+  X.Sh.fill(0); if (X.yaw == null || sun.alt <= 0.5) return 0;
+  const a = (sun.az - X.yaw - X.adj) * Math.PI / 180, dx = -Math.sin(a), dz = Math.cos(a), tA = Math.tan(sun.alt * Math.PI / 180); let n = 0;
+  for (let k = 0; k < XR_N; k++) for (let i = 0; i < XR_N; i++) { const j0 = k * XR_N + i, h = xrH(X, j0); if (h < 0.25) continue; const tau = X.Cn[j0] >= 2 && X.Hd[j0] >= X.Ho[j0] ? 1 : (X.To[j0] || 1), steps = Math.min(60, h / tA) / (XR_CELL * 0.5);
+    // Hindrets egen ruta hoppas över (annars blir det en falsk skuggremsa på solsidan). Andra hinder i vägen får skugga på marken under sig, som djupet döljer om de syns.
+    for (let s = 1; s <= steps; s++) { const xi = Math.round(i + dx * s * 0.5), zi = Math.round(k + dz * s * 0.5); if (xi < 0 || zi < 0 || xi >= XR_N || zi >= XR_N) break; const j = zi * XR_N + xi; if (j === j0) continue; if (tau > X.Sh[j]) { if (!X.Sh[j]) n++; X.Sh[j] = tau; } } }
+  return n;
+}
+// Ritar skuggorna, hindren och solen på den genomskinliga duken ovanpå kameran.
+// Vm = kamerans läge i rummet, Vi = dess invers, P = projektionen, cam = kamerans position. Går att testa utan WebXR.
+function xrDraw(c, W, H, X, Vm, Vi, P, cam, sun) {
+  const PV = new Float32Array(16); for (let r = 0; r < 4; r++) for (let q = 0; q < 4; q++) { let v = 0; for (let m = 0; m < 4; m++) v += P[m * 4 + r] * Vi[q * 4 + m]; PV[q * 4 + r] = v; }
+  const proj = (x, y, z, sw, sh) => { const cx = PV[0] * x + PV[4] * y + PV[8] * z + PV[12], cy = PV[1] * x + PV[5] * y + PV[9] * z + PV[13], w = PV[3] * x + PV[7] * y + PV[11] * z + PV[15]; if (w <= 0.05) return null; return [(cx / w + 1) / 2 * sw, (1 - cy / w) / 2 * sh]; };
+  const vz = (x, y, z) => -(Vi[2] * x + Vi[6] * y + Vi[10] * z + Vi[14]);
+  const fy = X.floorY, sw = Math.round(W / 2), sh = Math.round(H / 2), Lc = shCanvas('X', sw, sh), g = Lc.getContext('2d'); g.fillStyle = '#000';
+  const vis = (x, z) => { const d = vz(x, fy, z); if (d < 0.2) return false; const q = proj(x, fy, z, 1, 1); if (!q) return false; const u = q[0], v = q[1]; if (u < 0 || u > 1 || v < 0 || v > 1) return u > -0.3 && u < 1.3 && v > -0.3 && v < 1.3; const Dv = X.D[Math.min(XR_DH - 1, Math.floor(v * XR_DH)) * XR_DW + Math.min(XR_DW - 1, Math.floor(u * XR_DW))]; return !(Dv > 0 && Dv < d - 0.35); };
+  let any = false;
+  for (let k = 0; k < XR_N; k++) { const z0 = k * XR_CELL - XR_HALF - 0.03, z1 = z0 + XR_CELL + 0.06; let run = -1;
+    const flush = (i0, i1) => { const x0 = i0 * XR_CELL - XR_HALF - 0.02, x1 = (i1 + 1) * XR_CELL - XR_HALF + 0.02, pts = [proj(x0, fy, z0, sw, sh), proj(x1, fy, z0, sw, sh), proj(x1, fy, z1, sw, sh), proj(x0, fy, z1, sw, sh)]; if (pts.some(p => !p)) return; g.beginPath(); pts.forEach((p, m) => m ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); g.fill(); any = true; };
+    for (let i = 0; i <= XR_N; i++) { let on = false; if (i < XR_N) { const j = k * XR_N + i; if (X.Sh[j] > 0) { const x = (i + 0.5) * XR_CELL - XR_HALF, zc = (k + 0.5) * XR_CELL - XR_HALF; on = Math.hypot(x - cam.x, zc - cam.z) < 30 && vis(x, zc); } }
+      if (on && run < 0) run = i; else if (!on && run >= 0) { flush(run, i - 1); run = -1; } } }
+  if (any) { const Tc = shCanvas('XT', sw, sh), tg = Tc.getContext('2d'); tg.drawImage(Lc, 0, 0); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = 'rgb(12,20,44)'; tg.fillRect(0, 0, sw, sh);
+    c.save(); try { c.filter = 'blur(3px)'; } catch (e) {} c.globalAlpha = 0.45; c.drawImage(Tc, 0, 0, W, H); c.restore(); }
+  // Det kameran har hittat: små gula prickar på hindrens överkant
+  if (X.dots) { c.fillStyle = 'rgba(255,214,90,.6)'; let n = 0; for (let j = 0; j < XR_N * XR_N && n < 4000; j++) { if (X.Cn[j] < 2 || X.Hd[j] < 0.25) continue; const x = (j % XR_N + 0.5) * XR_CELL - XR_HALF, z = (Math.floor(j / XR_N) + 0.5) * XR_CELL - XR_HALF; if (Math.hypot(x - cam.x, z - cam.z) > 12) continue; const q = proj(x, fy + X.Hd[j], z, W, H); if (!q) continue; c.fillRect(q[0] - 1.5, q[1] - 1.5, 3, 3); n++; } }
+  // Solen och ett kryss i mitten (för kalibrering)
+  if (X.yaw != null && sun.alt > -1) { const a = (sun.az - X.yaw - X.adj) * Math.PI / 180, ca = Math.cos(sun.alt * Math.PI / 180), q = proj(cam.x + Math.sin(a) * ca * 500, cam.y + Math.sin(sun.alt * Math.PI / 180) * 500, cam.z - Math.cos(a) * ca * 500, W, H);
+    if (q && q[0] > -30 && q[0] < W + 30 && q[1] > -30 && q[1] < H + 30) { c.fillStyle = '#FFC83D'; c.strokeStyle = '#F08A24'; c.lineWidth = 3; c.beginPath(); c.arc(q[0], q[1], 18, 0, 7); c.fill(); c.stroke(); } }
+  c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 2; c.beginPath(); c.moveTo(W / 2 - 14, H / 2); c.lineTo(W / 2 + 14, H / 2); c.moveTo(W / 2, H / 2 - 14); c.lineTo(W / 2, H / 2 + 14); c.stroke();
+}
+function xrFrame(t, frame) {
+  if (!XR) return; const X = XR, s = X.session; s.requestAnimationFrame(xrFrame); X.frame++;
+  const gl = X.gl, BL = s.renderState.baseLayer; gl.bindFramebuffer(gl.FRAMEBUFFER, BL.framebuffer); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  const pose = frame.getViewerPose(X.space); if (!pose) return; const view = pose.views[0], Vm = view.transform.matrix, Vi = view.transform.inverse.matrix, P = view.projectionMatrix;
+  const fx = -Vm[8], fy = -Vm[9], fz = -Vm[10], xrAz = (Math.atan2(fx, -fz) * 180 / Math.PI + 360) % 360, pitch = Math.asin(Math.max(-1, Math.min(1, fy))) * 180 / Math.PI;
+  X.cam = { x: Vm[12], y: Vm[13], z: Vm[14], xrAz, pitch };
+  // Norr från kompassen: medelvärde av de första mätningarna med telefonen någorlunda upprätt (om du inte har kalibrerat mot solen)
+  if (!X.cal && X.cmp && Math.abs(pitch) < 55 && X.yawS.length < 90) { const M = arMat(X.cmp.a, X.cmp.b, X.cmp.g), camAz = (Math.atan2(-M[2], -M[5]) * 180 / Math.PI + 360) % 360; X.yawS.push(camAz + arDec() - xrAz); const y = circMean(X.yawS); if (X.yaw == null || Math.abs(((y - X.yaw) + 540) % 360 - 180) > 1) X.dirtyO = true; X.yaw = y; }
+  if (X.floorY == null) X.floorY = X.cam.y - 1.45;
+  // Djupet: 40 × 30 punkter i bilden. Var tredje bild läggs punkterna in i höjdkartan.
+  let di = null; try { di = frame.getDepthInformation(view); } catch (e) {}
+  if (di) { X.hasDepth = true; const add = X.frame % 3 === 0;
+    for (let jv = 0; jv < XR_DH; jv++) for (let iu = 0; iu < XR_DW; iu++) { const u = (iu + 0.5) / XR_DW, v = (jv + 0.5) / XR_DH; let d = 0; try { d = di.getDepthInMeters(u, v); } catch (e) {} X.D[jv * XR_DW + iu] = d;
+      if (add && d > 0.3 && d < 8) { const xn = 2 * u - 1, yn = 1 - 2 * v, xv = d * (xn + P[8]) / P[0], yv = d * (yn + P[9]) / P[5], zv = -d, wx = Vm[0] * xv + Vm[4] * yv + Vm[8] * zv + Vm[12], wy = Vm[1] * xv + Vm[5] * yv + Vm[9] * zv + Vm[13], wz = Vm[2] * xv + Vm[6] * yv + Vm[10] * zv + Vm[14];
+        if (!X.floorKnown && v > 0.6) { X.lows.push(wy); if (X.lows.length > 3000) X.lows.splice(0, 600); }
+        xrAddPoint(X, wx, wy, wz); } }
+    if (!X.floorKnown && X.frame % 30 === 0 && X.lows.length > 200) { const L = X.lows.slice().sort((a, b) => a - b), f = L[Math.floor(L.length * 0.05)]; X.floorY = Math.max(X.cam.y - 2.2, Math.min(X.cam.y - 0.6, f)); } }
+  if (X.dirtyO && X.yaw != null) { xrRasterOsm(X); X.dirtyO = false; X.dirty = true; }
+  const l = xrLL(), sun = SUN(sunAt(sunDay(), S.sunT), l.lat, l.lon), key = S.sunT + '|' + sunDay() + '|' + (X.yaw == null ? '' : X.yaw.toFixed(1)) + '|' + X.adj;
+  if ((X.dirty || key !== X.shKey) && t - X.lastSh > 400) { X.nSh = xrShadows(X, sun); X.dirty = false; X.shKey = key; X.lastSh = t; }
+  const cv = X.cv, dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return;
+  if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  xrDraw(c, W, H, X, Vm, Vi, P, X.cam, sun);
+  if (X.frame % 15 === 0) { const $r = id => X.root.querySelector('#' + id); $r('xrtl').textContent = hm(S.sunT);
+    let found = 0, top = 0; for (let j = 0; j < XR_N * XR_N; j++) if (X.Cn[j] >= 2 && X.Hd[j] >= 0.25) { found++; if (X.Hd[j] > top) top = X.Hd[j]; }
+    const m2 = Math.round(found * XR_CELL * XR_CELL);
+    $r('xri').innerHTML = !X.hasDepth ? 'Väntar på djupet… Rör telefonen långsamt åt sidorna.' : X.yaw == null ? 'Håll telefonen upprätt en stund så att kompassen hittar norr, eller rikta krysset mot solen och tryck <b>Kalibrera mot solen</b>.' : sun.alt <= 0.5 ? `Kl <b>${hm(S.sunT)}</b> är solen under horisonten.` : `Kl <b>${hm(S.sunT)}</b> står solen i ${sunWord(sun.az)}, ${Math.round(sun.alt)}° upp. Mörka ytor på marken ligger i skugga. Vänd telefonen långsamt runt så hittar kameran fler hinder.`;
+    $r('xrst').textContent = (m2 ? `Kameran har hittat hinder på ${m2} m², högst ${String(Math.round(top * 10) / 10).replace('.', ',')} m. ` : 'Kameran letar efter hinder… ') + (X.st || ''); }
 }
 // ===== Skuggfoto =====
 // Ta ett foto genom kameran. Appen sparar åt vilket håll och med vilken lutning telefonen pekade.
@@ -13114,7 +13302,7 @@ function sunPathV() {
     <input type="range" class="sunr" min="0" max="1435" step="5" value="${t}" style="width:100%" oninput="sunLive(+this.value)" aria-label="Tid på dygnet">
     <p id="suncur" style="margin:10px 0 4px;font-size:15px">${curTxt}</p>
     <p class="mut" style="margin:0;font-size:14px">${dayTxt}</p>
-    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">${S.user && S.pro ? '<button class="btn sm" onclick="sunTo3d()">' + ic('ph-cube', 'currentColor', 16) + ' Visa skuggorna i 3D</button>' : ''}${typeof DeviceOrientationEvent !== 'undefined' ? (cmpOn ? '<button class="btn sm line" onclick="stopCompass();keepMain()">Stäng kompassen</button>' : '<button class="btn sm line" onclick="startCompass().then(keepMain)">🧭 Rikta telefonen</button>') : ''}${typeof DeviceOrientationEvent !== 'undefined' ? '<button class="btn sm" onclick="arOpen()">' + ic('ph-camera', 'currentColor', 16) + ' Kamera</button><button class="btn sm line" onclick="arOpen(\'photo\')">' + ic('ph-image', 'currentColor', 16) + ' Skuggfoto</button>' : ''}</div><p id="sunaim" class="mut" style="margin:8px 0 0;font-size:13.5px">${sunAimTxt(cur)}</p>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">${S.user && S.pro ? '<button class="btn sm" onclick="sunTo3d()">' + ic('ph-cube', 'currentColor', 16) + ' Visa skuggorna i 3D</button>' : ''}${typeof DeviceOrientationEvent !== 'undefined' ? (cmpOn ? '<button class="btn sm line" onclick="stopCompass();keepMain()">Stäng kompassen</button>' : '<button class="btn sm line" onclick="startCompass().then(keepMain)">🧭 Rikta telefonen</button>') : ''}${typeof DeviceOrientationEvent !== 'undefined' ? '<button class="btn sm" onclick="arOpen()">' + ic('ph-camera', 'currentColor', 16) + ' Kamera</button><button class="btn sm line" onclick="arOpen(\'photo\')">' + ic('ph-image', 'currentColor', 16) + ' Skuggfoto</button>' : ''}${S.xrAR ? '<button class="btn sm line" onclick="xrOpen()">' + ic('ph-cube-focus', 'currentColor', 16) + ' Skuggor med djup</button>' : ''}</div><p id="sunaim" class="mut" style="margin:8px 0 0;font-size:13.5px">${sunAimTxt(cur)}</p>
   </div></div>
   <div class="sec"><h2>Soltimmar här</h2></div>
   <div class="pad"><div class="setcard" style="padding:14px">
@@ -13748,7 +13936,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.359';
+const APP_VERSION = 'Beta 0.362';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
