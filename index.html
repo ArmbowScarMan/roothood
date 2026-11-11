@@ -500,7 +500,7 @@ details.tech p b{color:var(--ink)}
 .setcard{background:var(--surf);border-radius:22px;padding:16px;box-shadow:var(--sh)}
 .msSec.msMin>:not(.msH){display:none!important}
 .msH{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border:0;background:none;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.pdot{display:inline-block;width:12px;height:12px;border-radius:50%;flex:0 0 12px;margin-right:12px}.pdot.on{background:#3CB371}.pdot.idle{background:#E6B800}.pdot.off{background:#9AA0A6}
+.pdot{display:inline-block;width:12px;height:12px;min-width:12px;border-radius:50%;flex:0 0 12px;margin-right:12px;padding:0}.pdot.pd-online{background:#3CB371}.pdot.pd-idle{background:#E6B800}.pdot.pd-off{background:#9AA0A6}
 .prow2{display:flex;align-items:center;padding:10px 0;border-top:1px solid var(--line)}.prow2:first-child{border-top:0}.prow2 .grow{min-width:0;flex:1}
 .fl{display:block;font-size:13px;font-weight:700;color:var(--mut);margin:14px 0 6px}
 .setcard>.fl:first-child{margin-top:0}
@@ -8699,7 +8699,7 @@ function modOnlineTick() { clearTimeout(window.__onT); window.__onT = setTimeout
 function modOnlineV(D) {
   if (!D) return '<p class="mut" style="margin:12px 18px">Hämtar…</p>';
   const ago = t => { const m = Math.max(0, Math.round((Date.now() - Date.parse(t)) / 60000)); return m < 1 ? 'nyss' : m < 60 ? m + ' min sedan' : Math.round(m / 60) + ' tim sedan'; };
-  const L = { online: ['on', 'Online nu'], idle: ['idle', 'Online, ingen åtgärd på 5 min'], offline: ['off', 'Offline'] };
+  const L = { online: ['pd-online', 'Online nu'], idle: ['pd-idle', 'Online, ingen åtgärd på 5 min'], offline: ['pd-off', 'Offline'] };
   const on = D.filter(x => x.status === 'online').length, idle = D.filter(x => x.status === 'idle').length;
   return `<div class="pad"><p class="mut" style="margin:4px 0 12px;font-size:13px">${on} online · ${idle} inaktiva. Uppdateras var 30:e sekund.</p>
   <div class="setcard" style="padding:6px 14px">${D.length ? D.map(x => { const [c, t] = L[x.status] || L.offline; return `<div class="prow2"><span class="pdot ${c}" aria-hidden="true"></span><span class="grow"><b>${esc(x.display_name || 'Okänd')}</b><small class="mut" style="display:block">${t}${x.status === 'offline' ? ' · senast ' + ago(x.last_seen) : x.status === 'idle' ? ' · senaste åtgärd ' + ago(x.last_action) : ''}</small></span></div>`; }).join('') : '<p class="mut" style="margin:10px 0">Ingen har varit i appen senaste dygnet.</p>'}</div></div>`;
