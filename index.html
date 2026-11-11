@@ -11365,8 +11365,21 @@ function dsSwipe(dir) {
   if (S.dsView === 'match') return mSwipe(dir);
   const id = dsQueue()[0]; if (id == null) return;
   if (dir === 'r') { wishAdd(id); toast('Sparad i Villhöver'); }
-  else { (S.dsSkip || (S.dsSkip = new Set())).add(id); }
+  else { (S.dsSkip || (S.dsSkip = new Set())).add(id); dsHistPush(id, 'svep'); }
   S.dsQ.shift(); dsRender();
+}
+// Ångra: de 5 senaste kasten (vänster) kan tas tillbaka, ett i taget.
+function dsHistPush(id, mode) { const h = S.dsHist || (S.dsHist = []); h.unshift({ id, mode }); if (h.length > 5) h.length = 5; }
+function dsUndo() {
+  const e = (S.dsHist || []).shift(); if (!e) return;
+  if (e.mode === 'match') { if (S.mq && S.mq.ids) S.mq.ids.unshift(e.id); }
+  else { if (S.dsSkip) S.dsSkip.delete(e.id); if (S.dsQ) S.dsQ.unshift(e.id); }
+  toast('Ångrat');
+  dsRender();
+}
+function dsUndoBtn() {
+  const n = (S.dsHist || []).length;
+  return n ? `<div style="text-align:center;margin:0 0 4px"><button class="link3" onclick="dsUndo()" aria-label="Ångra senaste kast" style="display:inline-flex;align-items:center;gap:6px;font-size:14px">${ic('ph-arrow-u-up-left', 'currentColor', 16)} Ångra${n > 1 ? ' (' + n + ')' : ''}</button></div>` : '';
 }
 // Knapparna gör samma sak som svep, för den som inte vill svepa.
 // Komposttunna för knappen Hoppa över (Plantswipe och Matcha).
@@ -11402,6 +11415,7 @@ function discoverV() {
       <button class="circ" onclick="dsButton('l')" aria-label="Hoppa över" style="width:64px;height:64px;font-size:26px">${ic(KOMPOST_IC, 'currentColor', 26)}</button>
       <button class="circ" onclick="dsButton('r')" aria-label="Lägg i Villhöver" style="width:64px;height:64px;font-size:26px">💚</button>
     </div>
+    ${dsUndoBtn()}
     <p class="mut" style="text-align:center;font-size:13px;margin:0 0 12px">Svep höger för att lägga i Villhöver, vänster för att hoppa över.</p>`;
   return `${head}${tabs}<div class="sec" style="margin-top:10px"><h2>Filter</h2></div>${chips}<div style="margin-top:6px">${body}</div>`;
 }
@@ -11472,6 +11486,7 @@ function matchV() {
   if (!p) return `<div class="empty" style="margin:24px 16px"><p>Inga fler förslag. Ändra svaren för att se andra växter.</p><button class="btn sm" onclick="S.mq=null;dsRender()">Börja om</button></div>`;
   return `<div style="display:flex;justify-content:center;padding:12px 16px 0"><div id="dscard" style="width:100%;max-width:360px;touch-action:pan-y;user-select:none;background:var(--surf);border-radius:20px;box-shadow:var(--sh);overflow:hidden">${plantPh(p)}<div style="padding:14px 16px 16px"><h3 style="margin:0;font-size:20px">${esc(p.swedish_name)}</h3><i style="color:var(--mut)">${esc(p.latin_name)}</i><button class="link3" style="display:block;margin-top:8px" onclick="openPlant(${p.id})">Visa mer om växten</button>${imgSearchBtn(p, 'margin-top:6px')}</div></div></div>
   <div style="display:flex;justify-content:center;gap:28px;margin:18px 0 8px"><button class="circ" onclick="dsButton('l')" aria-label="Nästa" style="width:64px;height:64px;font-size:26px">${ic(KOMPOST_IC, 'currentColor', 26)}</button><button class="circ" onclick="dsButton('r')" aria-label="Lägg i Villhöver" style="width:64px;height:64px;font-size:26px">💚</button></div>
+  ${dsUndoBtn()}
   <p class="mut" style="text-align:center;font-size:13px;margin:0 0 12px">Svep höger för Villhöver, vänster för nästa.</p>`;
 }
 function matchAns(k, v) { const q = S.mq || (S.mq = { step: 0, L: null, W: null, P: null, ids: null, n: 0 }); q[k] = v; if (k === 'P' && !v) q.P = 0; q.step++; q.ids = null; if (q.step >= 3) { q.ids = matchQueue(); } dsRender(); }
@@ -11479,6 +11494,7 @@ function mSwipe(dir) {
   const q = S.mq; if (!q || !q.ids || !q.ids.length) return;
   const id = q.ids.shift();
   if (dir === 'r') { wishAdd(id); toast('Lagd i Villhöver'); }
+  else dsHistPush(id, 'match');
   dsRender();
 }
 
