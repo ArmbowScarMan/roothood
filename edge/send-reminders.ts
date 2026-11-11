@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
     const { data: who } = await db.from("profiles").select("display_name").eq("id", body.from || "").maybeSingle();
     const name = who?.display_name || "Någon";
     // Mottagaren kan ha stängt av den här typen av notis under Notifikations-inställningar. Då skickas ingen.
-    const notifKey = body.event === "message" ? "msg" : (body.event === "friend_req" || body.event === "friend_ok" || (body.event || "").startsWith("sit_")) ? "friend" : null;
+    const notifKey = body.event === "message" ? "msg" : (body.event === "friend_req" || body.event === "friend_ok" || (body.event || "").startsWith("sit_")) ? "friend" : body.event === "follow_q" ? "follow" : null;
     if (notifKey) { const { data: pr } = await db.from("profiles").select("notif_prefs").eq("id", body.to).maybeSingle(); if ((pr?.notif_prefs || {})[notifKey] === false) return json({ sent: 0, off: true }); }
     let title = "Roothood", text = body.text || "", url = APP_URL + "?tool=notif", tag = "roothood-social";
     if (body.event === "message") { title = name; url = APP_URL + "?tool=msgs"; tag = "roothood-msg-" + (body.from || ""); }
@@ -117,6 +117,7 @@ Deno.serve(async (req) => {
     else if (body.event === "sit_ok") { title = "Växtpassning 🤝"; text = name + " passar dina växter"; }
     else if (body.event === "sit_no") { title = "Växtpassning"; text = name + " tackade nej till att passa dina växter"; }
     else if (body.event === "sit_end") { title = "Växtpassning"; text = name + " avslutade passningen"; }
+    else if (body.event === "follow_q") { title = "Ny fråga om en art du följer 🌿"; text = body.text || ""; url = APP_URL + "?tool=notif"; tag = "roothood-follow"; }
     else if (body.event === "fb_bug") { title = "Ny felrapport 🐞"; text = name + ": " + (body.text || ""); url = APP_URL + "?tool=notif"; tag = "roothood-fb"; }
     else if (body.event === "fb_other") { title = "Nytt förslag 💡"; text = name + ": " + (body.text || ""); url = APP_URL + "?tool=notif"; tag = "roothood-fb"; }
     else if (body.event === "expert_q") { title = "Ny fråga till experten 🌿"; text = name + ": " + (body.text || ""); url = APP_URL + "?tool=notif"; tag = "roothood-xq"; }
