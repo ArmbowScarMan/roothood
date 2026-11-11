@@ -1,0 +1,7 @@
+-- 091: Appen hämtar listan över växtbilder som en moderator har tagit bort, så att de inte visas.
+-- Gäller även bilder som appen hämtar från Wikipedia och Wikimedia Commons. Kör hela filen en gång. Går att köra flera gånger.
+create or replace function public.rejected_photos()
+returns setof text language sql stable security definer set search_path = public as $$
+  select url from public.photo_review where status = 'rejected'
+$$;
+grant execute on function public.rejected_photos() to authenticated, anon;

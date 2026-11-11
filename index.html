@@ -7098,9 +7098,20 @@ let imgBusy = false;
 function ph(latin, cat, name, cls) {
   return `<div class="ph ${cls || ''}" data-latin="${esc(latin || '')}" style="--h:${hueOf(name)}">${art(cat, name)}</div>`;
 }
+// Bilder som en moderator har tagit bort (photo_review = rejected) visas inte, oavsett varifrån de kom.
+let REJ = null;
+async function loadRejected() {
+  if (REJ) return; REJ = new Set();
+  try { if (typeof sb === 'undefined' || !sb) return; const { data, error } = await sb.rpc('rejected_photos'); if (error) return; (data || []).forEach(r => REJ.add(typeof r === 'string' ? r : r.rejected_photos || r.url)); } catch (e) { return; }
+  if (!REJ.size) return; let ch = false;
+  Object.keys(IMG).forEach(l => { if (IMG[l] && REJ.has(IMG[l].src)) { IMG[l] = null; IMGC.add(l); ch = true; } });
+  (S.plants || []).forEach(p => { if (p.photo_url && REJ.has(p.photo_url)) { p.photo_url = null; ch = true; } });
+  if (ch) { store.set('imgs', IMG); store.set('imgc', [...IMGC].slice(-3000)); showPhotos(); }
+}
 function showPhotos() {
   document.querySelectorAll('.ph[data-latin]').forEach(el => {
     const u = IMG[el.dataset.latin];
+    if (!u) { const old = el.querySelector('img'); if (old) { old.remove(); el.classList.remove('has-img'); } return; }
     if (u && !el.querySelector('img')) {
       const im = new Image(); im.alt = '';
       im.onload = () => el.classList.add('has-img');
@@ -7109,7 +7120,7 @@ function showPhotos() {
   });
 }
 async function loadPhotos() {
-  showPhotos();
+  showPhotos(); loadRejected();
   if (imgBusy) return;
   const onPage = [...new Set([...document.querySelectorAll('.ph[data-latin]')].map(e => e.dataset.latin))];
   const want = onPage.filter(l => l && !(l in IMG) && !imgTried.has(l));
@@ -7125,7 +7136,7 @@ async function loadPhotos() {
       batch.forEach(l => {
         const t = follow(follow(l, q.normalized), q.redirects);
         const p = pages.find(x => x.title === t);
-        IMG[l] = p && p.thumbnail ? { src: p.thumbnail.source, page: 'https://en.wikipedia.org/wiki/' + encodeURIComponent(p.title.replace(/ /g, '_')) } : null;
+        IMG[l] = p && p.thumbnail && !(REJ && REJ.has(p.thumbnail.source)) ? { src: p.thumbnail.source, page: 'https://en.wikipedia.org/wiki/' + encodeURIComponent(p.title.replace(/ /g, '_')) } : null;
       });
     }
     store.set('imgs', IMG);
@@ -7140,7 +7151,7 @@ async function loadPhotos() {
       const r = await fetch('https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrlimit=8&gsrsearch=' + encodeURIComponent('"' + key.q + '"') + '&prop=imageinfo&iiprop=url&iiurlwidth=640&format=json&origin=*');
       const pages = Object.values(((await r.json()).query || {}).pages || {}).sort((a, b) => (a.index || 0) - (b.index || 0));
       const hit = pages.find(x => /\.(jpe?g|png|webp)$/i.test(x.title) && key.ok(x.title) && x.imageinfo && x.imageinfo[0] && x.imageinfo[0].thumburl);
-      if (hit) IMG[l] = { src: hit.imageinfo[0].thumburl, page: hit.imageinfo[0].descriptionurl, by: 'Wikimedia Commons' };
+      if (hit && !(REJ && REJ.has(hit.imageinfo[0].thumburl))) IMG[l] = { src: hit.imageinfo[0].thumburl, page: hit.imageinfo[0].descriptionurl, by: 'Wikimedia Commons' };
     }
     store.set('imgs', IMG); store.set('imgc', [...IMGC].slice(-3000));
   } catch (e) { /* inget nät till Commons */ }
@@ -10185,9 +10196,10 @@ function plantPh(p) { return p.photo_url ? `<div class="ph has-img" style="--h:0
 // Bildsökning på Google för växten (latinskt namn med sort). Bara en länk, inga bilder kopieras in i appen.
 function imgSearchUrl(p) { return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent((p.latin_name || p.swedish_name || '').trim()); }
 function imgSearchBtn(p, st) { const sort = /['‘’"]|\bvar\.|\bcv\./.test(p.latin_name || ''); return `<a class="link3" style="display:inline-block;${st || ''}" href="${imgSearchUrl(p)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Sök bilder på ${sort ? 'sorten' : 'arten'}</a>`; }
-function plantPhD(p) { const cred = p.photo_url && (p.photo_credit || p.photo_note) ? `<small class="phcred">${p.photo_note ? '<b>' + esc(p.photo_note) + '</b> · ' : ''}${esc(p.photo_credit || '')}</small>` : ''; const rep = p.photo_url ? `<button class="link3" style="display:inline-block;margin-left:14px;font-size:13px;background:none;border:0;padding:0" onclick="reportPlantPhoto(${jsArg(p.photo_url)})">Rapportera bild</button>` : ''; return `<div class="phwrap">${plantPh(p)}${cred}<div style="display:flex;align-items:center;flex-wrap:wrap">${imgSearchBtn(p, 'margin-top:6px;font-size:13px')}${rep}</div></div>`; }
-// Felaktig bild på en växt: skickas till felrapporterna, och moderatorer kan ta bort bilden för alla
-function reportPlantPhoto(url) { if (needLogin()) return; S.rep = { kind: 'photo', id: url, pid: null }; openModal('report'); }
+function plantPhD(p) { const cred = p.photo_url && (p.photo_credit || p.photo_note) ? `<small class="phcred">${p.photo_note ? '<b>' + esc(p.photo_note) + '</b> · ' : ''}${esc(p.photo_credit || '')}</small>` : ''; const l = p.latin_name, mayImg = p.photo_url || IMG[l] || (l && !(l in IMG)); const rep = mayImg ? `<button class="link3" style="margin-left:auto;font-size:12.5px;background:none;border:0;padding:0;opacity:.85" onclick="reportPlantPhoto(${p.id})">Rapportera bild</button>` : ''; return `<div class="phwrap">${plantPh(p)}${cred}<div style="display:flex;align-items:baseline;gap:12px;margin-top:6px">${imgSearchBtn(p, 'font-size:13px')}${rep}</div></div>`; }
+// Felaktig bild på en växt: skickas till felrapporterna, och moderatorer kan ta bort bilden för alla.
+// Bilden kan vara växtens egen (photo_url) eller hämtad från Wikipedia eller Wikimedia Commons (IMG).
+function reportPlantPhoto(pid) { if (needLogin()) return; const p = S.plants.find(x => x.id === pid), url = p && (p.photo_url || (IMG[p.latin_name] || {}).src); if (!url) return toast('Bilden har inte laddats än. Försök igen om en stund.'); S.rep = { kind: 'photo', id: url, pid: null }; openModal('report'); }
 function myPh(m) { return m.photo ? `<div class="ph has-img" style="--h:0"><img src="${esc(m.photo)}" alt="" loading="lazy"></div>` : ph(m.latin, m.category, m.name); }
 async function insertUP(row) {
   if (!newRemind()) row.remind = false;
@@ -11715,6 +11727,9 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.356', '11 nov', ['Solbana: byggnader och träd runt dig hämtas från kartan (OpenStreetMap) och kastar skugga i kameraläget. Saknas något kan du markera det med kameran: sikta på foten och överkanten, så räknas avstånd och höjd ut']],
+  ['Beta 0.355', '11 nov', ['Solbana: i kameraläget syns skuggorna på marken vid den tid du väljer, från hus, murar, häckar, träd och hindren du lagt in. Stäng av med Skuggor på marken']],
+  ['Beta 0.354', '11 nov', ['Rapportera bild finns nu under alla växtbilder, även bilder från Wikipedia och Wikimedia Commons. Bilder som tagits bort visas inte längre']],
   ['Beta 0.353', '11 nov', ['Växtbiblioteket har samma filter som Plantswipe: odlingszon, blomfärg, vattenbehov, luftfuktighet och storlek. Plantswipe har fått Var växer den? och Även med skydd']],
   ['Beta 0.352', '11 nov', ['Växtbilder: rapportera en felaktig bild så att den tas bort för alla. Google-bildlänken finns nu på alla växter, även när du har egen bild']],
   ['Beta 0.351', '11 nov', ['Marknivå: zooma med nypning, dra för att flytta kartan och öppna kameran där du ser nivålinjerna']],
@@ -12647,6 +12662,109 @@ function elvArDraw(c, M, W, H, hf, off, o) { const E = S.elv; if (!E || !E.d || 
   c.lineCap = 'round'; c.strokeStyle = 'rgba(255,205,130,.9)'; c.lineWidth = 2; c.stroke(); }
 // Öppnar kameran med marknivån. Utgångspunkten är punkt A om den är satt, annars kartans mitt.
 function elvOpenAR() { const E = elvS(); if (!E.d) return toast('Hämta marknivån först'); const o = E.a || { lat: E.c.lat, lon: E.c.lon }; arOpen('elev', { lat: o.lat, lon: o.lon }); }
+// ===== Hinder från kartan (OpenStreetMap) =====
+// Byggnader inom 150 m och träd inom 80 m från där du står. Höjd från kartans uppgifter, annars våningar eller typ av byggnad.
+const OSM_H = { house: 7, detached: 7, semidetached_house: 7, terrace: 8, residential: 7, bungalow: 5, cabin: 4, farm: 7, apartments: 14, dormitory: 12, hotel: 15, garage: 3, garages: 3, carport: 2.6, shed: 2.6, hut: 2.6, greenhouse: 3, barn: 7, farm_auxiliary: 6, stable: 5, commercial: 9, retail: 7, office: 14, industrial: 9, warehouse: 9, school: 10, church: 18, roof: 4, kindergarten: 6, yes: 6 };
+function osmHeight(tg) { const n = v => { const m = String(v || '').replace(',', '.').match(/[\d.]+/); return m ? +m[0] : 0; };
+  const h = n(tg.height); if (h > 0.5 && h < 300) return h; const lv = n(tg['building:levels']); if (lv > 0 && lv < 80) return lv * 3 + (n(tg['roof:levels']) ? 1.5 : 1);
+  return OSM_H[tg.building] || 6; }
+function osmParse(j, lat, lon) {
+  const kl = 111320, kx = kl * Math.cos(lat * Math.PI / 180), b = [], t = [];
+  (j.elements || []).forEach(e => {
+    const tg = e.tags || {};
+    if (e.type === 'way' && tg.building && Array.isArray(e.geometry) && e.geometry.length >= 3) { const pts = e.geometry.map(g => [(g.lon - lon) * kx, (g.lat - lat) * kl]); const a = pts[0], z = pts[pts.length - 1]; if (Math.hypot(a[0] - z[0], a[1] - z[1]) < 0.05) pts.pop(); if (pts.length >= 3) b.push({ pts, h: osmHeight(tg) }); }
+    else if (e.type === 'node' && tg.natural === 'tree') { const hh = osmHeight({ height: tg.height, building: 'x' }); t.push({ e: (e.lon - lon) * kx, n: (e.lat - lat) * kl, h: tg.height ? hh : 8, r: +String(tg.diameter_crown || '').replace(',', '.') / 2 || 2.5 }); }
+  });
+  return { b, t };
+}
+async function osmLoad(lat, lon) {
+  const key = lat.toFixed(4) + ',' + lon.toFixed(4), c = store.get('arOsm', null);
+  if (c && c.key === key && Date.now() - c.t < 7 * 864e5) return c.d;
+  const q = `[out:json][timeout:20];(way["building"](around:150,${lat},${lon});node["natural"="tree"](around:80,${lat},${lon}););out geom tags;`;
+  for (const u of ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']) {
+    try { const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 25000); const r = await fetch(u, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, signal: ctl.signal }); clearTimeout(tm); if (!r.ok) continue;
+      const d = osmParse(await r.json(), lat, lon); try { store.set('arOsm', { key, t: Date.now(), d }); } catch (e) {} return d; } catch (e) { /* prova nästa server */ }
+  }
+  return null;
+}
+// Var du står: telefonens position i första hand, annars kartpunkten för ditt hem.
+function arGeoLoad() {
+  if (!AR) return; AR.osmSt = 'Hämtar din position…'; arShStatus();
+  const go = async (lat, lon, src) => { if (!AR) return; AR.geo = { lat, lon, src }; AR.osmSt = 'Hämtar byggnader och träd från kartan…'; arShStatus(); const d = await osmLoad(lat, lon); if (!AR) return; AR.osm = d; AR.shG = null;
+    AR.osmSt = d ? `Från kartan: ${d.b.length} ${d.b.length === 1 ? 'byggnad' : 'byggnader'} och ${d.t.length} träd${src === 'home' ? ' runt ditt hem' : ''}.` : 'Kunde inte hämta kartan just nu. Markera hinder med kameran i stället.'; arShStatus(); };
+  const home = () => { const m = S.hplan && S.hplan.map; if (m && okn(m.lat, m.lon)) go(m.lat, m.lon, 'home'); else { AR.osmSt = 'Utan din position kan byggnader inte hämtas från kartan. Markera hinder med kameran.'; arShStatus(); } };
+  if (!navigator.geolocation) return home();
+  navigator.geolocation.getCurrentPosition(p => go(p.coords.latitude, p.coords.longitude, 'gps'), home, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+}
+function arShStatus() { if (!AR) return; const el = AR.el.querySelector('#arShSt'); if (el) el.textContent = AR.shd ? (AR.osmSt || '') : ''; }
+// Markera ett hinder med kameran: foten (ger avståndet), sedan vänster och höger överkant (ger bredd och höjd).
+const AR_MK = ['Sikta mitt i krysset på <b>foten</b> av hindret, där det möter marken, och tryck Markera.', 'Sikta på hindrets <b>vänstra överkant</b> och tryck Markera.', 'Sikta på hindrets <b>högra överkant</b> och tryck Markera.'];
+function arMarkStep(n) { if (!AR) return; const box = AR.el.querySelector('#arMkBox'), others = [...box.parentElement.children].filter(ch => ch !== box);
+  if (n < 0) { AR.mark = null; box.style.display = 'none'; others.forEach(ch => { if ('d' in ch.dataset) { ch.style.display = ch.dataset.d; delete ch.dataset.d; } }); return; }
+  if (n === 0) { AR.mark = { step: 0 }; others.forEach(ch => { if (!('d' in ch.dataset)) { ch.dataset.d = ch.style.display; ch.style.display = 'none'; } }); } box.style.display = 'block'; AR.el.querySelector('#arMkTxt').innerHTML = `Steg ${AR.mark.step + 1} av 3. ` + AR_MK[AR.mark.step]; }
+function arMarkGo() {
+  const m = AR && AR.mark, cw = AR && AR.camW; if (!m) return; if (!cw) return toast('Väntar på kompassen');
+  if (m.step === 0) { let d; if (cw.alt < -0.8) d = Math.max(1, Math.min(150, 1.6 / Math.tan(-cw.alt * Math.PI / 180))); else { d = 80; toast('Foten syns knappt under horisonten. Räknar med ca 80 m.'); } m.d = d; m.az0 = cw.az; m.step = 1; return arMarkStep(1); }
+  if (m.step === 1) { m.L = { az: cw.az, alt: cw.alt }; m.step = 2; return arMarkStep(2); }
+  const R = { az: cw.az, alt: cw.alt }, diff = ((R.az - m.L.az + 540) % 360) - 180, w = Math.max(2, Math.abs(diff)), dir = ((m.L.az + diff / 2) % 360 + 360) % 360, altT = (m.L.alt + R.alt) / 2;
+  const h = Math.max(0.3, Math.round((1.6 + m.d * Math.tan(altT * Math.PI / 180)) * 10) / 10), L = sunObs();
+  L.push({ id: Date.now(), name: 'Hinder ' + (L.length + 1) + ' (kamera)', dir: Math.round(dir), w: Math.round(w), ang: Math.max(0, Math.round(altT * 10) / 10), h, d: Math.round(m.d * 10) / 10, cam: true });
+  store.set('sunObs', L); AR.shG = null; arMarkStep(-1);
+  toast(`Hindret är sparat: ca ${String(h).replace('.', ',')} m högt, ${Math.round(m.d)} m bort, i ${sunWord(dir)}.`);
+}
+// ===== Skuggor i kameran =====
+// Marken runt dig (ut till 58 m) delas i små rutor. Varje ruta som ligger i skugga vid vald tid färgas mörk.
+// Samma skuggberäkning som solkartan och 3D-vyn (sunTau), plus murar, häckar och hindren i Solbanans lista.
+function arShadowObst(o) {
+  const O = sunObst(), th = northDeg(), polys = O.polys.slice();
+  const wallPoly = (x1, y1, x2, y2, h, w) => { const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1, nx = -dy / L * w, ny = dx / L * w; return { pts: [[x1 + nx, y1 + ny], [x2 + nx, y2 + ny], [x2 - nx, y2 - ny], [x1 - nx, y1 - ny]], h, wall: true }; };
+  planWallsAll().forEach(wl => polys.push(wallPoly(wl.x1, wl.y1, wl.x2, wl.y2, wl.ht || (wl.h === 'hedge' ? 1.3 : wl.h === 'half' ? 1.1 : 2.5), wl.h === 'hedge' ? 0.35 : 0.1)));
+  // Hinder från Solbanans lista: en vägg på angivet avstånd, lika bred som hindret ser ut från där du står
+  const obs = sunObs().map(b => { const a = (b.dir + th) * Math.PI / 180, cx = o.x + Math.sin(a) * b.d, cy = o.y - Math.cos(a) * b.d, hw = b.d * Math.tan(Math.min(170, b.w) / 2 * Math.PI / 180), ux = Math.cos(a), uy = Math.sin(a);
+    return Object.assign(wallPoly(cx - ux * hw, cy - uy * hw, cx + ux * hw, cy + uy * hw, b.h, 0.15), { name: b.name, x1: cx - ux * hw, y1: cy - uy * hw, x2: cx + ux * hw, y2: cy + uy * hw }); });
+  obs.forEach(p => polys.push(p));
+  // Byggnader och träd från kartan, räknat från där du står. Ditt eget hus från ritningen räknas inte två gånger.
+  const osmB = [], tr = O.trees.slice();
+  if (AR && AR.osm) { const R = th * Math.PI / 180, toP = (e, n) => { const b = Math.atan2(e, n) + R, d = Math.hypot(e, n); return [o.x + Math.sin(b) * d, o.y - Math.cos(b) * d]; };
+    const rooms = planRooms().map(r => roomPoly(r)), rc = rooms.map(pg => [pg.reduce((a, q) => a + q[0], 0) / pg.length, pg.reduce((a, q) => a + q[1], 0) / pg.length]);
+    AR.osm.b.forEach(b => { const pts = b.pts.map(([e, n]) => toP(e, n)); if (inPoly(o.x, o.y, pts) || rc.some(([x, y]) => inPoly(x, y, pts))) return; const pg = { pts, h: b.h, osm: true }; polys.push(pg); osmB.push(pg); });
+    AR.osm.t.forEach(t => { const [x, y] = toP(t.e, t.n); tr.push({ x, y, r: t.r, h: t.h, tau: 0.35 }); }); }
+  polys.forEach(p => { const xs = p.pts.map(q => q[0]), ys = p.pts.map(q => q[1]); p.bb = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; });
+  return { polys, trees: tr, obs, osmB };
+}
+const AR_SH_R = [0.8, 1.2, 1.7, 2.3, 3, 4, 5, 6.5, 8, 10, 12.5, 15, 18, 22, 27, 33, 40, 48, 58];
+function arShadowGrid(o, cur) {
+  const th = northDeg(), key = [o.x.toFixed(2), o.y.toFixed(2), cur.az.toFixed(1), cur.alt.toFixed(1), th, JSON.stringify(sunObs()), JSON.stringify(planWallsAll()), JSON.stringify(planGarden()), JSON.stringify(hPlan() ? hPlan().skug || [] : []), planRooms().length, planFurnAll().length, AR.osm ? AR.osm.b.length + ':' + AR.osm.t.length : 0, AR.geo ? AR.geo.lat.toFixed(5) + ',' + AR.geo.lon.toFixed(5) : ''].join('|');
+  if (AR.shG && AR.shG.key === key) return AR.shG;
+  const O = arShadowObst(o), s = { alt: cur.alt * Math.PI / 180, az: cur.az * Math.PI / 180 }, zO = gRel(o.x, o.y) + 1.6, full = [], part = [], NA = 90, DA = 360 / NA;
+  const corner = (r, a) => { const ar = (a + th) * Math.PI / 180, x = o.x + Math.sin(ar) * r, y = o.y - Math.cos(ar) * r; return [a, Math.atan2(gRel(x, y) - zO, r) * 180 / Math.PI]; };
+  const n = O.polys.length + O.trees.length;
+  if (n && cur.alt > 0.5) for (let i = 0; i < AR_SH_R.length - 1; i++) { const r0 = AR_SH_R[i], r1 = AR_SH_R[i + 1], rm = (r0 + r1) / 2;
+    for (let k = 0; k < NA; k++) { const a0 = k * DA, a1 = a0 + DA, am = (a0 + DA / 2 + th) * Math.PI / 180, px = o.x + Math.sin(am) * rm, py = o.y - Math.cos(am) * rm;
+      if (O.polys.some(p => !p.wall && inPoly(px, py, p.pts))) continue; // marken under huset syns inte
+      const tau = sunTau(px, py, s, O); if (tau > 0.9) continue;
+      (tau < 0.2 ? full : part).push([corner(r0, a0), corner(r0, a1), corner(r1, a1), corner(r1, a0)]); } }
+  // Hindrens fyra hörn i kameran: nederkant på marken och överkant på hindrets höjd
+  const end = (x, y, h) => { const L = Math.max(0.5, Math.hypot(x - o.x, y - o.y)), az = (Math.atan2(x - o.x, -(y - o.y)) * 180 / Math.PI - th + 720) % 360, g = gRel(x, y) - zO; return [[az, Math.atan2(g, L) * 180 / Math.PI], [az, Math.atan2(g + h, L) * 180 / Math.PI]]; };
+  const obs = O.obs.map(b => { const [a0, a1] = end(b.x1, b.y1, b.h), [b0, b1] = end(b.x2, b.y2, b.h); return { name: b.name, q: [a0, b0, b1, a1] }; });
+  // Kartans byggnader: varje vägg som en yta från marken upp till byggnadens höjd, de närmaste ritas sist
+  const bld = []; O.osmB.forEach(b => b.pts.forEach((q1, i) => { const q2 = b.pts[(i + 1) % b.pts.length], L = Math.hypot((q1[0] + q2[0]) / 2 - o.x, (q1[1] + q2[1]) / 2 - o.y); if (L > 150) return; const [a0, a1] = end(q1[0], q1[1], b.h), [b0, b1] = end(q2[0], q2[1], b.h); bld.push({ L, q: [a0, b0, b1, a1] }); }));
+  bld.sort((p, q) => q.L - p.L);
+  AR.shG = { key, full, part, n, obs, zO, bld }; return AR.shG;
+}
+function arShadowDraw(c, P, cur) {
+  const o = arOrigin() || { x: 0, y: 0 }, G = arShadowGrid(o, cur);
+  const fillCells = (L, col) => { c.beginPath(); for (const q of L) { const pts = q.map(([az, alt]) => P(az, alt)); if (pts.some(v => !v)) continue; c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < 4; i++) c.lineTo(pts[i][0], pts[i][1]); c.closePath(); } c.fillStyle = col; c.fill(); };
+  fillCells(G.part, 'rgba(8,16,36,.28)'); fillCells(G.full, 'rgba(8,16,36,.5)');
+  G.bld.forEach(b => { const q1 = b.q[0], q2 = b.q[1], az2 = q1[0] + (((q2[0] - q1[0]) + 540) % 360 - 180), pts = [P(q1[0], q1[1]), P(az2, q2[1]), P(az2, b.q[2][1]), P(q1[0], b.q[3][1])]; if (pts.some(v => !v)) return;
+    c.beginPath(); pts.forEach((v, i) => i ? c.lineTo(v[0], v[1]) : c.moveTo(v[0], v[1])); c.closePath(); c.fillStyle = 'rgba(236,230,218,.16)'; c.fill(); c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = 1; c.stroke(); });
+  // Hindren från Solbanans lista visas som halvgenomskinliga väggar med namn
+  G.obs.forEach(b => { const q1 = b.q[0], q2 = b.q[1], az2 = q1[0] + (((q2[0] - q1[0]) + 540) % 360 - 180); // kortaste vägen runt
+    const pts = [P(q1[0], q1[1]), P(az2, q2[1]), P(az2, b.q[2][1]), P(q1[0], b.q[3][1])]; if (pts.some(v => !v)) return;
+    c.beginPath(); pts.forEach((v, i) => i ? c.lineTo(v[0], v[1]) : c.moveTo(v[0], v[1])); c.closePath(); c.fillStyle = 'rgba(236,230,218,.35)'; c.fill(); c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 1.2; c.stroke();
+    c.fillStyle = '#fff'; c.font = '700 12px system-ui,sans-serif'; c.textAlign = 'center'; const lx = Math.max(60, Math.min(c.canvas.clientWidth - 60, (pts[0][0] + pts[1][0]) / 2)), ly = Math.max(pts[0][1], pts[1][1]) - 10; c.fillText(b.name, lx, ly); });
+  return G;
+}
 function arDraw() {
   if (!AR) return; AR.raf = requestAnimationFrame(arDraw);
   const cv = AR.cv, dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return;
@@ -12657,6 +12775,8 @@ function arDraw() {
   const label = AR.tl; if (label) label.textContent = hm(t);
   if (!AR.o) { say(AR.rel ? 'Den här telefonen ger ingen kompass i webbläsaren, så kameran kan inte veta åt vilket håll den pekar.' : 'Väntar på kompassen… Rör telefonen i en åtta om inget händer.'); return; }
   const M = arMat(AR.o.a, AR.o.b, AR.o.g), off = arOffset(), P = (az, alt) => arProj(arToDev(M, az - off, alt), W, H, hf);
+  const SG = AR.shd && !AR.elv ? arShadowDraw(c, P, cur) : null;
+  if (SG && !AR.opt) arObjsDraw(c, M, W, H, hf, off); // det som skuggar syns också
   c.lineWidth = 1.5; c.strokeStyle = 'rgba(255,255,255,.55)'; c.setLineDash([6, 6]); c.beginPath(); let pen = false;
   for (let az = 0; az <= 360; az += 4) { const q = P(az, 0); if (q) { pen ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); pen = true; } else pen = false; }
   c.stroke(); c.setLineDash([]);
@@ -12686,9 +12806,12 @@ function arDraw() {
     c.save(); c.translate(ax, ay); c.rotate(ang); c.fillStyle = '#FFC83D'; c.strokeStyle = '#F08A24'; c.lineWidth = 3; c.beginPath(); c.moveTo(26, 0); c.lineTo(-14, -20); c.lineTo(-6, 0); c.lineTo(-14, 20); c.closePath(); c.fill(); c.stroke(); c.restore();
   }
   const camAz = (Math.atan2(-M[2], -M[5]) * 180 / Math.PI + 360) % 360, camAlt = Math.asin(Math.max(-1, Math.min(1, -M[8]))) * 180 / Math.PI;
+  AR.camW = { az: (camAz + off + 360) % 360, alt: camAlt };
+  if (AR.mark) { c.save(); c.strokeStyle = '#FFC83D'; c.lineWidth = 2.5; c.shadowColor = 'rgba(0,0,0,.8)'; c.shadowBlur = 4; c.beginPath(); c.moveTo(W / 2 - 22, H / 2); c.lineTo(W / 2 - 6, H / 2); c.moveTo(W / 2 + 6, H / 2); c.lineTo(W / 2 + 22, H / 2); c.moveTo(W / 2, H / 2 - 22); c.lineTo(W / 2, H / 2 - 6); c.moveTo(W / 2, H / 2 + 6); c.lineTo(W / 2, H / 2 + 22); c.stroke(); c.restore(); }
   const da = ((cur.az - camAz + 540) % 360) - 180, dh = cur.alt - camAlt;
   const pos = `${sunWord(cur.az)} (${Math.round(cur.az)}°), ${Math.round(cur.alt)}° över horisonten`;
-  const say0 = say, mline = '<br><span style="font-size:13.5px;opacity:.9">' + moonTxt(MOON(sunAt(ds, t), loc.lat, loc.lon)) + '</span>';
+  const shTxt = !SG ? '' : cur.alt <= 0.5 ? '' : SG.n ? `<br><span style="font-size:13.5px;opacity:.9">Mörka ytor på marken ligger i skugga kl ${hm(t)}.</span>` : (AR.osmSt && /^Hämtar/.test(AR.osmSt) ? '' : '<br><span style="font-size:13.5px;opacity:.9">Inga hinder hittades. Tryck <b>+ Markera hinder</b> och sikta på det som skymmer solen.</span>');
+  const say0 = say, mline = shTxt + '<br><span style="font-size:13.5px;opacity:.9">' + moonTxt(MOON(sunAt(ds, t), loc.lat, loc.lon)) + '</span>';
   ((txt) => say0(txt + mline))(cur.alt <= 0 ? `Kl <b>${hm(t)}</b> är solen under horisonten (${Math.round(cur.az)}° ${sunWord(cur.az)}).` : inView ? `Kl <b>${hm(t)}</b> står solen här: ${pos}.` : `Kl <b>${hm(t)}</b> står solen i ${pos}. Vrid dig <b>${Math.round(Math.abs(da))}° åt ${da > 0 ? 'höger' : 'vänster'}</b>${Math.abs(dh) > 5 ? ' och luta telefonen <b>' + (dh > 0 ? 'uppåt' : 'nedåt') + '</b>' : ''}.`);
 }
 // ===== Månen: läge och fas (samma förenklade formler som biblioteket SunCalc, ca 1° noggrannhet) =====
@@ -12815,10 +12938,15 @@ async function arOpen(mode, origin) {
   const el = document.createElement('div'); el.id = 'sunar'; el.style.cssText = 'position:fixed;inset:0;z-index:99999;background:linear-gradient(#1c3a52,#0b1a25);color:#fff;font-family:system-ui,sans-serif;touch-action:none';
   el.innerHTML = `<video playsinline muted autoplay style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video><canvas style="position:absolute;inset:0;width:100%;height:100%"></canvas>
     <div style="position:absolute;top:0;left:0;right:0;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;display:flex;gap:10px;align-items:flex-start;background:linear-gradient(rgba(0,0,0,.65),transparent)"><button id="sunarx" aria-label="Stäng kameran" style="flex:none;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:22px">✕</button><div id="sunarinfo" style="flex:1;font-size:15px;line-height:1.35;text-shadow:0 1px 3px #000"></div></div>
-    <div style="position:absolute;left:0;right:0;bottom:0;padding:14px 16px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.75))"><button id="arOpt" aria-expanded="false" style="display:block;width:100%;height:40px;border-radius:12px;border:0;padding:0 12px;margin-bottom:8px;text-align:left;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Växter och fönster: Av ▾</button><div id="arOptBox" style="display:none">${arStandSel()}${arSpotSel()}</div><label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:8px">Justera norr <input id="arnadj" type="range" min="-30" max="30" step="1" value="${+store.get('arNorthAdj', 0) || 0}" style="flex:1;accent-color:#FFC83D" aria-label="Justera norr i grader"><span id="arnadjv" style="min-width:44px;text-align:right">${+store.get('arNorthAdj', 0) || 0}°</span></label><div style="font-size:14px;margin-bottom:2px">Tid: <b id="sunartl"></b> · <input id="arDate" type="date" value="${sunDay()}" aria-label="Datum" style="height:30px;border-radius:8px;border:0;padding:0 6px;background:rgba(255,255,255,.92);color:#16261D;font-size:14px"> · ${esc(sunLoc().name)}</div><input id="sunarr" type="range" min="0" max="1435" step="5" value="${S.sunT}" style="width:100%;height:44px;accent-color:#FFC83D" aria-label="Tid på dygnet"><div style="font-size:12.5px;opacity:.8">Håll telefonen stående. Dra i reglaget och rikta kameran dit pilen eller solen visar.</div></div>`;
+    <div style="position:absolute;left:0;right:0;bottom:0;padding:14px 16px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.75))"><div id="arMkBox" style="display:none;background:rgba(0,0,0,.6);border-radius:12px;padding:10px 12px;margin-bottom:8px"><div id="arMkTxt" style="font-size:14.5px;line-height:1.35"></div><div style="display:flex;gap:8px;margin-top:8px"><button id="arMkGo" style="flex:2;height:44px;border-radius:12px;border:0;background:#FFC83D;color:#16261D;font-weight:700;font-size:15px">Markera</button><button id="arMkX" style="flex:1;height:44px;border-radius:12px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Avbryt</button></div></div><div id="arShRow" style="display:flex;gap:8px;margin-bottom:4px"><button id="arShd" aria-pressed="${store.get('arShd', true) ? 'true' : 'false'}" style="flex:1;height:40px;border-radius:12px;border:0;padding:0 12px;text-align:left;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Skuggor: ${store.get('arShd', true) ? 'På' : 'Av'}</button><button id="arMk" style="flex:1;height:40px;border-radius:12px;border:0;padding:0 12px;text-align:left;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">+ Markera hinder</button></div><div id="arShSt" style="font-size:12.5px;opacity:.85;margin-bottom:8px;min-height:16px"></div><button id="arOpt" aria-expanded="false" style="display:block;width:100%;height:40px;border-radius:12px;border:0;padding:0 12px;margin-bottom:8px;text-align:left;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Växter och fönster: Av ▾</button><div id="arOptBox" style="display:none">${arStandSel()}${arSpotSel()}</div><label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:8px">Justera norr <input id="arnadj" type="range" min="-30" max="30" step="1" value="${+store.get('arNorthAdj', 0) || 0}" style="flex:1;accent-color:#FFC83D" aria-label="Justera norr i grader"><span id="arnadjv" style="min-width:44px;text-align:right">${+store.get('arNorthAdj', 0) || 0}°</span></label><div style="font-size:14px;margin-bottom:2px">Tid: <b id="sunartl"></b> · <input id="arDate" type="date" value="${sunDay()}" aria-label="Datum" style="height:30px;border-radius:8px;border:0;padding:0 6px;background:rgba(255,255,255,.92);color:#16261D;font-size:14px"> · ${esc(sunLoc().name)}</div><input id="sunarr" type="range" min="0" max="1435" step="5" value="${S.sunT}" style="width:100%;height:44px;accent-color:#FFC83D" aria-label="Tid på dygnet"><div style="font-size:12.5px;opacity:.8">Håll telefonen stående. Dra i reglaget och rikta kameran dit pilen eller solen visar.</div></div>`;
   document.body.appendChild(el);
-  AR = { el, cv: el.querySelector('canvas'), vid: el.querySelector('video'), info: el.querySelector('#sunarinfo'), tl: el.querySelector('#sunartl'), hfov: 54, o: null, opt: false, elv: mode === 'elev', elvO: origin || null };
-  if (mode === 'elev') { const oB = el.querySelector('#arOpt'), oX = el.querySelector('#arOptBox'); if (oB) oB.style.display = 'none'; if (oX) oX.style.display = 'none'; }
+  AR = { el, cv: el.querySelector('canvas'), vid: el.querySelector('video'), info: el.querySelector('#sunarinfo'), tl: el.querySelector('#sunartl'), hfov: 54, o: null, opt: false, shd: mode !== 'elev' && store.get('arShd', true), elv: mode === 'elev', elvO: origin || null };
+  if (mode === 'elev') { const oB = el.querySelector('#arOpt'), oX = el.querySelector('#arOptBox'), oS = el.querySelector('#arShd'); if (oB) oB.style.display = 'none'; if (oX) oX.style.display = 'none'; if (oS) oS.style.display = 'none'; ['#arShRow', '#arShSt'].forEach(k => { const x = el.querySelector(k); if (x) x.style.display = 'none'; }); }
+  const shB = el.querySelector('#arShd'); if (shB) shB.onclick = () => { AR.shd = !AR.shd; store.set('arShd', AR.shd); shB.textContent = 'Skuggor: ' + (AR.shd ? 'På' : 'Av'); shB.setAttribute('aria-pressed', String(AR.shd)); arShStatus(); };
+  const mkB = el.querySelector('#arMk'); if (mkB) mkB.onclick = () => arMarkStep(0);
+  const mkGo = el.querySelector('#arMkGo'); if (mkGo) mkGo.onclick = () => arMarkGo();
+  const mkX = el.querySelector('#arMkX'); if (mkX) mkX.onclick = () => arMarkStep(-1);
+  if (mode !== 'elev') arGeoLoad();
   el.querySelector('#sunarx').onclick = arClose;
   el.querySelector('#sunarr').oninput = ev => { S.sunT = +ev.target.value; S.sunPin = true; };
   const stSel = el.querySelector('#arstand'); if (stSel) stSel.onchange = ev => { store.set('arStand', ev.target.value); AR.wl = null; };
@@ -13528,7 +13656,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.353';
+const APP_VERSION = 'Beta 0.356';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
