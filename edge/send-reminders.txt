@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
   if (isCron && body.event && body.to) {
     const { data: who } = await db.from("profiles").select("display_name").eq("id", body.from || "").maybeSingle();
     const name = who?.display_name || "Någon";
-    // Mottagaren kan ha stängt av den här typen av notis under Profil. Då skickas ingen.
+    // Mottagaren kan ha stängt av den här typen av notis under Notifikations-inställningar. Då skickas ingen.
     const notifKey = body.event === "message" ? "msg" : (body.event === "friend_req" || body.event === "friend_ok" || (body.event || "").startsWith("sit_")) ? "friend" : null;
     if (notifKey) { const { data: pr } = await db.from("profiles").select("notif_prefs").eq("id", body.to).maybeSingle(); if ((pr?.notif_prefs || {})[notifKey] === false) return json({ sent: 0, off: true }); }
     let title = "Roothood", text = body.text || "", url = APP_URL + "?tool=notif", tag = "roothood-social";
