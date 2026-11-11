@@ -2346,7 +2346,7 @@ const sbApi = {
     if (error) throw kind === 'photo' && /photo_url|target_check|reports_check/.test(error.message || '') ? new Error('REPORT_PHOTO_NOT_READY') : error;
   },
   async inbox() { const { data, error } = await sb.rpc('inbox'); if (error) throw /inbox/.test(error.message || '') ? new Error('MSG_NOT_READY') : error; return data || []; },
-  async thread(id) { const me = S.user.id, { data, error } = await sb.from('messages').select('*').or(`and(from_user.eq.${me},to_user.eq.${id}),and(from_user.eq.${id},to_user.eq.${me})`).order('created_at', { ascending: false }).limit(100); if (error) throw error; return (data || []).reverse().map(m => ({ id: m.id, mine: m.from_user === me, body: m.body, created_at: m.created_at })); },
+  async thread(id) { const me = S.user.id, { data, error } = await sb.from('messages').select('*').or(`and(from_user.eq.${me},to_user.eq.${id}),and(from_user.eq.${id},to_user.eq.${me})`).order('created_at', { ascending: false }).limit(100); if (error) throw error; return (data || []).reverse().map(m => ({ id: m.id, mine: m.from_user === me, body: m.body, photo_url: m.photo_url || null, created_at: m.created_at })); },
   async sendMsg(id, body, adId, photo) { const row = { to_user: id, body }; if (adId) row.post_id = adId; if (photo) row.photo_url = photo; const { error } = await sb.from('messages').insert(row); if (error) throw /BLOCKED/.test(error.message || '') ? new Error('BLOCKED') : /row-level|messages/.test(error.message || '') ? new Error('MSG_DENIED') : error; },
   async markRead(id) { await sb.rpc('mark_read', { p_other: id }); },
   async userHome(id) { const { data, error } = await sb.rpc('user_home', { p_id: id }); if (error) throw error; return (data && data[0]) || { visible: false }; },
@@ -6772,18 +6772,27 @@ function careV() {
   <div style="height:20px"></div>`;
 }
 
+// Designvarianten Städad är på (bara för moderatorer, väljs i Inställningar)
+function stadUI() { return document.documentElement.getAttribute('data-ui') === 'stad'; }
 function topbar(title, backFn, extra) {
   if (backFn === 'S.tool=null;render()' || backFn === 'closeTool()') backFn = 'navBack()';
+  // Städad (116/133): flikarna Gemenskap, Samling och Profil har ingen tillbaka-pil, de är flikar i menyn
+  const stadRoot = stadUI() && !backFn && !S.tool && !S.sel && !S.post && !S.newL && !S.forum && ['comm', 'me', 'mine'].includes(S.tab);
   // Tillbaka-pil på alla sidor utom Hem
-  if (!backFn && !(S.tab === 'home' && !S.tool && !S.sel)) backFn = 'navBack()';
+  if (!backFn && !stadRoot && !(S.tab === 'home' && !S.tool && !S.sel)) backFn = 'navBack()';
   const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0;
   const left_ = backFn
     ? `<button class="circ" onclick="${backFn}" aria-label="Tillbaka">${ic(I.back, null, 22)}</button>`
     : `<img class="logoimg" src="${LOGO}" alt="Roothood" width="40" height="40">`;
-  const right = bellBtn(), help = S.tool === 'house' ? helpBtn() : (title === 'Min samling' && !backFn ? `<button class="circ" onclick="openQAdd()" aria-label="Lägg till växt">${ic('ph-plus', null, 22)}</button>` : '');
+  const right = stadUI() && title === 'Profil' && S.tab === 'me' && !S.tool ? '' : bellBtn(), help = S.tool === 'house' ? helpBtn() : (title === 'Min samling' && !backFn ? `<button class="circ" onclick="openQAdd()" aria-label="Lägg till växt">${ic('ph-plus', null, 22)}</button>` : '');
   return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1${title.length > 26 ? ' class="long"' : ''}>${esc(title)}</h1>${extra || (title === 'Gemenskap' ? communityBtns() : '')}${help}${right}</div>`;
 }
-function communityBtns() { return `<button class="circ" onclick="openModal('chelp')" aria-label="Hjälp om Gemenskap" style="font-weight:800;font-size:18px">?</button>${peopleSearchBtn()}`; }
+function communityBtns() {
+  // Städad (116): bara sök och notiser till höger, hjälpen ligger i en ⋯-meny
+  if (stadUI()) return `<span class="cmwrap"><button class="circ" onclick="S.cmenu=!S.cmenu;render()" aria-label="Mer" aria-expanded="${!!S.cmenu}">${ic('ph-dots-three', null, 22)}</button>${S.cmenu ? `<span class="cmenu" role="menu"><button role="menuitem" onclick="S.cmenu=false;openModal('chelp')">${ic('ph-question', 'currentColor', 18)} Hjälp om Gemenskap</button><button role="menuitem" onclick="S.cmenu=false;openPeople()">${ic('ph-user-plus', 'currentColor', 18)} Hitta användare</button></span>` : ''}</span>${peopleSearchBtn()}`;
+  return communityBtns0();
+}
+function communityBtns0() { return `<button class="circ" onclick="openModal('chelp')" aria-label="Hjälp om Gemenskap" style="font-weight:800;font-size:18px">?</button>${peopleSearchBtn()}`; }
 function peopleSearchBtn() { return `<button class="circ" onclick="openPeople()" aria-label="Hitta användare">${ic('ph-magnifying-glass', null, 22)}</button>`;
 }
 
@@ -10591,6 +10600,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.340', '11 nov', ['Bilder i meddelanden syns igen. De skickades, men visades inte i chatten', 'Solbana: i kameraläget ser du solljuset genom fönstret, månen och dina växter ute med namn och avstånd. Välj var du står under Jag står vid. Månen syns också i 3D-vyn', 'Växtsidan: knappen Sök bilder på sorten eller arten, för sorter som saknar foto', 'Fråga en expert är borttagen tills vidare', 'Designvarianten Städad: ny startsida, Samling, Gemenskap, Notiser, Profil och Inställningar']],
   ['Beta 0.339', '10 nov', ['Plantswipe (tidigare Upptäck): svep igenom växter, med filter för kategori, odlingszon, växttyp, ljus, vatten, luftfuktighet, storlek och egenskaper. Snabbval på Start', 'Märket Beta-testare för alla som skapar konto under betatestperioden', 'Gratis Pro gäller alla testare utom ett konto som är markerat för betaltest, så att köpflödet kan testas', 'Moderering: tydligare navigering med sektioner och flikar, och sortering av rapporter, felrapporter och feedback', 'Odlingszon: zonväljaren visar zonkartan direkt, och bakåt-knappen tar dig inte förbi valet. Ändra zon öppnar zonvalet i inställningarna', 'Nya märkesikoner: lotusblomma, blad och groddplanta']],
   ['Beta 0.338', '10 nov', ['Designvarianten Städad: fyra textstorlekar och två vikter, brödtext 16 px, bättre kontrast, avstånd i ett jämnt rutnät och en enda accentfärg', 'Städad: tryck ger direkt återkoppling och lätt vibration, knappar är låsta medan de väntar på svar, och blockering kan ångras', 'Städad: skelettvyer medan något laddas, mjuka övergångar mellan vyer, och ett växtkort växer till växtsidan när du öppnar det']],
   ['Beta 0.337', '10 nov', ['Förberett för betald Pro: moderatorer kan testa köp och kundportal i Pro-rutan. Pro är fortfarande gratis för alla under testperioden, och moderatorer, admins och experter har alltid Pro']],
@@ -12355,7 +12365,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.339';
+const APP_VERSION = 'Beta 0.340';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
