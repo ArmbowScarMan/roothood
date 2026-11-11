@@ -1901,6 +1901,242 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
   :root[data-ui=stad] .srow:active{transform:scale(.98);transition:transform .15s cubic-bezier(.2,0,0,1)}
 }
 :root[data-ui=stad] .top .tlink{margin-left:auto;border:0;background:none;color:var(--pri);font:inherit;font-size:15px;font-weight:600;min-height:44px;padding:0 4px;cursor:pointer;white-space:nowrap}
+/* 120: Vänner. Sök och Lägg till överst, rader med avatar och olästprick, karusell Odlare nära dig, tomt läge */
+:root[data-ui=stad] .frtop{display:flex;gap:8px;align-items:center;padding-top:12px}
+:root[data-ui=stad] .frtop input{flex:1;min-width:0}
+:root[data-ui=stad] .frtop .btn{flex:0 0 auto;min-height:44px}
+:root[data-ui=stad] .list.frlist{gap:0;padding:4px 0 8px}
+:root[data-ui=stad] .frav{position:relative;flex:0 0 48px;width:48px;height:48px}
+:root[data-ui=stad] .frav>.av{width:48px;height:48px;border-radius:50%;font-size:22px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+:root[data-ui=stad] .fdot{position:absolute;right:-4px;top:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--pri);color:var(--onpri);font-size:11px;font-style:normal;font-weight:700;line-height:20px;text-align:center;border:2px solid var(--bg)}
+:root[data-ui=stad] .mlat.unr{color:var(--ink);font-weight:600}
+:root[data-ui=stad] .frs .mfg{min-height:72px}
+:root[data-ui=stad] .frempty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;margin:32px 20px 8px;padding:24px;border-radius:20px;background:var(--surf);box-shadow:0 0 0 1px var(--line)}
+:root[data-ui=stad] .frempty b{font-size:20px;font-weight:600}
+:root[data-ui=stad] .frempty span{color:var(--mut);max-width:280px}
+:root[data-ui=stad] .frempty .btn{margin-top:8px;min-width:200px}
+:root[data-ui=stad] .ncar{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:0 20px 4px;scroll-padding:0 20px}
+:root[data-ui=stad] .ncar::-webkit-scrollbar{display:none}
+:root[data-ui=stad] .ncard{flex:0 0 136px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:14px 10px;border-radius:20px;background:var(--surf);box-shadow:0 0 0 1px var(--line)}
+:root[data-ui=stad] .ncav{padding:0;border:0;background:none;cursor:pointer}
+:root[data-ui=stad] .ncav>.av{width:56px;height:56px;border-radius:50%;font-size:26px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+:root[data-ui=stad] .ncard b{font-size:15px;font-weight:600;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root[data-ui=stad] .ncard small{font-size:12px;color:var(--mut);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root[data-ui=stad] .nadd{margin-top:6px;min-width:96px;min-height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--pri);background:none;color:var(--pri);font:inherit;font-weight:600;font-size:14px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .2s,color .2s,min-width .25s cubic-bezier(.2,0,0,1)}
+:root[data-ui=stad] .nadd.done{min-width:36px;background:var(--pri);color:var(--onpri);cursor:default}
+/* Lägg till vän-fönstret */
+:root[data-ui=stad] .modal:has(.afg)::before,:root[data-ui=stad] .modal:has(.atgrid)::before{content:"";display:block;width:36px;height:4px;border-radius:2px;background:var(--line);margin:4px auto 8px}
+:root[data-ui=stad] .modal .sgroup.afg{margin:16px 0 0}
+:root[data-ui=stad] .afl{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+:root[data-ui=stad] .afrow{display:flex;align-items:center;gap:12px;min-height:56px}
+:root[data-ui=stad] .afrow .ncav>.av{width:40px;height:40px;font-size:18px}
+:root[data-ui=stad] .afrow .grow{flex:1;min-width:0;display:flex;flex-direction:column}
+:root[data-ui=stad] .afrow .nadd{margin-top:0}
+:root[data-ui=stad] .afm{margin:10px 0 0}
+:root[data-ui=stad] .afqr{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:16px;text-align:center}
+:root[data-ui=stad] .qrbox{width:220px;height:220px;padding:10px;border-radius:16px;background:#fff}
+:root[data-ui=stad] .qrbox svg{width:100%;height:100%}
+@media (prefers-reduced-motion:no-preference){
+  @keyframes fdPop{0%{transform:scale(0)}70%{transform:scale(1.2)}100%{transform:scale(1)}}
+  :root[data-ui=stad] .fdot{animation:fdPop .35s cubic-bezier(.3,1.4,.5,1)}
+  :root[data-ui=stad] .frs:active .mfg,:root[data-ui=stad] .mrs:active .mfg{transform:scale(.98)}
+}
+/* 108–111: startsidan i Städad */
+:root[data-ui=stad] .qrow4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 20px}
+:root[data-ui=stad] .qt2{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:76px;padding:8px 4px;border:0;border-radius:20px;background:var(--surf);box-shadow:0 0 0 1px var(--line);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
+:root[data-ui=stad] .qt2 i.ph{font-size:24px;color:var(--pri)}
+:root[data-ui=stad] .qt2 span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+:root[data-ui=stad] .atgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+:root[data-ui=stad] .atgrid .qt2 span{white-space:normal;text-align:center;line-height:1.2}
+:root[data-ui=stad] .psrow{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;margin-top:12px;padding:8px 14px;border:0;border-radius:20px;background:var(--surf);box-shadow:0 0 0 1px var(--line);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+:root[data-ui=stad] .pstack{display:flex;align-items:center;flex:0 0 auto;color:var(--pri)}
+:root[data-ui=stad] .pstack img{width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--surf)}
+:root[data-ui=stad] .pstack img+img{margin-left:-10px}
+:root[data-ui=stad] .psrow .grow{display:flex;flex-direction:column}
+:root[data-ui=stad] .psrow small{color:var(--mut);font-size:13px}
+/* 108: att göra */
+:root[data-ui=stad] .tdlist{margin:0 20px;border-radius:20px;background:var(--surf);box-shadow:0 0 0 1px var(--line);overflow:hidden}
+:root[data-ui=stad] .tdr{display:flex;align-items:center;gap:8px;padding:0 12px;min-height:60px;max-height:80px;border-top:1px solid var(--line);transition:max-height .3s ease,opacity .25s ease,min-height .3s ease}
+:root[data-ui=stad] .tdr:first-child{border-top:0}
+:root[data-ui=stad] .tdr.gone{max-height:0;min-height:0;opacity:0;overflow:hidden}
+:root[data-ui=stad] .tdo{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:10px 0;border:0;background:none;color:var(--ink);font:inherit;font-size:15px;text-align:left;cursor:pointer}
+:root[data-ui=stad] .tdo>.ph{flex:0 0 40px;width:40px;height:40px;border-radius:12px;overflow:hidden;font-size:16px}
+:root[data-ui=stad] .tdo>.ph img{width:100%;height:100%;object-fit:cover}
+:root[data-ui=stad] .tdo span{min-width:0;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+:root[data-ui=stad] .tdc{position:relative;flex:0 0 32px;width:32px;height:32px;border-radius:50%;border:2px solid var(--pri);background:none;color:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:visible}
+:root[data-ui=stad] .tdc.ok{background:var(--pri);color:var(--onpri)}
+:root[data-ui=stad] .tdd{position:absolute;left:50%;top:-6px;width:8px;height:10px;margin-left:-4px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:#6FB3E0;opacity:0}
+:root[data-ui=stad] .tdempty{display:flex;align-items:center;gap:10px;margin:0 20px;padding:16px;border-radius:20px;background:var(--surf);box-shadow:0 0 0 1px var(--line);font-weight:600}
+:root[data-ui=stad] .tdi{background:var(--soft) !important;color:var(--pri)}
+@media (prefers-reduced-motion:no-preference){
+  @keyframes tdFill{0%{transform:scale(.8)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+  @keyframes tdDrop{0%{opacity:0;transform:translateY(-14px)}30%{opacity:1}100%{opacity:0;transform:translateY(14px)}}
+  :root[data-ui=stad] .tdc.ok{animation:tdFill .35s cubic-bezier(.3,1.4,.5,1)}
+  :root[data-ui=stad] .tdc.ok .tdd{animation:tdDrop .45s ease-in}
+}
+/* 108: väder som kompakt rad, varningar som rader med › */
+:root[data-ui=stad] .wx2{display:flex;align-items:center;gap:12px;margin:12px 20px 0;padding:12px 14px;border-radius:20px;background:var(--surf);box-shadow:0 0 0 1px var(--line)}
+:root[data-ui=stad] .wx2 .grow{display:flex;flex-direction:column;gap:2px;min-width:0}
+:root[data-ui=stad] .wx2 b{font-size:15px;font-weight:600}
+:root[data-ui=stad] .wx2 small{font-size:13px;color:var(--mut)}
+:root[data-ui=stad] .wxr2{display:flex;align-items:center;gap:10px;width:calc(100% - 40px);margin:8px 20px 0;min-height:48px;padding:8px 14px;border:0;border-radius:16px;background:var(--surf);box-shadow:0 0 0 1px var(--line);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+:root[data-ui=stad] .wxr2 .grow{display:flex;flex-direction:column;gap:2px;min-width:0}
+:root[data-ui=stad] .wxr2 b{font-size:15px;font-weight:600}
+:root[data-ui=stad] .wxr2 small{font-size:13px;color:var(--mut)}
+/* 109: Mina växter som karusell med glimt av nästa kort */
+:root[data-ui=stad] .hcar{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:0 20px 4px;scroll-padding:0 20px}
+:root[data-ui=stad] .hcar::-webkit-scrollbar{display:none}
+:root[data-ui=stad] .hcard{flex:0 0 42%;scroll-snap-align:start;display:flex;flex-direction:column;gap:6px;position:relative}
+:root[data-ui=stad] .hcimg{display:block;width:100%;aspect-ratio:1;padding:0;border:0;border-radius:20px;overflow:hidden;background:var(--soft);cursor:pointer}
+:root[data-ui=stad] .hcimg img{width:100%;height:100%;object-fit:cover}
+:root[data-ui=stad] .hcini{display:flex;width:100%;height:100%;align-items:center;justify-content:center;font-size:40px;font-weight:600;color:#fff;background:hsl(var(--h) 30% 30%);font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+:root[data-ui=stad] .hcadd{position:absolute;left:8px;right:8px;bottom:64px;display:flex;align-items:center;justify-content:center;gap:4px;min-height:32px;border-radius:16px;background:rgba(0,0,0,.45);color:#fff;font-size:12px;cursor:pointer}
+:root[data-ui=stad] .hcname{padding:0;border:0;background:none;color:var(--ink);font:inherit;font-weight:600;font-size:15px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+:root[data-ui=stad] .hcard .mpill{margin-top:0;align-self:flex-start}
+/* 110: Just nu */
+:root[data-ui=stad] .sn2{display:flex;flex-direction:column;gap:8px}
+:root[data-ui=stad] .sntip{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:14px 16px;border:0;border-radius:20px;background:var(--surf);box-shadow:0 0 0 1px var(--line);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+:root[data-ui=stad] .sntag{padding:2px 8px;border-radius:10px;background:var(--soft);color:var(--pri);font-size:12px;font-weight:600}
+:root[data-ui=stad] .sntip b{font-size:17px;font-weight:600;line-height:1.3}
+:root[data-ui=stad] .sntxt{font-size:15px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+:root[data-ui=stad] .snmore{color:var(--pri);font-weight:600;font-size:14px}
+/* 110: Händer nära dig */
+:root[data-ui=stad] .lcar{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:0 20px 4px;scroll-padding:0 20px}
+:root[data-ui=stad] .lcar::-webkit-scrollbar{display:none}
+:root[data-ui=stad] .lcard2{flex:0 0 80%;scroll-snap-align:start;display:flex;gap:12px;padding:12px;border-radius:20px;background:var(--surf);box-shadow:0 0 0 1px var(--line)}
+:root[data-ui=stad] .lcimg{flex:0 0 88px;width:88px;height:88px;padding:0;border:0;border-radius:14px;overflow:hidden;background:var(--soft);cursor:pointer}
+:root[data-ui=stad] .lcimg img{width:100%;height:100%;object-fit:cover}
+:root[data-ui=stad] .lcsk{display:block;width:100%;height:100%}
+:root[data-ui=stad] .lcb{min-width:0;flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+:root[data-ui=stad] .lcb b{font-size:15px;line-height:1.3;overflow-wrap:anywhere}
+:root[data-ui=stad] .lcb .mut{font-size:13px}
+:root[data-ui=stad] .ltag{padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600}
+:root[data-ui=stad] .ltag.t-give{background:var(--soft);color:var(--pri)}
+:root[data-ui=stad] .ltag.t-swap{background:rgba(92,200,242,.18);color:#2B8FB8}
+:root[data-ui=stad] .ltag.t-want{background:rgba(194,100,63,.16);color:#B0683F}
+:root[data-ui=stad] .lcbtn{margin-top:4px;min-height:44px;background:rgba(194,100,63,.16) !important;color:var(--ink) !important;box-shadow:none !important;background-image:none !important}
+/* 111: Mitt hem */
+:root[data-ui=stad] .h3c2{margin:0 20px;border-radius:20px;background:var(--surf);box-shadow:0 0 0 1px var(--line);overflow:hidden}
+:root[data-ui=stad] .h3c2 .planbox.sz-s{height:160px}
+:root[data-ui=stad] .h3thumb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:100%;height:160px;padding:0;border:0;background:var(--soft);color:var(--ink);font:inherit;cursor:pointer;overflow:hidden}
+:root[data-ui=stad] .h3thumb img{width:100%;height:100%;object-fit:cover}
+:root[data-ui=stad] .h3bar2{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 8px 8px 16px}
+:root[data-ui=stad] .icb{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border:0;border-radius:20px;background:none;color:var(--pri);font:inherit;font-weight:600;cursor:pointer}
+/* 111: Anpassa startsidan centrerad med 32 px luft ovanför och högre kontrast */
+:root[data-ui=stad] .hcfgrow{display:flex;justify-content:center;margin-top:32px}
+:root[data-ui=stad] .hcfgb{color:var(--ink) !important;opacity:1 !important;border-color:var(--mut) !important}
+/* 115: Samlingens rader. Samma struktur och höjd, tunna avdelare, foto 56 px, statuspill, rund vattna-knapp, svep med färgad bakgrund */
+:root[data-ui=stad] .list:has(>.mrs){gap:0;padding:4px 0 96px}
+:root[data-ui=stad] .mrs{display:block;width:100%}
+:root[data-ui=stad] .mrs .mfg{width:100%;box-sizing:border-box}
+:root[data-ui=stad] .ph.pinit{font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+:root[data-ui=stad] .pdots{justify-content:flex-start;margin-top:0}
+:root[data-ui=stad] .mrs{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+:root[data-ui=stad] .mrs .msbg{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-weight:600;color:#fff;opacity:0}
+:root[data-ui=stad] .mrs.swr .msbg{opacity:1;background:var(--pri);color:var(--onpri)}
+:root[data-ui=stad] .mrs.swl .msbg{opacity:1;background:#C2873F}
+:root[data-ui=stad] .mrs.swr .mzr,:root[data-ui=stad] .mrs.swl .mzl{visibility:hidden}
+:root[data-ui=stad] .mrs .msbg span{display:inline-flex;align-items:center;gap:6px}
+:root[data-ui=stad] .mrs .mfg{position:relative;display:flex;align-items:center;gap:12px;min-height:80px;padding:0 20px;background:var(--bg);will-change:transform}
+:root[data-ui=stad] .mopen2{flex:1;min-width:0;display:flex;align-items:center;gap:14px;padding:12px 0;border:0;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+:root[data-ui=stad] .mopen2>.ph{flex:0 0 56px;width:56px;height:56px;border-radius:14px;overflow:hidden}
+:root[data-ui=stad] .mopen2>.ph img{width:100%;height:100%;object-fit:cover}
+:root[data-ui=stad] .ph.pinit{display:flex;align-items:center;justify-content:center;background:hsl(var(--h) 30% 30%);color:#fff;font-size:22px;font-weight:600}
+:root[data-ui=stad] .mopen2 .grow{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+:root[data-ui=stad] .mopen2 .mname{font-size:17px;font-weight:600;line-height:1.25;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root[data-ui=stad] .mlat{font-size:13px;color:var(--mut);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root[data-ui=stad] .mlat i{font-style:italic}
+:root[data-ui=stad] .mpill{margin-top:4px;display:inline-block;padding:2px 10px;border-radius:12px;font-size:13px;background:var(--soft);color:var(--ink);transition:opacity .15s}
+:root[data-ui=stad] .mpill.due{background:var(--pri);color:var(--onpri)}
+:root[data-ui=stad] .mpill.done{background:var(--soft);color:var(--pri)}
+:root[data-ui=stad] .mpill.swap{opacity:0}
+:root[data-ui=stad] .wbtn2{position:relative;flex:0 0 40px;width:40px;height:40px;border-radius:50%;border:1.5px solid var(--pri);background:none;color:var(--pri);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer}
+:root[data-ui=stad] .wbtn2 .wfill{position:absolute;left:0;right:0;bottom:0;height:0;background:var(--pri);transition:height .3s cubic-bezier(.2,0,0,1)}
+:root[data-ui=stad] .wbtn2>svg,:root[data-ui=stad] .wbtn2>i{position:relative}
+:root[data-ui=stad] .wbtn2.go .wfill{height:100%}
+:root[data-ui=stad] .wbtn2.go{color:var(--onpri)}
+@media (prefers-reduced-motion:no-preference){
+  @keyframes mIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  :root[data-ui=stad] .mrs.mfirst{animation:mIn .25s cubic-bezier(.2,0,0,1) both}
+  :root[data-ui=stad] .mrs.mfirst:nth-child(2){animation-delay:.03s}:root[data-ui=stad] .mrs.mfirst:nth-child(3){animation-delay:.06s}:root[data-ui=stad] .mrs.mfirst:nth-child(4){animation-delay:.09s}:root[data-ui=stad] .mrs.mfirst:nth-child(n+5){animation-delay:.12s}
+}
+/* 117: Frågor. Composer med avatar, chips som scrollar med fade, kort med samma struktur, 12 px mellan korten */
+:root[data-ui=stad] .composer .cav{overflow:hidden}
+:root[data-ui=stad] .composer .cav .av{width:32px;height:32px;font-size:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff}
+:root[data-ui=stad] .qfilt{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:8px;margin:8px 0 0;padding:0 20px}
+:root[data-ui=stad] .qfilt::-webkit-scrollbar{display:none}
+:root[data-ui=stad] .qfilt.more{-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent)}
+:root[data-ui=stad] .qfilt button{flex:0 0 auto;min-height:36px;border-radius:18px;border:1px solid var(--line);background:transparent;color:var(--ink);box-shadow:none;white-space:nowrap}
+:root[data-ui=stad] .qfilt button.on{background:var(--pri);border-color:var(--pri);color:var(--onpri)}
+:root[data-ui=stad] .qfilt small{opacity:.75;margin-left:2px}
+:root[data-ui=stad] .qlist{display:flex;flex-direction:column;gap:12px;padding-top:12px;padding-bottom:96px}
+:root[data-ui=stad] .qcard{display:block;padding:16px;border-radius:20px;background:var(--surf);box-shadow:0 0 0 1px var(--line);cursor:pointer;text-align:left}
+:root[data-ui=stad] .qtop{display:flex;align-items:center;gap:8px;min-width:0}
+:root[data-ui=stad] .qtop .av{flex:0 0 36px;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;overflow:hidden}
+:root[data-ui=stad] .qwho{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+:root[data-ui=stad] .qtop .ubadge{font-size:11px;padding:2px 6px}
+:root[data-ui=stad] .qtime{color:var(--mut);font-size:13px;white-space:nowrap}
+:root[data-ui=stad] .qtop .qst{margin-left:auto}
+:root[data-ui=stad] .qh{margin:10px 0 0;font-size:17px;font-weight:600;line-height:1.3}
+:root[data-ui=stad] .qb{margin:4px 0 0;font-size:15px;line-height:1.45;color:var(--ink);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+:root[data-ui=stad] .qmore{display:inline-block;margin-top:2px;color:var(--pri);font-weight:600;font-size:14px}
+:root[data-ui=stad] .qcard .qchip{margin-top:8px}
+:root[data-ui=stad] .qimg{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px;margin-top:12px}
+:root[data-ui=stad] .qfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
+:root[data-ui=stad] .qsame{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border-radius:18px;border:1px solid var(--line);background:none;color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+:root[data-ui=stad] .qsame.on{background:var(--pri);border-color:var(--pri);color:var(--onpri)}
+:root[data-ui=stad] .qsame.ro{cursor:default;color:var(--mut)}
+:root[data-ui=stad] .qans{display:inline-flex;align-items:center;gap:6px;color:var(--mut);font-size:14px}
+:root[data-ui=stad] .qcard.qnew{box-shadow:0 0 0 2px var(--pri)}
+:root[data-ui=stad] .fabq{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:20;display:inline-flex;align-items:center;gap:8px;min-height:52px;padding:0 20px 0 16px;border-radius:26px;border:0;background:var(--pri);color:var(--onpri);font:inherit;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer;overflow:hidden;white-space:nowrap}
+:root[data-ui=stad] .fabq span,:root[data-ui=stad] .fabshow span{max-width:140px;overflow:hidden;transition:max-width .25s cubic-bezier(.2,0,0,1),opacity .2s}
+:root[data-ui=stad] .fabq.fmini,:root[data-ui=stad] .fabshow.fmini{padding:0 14px;gap:0}
+:root[data-ui=stad] .fabq.fmini span,:root[data-ui=stad] .fabshow.fmini span{max-width:0;opacity:0}
+@media (prefers-reduced-motion:no-preference){
+  @keyframes qNew{from{transform:translateY(-12px);opacity:0;box-shadow:0 0 0 2px var(--pri)}to{transform:none;opacity:1}}
+  :root[data-ui=stad] .qcard.qnew{animation:qNew .35s cubic-bezier(.2,0,0,1) both}
+}
+/* 127–129: Ställ en fråga. Drag-handtag, titel 22 px, X 40 px, växtkort, kategorichips, bildruta och fast Publicera */
+:root[data-ui=stad] .modal:has(.ask2){padding-top:8px}
+:root[data-ui=stad] .modal:has(.ask2)::before{content:"";display:block;width:36px;height:4px;border-radius:2px;background:var(--line);margin:4px auto 8px}
+:root[data-ui=stad] .modal:has(#nq:focus){min-height:92vh}
+:root[data-ui=stad] .ask2{display:flex;flex-direction:column}
+:root[data-ui=stad] .mh2{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+:root[data-ui=stad] .mh2 h2{margin:0;font-size:22px;font-weight:600}
+:root[data-ui=stad] .x40{width:40px;height:40px;border:0;background:none;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;border-radius:50%}
+:root[data-ui=stad] .ask2 textarea{width:100%;min-height:96px;resize:none;border:1px solid var(--line);border-radius:14px;background:transparent;padding:12px 14px;font:inherit;font-size:16px;color:var(--ink);box-shadow:none}
+:root[data-ui=stad] .ask2 textarea:focus{outline:none;border-color:var(--pri)}
+:root[data-ui=stad] .qlbl{margin:16px 0 8px;font-size:13px;color:var(--mut)}
+:root[data-ui=stad] .qpcs{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding:4px 2px}
+:root[data-ui=stad] .qpcs::-webkit-scrollbar{display:none}
+:root[data-ui=stad] .qpc{flex:0 0 64px;display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:0;color:var(--ink);font:inherit;cursor:pointer}
+:root[data-ui=stad] .qpi{position:relative;width:56px;height:56px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;color:var(--mut)}
+:root[data-ui=stad] .qpi>.ph{width:56px;height:56px;border-radius:50%;overflow:hidden}
+:root[data-ui=stad] .qpc.on .qpi{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--pri)}
+:root[data-ui=stad] .qok{position:absolute;right:-2px;bottom:-2px;width:20px;height:20px;border-radius:50%;background:var(--pri);color:var(--onpri);display:flex;align-items:center;justify-content:center;border:2px solid var(--surf)}
+:root[data-ui=stad] .qpn{font-size:12px;line-height:1.2;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:root[data-ui=stad] .qcats{display:flex;flex-wrap:wrap;gap:8px}
+:root[data-ui=stad] .qcats button{min-height:36px;border-radius:18px;border:1px solid var(--line);background:transparent;box-shadow:none;color:var(--ink)}
+:root[data-ui=stad] .qcats button.on{background:var(--pri);border-color:var(--pri);color:var(--onpri)}
+:root[data-ui=stad] .qimgs{display:flex;gap:8px}
+:root[data-ui=stad] .qadd{width:72px;height:72px;border-radius:14px;border:1.5px dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--mut);font-size:13px;cursor:pointer}
+:root[data-ui=stad] .qth{position:relative;width:72px;height:72px}
+:root[data-ui=stad] .qth img{width:72px;height:72px;object-fit:cover;border-radius:14px}
+:root[data-ui=stad] .qth button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:var(--ink);color:var(--bg);font-size:16px;line-height:1;cursor:pointer}
+:root[data-ui=stad] .qpub{position:sticky;bottom:0;margin-top:20px;padding:12px 0 calc(4px + env(safe-area-inset-bottom));background:var(--bg)}
+:root[data-ui=stad]:has(#ov .ov) .fabq,:root[data-ui=stad]:has(#ov .ov) .fabshow{visibility:hidden}
+:root[data-ui=stad] .modal:has(#nq:focus){max-height:96%}
+:root[data-ui=stad] .qpub .btn{width:100%;transition:opacity .2s,background .2s}
+:root[data-ui=stad] .qpub .btn:disabled{opacity:.45}
+:root[data-ui=stad] .qdisc{position:sticky;bottom:0;margin-top:12px;padding:16px;border-radius:16px;background:var(--surf);box-shadow:0 0 0 1px var(--line),0 -8px 24px rgba(0,0,0,.2)}
+:root[data-ui=stad] .qdisc .qdb{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+@media (prefers-reduced-motion:no-preference){
+  @keyframes qPop{0%{transform:scale(.85)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
+  @keyframes qIn{from{transform:scale(.8);opacity:0}to{transform:none;opacity:1}}
+  :root[data-ui=stad] .qpc.pop .qpi,:root[data-ui=stad] .qcats button.pop{animation:qPop .3s cubic-bezier(.3,1.4,.5,1)}
+  :root[data-ui=stad] .qpc.on .qok{animation:qIn .25s cubic-bezier(.3,1.4,.5,1)}
+  :root[data-ui=stad] .qth{animation:qIn .2s ease-out}
+}
 /* 131: notisrader. Avatar 44 px med typikon, text på max 2 rader, förhandsvisning på 1 rad, tid uppe till höger */
 :root[data-ui=stad] .nlist2{display:flex;flex-direction:column;gap:2px}
 :root[data-ui=stad] .nrow2{display:flex;align-items:flex-start;gap:12px;width:100%;padding:12px;border:0;border-radius:16px;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer;position:relative}
@@ -2573,7 +2809,10 @@ function sheetAnim() { if (!S.modal) { sheetOpen = null; return; } if (sheetOpen
   o.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' });
   m.animate(RM() ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { duration: RM() ? 200 : 380, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' }); }
 // Stänger direkt som förut. En kopia av panelen glider ut och tas sedan bort, så att inget annat behöver vänta.
-function closeModal() { if (S.modal === 'zonepick' && !store.get('zone', 0)) return; const o = $('#ov .ov');
+function closeModal() { if (S.modal === 'zonepick' && !store.get('zone', 0)) return;
+  // Städad (129): stänger man Ställ en fråga med text i fältet frågar appen först
+  if (S.modal === 'askq' && stadUI() && ((S.draft || '').trim() || S.cph) && !S.askDiscard) { S.askDiscard = true; return keepScroll(); }
+  S.askDiscard = false; const o = $('#ov .ov');
   if (o && o.animate) { const g = o.cloneNode(true); g.removeAttribute('onclick'); g.style.pointerEvents = 'none'; g.setAttribute('aria-hidden', 'true'); $('#ov').after(g); const gm = g.querySelector('.modal');
     g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' });
     const a = gm ? gm.animate(RM() ? [{ opacity: 1 }, { opacity: 0 }] : [{ transform: 'translateY(0)' }, { transform: 'translateY(100%)' }], { duration: 220, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' }) : null;
@@ -3420,6 +3659,13 @@ function home3dV(sz) {
   if (!S.homeLoaded) return `<div class="sec cap2"><h2>Mitt hem</h2></div><div class="h3card"><div class="h3empty"><p class="mut">Hämtar ditt hem…</p></div></div>`;
   if (!has) return `<div class="sec cap2"><h2>Mitt hem</h2></div><div class="h3card"><div class="h3empty">${ic('ph-house-line', 'var(--pri)', 40)}<b>Rita ditt hem</b><span>Rita rum, fönster och trädgård, så ser du hemmet i 3D här och får tips om var växterna trivs.</span><button class="btn sm" onclick="openHouse();S.hview='plan';render()">Börja rita</button></div></div>`;
   const n = S.mine.filter(m => m.details && m.details.pos).length;
+  if (stadUI()) {
+    // Städad (111): kompakt kort, ca 160 px, med en bild av 3D-hemmet (sparas när 3D-vyn har visats), "N rum · M växter utplacerade" och en liten Redigera-knapp
+    const th = store.get('h3thumb_' + S.user.id, null), nr = planRoomsAll().length;
+    return `<div class="sec cap2"><h2>Mitt hem</h2><button class="viewall" onclick="openHouse();S.hview='3d';render()">Visa stort ›</button></div>
+  <div class="h3c2">${S.h3on ? `<div class="planbox home3d sz-s" id="box3d"><p class="l3">Laddar 3D…</p></div>` : `<button class="h3thumb${th ? '' : ' h3e'}" onclick="S.h3on=true;keepMain()" aria-label="Visa hemmet i 3D">${th ? `<img src="${th}" alt="Ditt hem i 3D">` : `${ic('ph-cube', 'var(--pri)', 28)}<span>Visa i 3D</span>`}</button>`}
+    <div class="h3bar2"><span class="mut">${nr} rum · ${n} ${n === 1 ? 'växt utplacerad' : 'växter utplacerade'}</span><button class="icb" onclick="openHouse();S.hview='plan';render()" aria-label="Redigera Mitt hem">${ic(PEN, 'currentColor', 18)}<span>Redigera</span></button></div></div>`;
+  }
   return `<div class="sec cap2"><h2>Mitt hem</h2><button class="viewall" onclick="openHouse();S.hview='3d';render()">Visa stort</button></div>
   <div class="h3card">${S.h3on ? `<div class="planbox home3d sz-${sz}" id="box3d"><p class="l3">Laddar 3D…</p></div>` : h3off(sz)}
     <div class="h3bar"><span class="mut">${planRoomsAll().length} rum${n ? ' · ' + n + (n === 1 ? ' växt utplacerad' : ' växter utplacerade') : ''}</span><button class="btn sm" onclick="openHouse();S.hview='plan';render()">${ic(PEN, 'currentColor', 15)} Mitt hem</button></div></div>`;
@@ -3790,7 +4036,7 @@ async function mount3d() {
   fitPlanBox(); requestAnimationFrame(() => { if ($('#box3d') === box) { fitPlanBox(); if (T3 && T3.renderer) { const w = box.clientWidth, h = box.clientHeight; if (w && h) { T3.renderer.setSize(w, h, false); T3.camera.aspect = w / h; T3.camera.updateProjectionMatrix(); T3.dirty = true; } } } });
   const W = box.clientWidth, H = box.clientHeight; if (!W || !H) { setTimeout(() => { if ($('#box3d') === box) mount3d(); }, 200); return; } T3.renderer.setSize(W, H, false); T3.renderer.domElement.style.width = '100%'; T3.renderer.domElement.style.height = '100%';
   T3.camera.aspect = W / H; T3.camera.updateProjectionMatrix(); T3.dirty = true;
-  if (!T3.loop) { const tick = () => { if (!document.body.contains(T3.renderer.domElement)) { T3.loop = null; return; } if (T3.auto) { T3.st.az += 0.0035; T3.dirty = true; } spin3Tick(); walkTick(); envTick(); if (T3.dirty) { place3dCam(); T3.renderer.render(T3.scene, T3.camera); T3.dirty = false; perf3(); } else T3.pf = null; T3.loop = requestAnimationFrame(tick); }; T3.loop = requestAnimationFrame(tick); }
+  if (!T3.loop) { const tick = () => { if (!document.body.contains(T3.renderer.domElement)) { T3.loop = null; return; } if (T3.auto) { T3.st.az += 0.0035; T3.dirty = true; } spin3Tick(); walkTick(); envTick(); if (T3.dirty) { place3dCam(); T3.renderer.render(T3.scene, T3.camera); h3Snap(); T3.dirty = false; perf3(); } else T3.pf = null; T3.loop = requestAnimationFrame(tick); }; T3.loop = requestAnimationFrame(tick); }
 }
 // Från Planera rabatt till 3D: kameran går nära den rabatt man planerar
 function focusBed3d() { const id = S.focusBed; S.focusBed = null; if (!T3 || !T3.st) return; const a = planAreas().find(x => x.id === id); if (!a || !a.pts || a.pts.length < 3) return;
@@ -6340,8 +6586,18 @@ function todoItems() {
   if (S.wx && S.wx.d) outWeatherAlerts().slice(0, 3).forEach(([m, msg]) => t.push({ id: 'o' + m.id, txt: m.name + ': ' + msg.split('.')[0], open: `openMine(${m.id})` }));
   return t;
 }
+// Städad (108): att göra-rad med växtfoto 40 px, text och checkbox till höger. Avbockning fylls, en droppe faller och raden fälls ihop efter 600 ms.
+function todoPh(x) { const id = +(/^[ws](\d+)$/.exec(x.id) || [])[1]; const m = id && S.mine.find(y => y.id === id); return m ? mPhoto(m) : `<div class="ph pinit tdi">${ic(x.id[0] === 'p' ? 'ph-paw-print' : x.id[0] === 'o' ? 'ph-cloud-sun' : 'ph-plant', 'currentColor', 18)}</div>`; }
+function todoTick(b, act) { b.classList.add('ok'); b.disabled = true; try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { } const r = b.closest('.tdr'); if (r) setTimeout(() => r.classList.add('gone'), 350); setTimeout(() => { try { (new Function(act))(); } catch (e) { console.warn('Roothood:', e); } }, 600); }
+function todoStad() {
+  const l = todoItems();
+  if (!l.length) return `<div class="sec cap2"><h2>Att göra</h2></div><div class="tdempty">${ic('ph-drop', 'var(--pri)', 22)}<span>Allt är vattnat för idag</span></div>${sitterTasksHtml()}`;
+  return `<div class="sec cap2"><h2>Att göra</h2><span class="mut" style="font-size:13px">${l.length} ${l.length === 1 ? 'sak' : 'saker'}</span></div>
+  <div class="tdlist">${l.slice(0, 8).map(x => `<div class="tdr"><button class="tdo" onclick="${x.open}">${todoPh(x)}<span>${esc(x.txt)}</span></button>${x.act ? `<button class="tdc" aria-label="Klart: ${esc(x.txt)}" onclick="todoTick(this,${jsArg(x.act)})"><i class="tdd" aria-hidden="true"></i>${ic(I.check, 'currentColor', 16)}</button>` : ''}</div>`).join('')}${l.length > 8 ? `<small class="mut">och ${l.length - 8} till</small>` : ''}</div>${sitterTasksHtml()}`;
+}
 function todoV() {
   if (!S.user) return '';
+  if (stadUI()) return todoStad();
   const l = todoItems();
   const sowBtn = `<div style="margin:10px 18px 0"><button class="btn sm line" onclick="openSow()">Öppna Såkalendern</button></div>`;
   if (!l.length) return `<div class="todoc empty"><span>✅</span><b>Inget att göra just nu</b></div>${sowBtn}${sitterTasksHtml()}`;
@@ -6371,6 +6627,11 @@ function localV(sz) {
   const near = c ? open.filter(p => String(p.city || '').toLowerCase().includes(c)) : [];
   const list = (near.length ? near : open).slice(0, { s: 1, m: 3, l: 6 }[sz || 'm']);
   if (!list.length) return '';
+  // Städad (110): kort på 80 % bredd med glimt av nästa, snap-scroll, ingen text klipps, bild i stället för bladet och sekundära knappar
+  if (stadUI()) return `<div class="sec cap2"><h2>${near.length ? 'Händer i ' + esc(S.city) : 'Händer nära dig'}</h2><button class="viewall" onclick="S.tab='comm';S.ctab='swap';S.post=null;render();loadFeed()">Visa alla ›</button></div>
+  <div class="lcar">${list.map(p => { const pl = !p.photo_url && S.plants.find(x => x.swedish_name.toLowerCase() === String(p.title || '').toLowerCase().replace(/-?sticklingar?$/, '').trim()), img = p.photo_url || (pl && pl.photo_url);
+    return `<div class="lcard2"><button class="lcimg" onclick="openListing(${p.id})" aria-label="Öppna annonsen">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : '<span class="skel lcsk" aria-hidden="true"></span>'}</button><div class="lcb"><span class="ltag t-${p.category === 'Önskas' ? 'want' : p.category === 'Byta' ? 'swap' : 'give'}">${esc(p.category)}</span><b>${esc(p.title || '')}</b><span class="mut">${p.city ? esc(p.city) + ' · ' : ''}${ago(p.created_at)}</span>
+    <button class="btn sm lcbtn" onclick="openListing(${p.id})">${p.category === 'Önskas' ? 'Jag har en!' : p.category === 'Byta' ? 'Föreslå byte' : 'Jag vill ha!'}</button></div></div>`; }).join('')}</div>`;
   return `<div class="sec cap2"><h2>${near.length ? 'Händer i ' + esc(S.city) : 'Händer nära dig'}</h2><button class="viewall" onclick="S.tab='comm';S.ctab='swap';S.post=null;render();loadFeed()">Visa alla</button></div>
   <div class="hscroll">${list.map(p => `<div class="localc lc2">${lThumb(p)}<div class="grow"><b>${esc(p.title || '')}</b><span class="mut">${esc(p.category)}${p.city ? ' · ' + esc(p.city) : ''} · ${ago(p.created_at)}</span>
   <button class="btn sm cop" onclick="openListing(${p.id})">${p.category === 'Önskas' ? 'Jag har en!' : p.category === 'Byta' ? 'Föreslå byte' : 'Jag vill ha!'}</button></div></div>`).join('')}</div>`;
@@ -6978,7 +7239,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -7206,6 +7467,12 @@ function weatherV(sz) {
   if (!w || (w.none && !w.cur)) return `<div class="wxc">${wxLocBtn()}<div class="wxtop">${ic('ph-cloud-sun', 'var(--pri)', 30)}<div class="grow"><b>Väder för dina växter</b><span>${w && w.none ? 'Välj din ort så visas vädret och varningar för frost, blåst och torr luft.' : 'Hämtar vädret…'}</span></div></div>${w && w.none ? `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn sm" onclick="${S.user ? 'openSettings()' : "openModal('login')"}">Välj ort</button><button class="btn sm line" onclick="wxHere()">📍 Min position</button></div>` : ''}</div>`;
   if (!w.cur) return `<div class="wxc">${wxLocBtn()}<div class="wxtop">${ic('ph-cloud-sun', 'var(--pri)', 30)}<div class="grow"><b>Vädret kunde inte hämtas</b><span>Kontrollera internet och försök igen.</span></div><button class="btn sm line" onclick="loadWeather(true)">Försök igen</button></div></div>`;
   const c = w.cur, d = w.d, wx = WX[c.weather_code] || ['', '🌡️'], warn = wxWarnings(w);
+  if (stadUI()) {
+    // Städad (108): kompakt rad utan blå gradient, ett växttips, varningar som enkla rader med ›. Ingen "ditt hem" eller "5 dagar".
+    const t = Math.round(c.temperature_2m), h = c.relative_humidity_2m, tip = t <= 1 ? 'Frostrisk. Ta in växter som står ute.' : t >= 27 ? 'Varmt. Känn på jorden oftare idag.' : h < 40 ? 'Torr luft. Fuktälskande växter mår bra av en luftfuktare.' : h > 85 ? 'Fuktigt ute. Vänta med att vattna växterna ute.' : 'Bra väder för dina växter.';
+    return `<div class="wx2"><span class="wxi">${wxIco(wx[1], 28)}</span><span class="grow"><b>${t}° · ${esc(wx[0])} · ${h} % luftfukt</b><small>${tip}</small></span></div>
+    ${warn.map((x, i) => `<button class="wxr2" aria-expanded="${S.wxI === i}" onclick="S.wxI=S.wxI===${i}?null:${i};keepMain()"><span class="wwi">${x[1]}</span><span class="grow"><b>${x[2]}</b>${S.wxI === i ? `<small>${x[3]}</small>` : ''}</span>${ic(S.wxI === i ? 'ph-caret-down' : 'ph-caret-right', 'var(--mut)', 18)}</button>`).join('')}`;
+  }
   if (sz === 's') return `<div class="wxc wxs"><div class="wxtop"><span class="wxi">${wxIco(wx[1], 34)}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]}</span></div>${warn.length ? `<span class="wxbadge">${wxIco(warn[0][1], 14)} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span>` : '<span class="wxbadge ok">Inga varningar</span>'}</div></div>`;
   const showDays = sz === 'l' || S.wxAll;
   return `<div class="wxc">
@@ -9016,7 +9283,8 @@ function homeBlocks(intro) {
   const flush = () => { if (tiles.length) { out.push(`<div class="tools">${tiles.join('')}</div>`); tiles = []; } };
   L.forEach(x => {
     const sz = sizeOf(x);
-    if (HB_M[x.k][3] === 'tool') { if (!qfav.includes(x.k)) tiles.push(toolTile(x.k, sz)); return; }
+    // Städad (109): ingen separat verktygslista längre ner, alla verktyg finns under Alla
+    if (HB_M[x.k][3] === 'tool') { if (!qfav.includes(x.k) && !stadUI()) tiles.push(toolTile(x.k, sz)); return; }
     flush();
     if (x.k === 'todo') out.push(todoV());
     else if (x.k === 'alerts') out.push(homeAlerts(sz));
@@ -9047,6 +9315,10 @@ const WATER_CAN = '<path d="M3 10h12v7a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d=
 const QPH = { jord: ['ph-shovel', 'Jord och substrat'], hydro: ['ph-drop', 'Hydroponi'], naring: ['ph-flask', 'Gödsel och näring'], ljuslara: ['ph-sun', 'Ljus'], rosor: ['ph-flower', 'Rosor'], ask: ['ph-sparkle', 'Snabbfråga'], bed: ['ph-flower-tulip', 'Planera rabatt'], db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-notebook', 'Växtjournalen'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-seal-check', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Mina djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: [SEEDLING, 'Såkalender'], perma: ['ph-recycle', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Detektiver'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
 // Mina växter på Hem: kort med bild, de som behöver vatten först
 function mineStrip(sz) { const n = { s: 4, m: 8, l: 14 }[sz || 'm'], L = S.mine.slice().sort((a, b) => { const x = left(a), y = left(b); return (x === null ? 99 : x) - (y === null ? 99 : y); }).slice(0, n);
+  // Städad (109): karusell med kort på ca 42 % bredd, alltid riktigt foto eller initial med "Lägg till foto", status som pill och "Visa alla ›"
+  if (stadUI()) return `<div class="sec cap2"><h2>Mina växter</h2><button class="viewall" onclick="go('mine')">Visa alla ›</button></div><div class="hcar">${L.map(m => { const d = left(m), p = plantById(m.plant_id), u = m.photo || (p && p.photo_url), nm = (m.details && m.details.nick) || m.sv || m.name;
+    return `<div class="hcard"><button class="hcimg" onclick="openMine(${m.id})" aria-label="Visa ${esc(nm)}">${u ? `<img src="${esc(u)}" alt="" loading="lazy">` : `<span class="hcini" style="--h:${hueOf(m.name)}">${esc(((nm || '?').trim()[0] || '?').toUpperCase())}</span>`}</button>${u ? '' : `<label class="hcadd" onclick="photoPick(event,this)">${ic('ph-camera', 'currentColor', 14)} Lägg till foto<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>`}
+    <button class="hcname" onclick="openMine(${m.id})">${esc(nm)}</button><span class="mpill${d === 0 ? ' due' : ''}">${d === null ? 'Vid torka' : d <= 0 ? 'Vattna idag' : d === 1 ? 'I morgon' : 'Om ' + d + ' dagar'}</span></div>`; }).join('')}</div>`;
   return `<div class="sec cap2"><h2>Mina växter</h2><button class="viewall" onclick="go('mine')">Alla ${S.mine.length}</button></div><div class="hscroll">${L.map(m => { const d = left(m), w = d === null ? 'Vid torka' : d <= 0 ? 'Vattna idag' : d === 1 ? 'I morgon' : 'Om ' + d + ' dagar';
     return `<button class="hmc" onclick="openMine(${m.id})"><span class="hmimg">${myPh(m)}</span><b>${esc((m.details && m.details.nick) || m.name)}</b><small class="${d !== null && d <= 0 ? 'due' : ''}">${ic(I.drop, 'currentColor', 13)} ${w}</small></button>`; }).join('')}</div>`; }
 
@@ -9059,8 +9331,25 @@ function plantswipeW() {
   const n = dsRight().length;
   return `<div class="pad"><button class="setrow" onclick="openDiscover()"><span class="tic">${ic('ph-leaf', 'currentColor', 20)}</span><span class="grow"><b>Plantswipe</b><span>${n ? n + ' sparade växter. Svep vidare' : 'Svep höger för att spara en växt, vänster för att hoppa över'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`;
 }
+// ===== Städad: startsidan (felrapport 108–111) =====
+// Snabbåtgärder: fyra i en rad med samma gröna ikonfärg. Fråga har en egen ikon i stället för gnistan, och Såkalendern en ikon som fungerar.
+const QPH_STAD = { sunpath: ['ph-sun-horizon', 'Solbana'], nearby: ['ph-map-pin', 'Trädgårdar'], ask: ['ph-chat-circle-text', 'Fråga'], db: ['ph-magnifying-glass', 'Sök'], id: ['ph-camera', 'Identifiera'], sow: ['ph-plant', 'Såkalender'], light: ['ph-sun', 'Ljusmätare'], care: ['ph-notebook', 'Växtjournal'], doc: ['ph-first-aid-kit', 'Växtdoktor'], inspo: ['ph-video', 'Odlare att följa'], smart: ['ph-lightbulb', 'Smarta hemmet'] };
+const ALL_TOOLS = ['care', 'doc', 'sow', 'pets', 'light', 'inspo', 'smart', 'house', 'bed', 'sunpath', 'compass', 'nearby', 'season', 'perma', 'detect', 'jord', 'hydro', 'naring', 'ljuslara', 'rosor'];
+function qtileS(k, n, act) { const [icn, lbl] = QPH_STAD[k] || QPH[k] || ['ph-star', n]; return `<button class="qt2" onclick="${act}"><i class="ph ${icn.startsWith('ph-') ? icn : 'ph-star'}" aria-hidden="true"></i><span>${lbl}</span></button>`; }
+// Alla verktyg öppnas som ett fönster nerifrån, i appens vanliga fönstersystem så att det ligger över menyraden
+function allToolsModalV() { const Q = QUICK();
+  return `<div class="mh2"><h2>Alla verktyg</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
+  <div class="atgrid">${ALL_TOOLS.map(k => Q.find(q => q[0] === k)).filter(Boolean).map(q => qtileS(q[0], q[1], `S.modal=null;${q[4]}`)).join('')}</div>`; }
+function plantswipeS() { const n = dsRight().length, P = S.plants.filter(p => p.photo_url).slice(0, 3);
+  return `<div class="pad"><button class="psrow" onclick="openDiscover()"><span class="pstack">${P.map(p => `<img src="${esc(p.photo_url)}" alt="" loading="lazy">`).join('') || ic('ph-leaf', 'currentColor', 20)}</span><span class="grow"><b>Plantswipe</b><small>${n ? n + ' sparade växter' : 'Svep och spara växter du gillar'}</small></span>${ic('ph-caret-right', 'var(--mut)', 18)}</button></div>`; }
+// Ögonblicksbild av 3D-hemmet till startsidan. Tas när 3D-vyn ritas, högst var 20:e sekund, och sparas i telefonen.
+let h3SnapT = 0;
+function h3Snap() { if (!stadUI() || !S.user || Date.now() - h3SnapT < 20000) return; h3SnapT = Date.now();
+  try { const c = T3.renderer.domElement; if (!c.width || !c.height) return; const k = 360 / Math.max(c.width, c.height), cv = document.createElement('canvas'); cv.width = Math.round(c.width * k); cv.height = Math.round(c.height * k);
+    cv.getContext('2d').drawImage(c, 0, 0, cv.width, cv.height); const u = cv.toDataURL('image/jpeg', 0.72); if (u.length > 3000) store.set('h3thumb_' + S.user.id, u); } catch (e) { } }
 function quickV() {
   const Q = QUICK(), f = favs().map(k => Q.find(q => q[0] === k)).filter(Boolean).slice(0, 7);
+  if (stadUI()) return `<div class="sec cap2"><h2>Vad vill du göra?</h2></div><div class="qrow4">${['id', 'ask', 'db'].map(k => Q.find(q => q[0] === k)).filter(Boolean).map(q => qtileS(q[0], q[1], q[4])).join('')}<button class="qt2" onclick="openModal('alltools')"><i class="ph ph-squares-four" aria-hidden="true"></i><span>Alla</span></button></div>${plantswipeS()}`;
   let ordered = f.filter(q => q[0] === 'id').concat(f.filter(q => q[0] !== 'id'));
   // Städad: tre snabbåtgärder (Identifiera, Fråga, Sök) och "Alla" i en rad
   if (document.documentElement.getAttribute('data-ui') === 'stad') ordered = ['id', 'ask', 'db'].map(k => Q.find(q => q[0] === k)).filter(Boolean);
@@ -9316,7 +9605,9 @@ function favV() {
   <div class="sec"><h2>Favoriter</h2><span class="mut">${L.length} ${L.length === 1 ? 'växt' : 'växter'}</span></div>
   ${L.length ? `<div class="grid">${L.map(plantMini).join('')}</div>` : `<div class="list"><div class="empty"><p>Här samlas växter du gillar. Tryck på hjärtat vid en växt i Växtbiblioteket så sparas den här. Den hamnar inte i Samling, dit lägger du bara växter du har.</p><button class="btn sm" onclick="openDb(true)">Sök växter</button></div></div>`}`;
 }
-function mtabBar() { const t = S.mtab || 'mine'; return `<div class="seg2 four" role="tablist">${[['mine', 'Samling'], ['care', 'Journal'], ['fav', 'Favoriter'], ['wish', 'Önskelista']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="S.mtab='${k}';render()">${n}</button>`).join('')}</div>`; }
+function mtabBar() { const t = S.mtab || 'mine';
+  if (stadUI()) { requestAnimationFrame(ctabInd); return `<div class="ctabs stadtabs" data-bar="m" role="tablist" onscroll="ctabFade(this)">${[['mine', 'Samling'], ['care', 'Journal'], ['fav', 'Favoriter'], ['wish', 'Önskelista']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="S.mtab='${k}';S.mdue=false;S.mAnimDone=false;render()">${n}</button>`).join('')}<span class="ctabind" aria-hidden="true"></span></div>`; }
+  return `<div class="seg2 four" role="tablist">${[['mine', 'Samling'], ['care', 'Journal'], ['fav', 'Favoriter'], ['wish', 'Önskelista']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="S.mtab='${k}';render()">${n}</button>`).join('')}</div>`; }
 function shortTemp(t) { const m = /\d+\s*–\s*\d+\s*°C/.exec(t || ''); return m ? m[0] : (t || '').split(',')[0]; }
 function tile(label, value, desc, icon, color, bad) {
   // Saknat värde: rutan finns kvar med ett grått streck, så att skötselrutorna alltid har samma form
@@ -9379,6 +9670,35 @@ function snooze(id) {
   d.setDate(d.getDate() - (iv - days));
   run(() => api.setWatered(id, d.toLocaleDateString('sv-SE')), 'Okej! Vi påminner dig om ' + days + (days === 1 ? ' dag' : ' dagar'));
 }
+// Städad (115): växtrad med samma struktur och höjd. Foto 56 px (aldrig clipart), svenskt och latinskt namn, statuspill,
+// rund vattna-knapp bara när växten behöver vatten idag, och svep: vänster = Skjut upp, höger = Vattnad.
+function mPhoto(m) { const p = plantById(m.plant_id), u = m.photo || (p && p.photo_url); return u ? `<div class="ph has-img"><img src="${esc(u)}" alt="" loading="lazy"></div>` : `<div class="ph pinit" style="--h:${hueOf(m.name)}">${esc(((m.sv || m.name || '?').trim()[0] || '?').toUpperCase())}</div>`; }
+function mrowS(m) {
+  const d = left(m), nm = m.sv || m.name, lat = m.latin || '';
+  const pill = d === 0 ? '<span class="mpill due">Vattna idag</span>' : d === null ? `<span class="mpill">${m.remind === false && m.interval ? 'Ingen påminnelse' : 'Vid torka'}</span>` : `<span class="mpill">Om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
+  if (!S.mAnimDone && !S.mAnimT) S.mAnimT = setTimeout(() => { S.mAnimDone = true; S.mAnimT = null; }, 700);
+  return `<div class="mrs${S.mAnimDone ? '' : ' mfirst'}" data-mid="${m.id}"><div class="msbg" aria-hidden="true"><span class="mzl">${ic(I.check, 'currentColor', 18)} Vattnad</span><span class="mzr">Skjut upp ${ic('ph-clock', 'currentColor', 18)}</span></div>
+  <div class="mfg"><button class="mopen2" onclick="openMine(${m.id})" aria-label="Visa ${esc(nm)}">${mPhoto(m)}<span class="grow"><span class="mname">${esc(nm)}</span>${lat ? `<span class="mlat">${sciHtml(lat)}</span>` : ''}${pill}</span></button>
+  ${d === 0 ? `<button class="wbtn2" onclick="waterS(${m.id},this)" aria-label="Vattna ${esc(nm)}"><span class="wfill"></span>${ic('ph-drop', 'currentColor', 20)}</button>` : ''}</div></div>`;
+}
+function waterS(id, b) { b.classList.add('go'); b.disabled = true; const r = b.closest('.mrs'), p = r && r.querySelector('.mpill');
+  if (p) { p.classList.add('swap'); setTimeout(() => { p.textContent = 'Vattnad'; p.classList.remove('due'); p.classList.add('done'); p.classList.remove('swap'); }, 160); }
+  setTimeout(() => water(id), 650); }
+// Svep på växtraderna i Samling (Städad). Raden följer fingret, en färgad bakgrund syns under, och den fjädrar tillbaka om man släpper tidigt.
+(function () {
+  let row = null, fg = null, sx = 0, sy = 0, dx = 0, lock = null;
+  document.addEventListener('touchstart', e => { if (!stadUI()) return; const r = e.target.closest && e.target.closest('.mrs'); if (!r || e.target.closest('.wbtn2')) return; row = r; fg = r.querySelector('.mfg'); const t = e.touches[0]; sx = t.clientX; sy = t.clientY; dx = 0; lock = null; }, { passive: true });
+  document.addEventListener('touchmove', e => { if (!row) return; const t = e.touches[0], x = t.clientX - sx, y = t.clientY - sy;
+    if (lock === null && (Math.abs(x) > 10 || Math.abs(y) > 10)) lock = Math.abs(x) > Math.abs(y) * 1.2 ? 'x' : 'y';
+    if (lock !== 'x') return; dx = Math.max(-140, Math.min(140, x)); fg.style.transition = 'none'; fg.style.transform = `translateX(${dx}px)`; row.classList.toggle('swl', dx < 0); row.classList.toggle('swr', dx > 0); }, { passive: true });
+  document.addEventListener('touchend', () => { if (!row) return; const r = row, f = fg, id = +r.dataset.mid, d = dx; row = fg = null;
+    f.style.transition = 'transform .35s cubic-bezier(.3,1.3,.5,1)';
+    const custom = d > 0 ? r.dataset.right : r.dataset.left;
+    const m = !custom && S.mine.find(x => x.id === id), noSnooze = !custom && d < 0 && (!m || left(m) === null);
+    if (Math.abs(d) < 90 || noSnooze) { f.style.transform = ''; setTimeout(() => r.classList.remove('swl', 'swr'), 350); if (noSnooze && Math.abs(d) >= 90) toast('Växten har ingen vattningspåminnelse att skjuta upp'); return; }
+    f.style.transform = `translateX(${d < 0 ? -100 : 100}%)`; try { if (navigator.vibrate) navigator.vibrate(10); } catch (x) { }
+    setTimeout(() => { if (custom) { f.style.transition = 'none'; f.style.transform = ''; r.classList.remove('swl', 'swr'); try { (new Function(custom))(); } catch (e) { console.warn('Roothood:', e); } } else if (d > 0) water(id); else snooze(id); }, 250); }, { passive: true });
+})();
 function setMview(v) { S.mview = v; try { store.set('mineView', v); } catch (e) {} render(); }
 function mineV() {
   if (S.mtab === 'fav') return favV();
@@ -9392,6 +9712,7 @@ function mineV() {
   const shown = (S.mroom ? S.mine.filter(m => S.mroom === '-' ? !roomOf(m) : (m.details || {}).room === S.mroom) : S.mine).filter(m => !(S.mdue && stadM) || left(m) === 0);
   const view = S.mview || store.get('mineView', 'compact'), det = view === 'detail';
   const rows = shown.map(m => {
+    if (stadM) return mrowS(m);
     const d = left(m), pct = m.interval ? Math.round((ivOf(m) - d) / ivOf(m) * 100) : 0;
     const status = d === null ? `<span class="mut">${m.remind === false ? 'Ingen påminnelse, du sköter vattningen' : 'Växer ute, vattna vid torka'}</span>` : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
     const fd = m.details || {}, potTxt = [fd.cm ? 'Ø' + fd.cm + ' cm' : '', fd.ph ? fd.ph + ' cm hög' : '', fd.mat || ''].filter(Boolean).join(', ');
@@ -9402,13 +9723,13 @@ function mineV() {
       <div class="side"><label class="camb" onclick="photoPick(event,this)" aria-label="Ta foto på ${esc(m.name)}" title="Ta foto" style="display:inline-flex;width:36px;height:36px;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:var(--pri);background:var(--card2,transparent)">${ic(CAM, 'currentColor', 18)}<input type="file" accept="image/*" capture="environment" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad"><span class="wdrop" aria-hidden="true">💧</span></button>` : ''}${d ? `<small class="wnext">Vattna om ${d} d</small>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
   }).join('');
   return `${topbar('Min samling')}${mtabBar()}
-  ${S.mine.length && stadM ? `<p class="sumline"><span>${S.mine.length} ${S.mine.length === 1 ? 'växt' : 'växter'}</span> · ${due ? `<button class="sumdue" onclick="S.mdue=!S.mdue;render()">${due} behöver vatten idag</button>` : '<span>Alla har vatten just nu</span>'}</p>` : ''}
+  ${S.mine.length && stadM ? `<p class="sumline"><span>${S.mine.length} ${S.mine.length === 1 ? 'växt' : 'växter'}</span> · ${due ? `<button class="sumdue" onclick="S.mdue=!S.mdue;S.mAnimDone=false;render()">${due} behöver vatten idag</button>` : '<span>Alla har vatten just nu</span>'}</p>` : ''}
   ${S.mine.length && !stadM ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
   ${S.mine.length && S.mine.length < 3 && !stadM ? `<div class="addnudge"><span>Lägg till din nästa växt</span><button class="btn sm" onclick="openDb(true)">Sök växter</button></div>` : ''}
   ${S.mine.length && S.push === 'off' && !store.get('pushNudgeHidden', false) ? `<div class="instc pushnudge"><span class="tic">${ic(BELL, 'currentColor', 22)}</span><div><b>Få påminnelser i mobilen</b><span>En notis när något behöver vattnas, på tiden du väljer.</span></div><button class="btn sm" onclick="enablePush()">Slå på</button><button class="x" aria-label="Dölj" onclick="store.set('pushNudgeHidden', true); render()">✕</button></div>` : ''}
-  <div class="sec"><h2>Dina växter</h2><span style="display:flex;gap:8px"><button class="btn sm line" onclick="addCustomStart()">+ Egen växt</button></span></div>
+  ${stadM ? '' : `<div class="sec"><h2>Dina växter</h2><span style="display:flex;gap:8px"><button class="btn sm line" onclick="addCustomStart()">+ Egen växt</button></span></div>`}
   ${S.pro && rooms.length && S.mine.length ? `<div class="roomchips">${[[null, 'Alla']].concat(rooms.map(r => [r.id, r.name]), [['-', 'Utan rum']]).filter(([id]) => id === null || S.mroom === id || S.mine.some(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id)).map(([id, n]) => `<button class="${S.mroom === id ? 'on' : ''}" onclick="S.mroom=${id ? `'${id}'` : 'null'};render()">${esc(n)}<small>${id === null ? S.mine.length : S.mine.filter(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id).length}</small></button>`).join('')}</div>` : ''}
-  <div class="seg2 mview" role="tablist" aria-label="Visa som">${[['compact', 'Kompakt'], ['detail', 'Detaljerad']].map(([k, t]) => `<button class="${view === k ? 'on' : ''}" role="tab" aria-selected="${view === k}" onclick="setMview('${k}')">${t}</button>`).join('')}</div>
+  ${stadM ? '' : `<div class="seg2 mview" role="tablist" aria-label="Visa som">${[['compact', 'Kompakt'], ['detail', 'Detaljerad']].map(([k, t]) => `<button class="${view === k ? 'on' : ''}" role="tab" aria-selected="${view === k}" onclick="setMview('${k}')">${t}</button>`).join('')}</div>`}
   <div class="list" style="padding-top:0">${S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p>Öppna en växt under Växter och tryck Lägg till i min samling, så hamnar den här med vattningspåminnelser. Hjärtat sparar växter du gillar under Favoriter.</p><button class="btn sm" onclick="go('home')">Hitta växter</button></div>`}</div>`;
 }
 // ===== Badges (punkt 12). Beräknas lokalt från samlingen och loggen. Sparas per konto på telefonen tills tabellen user_badges finns. =====
@@ -9699,7 +10020,7 @@ function askQ() {
   if (!S.qcat) return toast('Välj en kategori först.');
   const m = S.mine.find(x => x.id === S.qplant), info = m ? QMARK + plantBrief(m) : '';
   const body = info ? v.slice(0, 1000 - info.length) + info : v;
-  const cat = S.qcat; S.draft = ''; S.qplant = null; const ph = S.cph; S.cph = null; S.cphUrl = null; S.qcat = ''; S.modal = null;
+  const cat = S.qcat; S.draft = ''; S.qplant = null; const ph = S.cph; S.cph = null; S.cphUrl = null; S.qcat = ''; S.modal = null; S.askDiscard = false; S.qHi = Date.now();
   commRun(() => api.ask(cat, body, ph), 'Din fråga är publicerad');
 }
 function startThread() { if (needLogin()) return; S.newThread = true; render(); const f = $('#tt'); if (f) f.focus(); }
@@ -9779,31 +10100,36 @@ const CTAB_HELP = { q: 'Ställ frågor om växter och få svar från andra odlar
 const CTABS_STAD_HIDE = ['near', 'forum'];
 const STAD_CLBL = { friends: 'Vänner', q: 'Frågor', show: 'Visa upp', swap: 'Byt & ge' };
 // Understrykningen under vald flik glider från förra fliken till den nya
-let ctabLast = null;
+// Senaste läget per flikrad (c = Gemenskap, m = Samling)
+const ctabLastM = {};
 function ctabInd() {
-  const bar = document.querySelector('.stadtabs'), on = bar && bar.querySelector('button.on'), ind = bar && bar.querySelector('.ctabind'); if (!on || !ind) return;
-  const to = { l: on.offsetLeft, w: on.offsetWidth };
-  if (ctabLast) { ind.style.transition = 'none'; ind.style.transform = `translateX(${ctabLast.l}px)`; ind.style.width = ctabLast.w + 'px'; void ind.offsetWidth; ind.style.transition = ''; }
-  ind.style.transform = `translateX(${to.l}px)`; ind.style.width = to.w + 'px'; ctabLast = to;
-  const r = bar.getBoundingClientRect(), o = on.getBoundingClientRect(); if (o.left < r.left || o.right > r.right) bar.scrollLeft += o.left - r.left - 16;
-  ctabFade(bar);
+  document.querySelectorAll('.stadtabs').forEach(bar => {
+    const key = bar.dataset.bar || 'c', on = bar.querySelector('button.on'), ind = bar.querySelector('.ctabind'); if (!on || !ind) return;
+    const to = { l: on.offsetLeft, w: on.offsetWidth }, last = ctabLastM[key];
+    if (last) { ind.style.transition = 'none'; ind.style.transform = `translateX(${last.l}px)`; ind.style.width = last.w + 'px'; void ind.offsetWidth; ind.style.transition = ''; }
+    ind.style.transform = `translateX(${to.l}px)`; ind.style.width = to.w + 'px'; ctabLastM[key] = to;
+    const r = bar.getBoundingClientRect(), o = on.getBoundingClientRect(); if (o.left < r.left || o.right > r.right) bar.scrollLeft += o.left - r.left - 16;
+    ctabFade(bar);
+  });
 }
 function ctabFade(bar) { if (bar) bar.classList.toggle('more', bar.scrollLeft + bar.clientWidth < bar.scrollWidth - 4); }
 // Svep åt sidan mellan flikarna i Gemenskap (Städad)
 (function () {
   let sx = 0, sy = 0, t0 = 0, ok = false;
   document.addEventListener('touchstart', e => { ok = stadUI() && S.tab === 'comm' && !S.tool && !S.post && !S.newL && !S.modal && !(e.target.closest && e.target.closest('.stadtabs,input,textarea,.uplants,.hcar,.ncar')); if (!ok) return; const t = e.touches[0]; sx = t.clientX; sy = t.clientY; t0 = Date.now(); }, { passive: true });
+  // Flytande knappar (Ställ fråga, Visa upp) krymper till bara ikon när man scrollar nedåt
+  let fabY = 0; document.addEventListener('scroll', e => { const m = e.target; if (!m || m.id !== 'main' || !stadUI()) return; const f = document.querySelector('.fabq,.fabshow'); if (f) f.classList.toggle('fmini', m.scrollTop > fabY && m.scrollTop > 60); fabY = m.scrollTop; }, true);
   // Understrykningen följer fingret mot fliken bredvid medan man sveper
   document.addEventListener('touchmove', e => { if (!ok) return; const t = e.touches[0], dx = t.clientX - sx, dy = t.clientY - sy; if (Math.abs(dx) < 12 || Math.abs(dy) > Math.abs(dx)) return;
     const bar = document.querySelector('.stadtabs'), ind = bar && bar.querySelector('.ctabind'), bs = bar ? [...bar.querySelectorAll('button')] : [], i = bs.findIndex(b => b.classList.contains('on')), nb = bs[i + (dx < 0 ? 1 : -1)];
     if (!ind || i < 0 || !nb) return; const f = Math.min(1, Math.abs(dx) / 220), cur = bs[i];
     ind.style.transition = 'none'; ind.style.transform = `translateX(${cur.offsetLeft + (nb.offsetLeft - cur.offsetLeft) * f}px)`; ind.style.width = (cur.offsetWidth + (nb.offsetWidth - cur.offsetWidth) * f) + 'px'; }, { passive: true });
   document.addEventListener('touchend', e => { if (!ok) return; ok = false; const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-    const back = () => { const ind = document.querySelector('.stadtabs .ctabind'); if (ind) ind.style.transition = ''; ctabLast = null; ctabInd(); };
+    const back = () => { const ind = document.querySelector('.stadtabs .ctabind'); if (ind) ind.style.transition = ''; ctabLastM.c = null; ctabInd(); };
     if (Date.now() - t0 > 900 || Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return back();
     const L = ctabsFor().map(x => x[0]), i = L.indexOf(S.ctab), j = i + (dx < 0 ? 1 : -1); if (i < 0 || j < 0 || j >= L.length) return back();
     // Fortsätt glida från där fingret släppte
-    const ind = document.querySelector('.stadtabs .ctabind'), m = ind && /translateX\(([-\d.]+)px\)/.exec(ind.style.transform || ''); if (m) ctabLast = { l: +m[1], w: ind.offsetWidth };
+    const ind = document.querySelector('.stadtabs .ctabind'), m = ind && /translateX\(([-\d.]+)px\)/.exec(ind.style.transform || ''); if (m) ctabLastM.c = { l: +m[1], w: ind.offsetWidth };
     setCtab(L[j]); }, { passive: true });
 })();
 function ctabsFor() { return document.documentElement.getAttribute('data-ui') === 'stad' ? CTABS.filter(([k]) => !CTABS_STAD_HIDE.includes(k)) : CTABS; }
@@ -9864,6 +10190,18 @@ function mineTerms() {
 function aboutMine(p) { if (!S.user || !S.mine.length) return null; const b = String(p.body || '').toLowerCase(), hit = mineTerms().find(([t]) => b.includes(t)); return hit ? hit[1] : null; }
 const qStat = p => p.best_answer_id ? 'solved' : !(p.answers || []).length ? 'open' : 'answered';
 function qPill(p) { const st = qStat(p); return st === 'solved' ? `<span class="qst solved">${ic('ph-check-circle', 'currentColor', 14)} Löst</span>` : st === 'open' ? '<span class="qst open">Obesvarad</span>' : ''; }
+// Städad (117): frågekort. Avatar 36 px, namn och tid på samma rad, rubrik, brödtext max 3 rader, bild max 4:3 och samma fotrad på alla kort.
+function postCardS(p, hi) {
+  const [q, info] = qParts(p.body), [h, r] = splitQ(q), st = qStat(p), n = p.likers.length, on = !!(S.user && p.likers.includes(S.user.id)), mine = !!(S.user && p.user_id === S.user.id);
+  const b = p.author_badge || (DEMO && p.author_pro ? ['ph-hand-heart', 'Hjälpt 10'] : null), link = p.user_id && p.user_id !== myId() && !String(p.user_id).startsWith('seed');
+  const same = mine ? `<span class="qsame ro">${ic('ph-hand', 'currentColor', 16)} Samma problem · ${n}</span>` : `<button class="qsame${on ? ' on' : ''}" aria-pressed="${on}" onclick="event.stopPropagation();toggleLike(${p.id})">${ic(on ? 'ph-hand-fill' : 'ph-hand', 'currentColor', 16)} Samma problem · ${n}</button>`;
+  return `<div class="qcard${hi ? ' qnew' : ''}" role="button" tabindex="0" onclick="openPost(${p.id})" onkeydown="if(event.key==='Enter')openPost(${p.id})">
+  <div class="qtop">${avSmall(p.author, p.author_avatar)}<span class="qwho"${link ? ` role="button" tabindex="0" onclick="event.stopPropagation();openUser(${jsArg(p.user_id)})"` : ''}>${esc(shortName(p.author))}</span>${b ? `<span class="ubadge">${ic(b[0], 'currentColor', 12)} ${b[1]}</span>` : ''}<span class="qtime">${shortAgo(p.created_at)}</span>${st === 'solved' ? `<span class="qst solved">${ic('ph-check-circle', 'currentColor', 14)} Löst</span>` : ''}</div>
+  <h3 class="qh">${esc(h)}</h3>${r ? `<p class="qb">${esc(r)}</p>${r.length > 150 ? '<span class="qmore">Läs mer</span>' : ''}` : ''}
+  ${info ? `<span class="qchip">${ic('ph-plant', 'currentColor', 13)} ${esc(info.split('\n')[0])}</span>` : aboutMine(p) ? `<span class="qchip mine" title="Frågan nämner en växt som du också har">${ic('ph-plant', 'currentColor', 13)} Du har också: ${esc(aboutMine(p))}</span>` : ''}
+  ${p.photo_url ? `<img class="qimg" src="${esc(p.photo_url)}" alt="Bild i frågan" loading="lazy">` : ''}
+  <div class="qfoot">${same}<span class="qans">${ic('ph-chat-circle', 'currentColor', 16)} ${p.answers.length} svar</span></div></div>`;
+}
 function postCard(p) {
   const best = p.answers.find(a => a.id === p.best_answer_id);
   return `<div class="post">${whoP(p, ago(p.created_at), qPill(p))}
@@ -9871,19 +10209,58 @@ function postCard(p) {
   ${best ? `<div class="ans"><b>Bästa svar</b>${esc(best.body)}</div>` : ''}
   <div class="prow">${likeBtn(p, 1)}<button class="link2" onclick="openPost(${p.id})">${p.answers.length ? p.answers.length + ' svar' : 'Svara'}</button></div></div>`;
 }
+// ===== Städad: Vänner (felrapport 120) =====
+function frSearch(v) { S.fq = v; render(); const i = $('#frq'); if (i) { i.focus(); i.setSelectionRange(v.length, v.length); } }
+function loadNearPpl() { api.findUsers('').then(l => { S.nearPpl = l || []; }).catch(() => { S.nearPpl = []; }).then(() => { if (S.tab === 'comm' && S.ctab === 'friends') keepMain(); }); }
+function nearCarV() { const L0 = S.nearPpl; if (L0 === null) return '<div class="sec"><h2>Odlare nära dig</h2></div><div class="pad"><p class="mut">Letar…</p></div>'; if (!L0) return '';
+  const fr = new Set((S.friends || []).map(f => f.id)), me = myId(), c = (S.city || '').toLowerCase(), near = u => (u.city || '').toLowerCase() === c ? 1 : 0;
+  const L = L0.filter(u => u.id !== me && !fr.has(u.id)).sort((a, b) => (near(b) - near(a)) || ((sameZone(b) ? 1 : 0) - (sameZone(a) ? 1 : 0))).slice(0, 12); if (!L.length) return '';
+  return `<div class="sec"><h2>Odlare nära dig</h2><button class="viewall" onclick="openPeople()">Visa alla ›</button></div><div class="ncar">${L.map(u => { const done = (S.nearAdd || {})[u.id] || personFriendSt(u) !== 'none';
+    return `<div class="ncard"><button class="ncav" onclick="openUser(${jsArg(u.id)})" aria-label="Visa ${esc(u.display_name)}s profil">${avBig(u.display_name, 'av', u.avatar_url)}</button><b>${esc(shortName(u.display_name))}</b><small>${[u.city ? esc(u.city) : '', u.plants != null ? u.plants + ' växter' : ''].filter(Boolean).join(' · ') || '&nbsp;'}</small><button class="nadd${done ? ' done' : ''}" ${done ? 'disabled' : ''} onclick="nearAdd(${jsArg(u.id)},this)" aria-label="${done ? 'Förfrågan skickad' : 'Lägg till ' + esc(u.display_name)}">${done ? ic(I.check, 'currentColor', 16) : 'Lägg till'}</button></div>`; }).join('')}</div>`; }
+async function nearAdd(id, b) { S.nearAdd = Object.assign({}, S.nearAdd, { [id]: true }); b.classList.add('done'); b.disabled = true; b.innerHTML = ic(I.check, 'currentColor', 16); try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { }
+  try { await api.friendReq(id, ''); toast('Vänförfrågan är skickad'); } catch (e) { toast(FR_ERR(e)); S.nearAdd[id] = false; keepMain(); } }
+const profLink = () => location.origin + location.pathname + '#t/user/' + encodeURIComponent(myId() || '');
+function addFriendV() { if (S.afQr) requestAnimationFrame(drawQr);
+  return `<div class="mh2"><h2>Lägg till vän</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
+  <input id="afq" type="search" placeholder="Sök användarnamn" aria-label="Sök användarnamn" value="${esc(S.afq || '')}" oninput="afSearch(this.value)" autocomplete="off">
+  <div id="afres">${afResV()}</div>
+  <div class="sgroup afg">${srow('ph-share-network', 'Dela min profillänk', '', 'afShare()')}${srow('ph-qr-code', S.afQr ? 'Dölj QR-koden' : 'Visa min QR-kod', '', 'S.afQr=!S.afQr;keepScroll()')}</div>
+  ${S.afQr ? '<div class="afqr" id="afqr"><p class="mut">Skapar QR-koden…</p></div>' : ''}`; }
+function afResV() { const v = (S.afq || '').trim(); if (!v) return ''; const R = S.afRes; if (R == null) return '<p class="mut afm">Söker…</p>';
+  const L = R.filter(u => u.id !== myId()).slice(0, 8); if (!L.length) return '<p class="mut afm">Ingen användare heter så.</p>';
+  return `<div class="afl">${L.map(u => { const done = (S.nearAdd || {})[u.id] || personFriendSt(u) !== 'none'; return `<div class="afrow"><button class="ncav" onclick="S.modal=null;openUser(${jsArg(u.id)})">${avBig(u.display_name, 'av', u.avatar_url)}</button><span class="grow"><b>${esc(u.display_name)}</b><small>${u.city ? esc(u.city) : ''}</small></span><button class="nadd${done ? ' done' : ''}" ${done ? 'disabled' : ''} onclick="nearAdd(${jsArg(u.id)},this)">${done ? ic(I.check, 'currentColor', 16) : 'Lägg till'}</button></div>`; }).join('')}</div>`; }
+let afT = null;
+function afSearch(v) { S.afq = v; S.afRes = null; clearTimeout(afT); const el0 = $('#afres'); if (el0) el0.innerHTML = afResV();
+  afT = setTimeout(async () => { if (v.trim()) { try { S.afRes = await api.findUsers(v.trim()); } catch (e) { S.afRes = []; } } const el = $('#afres'); if (el) el.innerHTML = afResV(); }, 300); }
+function afShare() { const link = profLink();
+  if (navigator.share) navigator.share({ title: 'Min profil på Roothood', url: link }).catch(() => { });
+  else if (navigator.clipboard) navigator.clipboard.writeText(link).then(() => toast('Länken är kopierad'), () => toast(link)); else toast(link); }
+// QR-kod för profillänken. Biblioteket qrcode-generator laddas från jsdelivr först när man trycker på Visa min QR-kod.
+let qrLib = null;
+function drawQr() { const el = $('#afqr'); if (!el) return; const link = profLink();
+  const draw = () => { const e2 = $('#afqr'); if (!e2) return; try { const qr = qrcode(0, 'M'); qr.addData(link); qr.make(); e2.innerHTML = `<div class="qrbox">${qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true })}</div><small class="mut">Låt en vän skanna koden med kameran</small>`; } catch (e) { e2.innerHTML = '<p class="mut">QR-koden kunde inte skapas. Dela länken i stället.</p>'; } };
+  if (typeof qrcode === 'function') return draw();
+  qrLib = qrLib || new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+  qrLib.then(draw, () => { qrLib = null; const e2 = $('#afqr'); if (e2) e2.innerHTML = '<p class="mut">QR-koden kunde inte laddas. Kontrollera internet eller dela länken i stället.</p>'; }); }
 function friendsV() {
   if (S.friends == null) { if (!S.frLoad) { S.frLoad = true; api.myFriends().then(l => { S.friends = l; S.frLoad = false; if (S.tab === 'comm' && S.ctab === 'friends') render(); }).catch(() => { S.friends = []; S.frLoad = false; }); } }
   if (S.user && S.inbox == null) loadInbox().then(() => { if (S.tab === 'comm' && S.ctab === 'friends') render(); });
   const F = S.friends, un = id => ((S.inbox || []).find(c => c.other === id) || {}).unread || 0;
-  if (document.documentElement.getAttribute('data-ui') === 'stad' && S.user && !DEMO) {
-    // Städad: sökfält överst, vänner och meddelanden i samma lista, knappen "Lägg till vän"
-    const q = (S.fq || '').toLowerCase(), FL = (F || []).filter(f => !q || (f.display_name || '').toLowerCase().includes(q));
+  if (stadUI() && S.user) {
+    // Städad (119/120): sökfält, vänner och meddelanden i samma lista (senaste överst), Lägg till vän som fönster, Odlare nära dig som karusell och ett tomt läge
+    if (S.nearPpl === undefined) { S.nearPpl = null; loadNearPpl(); }
+    const q = (S.fq || '').toLowerCase(), last = id => (S.inbox || []).find(c => c.other === id) || null;
+    const FL = (F || []).filter(f => !q || (f.display_name || '').toLowerCase().includes(q)).slice().sort((a, b) => String((last(b) || {}).last_at || '').localeCompare(String((last(a) || {}).last_at || '')));
+    if (!S.frAnimDone && !S.frAnimT) S.frAnimT = setTimeout(() => { S.frAnimDone = true; S.frAnimT = null; }, 700);
+    const row = f => { const c = last(f.id), n = un(f.id), pv = c ? (chatPlain(c.last_body || '').slice(0, 80) || '📷 Bild') : '';
+      return `<div class="mrs frs${S.frAnimDone ? '' : ' mfirst'}" data-right="openChat(${jsArg(f.id)},${jsArg(f.display_name)})" data-left="openUser(${jsArg(f.id)})"><div class="msbg" aria-hidden="true"><span class="mzl">${ic('ph-chat-circle', 'currentColor', 18)} Skriv</span><span class="mzr">Profil ${ic('ph-user', 'currentColor', 18)}</span></div>
+      <div class="mfg"><button class="mopen2" onclick="openChat(${jsArg(f.id)},${jsArg(f.display_name)})"><span class="frav">${avBig(f.display_name, 'av', f.avatar_url)}${n ? `<i class="fdot">${n}</i>` : ''}</span><span class="grow"><span class="mname">${esc(f.display_name)}</span><span class="mlat${n ? ' unr' : ''}">${pv ? esc(pv) : f.city ? esc(f.city) : 'Vän'}</span></span></button><button class="icb" onclick="openUser(${jsArg(f.id)})" aria-label="Visa ${esc(f.display_name)}s profil">${ic('ph-user', 'currentColor', 18)}</button></div></div>`; };
     return `${topbar('Gemenskap')}${segBar()}
   ${friendReqCard()}
-  <div class="pad" style="padding-top:12px"><input type="search" placeholder="Sök vänner" aria-label="Sök vänner" value="${esc(S.fq || '')}" oninput="S.fq=this.value;render()"></div>
-  <div class="pad"><div class="fadd"><button class="btn sm" onclick="openPeople()">${ic('ph-user-plus', 'currentColor', 16)} Lägg till vän</button></div>
-  ${F == null ? '<p class="mut">Hämtar…</p>' : FL.length ? FL.map(f => `<div class="prow2"><button class="popen" onclick="openUser(${jsArg(f.id)})">${avBig(f.display_name)}<span class="grow"><b>${esc(f.display_name)}</b><span>${f.city ? ic('ph-map-pin', 'currentColor', 13) + ' ' + esc(f.city) : 'Vän'}</span></span></button><button class="btn sm" onclick="openChat(${jsArg(f.id)},${jsArg(f.display_name)})">💬 Skriv${un(f.id) ? ' (' + un(f.id) + ')' : ''}</button></div>`).join('') : `<div class="empty"><p>${F.length ? 'Ingen vän matchar sökningen.' : 'Du har inga vänner än. Hitta andra odlare och skicka en vänförfrågan.'}</p></div>`}</div>
-  <div class="sec"><h2>Odlare nära dig</h2></div><div class="pad"><button class="linkbtn" onclick="openPeople()">Hitta odlare nära dig ›</button></div>${friendWallV(F)}`;
+  ${F && !F.length ? `<div class="frempty">${ic('ph-plant', 'var(--pri)', 44)}<b>Odla tillsammans</b><span>Lägg till vänner så kan ni skriva till varandra och se varandras växter.</span><button class="btn" onclick="openModal('addfr')">Hitta vänner</button></div>`
+    : `<div class="pad frtop"><input id="frq" type="search" placeholder="Sök vänner" aria-label="Sök vänner" value="${esc(S.fq || '')}" oninput="frSearch(this.value)"><button class="btn sm line" onclick="openModal('addfr')">${ic('ph-user-plus', 'currentColor', 16)} Lägg till vän</button></div>
+  <div class="list frlist">${F == null ? '<p class="mut pad">Hämtar…</p>' : FL.length ? FL.map(row).join('') : '<p class="mut pad">Ingen vän matchar sökningen.</p>'}</div>`}
+  ${nearCarV()}${friendWallV(F)}`;
   }
   return `${topbar('Gemenskap')}${segBar()}
   ${!S.user ? `<div class="empty"><p>Logga in för att se och skriva till dina vänner.</p><button class="btn sm" onclick="openModal('login')">Logga in eller skapa konto</button></div>` : `${friendReqCard()}
@@ -9896,7 +10273,7 @@ function showV() {
   const L = (S.feed || []).filter(p => p.photo_url);
   if (document.documentElement.getAttribute('data-ui') === 'stad') {
     // Städad: fotorutnät i två kolumner och en knapp "Visa upp" längst ner till höger
-    return `${topbar('Gemenskap')}${segBar()}<div class="pad" style="padding-top:12px">${st || (L.length ? `<div class="vgrid">${L.map(postCard).join('')}</div>` : '<div class="empty"><p>Inga bilder än. Bifoga ett foto när du frågar, så visas det här.</p></div>')}</div><button class="fabshow" onclick="openAskQ()">${ic(CAM, 'currentColor', 18)} Visa upp</button>`;
+    return `${topbar('Gemenskap')}${segBar()}<div class="pad" style="padding-top:12px">${st || (L.length ? `<div class="vgrid">${L.map(postCard).join('')}</div>` : '<div class="empty"><p>Inga bilder än. Bifoga ett foto när du frågar, så visas det här.</p></div>')}</div><button class="fabshow" onclick="openAskQ()" aria-label="Visa upp">${ic(CAM, 'currentColor', 18)}<span>Visa upp</span></button>`;
   }
   return `${topbar('Gemenskap')}${segBar()}<div class="pad" style="padding-top:12px">${st || (L.length ? L.map(postCard).join('') : '<div class="empty"><p>Inga bilder än. Bifoga ett foto när du frågar, så visas det här.</p></div>')}</div>`;
 }
@@ -9913,7 +10290,24 @@ function nearV() {
   return h.replace('<div class="pad" style="padding-top:8px">', '<div class="pad" style="padding-top:8px"><p class="mut">Lägg till din ort i Profil så visas annonser nära dig.</p>');
 }
 function openAskQ() { if (needLogin()) return; openModal('askq'); setTimeout(() => { const i = $('#nq'); if (i) i.focus(); }, 60); }
+// Städad (127–129): fönstret Ställ en fråga utan kort i kort. Växter som kort, kategori som chips, bildruta och Publicera fast längst ner.
+function askGrow(t) { if (!t) return; t.style.height = 'auto'; t.style.height = Math.max(t.scrollHeight, 96) + 'px'; }
+function askPubState() { const b = $('#qpubb'); if (b) b.disabled = (S.draft || '').trim().length < 5; }
+function askClose() { if ((S.draft || '').trim() || S.cph) { S.askDiscard = true; return keepScroll(); } closeModal(); }
+function qPlantPickS(id) { S.qplant = id; const m = S.mine.find(x => x.id === id); if (m) { if (S.log[m.id] === undefined) loadLog(m.id); const c = m.category || (plantOf(m) || {}).category; if (QCATS.includes(c)) S.qcat = c; } S.qPop = 'p' + (id || 0); keepScroll(); }
+function askQVStad() {
+  const v = S.draft || '', M = S.user ? S.mine : [], pop = S.qPop; S.qPop = null;
+  const pc = (id, inner, label, on) => `<button type="button" class="qpc${on ? ' on' : ''}${on && pop === 'p' + (id || 0) ? ' pop' : ''}" aria-pressed="${on}" onclick="qPlantPickS(${id == null ? 'null' : id})"><span class="qpi">${inner}${on ? `<i class="qok">${ic(I.check, 'currentColor', 12)}</i>` : ''}</span><span class="qpn">${esc(label)}</span></button>`;
+  return `<div class="ask2"><div class="mh2"><h2>Ställ en fråga</h2><button class="x40" onclick="askClose()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
+  <textarea id="nq" rows="3" maxlength="1000" placeholder="T.ex. Varför får min monstera gula blad?" aria-label="Din fråga" oninput="S.draft=this.value;askGrow(this);askPubState()">${esc(v)}</textarea>
+  ${M.length ? `<p class="qlbl">Gäller det en av dina växter?</p><div class="qpcs">${pc(null, ic('ph-prohibit', 'currentColor', 22), 'Ingen', !S.qplant)}${M.map(m => pc(m.id, myPh(m), m.name, S.qplant === m.id)).join('')}</div>` : ''}
+  <p class="qlbl">Kategori</p><div class="chips2 qcats">${QCATS.map(c => `<button type="button" class="${S.qcat === c ? 'on' : ''}${S.qcat === c && pop === 'c' + c ? ' pop' : ''}" aria-pressed="${S.qcat === c}" onclick="S.qcat='${c}';S.qPop='c${c}';keepScroll()">${c}</button>`).join('')}</div>
+  <p class="qlbl">Bild</p><div class="qimgs">${S.cph ? `<span class="qth"><img src="${esc(S.cphUrl)}" alt="Vald bild"><button type="button" onclick="S.cph=null;S.cphUrl=null;keepScroll()" aria-label="Ta bort bilden">×</button></span>` : `<label onclick="photoPick(event,this)" class="qadd">${ic('ph-plus', 'currentColor', 18)}<span>Bild</span><input type="file" accept="image/*" class="sr" onchange="cPhoto(this)"></label>`}</div>
+  <div class="qpub"><button class="btn wide" id="qpubb" ${v.trim().length >= 5 ? '' : 'disabled'} onclick="askQ()">Publicera</button></div>
+  ${S.askDiscard ? `<div class="qdisc" role="alertdialog" aria-label="Släng utkastet?"><b>Släng utkastet?</b><div class="qdb"><button class="btn sm line" onclick="S.askDiscard=false;keepScroll()">Fortsätt skriva</button><button class="btn sm danger" onclick="S.askDiscard=false;S.draft='';S.cph=null;S.cphUrl=null;S.qplant=null;S.qcat='';closeModal()">Släng</button></div></div>` : ''}</div>`;
+}
 function askQV() {
+  if (stadUI()) return askQVStad();
   return `<div class="mh"><h2>Ställ en fråga</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div class="ask" style="margin:0"><textarea id="nq" rows="3" maxlength="1000" placeholder="Skriv din fråga här" aria-label="Din fråga" oninput="S.draft=this.value">${esc(S.draft)}</textarea>
   ${qPlantV()}<div class="askrow"><select aria-label="Kategori" onchange="S.qcat=this.value">${['', ...QCATS].map(c => `<option value="${c}" ${c === S.qcat ? 'selected' : ''} ${c === '' ? 'disabled' : ''}>${c || 'Välj kategori'}</option>`).join('')}</select>${cPhotoBtn()}<button class="btn sm" onclick="askQ()">Publicera</button></div></div>`;
@@ -9927,6 +10321,17 @@ function comm() {
   if (isForum()) return forumV();
   if (S.post) return postV();
   const st = listState(S.feed, 'Inga frågor än. <button class="btn sm" onclick="openAskQ()">Ställ den första frågan</button>');
+  if (stadUI()) {
+    // Städad (117): composer med egen avatar, filterchips utan 0, frågekort med samma struktur och en flytande knapp Ställ fråga
+    const f = S.qf || 'all', cnt = k => S.feed.filter(p => qStat(p) === k).length, hi = S.qHi && Date.now() - S.qHi < 8000;
+    const chips = st ? '' : `<div class="chips2 qfilt" role="tablist" onscroll="ctabFade(this)">${[['all', 'Alla', S.feed.length]].concat(S.user && S.mine.length ? [['mine', 'Mina växter', S.feed.filter(aboutMine).length]] : [], [['open', 'Obesvarade', cnt('open')], ['solved', 'Lösta', cnt('solved')]]).map(([k, n, c]) => `<button role="tab" aria-selected="${f === k}" class="${f === k ? 'on' : ''}" onclick="S.qf='${k}';keepMain()">${n}${c ? ` <small>${c}</small>` : ''}</button>`).join('')}</div>`;
+    const L = st ? [] : f === 'all' ? S.feed : f === 'mine' ? S.feed.filter(aboutMine) : S.feed.filter(p => qStat(p) === f);
+    const me = S.user ? ((S.prof && S.prof.display_name) || (S.meCard && S.meCard.display_name) || S.user.name || '') : '';
+    return `${topbar('Gemenskap')}${segBar()}
+  <div class="pad" style="padding-bottom:4px"><button class="composer" onclick="openAskQ()"><span class="cav">${S.user ? avSmall(me, S.meCard && S.meCard.avatar_url) : ic('ph-user', 'currentColor', 18)}</span><span>Vad undrar du över?</span></button></div>${chips}
+  <div class="pad qlist">${st || (L.length ? L.map((p, i) => postCardS(p, hi && i === 0 && S.user && p.user_id === S.user.id)).join('') : `<p class="mut" style="text-align:center">${f === 'open' ? 'Alla frågor har fått svar. Snyggt jobbat!' : f === 'mine' ? 'Inga frågor om dina växter än.' : 'Inga lösta frågor än.'}</p>`)}</div>
+  <button class="fabq" id="fabq" onclick="openAskQ()" aria-label="Ställ fråga">${ic('ph-plus', 'currentColor', 22)}<span>Ställ fråga</span></button>`;
+  }
   return `${topbar('Gemenskap')}${segBar()}
   ${(S.ctab || 'q') === 'q' ? (document.documentElement.getAttribute('data-ui') === 'stad' ? `<div class="pad" style="padding-bottom:4px"><button class="composer" onclick="openAskQ()"><span class="cav">${ic('ph-user', 'currentColor', 18)}</span><span>Vad undrar du över?</span></button></div>` : `<div class="pad" style="padding-bottom:4px"><button class="btn wide" onclick="openAskQ()">+ Ställ en fråga</button></div>`) : ''}
   ${!st ? (() => { const f = S.qf || 'all', cnt = k => S.feed.filter(p => qStat(p) === k).length;
@@ -10572,6 +10977,8 @@ function applyGrowlight() {
 }
 // ===== Törstig-widget på startsidan (punkt 7) =====
 function thirstyCard(due) {
+  // Städad (108): inget rosa varningskort, Att göra-listan visar vattningen
+  if (stadUI()) return '';
   const names = due.slice(0, 3).map(m => esc(m.name)).join(', ') + (due.length > 3 ? ' och ' + (due.length - 3) + ' till' : '');
   return `<div class="setcard" style="margin:12px 16px;display:flex;gap:12px;align-items:center;border:1px solid rgba(244,67,54,.45)"><span style="font-size:22px">💧</span><div style="flex:1"><b>${due.length} ${due.length === 1 ? 'växt behöver' : 'växter behöver'} din uppmärksamhet idag</b><small style="display:block;color:var(--mut)">${names}</small></div><button class="btn sm" onclick="openMine(${due[0].id})">Visa</button></div>`;
 }
@@ -10748,6 +11155,9 @@ function seasonCard(sz) {
   const tips = seasonTips(m).map(t => [t, seasonMine(t) ? 1 : 0, (S.prof && S.prof.interests || []).some(c => SEASON_CATS[t[0]].includes(c)) ? 1 : 0])
     .sort((a, b) => (b[1] - a[1]) || (b[2] - a[2])).slice(0, { s: 1, m: 2, l: 4 }[sz || 'm']).map(x => x[0]);
   if (!tips.length) return '';
+  // Städad (110): inga likadana bladikoner, liten tagg ovanför rubriken, text max 2 rader och "Läs mer", textlänk med ›
+  if (stadUI()) return `<div class="sec cap2"><h2>Just nu i ${MONTH_NAMES[m - 1]}</h2></div><div class="pad sn2">${tips.map(t => { const tag = seasonMine(t) || { inne: 'Inomhus', kok: 'Köksträdgård', ute: 'Trädgård' }[t[0]];
+    return `<button class="sntip" onclick="openSeason()">${tag ? `<span class="sntag">${esc(tag)}</span>` : ''}<b>${esc(t[1])}</b><span class="sntxt">${esc(t[2])}</span><span class="snmore">Läs mer</span></button>`; }).join('')}<button class="linkbtn" onclick="openSeason()">Alla tips för ${MONTH_NAMES[m - 1]} ›</button></div>`;
   return `<div class="seasonc"><div class="sh"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><b>Just nu i ${MONTH_NAMES[m - 1]}</b></div>
   ${tips.map(t => stipV(t, true)).join('')}
   ${document.documentElement.getAttribute('data-ui') === 'stad' ? `<button class="linkbtn" onclick="openSeason()">Alla tips för ${MONTH_NAMES[m - 1]} ›</button>` : `<button class="btn sm line" style="margin-top:8px" onclick="openSeason()">Alla tips för ${MONTH_NAMES[m - 1]}</button>`}</div>`;
@@ -10783,6 +11193,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.341', '11 nov', ['Designvarianten Städad: ny startsida med snabbval, Alla verktyg, Mina växter som karusell och kompakt väder', 'Städad: Samling med svep för Vattnad och Skjut upp, Frågor med nya kort och knappen Ställ fråga, nytt fönster för att ställa en fråga', 'Städad: Vänner med Lägg till vän, QR-kod och Odlare nära dig']],
   ['Beta 0.340', '11 nov', ['Bilder i meddelanden syns igen. De skickades, men visades inte i chatten', 'Solbana: i kameraläget ser du solljuset genom fönstret, månen och dina växter ute med namn och avstånd. Välj var du står under Jag står vid. Månen syns också i 3D-vyn', 'Växtsidan: knappen Sök bilder på sorten eller arten, för sorter som saknar foto', 'Fråga en expert är borttagen tills vidare', 'Designvarianten Städad: ny startsida, Samling, Gemenskap, Notiser, Profil och Inställningar']],
   ['Beta 0.339', '10 nov', ['Plantswipe (tidigare Upptäck): svep igenom växter, med filter för kategori, odlingszon, växttyp, ljus, vatten, luftfuktighet, storlek och egenskaper. Snabbval på Start', 'Märket Beta-testare för alla som skapar konto under betatestperioden', 'Gratis Pro gäller alla testare utom ett konto som är markerat för betaltest, så att köpflödet kan testas', 'Moderering: tydligare navigering med sektioner och flikar, och sortering av rapporter, felrapporter och feedback', 'Odlingszon: zonväljaren visar zonkartan direkt, och bakåt-knappen tar dig inte förbi valet. Ändra zon öppnar zonvalet i inställningarna', 'Nya märkesikoner: lotusblomma, blad och groddplanta']],
   ['Beta 0.338', '10 nov', ['Designvarianten Städad: fyra textstorlekar och två vikter, brödtext 16 px, bättre kontrast, avstånd i ett jämnt rutnät och en enda accentfärg', 'Städad: tryck ger direkt återkoppling och lätt vibration, knappar är låsta medan de väntar på svar, och blockering kan ångras', 'Städad: skelettvyer medan något laddas, mjuka övergångar mellan vyer, och ett växtkort växer till växtsidan när du öppnar det']],
@@ -12548,7 +12959,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.340';
+const APP_VERSION = 'Beta 0.341';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -12560,7 +12971,7 @@ function uiLink(id, href) { if (document.getElementById(id)) return; const l = d
 let stadLastEl = null;
 document.addEventListener('pointerdown', e => {
   if (document.documentElement.dataset.ui !== 'stad') return; stadLastEl = e.target;
-  const el = e.target.closest && e.target.closest('.btn,.chips2 button,.seg2 button,nav button,.nrow'); if (!el) return;
+  const el = e.target.closest && e.target.closest('.btn,.chips2 button,.seg2 button,nav button,.nrow,.nrow2,.srow,.qpc,.qsame,.qcard,.stadtabs button,.pdot,.composer,.fabq,.fabshow,.btile,.upl,.sswitch,.mrs,.hcard,.pcard'); if (!el) return;
   const r = el.getBoundingClientRect(); el.style.setProperty('--rx', (e.clientX - r.left) + 'px'); el.style.setProperty('--ry', (e.clientY - r.top) + 'px');
   try { if (navigator.vibrate) navigator.vibrate(8); } catch (x) { }
 }, { passive: true });
