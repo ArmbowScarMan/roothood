@@ -500,6 +500,8 @@ details.tech p b{color:var(--ink)}
 .setcard{background:var(--surf);border-radius:22px;padding:16px;box-shadow:var(--sh)}
 .msSec.msMin>:not(.msH){display:none!important}
 .msH{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border:0;background:none;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.pdot{display:inline-block;width:12px;height:12px;border-radius:50%;flex:0 0 12px;margin-right:12px}.pdot.on{background:#3CB371}.pdot.idle{background:#E6B800}.pdot.off{background:#9AA0A6}
+.prow2{display:flex;align-items:center;padding:10px 0;border-top:1px solid var(--line)}.prow2:first-child{border-top:0}.prow2 .grow{min-width:0;flex:1}
 .fl{display:block;font-size:13px;font-weight:700;color:var(--mut);margin:14px 0 6px}
 .setcard>.fl:first-child{margin-top:0}
 .seg2.inset{margin:0;box-shadow:none;background:var(--bg)}
@@ -2984,6 +2986,8 @@ const sbApi = {
   async modUsageDays(d) { const { data, error } = await sb.rpc('mod_usage_days', { p_days: d }); if (error) throw this._st(error); return data || []; },
   async modUsageUsers(f, d) { const { data, error } = await sb.rpc('mod_usage_users', { p_feature: f || '', p_days: d }); if (error) throw this._st(error); return data || []; },
   async modUsageUserFeatures(u, d) { const { data, error } = await sb.rpc('mod_usage_user_features', { p_user: u, p_days: d }); if (error) throw this._st(error); return data || []; },
+  async presencePing(a) { const { error } = await sb.rpc('presence_ping', { p_action: !!a }); if (error) throw error; },
+  async modPresence() { const { data, error } = await sb.rpc('mod_presence'); if (error) throw this._st(error); return data || []; },
   async modUsageUserDays(u, d) { const { data, error } = await sb.rpc('mod_usage_user_days', { p_user: u, p_days: d }); if (error) throw this._st(error); return data || []; },
   async modUsageH(h) { const { data, error } = await sb.rpc('mod_usage_h', { p_hours: h }); if (error) throw this._st(error); return data || []; },
   async modTime(h) { const { data, error } = await sb.rpc('mod_time', { p_hours: h }); if (error) throw this._st(error); return data || []; },
@@ -8496,10 +8500,12 @@ async function loadMod() {
     else if (t === 'sentry') { S.modData = []; }
     else if (t === 'fb' || t === 'err') { const all = await api.modFb(); S.modData = all.filter(f => (f.kind === 'bug') === (t === 'err')); }
     else if (t === 'nyckl') { S.modData = await api.modFb(); }
+    else if (t === 'online') S.modData = await api.modPresence();
     else if (t === 'stats') { const P = msPer(); S.msUF = {}; S.msUD = {}; S.msUser = null; const [f, days] = await Promise.all(P.h ? [api.modUsageH(P.h), api.modUsageHours(P.h).then(r => msHourRows(r, P.h))] : [api.modUsage(P.d), api.modUsageDays(P.d)]); const notif = await api.modNotifStats(P.h || P.d * 24).catch(() => null), time = await api.modTime(P.h || P.d * 24).catch(() => null); S.modData = { f, days, notif, time, users: await (P.h ? api.modUsageUsersH(S.msFeat || '', P.h) : api.modUsageUsers(S.msFeat || '', P.d)) }; }
     else if (t === 'users') { S.modData = await api.modUsers(S.modUQ || '', 0); S.modUMore = S.modData.length >= (DEMO ? 1e9 : 100); S.modUN = await api.modUserCount().catch(() => null); }
     S.modErr = null; S.modOpen = await api.modOpen(); S.modBestN = await api.modBestCount();
   } catch (e) { S.modData = []; S.modErr = e.message === 'MODU_NOT_READY' ? 'Användarlistan är inte påslagen än. Kör SQL-filen 051-moderator-anvandare i Supabase.' : e.message === 'STATS_NOT_READY' ? (msPer().h ? 'Statistik per timme är inte påslagen än. Kör SQL-filen 060-statistik-per-timme i Supabase.' : 'Statistiken är inte påslagen än. Kör SQL-filen 055-statistik i Supabase.') : e.message === 'FB_NOT_READY' ? 'Feedback är inte påslagen än. Kör SQL-filen 056-feedback i Supabase.' : e.message === 'MOD_NOT_READY' || /mod_|NOT_MOD/.test(e.message || '') ? 'Modereringen går inte att använda just nu.' : errMsg(e); }
+  if (t === 'online') modOnlineTick();
   S.modBusy = false; if (S.tool === 'mod') { const y = $('#main').scrollTop; render(); $('#main').scrollTop = y; }
 }
 function modTab(t) { S.modTab = t; S.msOpen = {}; S.modData = null; S.modSel = []; S.modQ = ''; S.modRes = null; S.modUQ = ''; render(); loadMod(); }
@@ -8679,7 +8685,26 @@ async function modHideUserFromCard(uid, name) {
   try { const n = await api.modHideUser(uid, true); toast('Allt från ' + name + ' är dolt (' + n + ')'); S.uposts = await api.modUserPosts(uid); } catch (e) { toast(errMsg(e)); }
   render();
 }
-const MOD_TREE = [['Granska', [['open', 'Rapporter'], ['best', 'Bästa svar'], ['plants', 'Växter'], ['feed', 'Gemenskap']]], ['Hantering', [['done', 'Hanterade'], ['users', 'Alla användare']]], ['Appen', [['stats', 'Statistik']]], ['Nycklas', [['nyckl', 'Alla'], ['err', 'Felrapporter'], ['fb', 'Feedback']]], ];
+// Närvaro: en ping per minut när fliken är synlig. Åtgärd = tryck, tangent, scroll.
+let presAct = false, presTimer = null;
+['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach(ev => document.addEventListener(ev, () => { presAct = true; }, { passive: true, capture: true }));
+function presTick() {
+  if (!S.user || !sb || DEMO || document.hidden) return;
+  const a = presAct; presAct = false;
+  api.presencePing(a).catch(() => { });
+}
+function startPresence() { if (presTimer) return; presTimer = setInterval(presTick, 60000); setTimeout(presTick, 3000); }
+// Användare online (moderatorer). Grön: aktiv nu. Gul: online men ingen åtgärd på 5 min. Grå: offline.
+function modOnlineTick() { clearTimeout(window.__onT); window.__onT = setTimeout(() => { if (S.modTab === 'online' && S.tool === 'mod') loadMod(); }, 30000); }
+function modOnlineV(D) {
+  if (!D) return '<p class="mut" style="margin:12px 18px">Hämtar…</p>';
+  const ago = t => { const m = Math.max(0, Math.round((Date.now() - Date.parse(t)) / 60000)); return m < 1 ? 'nyss' : m < 60 ? m + ' min sedan' : Math.round(m / 60) + ' tim sedan'; };
+  const L = { online: ['on', 'Online nu'], idle: ['idle', 'Online, ingen åtgärd på 5 min'], offline: ['off', 'Offline'] };
+  const on = D.filter(x => x.status === 'online').length, idle = D.filter(x => x.status === 'idle').length;
+  return `<div class="pad"><p class="mut" style="margin:4px 0 12px;font-size:13px">${on} online · ${idle} inaktiva. Uppdateras var 30:e sekund.</p>
+  <div class="setcard" style="padding:6px 14px">${D.length ? D.map(x => { const [c, t] = L[x.status] || L.offline; return `<div class="prow2"><span class="pdot ${c}" aria-hidden="true"></span><span class="grow"><b>${esc(x.display_name || 'Okänd')}</b><small class="mut" style="display:block">${t}${x.status === 'offline' ? ' · senast ' + ago(x.last_seen) : x.status === 'idle' ? ' · senaste åtgärd ' + ago(x.last_action) : ''}</small></span></div>`; }).join('') : '<p class="mut" style="margin:10px 0">Ingen har varit i appen senaste dygnet.</p>'}</div></div>`;
+}
+const MOD_TREE = [['Granska', [['open', 'Rapporter'], ['best', 'Bästa svar'], ['plants', 'Växter'], ['feed', 'Gemenskap']]], ['Hantering', [['done', 'Hanterade'], ['users', 'Alla användare']]], ['Appen', [['stats', 'Statistik'], ['online', 'Användare online']]], ['Nycklas', [['nyckl', 'Alla'], ['err', 'Felrapporter'], ['fb', 'Feedback']]], ];
 function modNavItems(n) { return MOD_TREE.find(([x]) => x === n)[1].concat(n === 'Hantering' && isAdmin() ? [['team', 'Team']] : []).concat(n === 'Appen' && isAdmin() ? [['sentry', 'Sentry-test']] : []); }
 // Testknapp för Sentry: skickar ett testfel så att man ser att felrapporteringen fungerar. Bara för admins.
 function sentryTest() { const msg = document.getElementById('sentrymsg'); const id = (window.Sentry && Sentry.captureException) ? Sentry.captureException(new Error('Roothood testfel från adminknappen ' + new Date().toISOString())) : null; if (msg) msg.textContent = id ? 'Skickat. Event-id: ' + id : 'Sentry är inte laddat. Ladda om appen och försök igen.'; }
@@ -8724,6 +8749,8 @@ function modV() {
     body = D.length ? `<div class="pad">${D.map(r => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">Fråga av ${esc(r.asked_by || 'okänd')} · ${ago(r.asked_at)}</small><p style="margin:8px 0 4px">”${esc((r.question || '').slice(0, 200))}”</p><small class="mut">Föreslaget bästa svar av ${esc(r.answer_author || 'okänd')}</small><p style="margin:6px 0 0;white-space:pre-line">${esc(r.answer_text || '')}</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="modBestAct(${r.post_id},true)">Godkänn</button><button class="btn sm line" onclick="modBestAct(${r.post_id},false)">Avslå</button></div></div>`).join('')}</div>` : '<p class="mut" style="margin:16px 18px">Inga svar väntar på godkännande.</p>';
   } else if (t === 'plants') {
     body = D.length ? `<div class="pad">${D.map(p => `<div class="card modc" style="padding:14px;margin-bottom:12px"><b>${esc(p.swedish_name || 'Okänd växt')}</b><small class="mut" style="display:block">${esc(p.latin_name || '')}${p.category ? ' · ' + esc(p.category) : ''}</small>${p.toxicity_text ? `<p style="margin:8px 0 0;font-size:14px">${esc(p.toxicity_text)}</p>` : ''}${p.tips ? `<p class="mut" style="margin:6px 0 0;font-size:13px;white-space:pre-line">${esc(p.tips)}</p>` : ''}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="modPlantAct(${+p.id},true)">Godkänn</button><button class="btn sm line" onclick="modPlantAct(${+p.id},false)">Avvisa</button></div></div>`).join('')}</div>` : '<p class="mut" style="margin:16px 18px">Inga växter väntar på granskning.</p>';
+  } else if (t === 'online') {
+    body = modOnlineV(D);
   } else if (t === 'stats') {
     body = modStatsV(D);
   } else if (t === 'fb' || t === 'err' || t === 'nyckl') {
@@ -14585,4 +14612,5 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.modal) c
   document.addEventListener('scroll', () => { const a = document.activeElement; if (a && a.matches && a.matches('input[type=search]')) a.blur(); }, true);
   window.dropKb = drop; }
 init();
+startPresence();
 </script></body></html>
