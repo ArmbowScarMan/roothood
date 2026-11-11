@@ -3154,7 +3154,7 @@ async function sendPhotoReport(reason) {
   try {
     await api.report('photo', id, reason);
     if (Array.isArray(S.others[pid])) S.others[pid] = S.others[pid].filter(x => x.url !== id);
-    toast('Tack! Bilden är dold för dig och granskas.');
+    toast(pid ? 'Tack! Bilden är dold för dig och granskas.' : 'Tack! Rapporten är skickad.');
   } catch (e) { toast(e.message === 'REPORT_PHOTO_NOT_READY' ? 'Rapportering av bilder går inte att använda just nu.' : errMsg(e)); }
   render();
 }
@@ -8619,7 +8619,7 @@ function modV() {
     body = rows.length ? `<div class="pad">${modGroups(rows, t).map(([g, L]) => `<details class="mgrp" open><summary>${g} <em class="tabn">${L.length}</em></summary>${L.map(r => `<div class="card modc" style="padding:14px;margin-bottom:12px"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="tag lime">${KIND_SV[r.kind] || r.kind}</span>${r.hidden ? '<span class="tag">Dolt</span>' : ''}<small class="mut">${r.n} ${r.n === 1 ? 'rapport' : 'rapporter'} · ${ago(r.created_at)}</small></div>
       ${r.kind === 'photo' ? `<img src="${esc(r.target)}" alt="Rapporterat foto" style="max-width:100%;max-height:200px;border-radius:12px;margin-top:10px">` : `<p style="margin:10px 0 4px">”${esc((r.excerpt || '').slice(0, 200))}”</p>`}
       <small class="mut">Av ${esc(r.author || 'okänd')}</small><br><small class="mut">${reasons(r)}</small>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${r.status === 'open' ? `<button class="btn sm" onclick="modAct(${r.id},'hide')">Dölj</button><button class="btn sm line" onclick="modAct(${r.id},'keep')">Behåll</button>` : r.hidden ? `<button class="btn sm line" onclick="modAct(${r.id},'unhide')">Visa igen</button>` : `<button class="btn sm" onclick="modAct(${r.id},'hide')">Dölj ändå</button>`}</div></div>`).join('')}</details>`).join('')}</div>` : `<p class="mut" style="margin:16px 18px">${t === 'open' ? 'Inga rapporter att granska. 🎉' : 'Inga hanterade rapporter än.'}</p>`;
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${r.status === 'open' ? `<button class="btn sm" onclick="modAct(${r.id},'hide')">${r.kind === 'photo' ? 'Ta bort bilden' : 'Dölj'}</button><button class="btn sm line" onclick="modAct(${r.id},'keep')">Behåll</button>` : r.hidden ? `<button class="btn sm line" onclick="modAct(${r.id},'unhide')">Visa igen</button>` : `<button class="btn sm" onclick="modAct(${r.id},'hide')">Dölj ändå</button>`}</div></div>`).join('')}</details>`).join('')}</div>` : `<p class="mut" style="margin:16px 18px">${t === 'open' ? 'Inga rapporter att granska. 🎉' : 'Inga hanterade rapporter än.'}</p>`;
   } else if (t === 'best') {
     body = D.length ? `<div class="pad">${D.map(r => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">Fråga av ${esc(r.asked_by || 'okänd')} · ${ago(r.asked_at)}</small><p style="margin:8px 0 4px">”${esc((r.question || '').slice(0, 200))}”</p><small class="mut">Föreslaget bästa svar av ${esc(r.answer_author || 'okänd')}</small><p style="margin:6px 0 0;white-space:pre-line">${esc(r.answer_text || '')}</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="modBestAct(${r.post_id},true)">Godkänn</button><button class="btn sm line" onclick="modBestAct(${r.post_id},false)">Avslå</button></div></div>`).join('')}</div>` : '<p class="mut" style="margin:16px 18px">Inga svar väntar på godkännande.</p>';
   } else if (t === 'plants') {
@@ -9923,7 +9923,7 @@ function detail() {
   const cta = !my ? `<button class="btn" onclick="addPlant(${p.id})">Lägg till i min samling</button>${fv}${wv}`
     : (my.interval ? `<button class="btn" onclick="water(${my.id})">Markera som vattnad</button>` : '') + `<button class="btn line" onclick="addAnother(${p.id})">+ En till</button>${fv}${S.delAsk === my.id ? `<p class="mut" style="margin:4px 0 0;font-size:14px;text-align:center">Är du säker att du vill ta bort ${esc(my.name)}?</p><button class="btn danger" onclick="S.delAsk=null;S.del=${my.id};removeMine(${my.id})">Ja, ta bort</button><button class="btn line" onclick="S.delAsk=null;render()">Avbryt</button>` : `<button class="btn danger" onclick="S.delAsk=${my.id};render()">Ta bort från samlingen</button>`}`;
   return `${topbar(p.category, 'S.sel=null;render()')}
-  <div class="dtop">${my && my.photo ? myPh(my) : plantPhD(p)}<div class="dstats">
+  <div class="dtop">${my && my.photo ? `<div class="phwrap">${myPh(my)}<div style="display:flex;align-items:center;flex-wrap:wrap">${imgSearchBtn(p, 'margin-top:6px;font-size:13px')}</div></div>` : plantPhD(p)}<div class="dstats">
     <div><small>Ljus</small><b>${LIGHT[p.light_level - 1]}</b></div>
     <div><small>Vatten</small><b>${water}</b></div>
     ${p.humidity ? `<div><small>Luftfuktighet</small><b>${esc(p.humidity)}</b></div>` : ''}
@@ -10170,7 +10170,9 @@ function plantPh(p) { return p.photo_url ? `<div class="ph has-img" style="--h:0
 // Bildsökning på Google för växten (latinskt namn med sort). Bara en länk, inga bilder kopieras in i appen.
 function imgSearchUrl(p) { return 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent((p.latin_name || p.swedish_name || '').trim()); }
 function imgSearchBtn(p, st) { const sort = /['‘’"]|\bvar\.|\bcv\./.test(p.latin_name || ''); return `<a class="link3" style="display:inline-block;${st || ''}" href="${imgSearchUrl(p)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Sök bilder på ${sort ? 'sorten' : 'arten'}</a>`; }
-function plantPhD(p) { const cred = p.photo_url && (p.photo_credit || p.photo_note) ? `<small class="phcred">${p.photo_note ? '<b>' + esc(p.photo_note) + '</b> · ' : ''}${esc(p.photo_credit || '')}</small>` : ''; return `<div class="phwrap">${plantPh(p)}${cred}${imgSearchBtn(p, 'margin-top:6px;font-size:13px')}</div>`; }
+function plantPhD(p) { const cred = p.photo_url && (p.photo_credit || p.photo_note) ? `<small class="phcred">${p.photo_note ? '<b>' + esc(p.photo_note) + '</b> · ' : ''}${esc(p.photo_credit || '')}</small>` : ''; const rep = p.photo_url ? `<button class="link3" style="display:inline-block;margin-left:14px;font-size:13px;background:none;border:0;padding:0" onclick="reportPlantPhoto(${jsArg(p.photo_url)})">Rapportera bild</button>` : ''; return `<div class="phwrap">${plantPh(p)}${cred}<div style="display:flex;align-items:center;flex-wrap:wrap">${imgSearchBtn(p, 'margin-top:6px;font-size:13px')}${rep}</div></div>`; }
+// Felaktig bild på en växt: skickas till felrapporterna, och moderatorer kan ta bort bilden för alla
+function reportPlantPhoto(url) { if (needLogin()) return; S.rep = { kind: 'photo', id: url, pid: null }; openModal('report'); }
 function myPh(m) { return m.photo ? `<div class="ph has-img" style="--h:0"><img src="${esc(m.photo)}" alt="" loading="lazy"></div>` : ph(m.latin, m.category, m.name); }
 async function insertUP(row) {
   if (!newRemind()) row.remind = false;
@@ -10871,7 +10873,7 @@ function threadV() {
 }
 function reportV() {
   return `<div class="mh"><h2>Rapportera</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
-  <p class="mut" style="margin:0 0 14px">${S.rep && S.rep.kind === 'photo' ? 'Vad är fel med bilden? Den döljs direkt för dig, och rapporten går till den som sköter appen.' : 'Vad är fel? Rapporten går till den som sköter appen.'}</p>
+  <p class="mut" style="margin:0 0 14px">${S.rep && S.rep.kind === 'photo' ? (S.rep && S.rep.pid ? 'Vad är fel med bilden? Den döljs direkt för dig, och rapporten går till den som sköter appen.' : 'Vad är fel med bilden? Rapporten går till den som sköter appen, som kan ta bort bilden.') : 'Vad är fel? Rapporten går till den som sköter appen.'}</p>
   <form onsubmit="event.preventDefault();sendReport(this)">${(S.rep && S.rep.kind === 'photo' ? PHOTO_REASONS : REASONS).map((r, i) => `<label class="check"><input type="radio" name="reason" value="${r}" ${i === 0 ? 'checked' : ''}><span>${r}</span></label>`).join('')}
   <button class="btn wide formbtn">Skicka rapport</button></form>`;
 }
@@ -11694,6 +11696,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.352', '11 nov', ['Växtbilder: rapportera en felaktig bild så att den tas bort för alla. Google-bildlänken finns nu på alla växter, även när du har egen bild']],
   ['Beta 0.351', '11 nov', ['Marknivå: zooma med nypning, dra för att flytta kartan och öppna kameran där du ser nivålinjerna']],
   ['Beta 0.350', '11 nov', ['Nytt verktyg Marknivå under Verktyg: höjdskillnader runt en adress, höjdlinjer på satellitbilden och mätning mellan två punkter']],
   ['Beta 0.349', '11 nov', ['Regnvatten finns under Verktyg i Utforska. Solbana har fått ikon och beskrivning där']],
@@ -13505,7 +13508,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.351';
+const APP_VERSION = 'Beta 0.352';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];

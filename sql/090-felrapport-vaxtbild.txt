@@ -1,0 +1,24 @@
+-- 090: Moderatorer kan ta bort en felaktig växtbild för alla. Kör hela filen en gång i SQL-editorn. Går att köra flera gånger.
+-- Bygger på 077 (mod_act). Vid "Ta bort bilden" stängs bilden i photo_review, så den inte visas längre.
+create or replace function public.mod_act(p_report bigint, p_action text)
+returns void language plpgsql security definer set search_path = public as $$
+declare r reports%rowtype;
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  select * into r from reports where id = p_report;
+  if not found then return; end if;
+  if p_action in ('hide', 'unhide', 'keep') then
+    if r.post_id is not null then update posts set hidden = (p_action = 'hide') where id = r.post_id;
+    elsif r.answer_id is not null then update answers set hidden = (p_action = 'hide') where id = r.answer_id;
+    elsif r.photo_url is not null and p_action = 'hide' then
+      update user_plants set show_own = false where photo_url = r.photo_url;
+      update messages set body = case when body = '' then '(bilden är borttagen)' else body end, photo_url = null where photo_url = r.photo_url;
+      -- Växtbilder: en borttagen bild visas inte längre för någon
+      insert into public.photo_review (url, status, reviewed_at) values (r.photo_url, 'rejected', now())
+        on conflict (url) do update set status = 'rejected', reviewed_at = now();
+    end if;
+  end if;
+  update reports set status = case p_action when 'hide' then 'hidden' else 'kept' end, handled_by = auth.uid(), handled_at = now()
+  where post_id is not distinct from r.post_id and answer_id is not distinct from r.answer_id and photo_url is not distinct from r.photo_url and status = 'open';
+end $$;
+grant execute on function public.mod_act(bigint, text) to authenticated;
