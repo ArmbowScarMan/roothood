@@ -7077,8 +7077,8 @@ async function saveCustom(form) {
   const dup = (f.latin && S.plants.find(p => low(p.latin_name) === low(f.latin))) || S.plants.find(p => low(p.swedish_name) === low(f.name));
   S.modal = null;
   if (f.dest === 'wish') {
-    if (dup) { if (!isWish(dup.id)) await toggleWish(dup.id); toast(dup.swedish_name + ' fanns redan i databasen och ligger nu på din önskelista'); }
-    else await run(async () => { const id = await api.addCustom(f); S.plants = await api.plants(); if (id != null && !isWish(id)) { wishSet(wishList().concat({ id, note: '' })); if (!DEMO && sb) { try { await sb.from('plant_wishes').insert({ plant_id: id }); } catch (e) { console.warn('Roothood:', e); } } } }, f.name + ' ligger nu på din önskelista och är föreslagen till databasen. En moderator granskar den innan andra kan se den.');
+    if (dup) { if (!isWish(dup.id)) await toggleWish(dup.id); toast(dup.swedish_name + ' fanns redan i databasen och ligger nu i Villhöver'); }
+    else await run(async () => { const id = await api.addCustom(f); S.plants = await api.plants(); if (id != null && !isWish(id)) { wishSet(wishList().concat({ id, note: '' })); if (!DEMO && sb) { try { await sb.from('plant_wishes').insert({ plant_id: id }); } catch (e) { console.warn('Roothood:', e); } } } }, f.name + ' ligger nu i Villhöver och är föreslagen till databasen. En moderator granskar den innan andra kan se den.');
     S.ap = null; S.mtab = 'wish'; S.tab = 'mine'; S.tool = null; S.sel = null; render(); return;
   }
   if (f.dest === 'db') {
@@ -9751,7 +9751,7 @@ function qcard(q) {
 }
 function plantswipeW() {
   const n = dsRight().length;
-  return `<div class="pad"><button class="setrow" onclick="openDiscover()"><span class="tic">${ic('ph-leaf', 'currentColor', 20)}</span><span class="grow"><b>Plantswipe</b><span>${n ? n + ' sparade växter. Svep vidare' : 'Svep höger för att spara en växt, vänster för att hoppa över'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`;
+  return `<div class="pad"><button class="setrow" onclick="openDiscover()"><span class="tic">${ic('ph-leaf', 'currentColor', 20)}</span><span class="grow"><b>Plantswipe</b><span>${n ? n + ' i Villhöver. Svep vidare' : 'Svep höger för att lägga en växt i Villhöver, vänster för att hoppa över'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`;
 }
 // ===== Städad: startsidan (felrapport 108–111) =====
 // Snabbåtgärder: fyra i en rad med samma gröna ikonfärg. Fråga har en egen ikon i stället för gnistan, och Såkalendern en ikon som fungerar.
@@ -9763,7 +9763,7 @@ function allToolsModalV() { const Q = QUICK();
   return `<div class="mh2"><h2>Alla verktyg</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
   <div class="atgrid">${ALL_TOOLS.map(k => Q.find(q => q[0] === k)).filter(Boolean).map(q => qtileS(q[0], q[1], `S.modal=null;${q[4]}`)).join('')}</div>`; }
 function plantswipeS() { const n = dsRight().length, P = S.plants.filter(p => p.photo_url).slice(0, 3);
-  return `<div class="pad"><button class="psrow" onclick="openDiscover()"><span class="pstack">${P.map(p => `<img src="${esc(p.photo_url)}" alt="" loading="lazy">`).join('') || ic('ph-leaf', 'currentColor', 20)}</span><span class="grow"><b>Plantswipe</b><small>${n ? n + ' sparade växter' : 'Svep och spara växter du gillar'}</small></span>${ic('ph-caret-right', 'var(--mut)', 18)}</button></div>`; }
+  return `<div class="pad"><button class="psrow" onclick="openDiscover()"><span class="pstack">${P.map(p => `<img src="${esc(p.photo_url)}" alt="" loading="lazy">`).join('') || ic('ph-leaf', 'currentColor', 20)}</span><span class="grow"><b>Plantswipe</b><small>${n ? n + ' i Villhöver' : 'Svep och lägg växter du gillar i Villhöver'}</small></span>${ic('ph-caret-right', 'var(--mut)', 18)}</button></div>`; }
 // Ögonblicksbild av 3D-hemmet till startsidan. Tas när 3D-vyn ritas, högst var 20:e sekund, och sparas i telefonen.
 let h3SnapT = 0;
 function h3Snap() { if (!stadUI() || !S.user || Date.now() - h3SnapT < 20000) return; h3SnapT = Date.now();
@@ -9978,18 +9978,32 @@ function askV() {
 const wishKey = () => 'wish_' + (S.user ? S.user.id : 'anon');
 const wishList = () => (S.wishK === wishKey() && S.wish) || store.get(wishKey(), []);
 const isWish = id => wishList().some(w => w.id === id);
+// Gamla Högerswipe-listan (swipeR_) flyttas till Villhöver (wish_) en gång.
+function migrateSwipes() {
+  const oldK = 'swipeR_' + (S.user ? S.user.id : 'anon'), old = store.get(oldK, []);
+  if (!old.length) return;
+  const l = wishList().slice();
+  old.forEach(id => { if (!l.some(w => w.id === id)) { l.push({ id, note: '' }); if (S.user && !DEMO && sb) { try { sb.from('plant_wishes').insert({ plant_id: id }).then(() => {}, e => console.warn('Roothood:', e)); } catch (e) { console.warn('Roothood:', e); } } } });
+  wishSet(l); store.set(oldK, []);
+}
+function wishAdd(id) {
+  if (isWish(id)) return;
+  wishSet(wishList().concat({ id, note: '' }));
+  if (S.user && !DEMO && sb) { try { sb.from('plant_wishes').insert({ plant_id: id }).then(() => {}, e => console.warn('Roothood:', e)); } catch (e) { console.warn('Roothood:', e); } }
+}
 async function loadWishes() {
+  migrateSwipes();
   let l = store.get(wishKey(), []);
   if (S.user && !DEMO && typeof sb !== 'undefined' && sb) { try { const r = await sb.from('plant_wishes').select('plant_id,note,created_at'); if (!r.error && r.data) { const have = new Set(l.map(x => x.id)); r.data.forEach(x => { if (!have.has(x.plant_id)) l.push({ id: x.plant_id, note: x.note || '' }); }); } } catch (e) { console.warn('Roothood:', e); } }
   S.wish = l; S.wishK = wishKey();
 }
 function wishSet(l) { S.wish = l; S.wishK = wishKey(); store.set(wishKey(), l); }
 async function toggleWish(id) {
-  if (!S.user) return openModal('login');
+  if (!S.user && !isWish(id)) return openModal('login');
   const cur = wishList(), on = !cur.some(w => w.id === id);
   wishSet(on ? cur.concat({ id, note: '' }) : cur.filter(w => w.id !== id));
-  if (!DEMO && sb) { try { if (on) await sb.from('plant_wishes').insert({ plant_id: id }); else await sb.from('plant_wishes').delete().eq('user_id', S.user.id).eq('plant_id', id); } catch (e) { console.warn('Roothood:', e); } }
-  toast(on ? 'Tillagd på önskelistan' : 'Borttagen från önskelistan');
+  if (S.user && !DEMO && sb) { try { if (on) await sb.from('plant_wishes').insert({ plant_id: id }); else await sb.from('plant_wishes').delete().eq('user_id', S.user.id).eq('plant_id', id); } catch (e) { console.warn('Roothood:', e); } }
+  toast(on ? 'Tillagd i Villhöver' : 'Borttagen från Villhöver');
   keepMain();
 }
 async function wishNote(id, v) {
@@ -10005,14 +10019,18 @@ async function wishBought(id) {
   if (!DEMO && sb) { try { await sb.from('plant_wishes').delete().eq('user_id', S.user.id).eq('plant_id', id); } catch (e) { console.warn('Roothood:', e); } }
   toast(p.swedish_name + ' finns nu i din samling'); await afterAdd();
 }
-function wishV() {
+function wishListHtml() {
   const L = wishList().map(w => [w, S.plants.find(p => p.id === w.id)]).filter(x => x[1]);
-  return `${topbar('Min samling')}${mtabBar()}
-  <div class="sec"><h2>Önskelista</h2><span class="mut">${L.length} ${L.length === 1 ? 'växt' : 'växter'}</span></div>
-  ${L.length ? `<div class="pad" style="display:flex;flex-direction:column;gap:10px">${L.map(([w, p]) => `<div class="setcard" style="padding:12px 14px"><div style="display:flex;gap:10px;align-items:center"><button class="link3" style="flex:1;text-align:left;font-size:16px;font-weight:800" onclick="openPlant(${p.id})">${esc(p.swedish_name)}<small style="display:block;font-weight:400;font-style:italic;color:var(--mut)">${esc(p.latin_name || '')}</small></button><button class="btn sm" onclick="wishBought(${p.id})">Köpt! Lägg till</button></div>
+  return L.length ? `<div class="pad" style="display:flex;flex-direction:column;gap:10px">${L.map(([w, p]) => `<div class="setcard" style="padding:12px 14px"><div style="display:flex;gap:10px;align-items:center"><button class="link3" style="flex:1;text-align:left;font-size:16px;font-weight:800" onclick="openPlant(${p.id})">${esc(p.swedish_name)}<small style="display:block;font-weight:400;font-style:italic;color:var(--mut)">${esc(p.latin_name || '')}</small></button><button class="btn sm" onclick="wishBought(${p.id})">Köpt! Lägg till</button></div>
   <input class="rname" style="width:100%;margin-top:8px;box-sizing:border-box" value="${esc(w.note || '')}" maxlength="200" placeholder="Anteckning, t.ex. köp hos Plantagen eller byt med Maria" onchange="wishNote(${p.id},this.value)" aria-label="Anteckning">
-  <button class="link3" style="margin-top:6px;color:var(--mut)" onclick="toggleWish(${p.id})">Ta bort från önskelistan</button></div>`).join('')}</div>`
-  : `<div class="list"><div class="empty"><p>Här samlas växter du vill ha. Öppna en växt i Växtbiblioteket och tryck Önskelista. När du köpt den trycker du Köpt, så hamnar den i din samling.</p><button class="btn sm" onclick="openDb(true)">Sök växter</button></div></div>`}
+  <button class="link3" style="margin-top:6px;color:var(--mut)" onclick="toggleWish(${p.id})">Ta bort från Villhöver</button></div>`).join('')}</div>`
+  : `<div class="list"><div class="empty"><p>Här samlas växter du vill ha. Öppna en växt i Växtbiblioteket och tryck Villhöver. När du köpt den trycker du Köpt, så hamnar den i din samling.</p><button class="btn sm" onclick="openDb(true)">Sök växter</button></div></div>`;
+}
+function wishV() {
+  const n = wishList().filter(w => S.plants.some(p => p.id === w.id)).length;
+  return `${topbar('Min samling')}${mtabBar()}
+  <div class="sec"><h2>Villhöver</h2><span class="mut">${n} ${n === 1 ? 'växt' : 'växter'}</span></div>
+  ${wishListHtml()}
   <div class="pad" style="margin-top:14px"><button class="btn line wide" onclick="addCustomStart('wish')">+ Lägg till en växt som inte finns i databasen</button></div>`;
 }
 function addAnother(id) { if (!S.user) return openModal('login'); S.dupId = id; openModal('dup'); }
@@ -10028,8 +10046,8 @@ function favV() {
   ${L.length ? `<div class="grid">${L.map(plantMini).join('')}</div>` : `<div class="list"><div class="empty"><p>Här samlas växter du gillar. Tryck på hjärtat vid en växt i Växtbiblioteket så sparas den här. Den hamnar inte i Samling, dit lägger du bara växter du har.</p><button class="btn sm" onclick="openDb(true)">Sök växter</button></div></div>`}`;
 }
 function mtabBar() { const t = S.mtab || 'mine';
-  if (stadUI()) { requestAnimationFrame(ctabInd); return `<div class="ctabs stadtabs" data-bar="m" role="tablist" onscroll="ctabFade(this)">${[['mine', 'Samling'], ['care', 'Journal'], ['fav', 'Favoriter'], ['wish', 'Önskelista']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="S.mtab='${k}';S.mdue=false;S.mAnimDone=false;render()">${n}</button>`).join('')}<span class="ctabind" aria-hidden="true"></span></div>`; }
-  return `<div class="seg2 four" role="tablist">${[['mine', 'Samling'], ['care', 'Journal'], ['fav', 'Favoriter'], ['wish', 'Önskelista']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="S.mtab='${k}';render()">${n}</button>`).join('')}</div>`; }
+  if (stadUI()) { requestAnimationFrame(ctabInd); return `<div class="ctabs stadtabs" data-bar="m" role="tablist" onscroll="ctabFade(this)">${[['mine', 'Samling'], ['care', 'Journal'], ['fav', 'Favoriter'], ['wish', 'Villhöver']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="S.mtab='${k}';S.mdue=false;S.mAnimDone=false;render()">${n}</button>`).join('')}<span class="ctabind" aria-hidden="true"></span></div>`; }
+  return `<div class="seg2 four" role="tablist">${[['mine', 'Samling'], ['care', 'Journal'], ['fav', 'Favoriter'], ['wish', 'Villhöver']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="S.mtab='${k}';render()">${n}</button>`).join('')}</div>`; }
 function shortTemp(t) { const m = /\d+\s*–\s*\d+\s*°C/.exec(t || ''); return m ? m[0] : (t || '').split(',')[0]; }
 function tile(label, value, desc, icon, color, bad) {
   // Saknat värde: rutan finns kvar med ett grått streck, så att skötselrutorna alltid har samma form
@@ -10046,7 +10064,7 @@ function detail() {
   const similar = S.plants.filter(x => x.category === p.category && x.id !== p.id).slice(0, 8);
   const status = my ? `<span class="tag green">${d === null ? 'I din samling' : d === 0 ? 'Vattna idag' : 'Vattnas om ' + d + (d === 1 ? ' dag' : ' dagar')}</span>` : '';
   const fv = `<button class="btn line" onclick="heart(${p.id})" aria-pressed="${isFav(p.id)}">${isFav(p.id) ? '♥ Favorit' : '♡ Favorit'}</button>`;
-  const wv = `<button class="btn line" onclick="toggleWish(${p.id})" aria-pressed="${isWish(p.id)}">${isWish(p.id) ? '★ På önskelistan' : '☆ Önskelista'}</button>`;
+  const wv = `<button class="btn line" onclick="toggleWish(${p.id})" aria-pressed="${isWish(p.id)}">${isWish(p.id) ? '★ I Villhöver' : '☆ Villhöver'}</button>`;
   const cta = !my ? `<button class="btn" onclick="addPlant(${p.id})">Lägg till i min samling</button>${fv}${wv}`
     : (my.interval ? `<button class="btn" onclick="water(${my.id})">Markera som vattnad</button>` : '') + `<button class="btn line" onclick="addAnother(${p.id})">+ En till</button>${fv}${S.delAsk === my.id ? `<p class="mut" style="margin:4px 0 0;font-size:14px;text-align:center">Är du säker att du vill ta bort ${esc(my.name)}?</p><button class="btn danger" onclick="S.delAsk=null;S.del=${my.id};removeMine(${my.id})">Ja, ta bort</button><button class="btn line" onclick="S.delAsk=null;render()">Avbryt</button>` : `<button class="btn danger" onclick="S.delAsk=${my.id};render()">Ta bort från samlingen</button>`}`;
   return `${topbar(p.category, 'S.sel=null;render()')}
@@ -10218,7 +10236,7 @@ function addV() {
   return `<div class="mh"><h2>Lägg till egen växt</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div id="apbox">${apBox()}</div>
   <form onsubmit="event.preventDefault();saveCustom(this)">
-  <div class="destpick" role="radiogroup" aria-label="Var ska växten hamna?"><b>Var ska den hamna?</b><div class="chips2">${[['mine', 'I min samling'], ['wish', 'På önskelistan'], ['db', 'Bara i växtbiblioteket']].map(([k, n]) => `<label class="dchip"><input type="radio" name="dest" value="${k}" ${(S.addDest || 'mine') === k ? 'checked' : ''} onchange="S.addDest=this.value"><span>${n}</span></label>`).join('')}</div><p class="mut" style="margin:6px 0 0;font-size:12.5px">Växten läggs alltid till i växtbiblioteket. En moderator granskar den innan andra kan se den.</p></div>
+  <div class="destpick" role="radiogroup" aria-label="Var ska växten hamna?"><b>Var ska den hamna?</b><div class="chips2">${[['mine', 'I min samling'], ['wish', 'I Villhöver'], ['db', 'Bara i växtbiblioteket']].map(([k, n]) => `<label class="dchip"><input type="radio" name="dest" value="${k}" ${(S.addDest || 'mine') === k ? 'checked' : ''} onchange="S.addDest=this.value"><span>${n}</span></label>`).join('')}</div><p class="mut" style="margin:6px 0 0;font-size:12.5px">Växten läggs alltid till i växtbiblioteket. En moderator granskar den innan andra kan se den.</p></div>
   <label>Namn<input name="name" id="cname" required maxlength="60" value="${esc(S.prefill)}" placeholder="t.ex. Elefantöra" oninput="const c=$('#samelat');if(c&&c.checked)$('#clatin').value=this.value;syncLatin()"></label>
   <p class="mut" id="nameprev" style="margin:-8px 0 12px;font-size:13px"></p>
   <div class="taxbox"><b>Vetenskaplig indelning (valfritt)</b>
@@ -11288,9 +11306,8 @@ function docV() {
 function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { navBack(); }
 // ===== Upptäck: svep på växter du inte har =====
-// Höger = sparas i katalogen Högerswipe (på telefonen). Vänster = hoppar över utan att spara något.
-const dsKey = () => 'swipeR_' + (S.user ? S.user.id : 'anon');
-const dsRight = () => store.get(dsKey(), []);
+// Höger = läggs i Villhöver (samma lista som under Min samling). Vänster = hoppar över utan att spara något.
+const dsRight = () => { migrateSwipes(); return wishList().map(w => w.id); };
 const DS_COLOR = ['röd', 'rosa', 'orange', 'gul', 'vit', 'lila', 'blå'];
 const dsF = () => S.dsc || (S.dsc = { pet: false, easy: false, prot: false, cats: [], zones: [], types: [], light: [], water: [], hum: [], height: [], color: [] });
 const DS_HUM = [['low', 'Låg'], ['normal', 'Normal'], ['medium', 'Medel'], ['high', 'Hög']];
@@ -11347,7 +11364,7 @@ function dsfV() {
 function dsSwipe(dir) {
   if (S.dsView === 'match') return mSwipe(dir);
   const id = dsQueue()[0]; if (id == null) return;
-  if (dir === 'r') { const l = dsRight(); if (!l.includes(id)) store.set(dsKey(), [id].concat(l)); toast('Sparad i Högerswipe'); }
+  if (dir === 'r') { wishAdd(id); toast('Sparad i Villhöver'); }
   else { (S.dsSkip || (S.dsSkip = new Set())).add(id); }
   S.dsQ.shift(); dsRender();
 }
@@ -11357,7 +11374,6 @@ function dsButton(dir) {
   el.style.transition = 'transform .25s ease, opacity .25s'; el.style.transform = 'translateX(' + (dir === 'r' ? 520 : -520) + 'px) rotate(' + (dir === 'r' ? 18 : -18) + 'deg)'; el.style.opacity = '0';
   setTimeout(() => dsSwipe(dir), 220);
 }
-function dsRemoveSaved(id) { store.set(dsKey(), dsRight().filter(x => x !== id)); dsRender(); }
 function dsBind() {
   const el = document.getElementById('dscard'); if (!el || el.dataset.b) return; el.dataset.b = '1';
   let x0 = null, dx = 0;
@@ -11370,11 +11386,8 @@ function discoverV() {
   const c = dsF(), n = dsCount();
   const head = topbar('Plantswipe', 'closeTool()');
   if (S.dsView === 'match') return `${head}<div class="seg2" role="tablist"><button onclick="S.dsView='';dsRender()">Svep</button><button class="on">Matcha</button></div>${matchV()}`;
-  const tabs = `<div class="seg2" role="tablist"><button class="${S.dsView !== 'saved' ? 'on' : ''}" onclick="S.dsView='';dsRender()">Svep</button><button onclick="S.dsView='match';S.mq=null;dsRender()">Matcha</button><button class="${S.dsView === 'saved' ? 'on' : ''}" onclick="S.dsView='saved';dsRender()">Högerswipe (${dsRight().length})</button></div>`;
-  if (S.dsView === 'saved') {
-    const L = dsRight().map(id => S.plants.find(p => p.id === id)).filter(Boolean);
-    return `${head}${tabs}<div class="pad" style="display:flex;flex-direction:column;gap:10px;margin-top:12px">${L.length ? L.map(p => `<div class="setcard" style="padding:12px 14px;display:flex;gap:10px;align-items:center"><button class="link3" style="flex:1;text-align:left" onclick="openPlant(${p.id})"><b>${esc(p.swedish_name)}</b><small style="display:block;font-style:italic">${esc(p.latin_name)}</small></button><button class="link3" style="color:var(--mut)" onclick="dsRemoveSaved(${p.id})">Ta bort</button></div>`).join('') : `<div class="empty"><p>Här samlas växter du svept åt höger på. Gå till Upptäck och svep höger på en växt du vill ha.</p></div>`}</div>`;
-  }
+  const tabs = `<div class="seg2" role="tablist"><button class="${S.dsView !== 'saved' ? 'on' : ''}" onclick="S.dsView='';dsRender()">Svep</button><button onclick="S.dsView='match';S.mq=null;dsRender()">Matcha</button><button class="${S.dsView === 'saved' ? 'on' : ''}" onclick="S.dsView='saved';dsRender()">Villhöver (${dsRight().length})</button></div>`;
+  if (S.dsView === 'saved') return `${head}${tabs}<div style="margin-top:12px">${wishListHtml()}</div>`;
   const q = dsQueue(), p = q.length ? S.plants.find(x => x.id === q[0]) : null;
   const chips = `<div style="padding:0 16px;display:flex;align-items:center;gap:12px"><button class="btn sm line" onclick="openModal('dsf')">${ic('ph-sliders-horizontal', 'currentColor', 16)} Filter${n ? ' · ' + n : ''}</button>${n ? '<button class="link3" onclick="dsReset()">Rensa</button>' : ''}</div>`;
   let body;
@@ -11384,10 +11397,10 @@ function discoverV() {
       <p style="margin:8px 0 0;font-size:14px;color:var(--mut)">${esc(p.category || '')}${p.hardiness_zone ? ' · Zon ' + esc(p.hardiness_zone) : ''}</p>
       <button class="link3" style="margin-top:8px" onclick="openPlant(${p.id})">Visa mer om växten</button><br>${imgSearchBtn(p, 'margin-top:6px')}</div></div></div>
     <div style="display:flex;justify-content:center;gap:28px;margin:18px 0 8px">
-      <button class="circ" onclick="dsButton('l')" aria-label="Hoppa över" style="width:64px;height:64px;font-size:26px">✕</button>
-      <button class="circ" onclick="dsButton('r')" aria-label="Spara i Högerswipe" style="width:64px;height:64px;font-size:26px">♥</button>
+      <button class="circ" onclick="dsButton('l')" aria-label="Hoppa över" style="width:64px;height:64px;font-size:26px">${ic('ph-recycle', 'currentColor', 26)}</button>
+      <button class="circ" onclick="dsButton('r')" aria-label="Lägg i Villhöver" style="width:64px;height:64px;font-size:26px">💚</button>
     </div>
-    <p class="mut" style="text-align:center;font-size:13px;margin:0 0 12px">Svep höger för att spara i Högerswipe, vänster för att hoppa över.</p>`;
+    <p class="mut" style="text-align:center;font-size:13px;margin:0 0 12px">Svep höger för att lägga i Villhöver, vänster för att hoppa över.</p>`;
   return `${head}${tabs}<div class="sec" style="margin-top:10px"><h2>Filter</h2></div>${chips}<div style="margin-top:6px">${body}</div>`;
 }
 // ===== Utskrift: veckans skötsel (punkt 1) =====
@@ -11456,14 +11469,14 @@ function matchV() {
   const p = q.ids.length ? S.plants.find(x => x.id === q.ids[0]) : null;
   if (!p) return `<div class="empty" style="margin:24px 16px"><p>Inga fler förslag. Ändra svaren för att se andra växter.</p><button class="btn sm" onclick="S.mq=null;dsRender()">Börja om</button></div>`;
   return `<div style="display:flex;justify-content:center;padding:12px 16px 0"><div id="dscard" style="width:100%;max-width:360px;touch-action:pan-y;user-select:none;background:var(--surf);border-radius:20px;box-shadow:var(--sh);overflow:hidden">${plantPh(p)}<div style="padding:14px 16px 16px"><h3 style="margin:0;font-size:20px">${esc(p.swedish_name)}</h3><i style="color:var(--mut)">${esc(p.latin_name)}</i><button class="link3" style="display:block;margin-top:8px" onclick="openPlant(${p.id})">Visa mer om växten</button>${imgSearchBtn(p, 'margin-top:6px')}</div></div></div>
-  <div style="display:flex;justify-content:center;gap:28px;margin:18px 0 8px"><button class="circ" onclick="dsButton('l')" aria-label="Nästa" style="width:64px;height:64px;font-size:26px">✕</button><button class="circ" onclick="dsButton('r')" aria-label="Lägg i önskelistan" style="width:64px;height:64px;font-size:26px">♥</button></div>
-  <p class="mut" style="text-align:center;font-size:13px;margin:0 0 12px">Svep höger för önskelistan, vänster för nästa.</p>`;
+  <div style="display:flex;justify-content:center;gap:28px;margin:18px 0 8px"><button class="circ" onclick="dsButton('l')" aria-label="Nästa" style="width:64px;height:64px;font-size:26px">${ic('ph-recycle', 'currentColor', 26)}</button><button class="circ" onclick="dsButton('r')" aria-label="Lägg i Villhöver" style="width:64px;height:64px;font-size:26px">💚</button></div>
+  <p class="mut" style="text-align:center;font-size:13px;margin:0 0 12px">Svep höger för Villhöver, vänster för nästa.</p>`;
 }
 function matchAns(k, v) { const q = S.mq || (S.mq = { step: 0, L: null, W: null, P: null, ids: null, n: 0 }); q[k] = v; if (k === 'P' && !v) q.P = 0; q.step++; q.ids = null; if (q.step >= 3) { q.ids = matchQueue(); } dsRender(); }
 function mSwipe(dir) {
   const q = S.mq; if (!q || !q.ids || !q.ids.length) return;
   const id = q.ids.shift();
-  if (dir === 'r') { if (!isWish(id)) toggleWish(id); toast('Lagd i önskelistan'); }
+  if (dir === 'r') { wishAdd(id); toast('Lagd i Villhöver'); }
   dsRender();
 }
 
@@ -11853,6 +11866,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.363', '11 nov', ['Plantswipe: fliken Högerswipe heter nu Villhöver och visar samma lista som Villhöver under Min samling. Svep höger eller tryck 💚 för att lägga en växt i Villhöver. Det du sparat i Högerswipe flyttas dit automatiskt', 'Min samling: Önskelistan heter nu Villhöver', 'Plantswipe: knappen med ✕ är nu en kompost, och 💚 har ersatt hjärtat för att lägga i Villhöver'], ],
   ['Beta 0.362', '11 nov', ['Växtpassning: nytt verktyg under Växter. Den du ber passa dina växter får en förfrågan i notiserna och väljer Acceptera eller Tacka nej. Både du och passaren kan avsluta en pågående passning']],
   ['Beta 0.361', '11 nov', ['Växtpassning: namnet på den du passar åt och varje växt går att trycka på. Användarnamn i inlägg, vägg, kommentarer, bilder och experter leder till profilen']],
   ['Beta 0.360', '11 nov', ['Solbana: nytt läge Skuggor med djup (Chrome på Android med ARCore). Kameran känner själv av väggar, häckar och annat runt dig och bygger upp dem medan du vänder telefonen. Tillsammans med husen från kartan visas var skuggan faller vid den tid du väljer']],
@@ -14009,7 +14023,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.362';
+const APP_VERSION = 'Beta 0.363';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
