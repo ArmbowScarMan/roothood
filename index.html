@@ -4332,6 +4332,8 @@ function build3dInner(first) {
   const g = new THREE.Mesh(hasGround() ? terrainGeo3d(THREE, cx, cz, span * 6, 40) : new THREE.PlaneGeometry(span * 6, span * 6), groundMat3d(THREE, span, dark, F3.some(f3 => f3.l < 0 && !f3.sub) && floorVis(-1) ? { transparent: true, opacity: 0.4, depthWrite: false } : null)); g.rotation.x = -Math.PI / 2; g.position.set(cx, -0.02, cz); add(g, false, true);
   if (S.hplan && S.hplan.ground === 'sand') { const sd = new THREE.Mesh(hasGround() ? terrainGeo3d(THREE, cx, cz, span * 6, 40) : new THREE.PlaneGeometry(span * 6, span * 6), M(dark ? '#8C7650' : '#D9C08A', { roughness: 1 })); sd.rotation.x = -Math.PI / 2; sd.position.set(cx, -0.018, cz); add(sd, false, true); }
   else if (!S.low3d) { const ov = new THREE.Mesh(hasGround() ? terrainGeo3d(THREE, cx, cz, span * 6, 40) : new THREE.PlaneGeometry(span * 6, span * 6), grassVar3d(THREE, dark)); ov.rotation.x = -Math.PI / 2; ov.position.set(cx, -0.019, cz); ov.renderOrder = 0; add(ov, false, true); }
+  if (hasGround()) { const C = contours(), lim = span * 3; if (C && C.segs.length) { const pos = []; C.segs.forEach(s => { if (Math.abs(s[0] - cx) > lim || Math.abs(s[1] - cz) > lim) return; pos.push(s[0], gRel(s[0], s[1]) + 0.05, s[1], s[2], gRel(s[2], s[3]) + 0.05, s[3]); });
+    if (pos.length) { const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); const ln = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: dark ? '#E8C08A' : '#7A4A1E', transparent: true, opacity: 0.75 })); ln.userData.nohit = 1; sc.add(ln); } } }
   sc.add(new THREE.HemisphereLight(dark ? '#9fb7c8' : '#f4f8ff', dark ? '#1b2a20' : '#b9c6ae', (dark ? 0.7 : 0.68) * HEMI3));
   const th = northDeg() * Math.PI / 180, sx = -Math.sin(th), sz = Math.cos(th), sun = new THREE.DirectionalLight('#fff1d8', (dark ? 1.0 : 1.85) * SUN3);
   sunPlace3d(sun, cx, cz, span); sun.target.position.set(cx, 0, cz); sun.castShadow = true;
@@ -5133,21 +5135,51 @@ function gRel(x, y) { if (!hasGround()) return 0; const r = houseRefXY(); return
 // Alla markpunkter: dina egna (väger tungt) och de från nätet (väger lätt). Höjden är meter relativt huset.
 function groundPts() { const out = elevPts().map(p => ({ x: p.x, y: p.y, z: p.h || 0, w: 25 })); const A = S.hplan && S.hplan.elevAuto; if (A && A.pts) { const R = houseRefXY(); A.pts.forEach(([dx, dy, z]) => out.push({ x: R.x + dx, y: R.y + dy, z, w: 1 })); } return out; }
 function hasGround() { return groundPts().length > 0; }
-// Hämtar höjder från nätet (EU-DEM 25 m, OpenTopoData) i ett rutnät på ±50 m runt huset. Kräver att huset är utlagt på kartan.
+// Höjder för en lista punkter: först OpenTopoData (EU-DEM 25 m), annars Open-Meteo (Copernicus 90 m). Högst 100 punkter per anrop.
+async function elevFetchPts(pts) {
+  try { const r = await fetch('https://api.opentopodata.org/v1/eudem25m?locations=' + pts.map(p => p.lat.toFixed(6) + ',' + p.lon.toFixed(6)).join('|')), j = await r.json(); if (j.status === 'OK' && j.results && j.results.length === pts.length) return { e: j.results.map(x => x.elevation), src: 'EU-DEM 25 m' }; } catch (e) {}
+  try { const r = await fetch('https://api.open-meteo.com/v1/elevation?latitude=' + pts.map(p => p.lat.toFixed(6)).join(',') + '&longitude=' + pts.map(p => p.lon.toFixed(6)).join(',')), j = await r.json(); if (Array.isArray(j.elevation) && j.elevation.length === pts.length) return { e: j.elevation, src: 'Copernicus 90 m' }; } catch (e) {}
+  return null;
+}
+// Hämtar markhöjd i två rutnät: tätt (12,5 m) närmast huset och glest (75 m) ut till ±300 m. Kräver att huset är utlagt på kartan.
 async function elevAutoFetch() {
   if (!mapOn()) return toast('Sök på adressen först, så vet appen var huset ligger');
-  const M = S.hplan.map, lat0 = +M.lat, lon0 = +M.lon, th = northDeg(), step = 12.5, n = 4, kl = 111320, kx = kl * Math.cos(lat0 * Math.PI / 180);
-  const pts = []; for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) { const dx = i * step, dy = j * step, L = Math.hypot(dx, dy), B = (Math.atan2(dx, -dy) * 180 / Math.PI - th) * Math.PI / 180; pts.push({ dx, dy, lat: lat0 + L * Math.cos(B) / kl, lon: lon0 + L * Math.sin(B) / kx }); }
-  const locs = pts.map(p => p.lat.toFixed(6) + ',' + p.lon.toFixed(6)).join('|');
+  const M = S.hplan.map, lat0 = +M.lat, lon0 = +M.lon, th = northDeg(), kl = 111320, kx = kl * Math.cos(lat0 * Math.PI / 180);
+  const at = (dx, dy) => { const L = Math.hypot(dx, dy), B = (Math.atan2(dx, -dy) * 180 / Math.PI - th) * Math.PI / 180; return { dx, dy, lat: lat0 + L * Math.cos(B) / kl, lon: lon0 + L * Math.sin(B) / kx }; };
+  const grid = (step, n, skip) => { const out = [at(0, 0)]; for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) if ((i || j) && !(skip && Math.max(Math.abs(i * step), Math.abs(j * step)) <= skip)) out.push(at(i * step, j * step)); return out; };
+  const inner = grid(12.5, 4), outer = grid(75, 4, 50);
   toast('Hämtar markhöjd…');
-  // Först OpenTopoData (25 m), annars Open-Meteo (90 m) som appen redan använder för vädret.
-  let elev = null;
-  try { const r = await fetch('https://api.opentopodata.org/v1/eudem25m?locations=' + locs), j = await r.json(); if (j.status === 'OK' && j.results && j.results.length === pts.length) elev = j.results.map(x => x.elevation); } catch (e) {}
-  if (!elev) { try { const r = await fetch('https://api.open-meteo.com/v1/elevation?latitude=' + pts.map(p => p.lat.toFixed(6)).join(',') + '&longitude=' + pts.map(p => p.lon.toFixed(6)).join(',')), j = await r.json(); if (Array.isArray(j.elevation) && j.elevation.length === pts.length) elev = j.elevation; } catch (e) {} }
-  if (!elev) return toast('Kunde inte nå höjdtjänsten. Kontrollera internet och försök igen');
-  const c = elev[Math.floor(pts.length / 2)]; if (c == null) return toast('Hittade ingen markhöjd här');
-  S.hplan.elevAuto = { lat: lat0, lon: lon0, t: Date.now(), pts: pts.map((p, k) => { const e = elev[k]; return [p.dx, p.dy, e == null ? 0 : Math.round((e - c) * 10) / 10]; }) };
-  saveHomeSoon(); render(); toast('Markhöjden är hämtad. Lutningen syns i 3D och i kameran');
+  const a = await elevFetchPts(inner); await new Promise(r => setTimeout(r, 1100)); const b = await elevFetchPts(outer);
+  if (!a && !b) return toast('Kunde inte nå höjdtjänsten. Kontrollera internet och försök igen');
+  // Varje rutnät räknas relativt sin egen mittpunkt (huset), så att två olika källor inte ger ett hopp.
+  const rel = (L, R) => { if (!R || R.e[0] == null) return []; const c = R.e[0]; return L.map((p, k) => R.e[k] == null ? null : [p.dx, p.dy, Math.round((R.e[k] - c) * 10) / 10]).filter(Boolean); };
+  const pts = rel(inner, a).concat(rel(outer, b).slice(1));
+  if (!pts.length) return toast('Hittade ingen markhöjd här');
+  const src = [...new Set([a && a.src, b && b.src].filter(Boolean))].join(', ');
+  S.hplan.elevAuto = { lat: lat0, lon: lon0, t: Date.now(), src, pts };
+  const C = contours(), span = C && C.step ? ' Höjdlinjer var ' + String(C.step).replace('.', ',') + ' m.' : ' Marken är i stort sett plan här.';
+  saveHomeSoon(); if (T3 && T3.scene) build3d(); render(); toast('Markhöjden är hämtad (' + src + ').' + span);
+}
+// Höjdlinjer från markhöjden (egna punkter och nätdata), med marching squares. Nivåerna är meter relativt huset.
+let CONT = null;
+function contours() {
+  if (!hasGround()) return null;
+  const G = groundPts(), R0 = houseRefXY(), key = JSON.stringify([R0, G.map(p => [p.x, p.y, p.z, p.w])]); if (CONT && CONT.key === key) return CONT;
+  const ext = G.reduce((m, p) => Math.max(m, Math.abs(p.x - R0.x), Math.abs(p.y - R0.y)), 10), R = Math.min(320, ext + 5), cell = Math.max(1, R / 60), n = Math.ceil(2 * R / cell), x0 = R0.x - R, y0 = R0.y - R, W = n + 1, Z = new Float32Array(W * W);
+  let lo = 1e9, hi = -1e9;
+  for (let j = 0; j <= n; j++) for (let i = 0; i <= n; i++) { const z = elevAt(x0 + i * cell, y0 + j * cell); Z[j * W + i] = z; if (z < lo) lo = z; if (z > hi) hi = z; }
+  const zRef = elevAt(R0.x, R0.y), range = hi - lo;
+  if (range < 0.05) return CONT = { key, segs: [], step: 0 };
+  const step = [0.1, 0.25, 0.5, 1, 2, 5, 10, 20].find(s => range / s <= 12) || 50, segs = [];
+  for (let lv = Math.ceil(lo / step) * step; lv <= hi; lv += step) for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    const za = Z[j * W + i], zb = Z[j * W + i + 1], zc = Z[(j + 1) * W + i + 1], zd = Z[(j + 1) * W + i], X = x0 + i * cell, Y = y0 + j * cell, q = [];
+    const ed = (p, r, xa, ya, xb, yb) => { if ((p < lv) !== (r < lv)) { const t = (lv - p) / (r - p); q.push(xa + (xb - xa) * t, ya + (yb - ya) * t); } };
+    ed(za, zb, X, Y, X + cell, Y); ed(zb, zc, X + cell, Y, X + cell, Y + cell); ed(zc, zd, X + cell, Y + cell, X, Y + cell); ed(zd, za, X, Y + cell, X, Y);
+    const k = Math.round(lv / step), major = k % 5 === 0;
+    if (q.length >= 4) segs.push([q[0], q[1], q[2], q[3], lv - zRef, major]);
+    if (q.length === 8) segs.push([q[4], q[5], q[6], q[7], lv - zRef, major]);
+  }
+  return CONT = { key, segs, step };
 }
 // Marken i 3D som ett rutnät där höjden följer markpunkterna. Planet roteras -90° runt x, så lokal z blir höjd.
 function terrainGeo3d(THREE, cx, cz, W, n) { const geo = new THREE.PlaneGeometry(W, W, n, n), q = geo.attributes.position; for (let i = 0; i < q.count; i++) q.setZ(i, gRel(cx + q.getX(i), cz - q.getY(i))); q.needsUpdate = true; geo.computeVertexNormals(); return geo; }
@@ -5577,7 +5609,7 @@ function furnSet(k, v) { const f = planFurn().find(x => x.id === PL().sel.id); i
 const FURN_OUT = [['ghouse', 'Växthus', 3, 2.4, '🏡'], ['rbed', 'Odlingslåda', 1.2, 0.8, '🥬'], ['shed', 'Förråd', 2.5, 2, '🛖'], ['compost', 'Kompost', 1, 1, '♻️'], ['garage', 'Garage', 6, 3.2, '🚗'], ['carport', 'Carport', 5.5, 3, '🅿️'], ['pergola', 'Pergola', 3, 3, '⛱️'], ['deck', 'Altan', 4, 3, '🟫'], ['pool', 'Pool', 4, 2.5, '🏊'], ['pond', 'Damm', 2, 2, '💧'], ['tramp', 'Studsmatta', 3.5, 3.5, '🤸'], ['sandpit', 'Sandlåda', 1.5, 1.5, '🏖️'], ['playhouse', 'Lekstuga', 1.8, 1.5, '🏠'], ['firepit', 'Eldstad', 1, 1, '🔥'], ['grill', 'Grill', 0.8, 0.6, '🍖'], ['obench', 'Utebänk', 1.5, 0.5, '🪑'], ['otable', 'Utebord', 1.6, 0.9, '🍽️'], ['hive', 'Bikupa', 0.5, 0.5, '🐝'], ['pyramid', 'Pyramid', 30, 30, '🔺'], ['gpillar', 'Granitpelare', 0.8, 0.8, '🟥'], ['sphinx', 'Sfinx', 7, 2.6, '🦁'], ['obelisk', 'Obelisk', 1.2, 1.2, '🗼'], ['procway', 'Processionsväg', 3, 12, '🛤️']];
 const BLD = new Set(['ghouse', 'shed', 'garage', 'carport', 'playhouse', 'pergola']), FURN_BLD = FURN_OUT.filter(f => BLD.has(f[0])), FURN_UTE = FURN_OUT.filter(f => !BLD.has(f[0]));
 const FURN_M = Object.fromEntries(FURN.concat(FURN_OUT).map(f => [f[0], f]));
-const TILES = { sat: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', 19, 'Bild: Esri, Maxar, Earthstar Geographics'], map: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 19, '© OpenStreetMap-bidragsgivare'] };
+const TILES = { sat: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', 19, 'Bild: Esri, Maxar, Earthstar Geographics'], map: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 19, '© OpenStreetMap-bidragsgivare'], topo: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png', 17, 'Kartdata: © OpenStreetMap-bidragsgivare, SRTM · Kartstil: © OpenTopoMap (CC-BY-SA)'], hill: ['https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', 16, 'Höjdskuggning: Esri och bidragsgivare'] };
 function tileErr(im) { const h = im.getAttribute('href'); if (!im.dataset.f && h.includes('server.arcgisonline')) { im.dataset.f = 1; im.setAttribute('href', h.replace('server.arcgisonline.com/ArcGIS', 'services.arcgisonline.com/arcgis')); } else if (!PL().tileWarn) { PL().tileWarn = 1; toast('Satellitbilden laddas inte här just nu. Välj Karta i stället.'); } }
 function mapOn() { const M = S.hplan && S.hplan.map; return !!(M && M.on && M.lat != null); }
 function viewRot() { return mapOn() ? -northDeg() : 0; }
@@ -5585,7 +5617,7 @@ function rotPt(x, y, deg) { const t = deg * Math.PI / 180, c = Math.cos(t), s = 
 function mapTiles() {
   if (!mapOn()) return '';
   const M = S.hplan.map, P = PL(), z = P.z, box = $('#planbox'), W = box ? box.clientWidth : 400, H = box ? box.clientHeight : 500;
-  const latR = M.lat * Math.PI / 180, cosL = Math.cos(latR), url = TILES[M.layer || 'sat'][0], maxZ = (M.layer || 'sat') === 'sat' ? (M.lat > 61 ? 17 : 18) : 19;
+  const latR = M.lat * Math.PI / 180, cosL = Math.cos(latR), url = TILES[M.layer || 'sat'][0], maxZ = (M.layer || 'sat') === 'sat' ? (M.lat > 61 ? 17 : 18) : (TILES[M.layer][1] || 19);
   const tz = Math.max(3, Math.min(maxZ, Math.ceil(Math.log2(z * 156543.034 * cosL / 1.2)))), mpp = 156543.034 * cosL / 2 ** tz, n = 2 ** tz;
   const gx = (M.lon + 180) / 360 * 256 * n, gy = (1 - Math.log(Math.tan(latR) + 1 / cosL) / Math.PI) / 2 * 256 * n;
   const ax = M.ox || 0, ay = M.oy || 0, ra = rotPt(ax * z, ay * z, viewRot()), Ax = P.ox + ra[0], Ay = P.oy + ra[1];
@@ -5604,8 +5636,8 @@ function mapPanelV() {
   if (M.lat == null) return `<div class="mapp"><b>Karta under ritningen</b><span class="mut" style="font-size:13px">Sök på din adress så visas ditt hus från ovan.</span>
     <form class="mrow2" onsubmit="event.preventDefault();mapSearch(this.q.value)"><input id="mapq" name="q" placeholder="Gatuadress och ort" value="${esc(S.mapQ || '')}" autocomplete="off" oninput="mapSuggest(this.value)" enterkeyhint="search"><button class="btn sm">Sök</button></form><div id="mapsug" class="mapsug"></div>
     <button class="btn sm line" onclick="mapHere()">📍 Använd min position</button></div>`;
-  return `<div class="mapp"><div class="mrow2"><div class="wk2">${[['sat', 'Satellit'], ['map', 'Karta']].map(([k, n]) => `<button class="${(M.layer || 'sat') === k ? 'on' : ''}" onclick="mapSet('layer','${k}')">${n}</button>`).join('')}</div><button class="btn sm line" onclick="mapSet('on',${!M.on})">${M.on ? 'Dölj' : 'Visa'}</button></div>
-    <div class="mrow2"><button class="btn sm line" onclick="elevAutoFetch()">⛰️ Hämta markhöjd från nätet</button><small class="mut">${S.hplan && S.hplan.elevAuto ? 'Hämtad' : 'Ej hämtad'}</small></div>
+  return `<div class="mapp"><div class="mrow2"><div class="wk2">${[['sat', 'Satellit'], ['map', 'Karta'], ['topo', 'Höjdkurvor'], ['hill', 'Terräng']].map(([k, n]) => `<button class="${(M.layer || 'sat') === k ? 'on' : ''}" onclick="mapSet('layer','${k}')">${n}</button>`).join('')}</div><button class="btn sm line" onclick="mapSet('on',${!M.on})">${M.on ? 'Dölj' : 'Visa'}</button></div>
+    <div class="mrow2"><button class="btn sm line" onclick="elevAutoFetch()">⛰️ Hämta markhöjd från nätet</button><small class="mut">${S.hplan && S.hplan.elevAuto ? 'Hämtad' + (S.hplan.elevAuto.src ? ' (' + esc(S.hplan.elevAuto.src) + ')' : '') : 'Ej hämtad'}${(() => { const C = contours(); return C && C.step ? ' · höjdlinjer var ' + String(C.step).replace('.', ',') + ' m' : ''; })()}</small></div>
     <label class="msl"><span>Synlighet</span><input type="range" min="20" max="100" value="${Math.round((M.op || 0.85) * 100)}" oninput="S.hplan.map.op=this.value/100;renderPlan()" onchange="saveHomeSoon()"></label>
     <label class="msl"><span>Vrid ritningen</span><input type="range" min="0" max="359.5" step="0.5" value="${northDeg()}" oninput="setNorth(+this.value,true)" onchange="setNorth(+this.value)"></label>
     <div class="mrow2 degrow"><span class="msl" style="width:78px">Exakt vinkel</span><button class="degb" onclick="setNorth(northDeg() - 0.5)" aria-label="Vrid 0,5 grader åt vänster">−</button><input id="degin" type="text" inputmode="decimal" value="${String(Math.round(northDeg() * 10) / 10).replace('.', ',')}" aria-label="Vinkel i grader" onkeydown="if(event.key==='Enter')this.blur()" onchange="const v=parseFloat(this.value.replace(',','.'));if(!isNaN(v))setNorth(v);else render()"><span class="deg">°</span><button class="degb" onclick="setNorth(northDeg() + 0.5)" aria-label="Vrid 0,5 grader åt höger">+</button></div>
@@ -5645,6 +5677,8 @@ function gardenBelow() {
     const xs = a.pts.map(q => q[0]), ys = a.pts.map(q => q[1]), bw = (Math.max(...xs) - Math.min(...xs)) * z, bh = (Math.max(...ys) - Math.min(...ys)) * z;
     if (bw > 60 && bh > 30 && a.t !== 'lot' && !(a.spots || []).length) { const cx = xs.reduce((s, v) => s + v, 0) / xs.length, cy = ys.reduce((s, v) => s + v, 0) / ys.length; o += `<text x="${X(cx)}" y="${Y(cy)}" text-anchor="middle" font-size="11" font-weight="800" fill="${st[1]}" pointer-events="none">${UK_M[a.t][1]}</text><text x="${X(cx)}" y="${(P.oy + cy * z + 13).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="${st[1]}" pointer-events="none">${polyArea(a.pts)} m²</text>`; }
     if (a.t === 'lot' && bw > 80) { const top = a.pts.reduce((m, q) => q[1] < m[1] ? q : m, a.pts[0]); o += `<text x="${X(top[0])}" y="${(P.oy + top[1] * z - 6).toFixed(1)}" font-size="11" font-weight="800" fill="#5E9E48" pointer-events="none">Tomt · ${Math.round(polyArea(a.pts))} m²</text>`; } });
+  { const C = contours(); if (C && C.segs.length) { const d = mj => C.segs.filter(s => s[5] === mj).map(s => `M${X(s[0])} ${Y(s[1])}L${X(s[2])} ${Y(s[3])}`).join('');
+    o += `<g fill="none" stroke="#8A5A2B" stroke-linecap="round" pointer-events="none"><path d="${d(false)}" stroke-width="1" stroke-opacity=".6"/><path d="${d(true)}" stroke-width="2" stroke-opacity=".8"/></g>`; } }
   elevPts().forEach(g => { o += `<g data-k="gitem" data-id="${g.id}"><circle cx="${X(g.x)}" cy="${Y(g.y)}" r="6" fill="#FFE14D" stroke="${sel.k === 'gitem' && sel.id === g.id ? 'var(--acc)' : '#7A5C00'}" stroke-width="2"/><text x="${X(g.x)}" y="${(P.oy + g.y * z - 10).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="800" fill="#fff" stroke="#000" stroke-width="2.5" paint-order="stroke" pointer-events="none">${(g.h || 0).toFixed(1).replace('.', ',')} m</text></g>`; });
   if (z >= 3) planGarden().filter(g => g.t !== 'elev').forEach(g => { const on = sel.k === 'gitem' && sel.id === g.id, R = Math.max(5, g.r * z);
     let body = g.t === 'conifer' ? `<polygon points="${Array.from({ length: 16 }, (_, i) => { const a = i * Math.PI / 8, rr = i % 2 ? R * 0.62 : R; return (Math.cos(a) * rr).toFixed(1) + ',' + (Math.sin(a) * rr).toFixed(1); }).join(' ')}" fill="rgba(40,95,55,.55)" stroke="#2F5E3A" stroke-width="1.5"/>`
@@ -11226,6 +11260,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.347', '11 nov', ['Ritningen: kartlägena Höjdkurvor och Terräng', 'Markhöjd hämtas nu ut till 300 m runt huset', 'Höjdlinjer i ritningen, i 3D och i kameran']],
   ['Beta 0.346', '11 nov', ['Markhöjd från nätet: reservtjänst (Open-Meteo) om den första höjdtjänsten inte svarar']],
   ['Beta 0.345', '11 nov', ['Ritningen: höjd på häckar och väggar, markhöjd med egna punkter och hämtning från nätet, och 3D-marken följer sluttningen', 'Solbana: hus, väggar, häckar och träd visas med riktig höjd i kameran. Växtmarkeringarna ligger nu där plantan står, 1,6 m under ögonhöjd']],
   ['Beta 0.344', '11 nov', ['Solbana: datumväljare i kameraläget, så du kan välja dag medan du står ute']],
@@ -12231,6 +12266,8 @@ function arObjsDraw(c, M, W, H, hf, off) {
   const th = northDeg(), zO = gRel(o.x, o.y) + 1.6, P = (az, alt) => arProj(arToDev(M, az - off, alt), W, H, hf);
   const bear = (x, y) => (((Math.atan2(x - o.x, -(y - o.y)) * 180 / Math.PI) - th) % 360 + 360) % 360;
   const altOf = (x, y, h) => Math.atan2(gRel(x, y) + h - zO, Math.hypot(x - o.x, y - o.y)) * 180 / Math.PI;
+  // Höjdlinjer på marken inom 60 m
+  const C = contours(); if (C && C.segs.length) { c.beginPath(); C.segs.forEach(s => { const L1 = Math.hypot(s[0] - o.x, s[1] - o.y), L2 = Math.hypot(s[2] - o.x, s[3] - o.y); if (L1 > 60 || L1 < 0.5 || L2 < 0.5) return; const a1 = bear(s[0], s[1]), a2 = a1 + (((bear(s[2], s[3]) - a1 + 540) % 360) - 180); const p1 = P(a1, Math.atan2(s[4] - zO, L1) * 180 / Math.PI), p2 = P(a2, Math.atan2(s[4] - zO, L2) * 180 / Math.PI); if (p1 && p2) { c.moveTo(p1[0], p1[1]); c.lineTo(p2[0], p2[1]); } }); c.strokeStyle = 'rgba(255,205,130,.75)'; c.lineWidth = 1.5; c.stroke(); }
   const items = [];
   planWallsAll().forEach(wl => { const L1 = Math.hypot(wl.x1 - o.x, wl.y1 - o.y), L2 = Math.hypot(wl.x2 - o.x, wl.y2 - o.y); if (L1 < 0.3 && L2 < 0.3) return; const h = wl.ht || (wl.h === 'hedge' ? 1.3 : wl.h === 'half' ? 1.1 : 2.5); const a1 = bear(wl.x1, wl.y1), d = ((bear(wl.x2, wl.y2) - a1 + 540) % 360) - 180; items.push({ L: (L1 + L2) / 2, kind: wl.h === 'hedge' ? 'hedge' : 'wall', quad: [[a1, altOf(wl.x1, wl.y1, 0)], [a1 + d, altOf(wl.x2, wl.y2, 0)], [a1 + d, altOf(wl.x2, wl.y2, h)], [a1, altOf(wl.x1, wl.y1, h)]] }); });
   planGarden().filter(g => GR[g.t]).forEach(g => { const L = Math.hypot(g.x - o.x, g.y - o.y); if (L < 0.5) return; const h = g.h || gDefH(g), r = g.r || GR[g.t], a = bear(g.x, g.y), w = Math.atan2(r, L) * 180 / Math.PI; items.push({ L, kind: 'tree', quad: [[a - w, altOf(g.x, g.y, 0)], [a + w, altOf(g.x, g.y, 0)], [a + w, altOf(g.x, g.y, h)], [a - w, altOf(g.x, g.y, h)]] }); });
@@ -13020,7 +13057,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.346';
+const APP_VERSION = 'Beta 0.347';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
