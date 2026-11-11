@@ -11193,6 +11193,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.344', '11 nov', ['Solbana: datumväljare i kameraläget, så du kan välja dag medan du står ute']],
   ['Beta 0.343', '11 nov', ['Solbana: korrigering för magnetisk nord, så solen och fönstren hamnar rätt i kameran. Reglaget Justera norr finjusterar', 'Solbana: Växter och fönster är Av som standard']],
   ['Beta 0.342', '11 nov', ['Solbana: växtetiketter, fönsterljus och månen visas bara när du slår på Växter och fönster. Av som standard']],
   ['Beta 0.341', '11 nov', ['Designvarianten Städad: ny startsida med snabbval, Alla verktyg, Mina växter som karusell och kompakt väder', 'Städad: Samling med svep för Vattnad och Skjut upp, Frågor med nya kort och knappen Ställ fråga, nytt fönster för att ställa en fråga', 'Städad: Vänner med Lägg till vän, QR-kod och Odlare nära dig']],
@@ -12258,7 +12259,7 @@ async function arOpen() {
   const el = document.createElement('div'); el.id = 'sunar'; el.style.cssText = 'position:fixed;inset:0;z-index:99999;background:linear-gradient(#1c3a52,#0b1a25);color:#fff;font-family:system-ui,sans-serif;touch-action:none';
   el.innerHTML = `<video playsinline muted autoplay style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video><canvas style="position:absolute;inset:0;width:100%;height:100%"></canvas>
     <div style="position:absolute;top:0;left:0;right:0;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;display:flex;gap:10px;align-items:flex-start;background:linear-gradient(rgba(0,0,0,.65),transparent)"><button id="sunarx" aria-label="Stäng kameran" style="flex:none;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:22px">✕</button><div id="sunarinfo" style="flex:1;font-size:15px;line-height:1.35;text-shadow:0 1px 3px #000"></div></div>
-    <div style="position:absolute;left:0;right:0;bottom:0;padding:14px 16px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.75))"><button id="arOpt" aria-expanded="false" style="display:block;width:100%;height:40px;border-radius:12px;border:0;padding:0 12px;margin-bottom:8px;text-align:left;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Växter och fönster: Av ▾</button><div id="arOptBox" style="display:none">${arStandSel()}${arSpotSel()}</div><label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:8px">Justera norr <input id="arnadj" type="range" min="-30" max="30" step="1" value="${+store.get('arNorthAdj', 0) || 0}" style="flex:1;accent-color:#FFC83D" aria-label="Justera norr i grader"><span id="arnadjv" style="min-width:44px;text-align:right">${+store.get('arNorthAdj', 0) || 0}°</span></label><div style="font-size:14px;margin-bottom:2px">Tid: <b id="sunartl"></b> · ${esc(new Date(sunDay() + 'T12:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' }))} · ${esc(sunLoc().name)}</div><input id="sunarr" type="range" min="0" max="1435" step="5" value="${S.sunT}" style="width:100%;height:44px;accent-color:#FFC83D" aria-label="Tid på dygnet"><div style="font-size:12.5px;opacity:.8">Håll telefonen stående. Dra i reglaget och rikta kameran dit pilen eller solen visar.</div></div>`;
+    <div style="position:absolute;left:0;right:0;bottom:0;padding:14px 16px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.75))"><button id="arOpt" aria-expanded="false" style="display:block;width:100%;height:40px;border-radius:12px;border:0;padding:0 12px;margin-bottom:8px;text-align:left;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Växter och fönster: Av ▾</button><div id="arOptBox" style="display:none">${arStandSel()}${arSpotSel()}</div><label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:8px">Justera norr <input id="arnadj" type="range" min="-30" max="30" step="1" value="${+store.get('arNorthAdj', 0) || 0}" style="flex:1;accent-color:#FFC83D" aria-label="Justera norr i grader"><span id="arnadjv" style="min-width:44px;text-align:right">${+store.get('arNorthAdj', 0) || 0}°</span></label><div style="font-size:14px;margin-bottom:2px">Tid: <b id="sunartl"></b> · <input id="arDate" type="date" value="${sunDay()}" aria-label="Datum" style="height:30px;border-radius:8px;border:0;padding:0 6px;background:rgba(255,255,255,.92);color:#16261D;font-size:14px"> · ${esc(sunLoc().name)}</div><input id="sunarr" type="range" min="0" max="1435" step="5" value="${S.sunT}" style="width:100%;height:44px;accent-color:#FFC83D" aria-label="Tid på dygnet"><div style="font-size:12.5px;opacity:.8">Håll telefonen stående. Dra i reglaget och rikta kameran dit pilen eller solen visar.</div></div>`;
   document.body.appendChild(el);
   AR = { el, cv: el.querySelector('canvas'), vid: el.querySelector('video'), info: el.querySelector('#sunarinfo'), tl: el.querySelector('#sunartl'), hfov: 54, o: null, opt: false };
   el.querySelector('#sunarx').onclick = arClose;
@@ -12266,6 +12267,7 @@ async function arOpen() {
   const stSel = el.querySelector('#arstand'); if (stSel) stSel.onchange = ev => { store.set('arStand', ev.target.value); AR.wl = null; };
   const optB = el.querySelector('#arOpt'), optX = el.querySelector('#arOptBox');
   if (optB) optB.onclick = () => { AR.opt = !AR.opt; optX.style.display = AR.opt ? 'block' : 'none'; optB.textContent = 'Växter och fönster: ' + (AR.opt ? 'På ▴' : 'Av ▾'); optB.setAttribute('aria-expanded', String(AR.opt)); AR.wl = null; };
+  const dt = el.querySelector('#arDate'); if (dt) dt.onchange = ev => { if (ev.target.value) { S.sunD = ev.target.value; S.sunPin = true; } };
   const adj = el.querySelector('#arnadj'), adjV = el.querySelector('#arnadjv');
   if (adj) adj.oninput = ev => { store.set('arNorthAdj', +ev.target.value); if (adjV) adjV.textContent = ev.target.value + '°'; };
   const spSel = el.querySelector('#sunarspot'); if (spSel) spSel.onchange = ev => { S.arSpot = ev.target.value; AR.wl = null; const w = document.getElementById('sunarwin'); if (w) w.textContent = ''; };
@@ -12969,7 +12971,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.343';
+const APP_VERSION = 'Beta 0.344';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
