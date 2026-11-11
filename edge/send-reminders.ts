@@ -106,12 +106,17 @@ Deno.serve(async (req) => {
     const { data: who } = await db.from("profiles").select("display_name").eq("id", body.from || "").maybeSingle();
     const name = who?.display_name || "Någon";
     // Mottagaren kan ha stängt av den här typen av notis under Profil. Då skickas ingen.
-    const notifKey = body.event === "message" ? "msg" : (body.event === "friend_req" || body.event === "friend_ok") ? "friend" : null;
+    const notifKey = body.event === "message" ? "msg" : (body.event === "friend_req" || body.event === "friend_ok" || (body.event || "").startsWith("sit_")) ? "friend" : null;
     if (notifKey) { const { data: pr } = await db.from("profiles").select("notif_prefs").eq("id", body.to).maybeSingle(); if ((pr?.notif_prefs || {})[notifKey] === false) return json({ sent: 0, off: true }); }
     let title = "Roothood", text = body.text || "", url = APP_URL + "?tool=notif", tag = "roothood-social";
     if (body.event === "message") { title = name; url = APP_URL + "?tool=msgs"; tag = "roothood-msg-" + (body.from || ""); }
     else if (body.event === "friend_req") { title = "Ny vänförfrågan 🌿"; text = name + " vill bli din vän" + (body.text ? ": " + body.text : ""); }
     else if (body.event === "friend_ok") { title = "Ny vän 🌱"; text = name + " accepterade din vänförfrågan"; }
+    // Växtpassning: förfrågan till passaren, svar och avslut till den andra
+    else if (body.event === "sit_req") { title = "Växtpassning 🪴"; text = name + " ber dig passa sina växter" + (body.text ? " " + body.text : "") + ". Tryck för att svara."; }
+    else if (body.event === "sit_ok") { title = "Växtpassning 🤝"; text = name + " passar dina växter"; }
+    else if (body.event === "sit_no") { title = "Växtpassning"; text = name + " tackade nej till att passa dina växter"; }
+    else if (body.event === "sit_end") { title = "Växtpassning"; text = name + " avslutade passningen"; }
     else if (body.event === "fb_bug") { title = "Ny felrapport 🐞"; text = name + ": " + (body.text || ""); url = APP_URL + "?tool=notif"; tag = "roothood-fb"; }
     else if (body.event === "fb_other") { title = "Nytt förslag 💡"; text = name + ": " + (body.text || ""); url = APP_URL + "?tool=notif"; tag = "roothood-fb"; }
     else if (body.event === "expert_q") { title = "Ny fråga till experten 🌿"; text = name + ": " + (body.text || ""); url = APP_URL + "?tool=notif"; tag = "roothood-xq"; }
