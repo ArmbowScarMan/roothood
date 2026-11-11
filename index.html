@@ -5140,13 +5140,14 @@ async function elevAutoFetch() {
   const pts = []; for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) { const dx = i * step, dy = j * step, L = Math.hypot(dx, dy), B = (Math.atan2(dx, -dy) * 180 / Math.PI - th) * Math.PI / 180; pts.push({ dx, dy, lat: lat0 + L * Math.cos(B) / kl, lon: lon0 + L * Math.sin(B) / kx }); }
   const locs = pts.map(p => p.lat.toFixed(6) + ',' + p.lon.toFixed(6)).join('|');
   toast('Hämtar markhöjd…');
-  try {
-    const r = await fetch('https://api.opentopodata.org/v1/eudem25m?locations=' + locs), j = await r.json();
-    if (j.status !== 'OK' || !j.results || j.results.length !== pts.length) return toast('Kunde inte hämta markhöjden just nu');
-    const c = j.results[Math.floor(pts.length / 2)].elevation; if (c == null) return toast('Hittade ingen markhöjd här');
-    S.hplan.elevAuto = { lat: lat0, lon: lon0, t: Date.now(), pts: pts.map((p, k) => { const e = j.results[k].elevation; return [p.dx, p.dy, e == null ? 0 : Math.round((e - c) * 10) / 10]; }) };
-    saveHomeSoon(); render(); toast('Markhöjden är hämtad. Lutningen syns i 3D och i kameran');
-  } catch (e) { toast('Kunde inte nå höjdtjänsten. Kontrollera internet och försök igen'); }
+  // Först OpenTopoData (25 m), annars Open-Meteo (90 m) som appen redan använder för vädret.
+  let elev = null;
+  try { const r = await fetch('https://api.opentopodata.org/v1/eudem25m?locations=' + locs), j = await r.json(); if (j.status === 'OK' && j.results && j.results.length === pts.length) elev = j.results.map(x => x.elevation); } catch (e) {}
+  if (!elev) { try { const r = await fetch('https://api.open-meteo.com/v1/elevation?latitude=' + pts.map(p => p.lat.toFixed(6)).join(',') + '&longitude=' + pts.map(p => p.lon.toFixed(6)).join(',')), j = await r.json(); if (Array.isArray(j.elevation) && j.elevation.length === pts.length) elev = j.elevation; } catch (e) {} }
+  if (!elev) return toast('Kunde inte nå höjdtjänsten. Kontrollera internet och försök igen');
+  const c = elev[Math.floor(pts.length / 2)]; if (c == null) return toast('Hittade ingen markhöjd här');
+  S.hplan.elevAuto = { lat: lat0, lon: lon0, t: Date.now(), pts: pts.map((p, k) => { const e = elev[k]; return [p.dx, p.dy, e == null ? 0 : Math.round((e - c) * 10) / 10]; }) };
+  saveHomeSoon(); render(); toast('Markhöjden är hämtad. Lutningen syns i 3D och i kameran');
 }
 // Marken i 3D som ett rutnät där höjden följer markpunkterna. Planet roteras -90° runt x, så lokal z blir höjd.
 function terrainGeo3d(THREE, cx, cz, W, n) { const geo = new THREE.PlaneGeometry(W, W, n, n), q = geo.attributes.position; for (let i = 0; i < q.count; i++) q.setZ(i, gRel(cx + q.getX(i), cz - q.getY(i))); q.needsUpdate = true; geo.computeVertexNormals(); return geo; }
@@ -11225,6 +11226,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.346', '11 nov', ['Markhöjd från nätet: reservtjänst (Open-Meteo) om den första höjdtjänsten inte svarar']],
   ['Beta 0.345', '11 nov', ['Ritningen: höjd på häckar och väggar, markhöjd med egna punkter och hämtning från nätet, och 3D-marken följer sluttningen', 'Solbana: hus, väggar, häckar och träd visas med riktig höjd i kameran. Växtmarkeringarna ligger nu där plantan står, 1,6 m under ögonhöjd']],
   ['Beta 0.344', '11 nov', ['Solbana: datumväljare i kameraläget, så du kan välja dag medan du står ute']],
   ['Beta 0.343', '11 nov', ['Solbana: korrigering för magnetisk nord, så solen och fönstren hamnar rätt i kameran. Reglaget Justera norr finjusterar', 'Solbana: Växter och fönster är Av som standard']],
@@ -13018,7 +13020,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.345';
+const APP_VERSION = 'Beta 0.346';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
