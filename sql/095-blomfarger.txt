@@ -1,0 +1,44 @@
+-- 095: blomfärger på blommande växter som saknar färg. Fyller bara i tomma fält (ändrar aldrig en färg som redan finns).
+-- Färgerna kommer från sortens egen text där den anger färg, annars från artens/sortens kända blomfärg.
+-- Kör hela filen i Supabase SQL-editorn. Gå att köra om utan skada.
+
+-- Rosor, trädgårds- och krukväxter med id
+update plants set bloom_color = array['gul']::text[] where id in (1019,1772,1776,2022,2034,2257,2299,2331,2388,2443,2499,3062,3069) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['gul','rosa']::text[] where id in (2023) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['gul','rosa','röd']::text[] where id in (3063) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['lila']::text[] where id in (1865,2266,2271,2326,2346,2493,3021,3025,3036,3037,3044,3046) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['lila','rosa']::text[] where id in (1880) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['orange']::text[] where id in (1462,2151,2250,2279,2305,2320,2335,2337,2494,2497,3020,3029) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['orange','rosa']::text[] where id in (1332) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['rosa']::text[] where id in (205,268,335,411,627,639,818,858,869,905,927,999,1243,1273,1514,1773,1982,2018,2024,2025,2046,2049,2238,2254,2259,2264,2268,2269,2270,2274,2282,2287,2301,2303,2309,2310,2313,2314,2316,2334,2336,2338,2345,2350,2417,2418,2422,2463,2474,2490,2492,2495,2506,2509,2510,2521,2522,3017,3022,3023,3027,3033,3035,3038,3039,3043,3045,3047,3048,3049,3050,3052,3054,3055,3058,3061,3066,3068,3070) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['rosa','orange']::text[] where id in (2144) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['rosa','röd']::text[] where id in (3032) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['rosa','vit']::text[] where id in (2173) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['röd']::text[] where id in (904,1131,1158,1205,1231,1232,1241,2061,2154,2251,2253,2284,2297,2302,2311,2312,2318,2323,2423,2496,2501,2517,2519,3042,3057,3060,3067) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['röd','lila']::text[] where id in (1022,2369,3065) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['röd','orange']::text[] where id in (1330,2153) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['röd','vit']::text[] where id in (1334,2272,2356,3041) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['vit']::text[] where id in (434,1146,1188,1328,1446,1487,2156,2278,2291,2296,2306,2349,3012,3024,3026,3028,3030,3034,3040,3056,3059) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['vit','orange']::text[] where id in (2048) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['vit','rosa']::text[] where id in (18,2020,2220,3031) and (bloom_color is null or cardinality(bloom_color)=0);
+
+-- Regler efter namn eller släkte
+update plants set bloom_color = array['gul']::text[] where category='Köksträdgård' and (swedish_name ~ '^(Tomat |Tomatillo|Gurka |Citrongurka|Inläggningsgurka|Melon |Vattenmelon|Pumpa |Squash |Butternut|Spaghettipumpa|Tromboncino|Okra)' or swedish_name in ('Vattenmelon','Pumpa','Okra','Rova','Maskros')) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['vit']::text[] where category='Köksträdgård' and swedish_name ~ '^(Chili |Paprika |Potatis |Brytböna |Störböna |Märgärt |Sockerärt |Kamomill|Kummin|Spiskummin|Stevia|Kikärt|Sojaböna|Citronbasilika|Busbasilika|Basilika Genovese|Helig basilika|Kiwi|Minikiwi)' and swedish_name not in ('Brytböna Purple Teepee') and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['vit']::text[] where category='Köksträdgård' and swedish_name in ('Bondböna Aquadulce','Bondböna Witkiem') and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['röd']::text[] where category='Köksträdgård' and swedish_name = 'Bondböna Crimson Flowered' and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['röd']::text[] where category='Köksträdgård' and swedish_name = 'Rosenböna Scarlet Emperor' and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['röd','vit']::text[] where category='Köksträdgård' and swedish_name = 'Rosenböna Painted Lady' and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['lila']::text[] where category='Köksträdgård' and swedish_name = 'Brytböna Purple Teepee' and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['lila']::text[] where category='Köksträdgård' and (swedish_name like 'Aubergine %' or swedish_name in ('Äppelmynta','Pepparmynta','Marockansk mynta','Chokladmynta','Shiso','Gojibär','Thaibasilika')) and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['rosa']::text[] where category='Köksträdgård' and swedish_name = 'Basilika Red Rubin' and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['vit']::text[] where category='Krukväxt' and genus='Citrus' and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['vit']::text[] where category='Kaktus' and genus in ('Haworthia','Haworthiopsis','Rhipsalis') and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['orange','gul']::text[] where category='Kaktus' and genus='Echeveria' and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['vit','rosa']::text[] where category='Kaktus' and genus='Crassula' and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['gul']::text[] where category='Kaktus' and swedish_name='Aloe vera' and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['orange']::text[] where category='Kaktus' and swedish_name in ('Aloe humilis','Aloe juvenna','Aloe Christmas Carol','Aloe Pink Blush') and (bloom_color is null or cardinality(bloom_color)=0);
+update plants set bloom_color = array['rosa']::text[] where swedish_name='Tradescantia pallida' and (bloom_color is null or cardinality(bloom_color)=0);
+
+-- Kontroll: hur många saknar färg nu, per kategori
+select category, count(*) filter (where bloom_color is null or cardinality(bloom_color)=0) saknar, count(*) totalt from plants group by category order by 2 desc;
