@@ -11884,6 +11884,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.369', '12 nov', ['Skuggor: träden räknas efter årstiden. På vintern släpper lövträden igenom mycket ljus och ger svag skugga, medan barrträden ger tät skugga året runt. Lövsprickning och lövfällning kommer senare och tidigare ju längre norrut du är'], ],
   ['Beta 0.368', '12 nov', ['Skuggor: trädens verkliga höjd hämtas nu från Skogsstyrelsens laserskanning (1 m rutor) i stället för kartans uppskattade träd. Om tjänsten inte svarar används kartans träd', 'Skuggfoto: tryck på ett hus i kartan och skriv in dess riktiga höjd. Höjden sparas på telefonen och gäller i Skuggfoto, kameraläget och Skuggor med djup'], ],
   ['Beta 0.367', '12 nov', ['Skuggfoto: ny karta ovanifrån där du drar den gula punkten dit du stod. Kartan visar husen, träden, skuggorna, solens håll och åt vilket håll kameran pekade. Fäst mot närmaste husvägg om du stod intill ett hus. GPS:ens osäkerhet syns som en streckad ring'], ],
   ['Beta 0.366', '12 nov', ['Skuggfoto: passa in skuggorna mot fotot med nya reglage för Lutning, Rotation och Synfält, eller slå på Dra i bilden och dra husens konturer på plats. Tryck på solen i fotot så kalibreras riktning och lutning efter den'], ],
@@ -12845,7 +12846,7 @@ function osmParse(j, lat, lon) {
     if (e.type === 'way' && tg.building) add(e.geometry);
     // Större byggnader (skolor, flerfamiljshus) är ofta sparade som en relation med flera delar. Gårdar inuti räknas inte.
     else if (e.type === 'relation' && tg.building) (e.members || []).filter(m => m.type === 'way' && m.role !== 'inner').forEach(m => add(m.geometry));
-    else if (e.type === 'node' && tg.natural === 'tree') { const hh = osmHeight({ height: tg.height, building: 'x' }); t.push({ e: (e.lon - lon) * kx, n: (e.lat - lat) * kl, h: tg.height ? hh : 8, r: +String(tg.diameter_crown || '').replace(',', '.') / 2 || 2.5 }); }
+    else if (e.type === 'node' && tg.natural === 'tree') { const hh = osmHeight({ height: tg.height, building: 'x' }); t.push({ ev: tg.leaf_type === 'needleleaved' ? 1 : tg.leaf_type === 'broadleaved' ? 0 : null, e: (e.lon - lon) * kx, n: (e.lat - lat) * kl, h: tg.height ? hh : 8, r: +String(tg.diameter_crown || '').replace(',', '.') / 2 || 2.5 }); }
   });
   return { b, t };
 }
@@ -12973,6 +12974,7 @@ function xrGeo() {
 // Kartans byggnader och träd in i höjdkartan, vridna efter norr. Byggnaden du står i hoppas över.
 function xrRasterOsm(X) {
   X.Ho.fill(0); X.To.fill(0); if (!X.osm || X.yaw == null) return;
+  const leaf = leafFrac(sunDay(), (X.geo && X.geo.lat) || 60), ta = t => treeAlpha(leaf, t.ev == null ? 0.4 : t.ev);
   const yaw = X.yaw + X.adj, toXR = (e, n) => { const b = (Math.atan2(e, n) * 180 / Math.PI - yaw) * Math.PI / 180, d = Math.hypot(e, n); return [Math.sin(b) * d, -Math.cos(b) * d]; };
   const ownR = Math.max(3, Math.min(25, (X.geo && X.geo.acc) || 10)), segD = (p, q) => { const dx = q[0] - p[0], dy = q[1] - p[1], t = Math.max(0, Math.min(1, -(p[0] * dx + p[1] * dy) / (dx * dx + dy * dy || 1))); return Math.hypot(p[0] + dx * t, p[1] + dy * t); };
   X.osm.b.forEach(b => { if (inPoly(0, 0, b.pts) || b.pts.some((p, i) => segD(p, b.pts[(i + 1) % b.pts.length]) < ownR)) return;
@@ -12980,7 +12982,7 @@ function xrRasterOsm(X) {
     const i0 = Math.max(0, Math.floor((Math.min(...xs) + XR_HALF) / XR_CELL)), i1 = Math.min(XR_N - 1, Math.floor((Math.max(...xs) + XR_HALF) / XR_CELL)), k0 = Math.max(0, Math.floor((Math.min(...zs) + XR_HALF) / XR_CELL)), k1 = Math.min(XR_N - 1, Math.floor((Math.max(...zs) + XR_HALF) / XR_CELL));
     for (let k = k0; k <= k1; k++) for (let i = i0; i <= i1; i++) { const x = (i + 0.5) * XR_CELL - XR_HALF, z = (k + 0.5) * XR_CELL - XR_HALF; if (inPoly(x, z, pts)) { const j = k * XR_N + i; if (b.h > X.Ho[j]) { X.Ho[j] = b.h; X.To[j] = 1; } } } });
   X.osm.t.forEach(t => { const [x, z] = toXR(t.e, t.n), rc = Math.ceil(t.r / XR_CELL), ci = Math.floor((x + XR_HALF) / XR_CELL), ck = Math.floor((z + XR_HALF) / XR_CELL);
-    for (let k = ck - rc; k <= ck + rc; k++) for (let i = ci - rc; i <= ci + rc; i++) { if (i < 0 || k < 0 || i >= XR_N || k >= XR_N) continue; if (Math.hypot((i - ci) * XR_CELL, (k - ck) * XR_CELL) > t.r) continue; const j = k * XR_N + i; if (t.h > X.Ho[j]) { X.Ho[j] = t.h; X.To[j] = 0.6; } } });
+    for (let k = ck - rc; k <= ck + rc; k++) for (let i = ci - rc; i <= ci + rc; i++) { if (i < 0 || k < 0 || i >= XR_N || k >= XR_N) continue; if (Math.hypot((i - ci) * XR_CELL, (k - ck) * XR_CELL) > t.r) continue; const j = k * XR_N + i; if (t.h > X.Ho[j]) { X.Ho[j] = t.h; X.To[j] = ta(t); } } });
 }
 // En uppmätt punkt (i AR-rummet) in i höjdkartan
 function xrAddPoint(X, wx, wy, wz) {
@@ -13036,6 +13038,7 @@ function xrFrame(t, frame) {
         if (!X.floorKnown && v > 0.6) { X.lows.push(wy); if (X.lows.length > 3000) X.lows.splice(0, 600); }
         xrAddPoint(X, wx, wy, wz); } }
     if (!X.floorKnown && X.frame % 30 === 0 && X.lows.length > 200) { const L = X.lows.slice().sort((a, b) => a - b), f = L[Math.floor(L.length * 0.05)]; X.floorY = Math.max(X.cam.y - 2.2, Math.min(X.cam.y - 0.6, f)); } }
+  if (X.leafD !== sunDay()) { X.leafD = sunDay(); X.dirtyO = true; }
   if (X.dirtyO && X.yaw != null) { xrRasterOsm(X); X.dirtyO = false; X.dirty = true; }
   const l = xrLL(), sun = SUN(sunAt(sunDay(), S.sunT), l.lat, l.lon), key = S.sunT + '|' + sunDay() + '|' + (X.yaw == null ? '' : X.yaw.toFixed(1)) + '|' + X.adj;
   if ((X.dirty || key !== X.shKey) && t - X.lastSh > 400) { X.nSh = xrShadows(X, sun); X.dirty = false; X.shKey = key; X.lastSh = t; }
@@ -13205,6 +13208,11 @@ function sfClip(P) { const out = [], n = P.length, zc = -0.05; for (let i = 0; i
 // over = mörk halvgenomskinlig yta (över kameran), annars multipliceras färgen med fotot.
 const SHC = {};
 function shCanvas(k, W, H) { const c = SHC[k] || (SHC[k] = document.createElement('canvas')); if (c.width !== W || c.height !== H) { c.width = W; c.height = H; } const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.filter = 'none'; g.clearRect(0, 0, W, H); return c; }
+// Hur mycket löv lövträden har (0 kala, 1 fulla), för ett datum (ÅÅÅÅ-MM-DD) och en breddgrad. Lövsprickning senare och lövfällning tidigare längre norrut.
+function leafFrac(ds, lat) { const d = new Date(ds + 'T12:00'); if (isNaN(d)) return 1; const doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 864e5), la = Math.max(50, Math.min(70, lat || 60)), start = 121 + (la - 55) * 2.4, fall = 258 - (la - 55);
+  return Math.max(0, Math.min(1, (doy - start) / 20)) * (1 - Math.max(0, Math.min(1, (doy - fall) / 35))); }
+// Hur mycket solljus ett träd stoppar. ev = andel barrträd (1 barr, 0 löv). Barrträd är täta året runt, lövträd släpper igenom ljus utan löv.
+function treeAlpha(leaf, ev) { return ev * 0.8 + (1 - ev) * (0.2 + 0.6 * leaf); }
 // Små korrigeringar av kamerans lutning (pitch) och rotation (roll), i grader, på en punkt i kamerans rum (x höger, y upp, z bakåt).
 function shRot(d, pitch, roll) {
   let { x, y, z } = d; const p = (pitch || 0) * Math.PI / 180, r = (roll || 0) * Math.PI / 180;
@@ -13235,10 +13243,12 @@ function shadowPaint(c, W, H, cam, prisms, trees, sun, opt) {
     for (let i = 0; i < nS; i++) { let dAz = 0, dAlt = 0; if (i) { const th = (i - 1) / (nS - 1) * 2 * Math.PI; dAz = rS * Math.cos(th) / Math.max(0.2, Math.cos(sun.alt * Math.PI / 180)); dAlt = rS * Math.sin(th); }
       gs.clearRect(0, 0, W, H); ground(gs, mkSh(sun.az + dAz, Math.max(sun.alt * 0.6, sun.alt + dAlt))); g.drawImage(Ls, 0, 0); }
     g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; }
-  // Träd släpper igenom lite ljus: ritas för sig och läggs på svagare
-  const Tr = shCanvas('Tr', W, H), tg0 = Tr.getContext('2d'); tg0.fillStyle = '#000'; let anyTree = false;
-  trees.forEach(t => { if (Math.hypot(t.e, t.n) > 100) return; for (let j = 0; j <= 4; j++) { const hh = t.h * (0.45 + 0.55 * j / 4), [ox, oy] = sh(hh), rr = t.r * (j === 0 || j === 4 ? 0.7 : 1), circ = []; for (let a = 0; a < 16; a++) circ.push([t.e + ox + Math.sin(a * Math.PI / 8) * rr, t.n + oy + Math.cos(a * Math.PI / 8) * rr, 0]); tg0.beginPath(); if (path(tg0, circ)) { tg0.fill(); anyTree = true; } } });
-  if (anyTree) { g.globalAlpha = 0.7; g.drawImage(Tr, 0, 0); g.globalAlpha = 1; }
+  // Träd släpper igenom lite ljus, mer när lövträden är kala: ritas för sig per sort (löv, barr, blandat) och läggs på svagare
+  const grp = {};
+  trees.forEach(t => { if (Math.hypot(t.e, t.n) > 100) return; const ev = t.ev == null ? 0.4 : t.ev, k = ev.toFixed(1); let G = grp[k]; if (!G) { const cv = shCanvas('Tr' + k, W, H); G = grp[k] = { ev, cv, g: cv.getContext('2d'), any: false }; G.g.fillStyle = '#000'; }
+    for (let j = 0; j <= 4; j++) { const hh = t.h * (0.45 + 0.55 * j / 4), [ox, oy] = sh(hh), rr = t.r * (j === 0 || j === 4 ? 0.7 : 1), circ = []; for (let a = 0; a < 16; a++) circ.push([t.e + ox + Math.sin(a * Math.PI / 8) * rr, t.n + oy + Math.cos(a * Math.PI / 8) * rr, 0]); G.g.beginPath(); if (path(G.g, circ)) { G.g.fill(); G.any = true; } } });
+  Object.values(grp).forEach(G => { if (!G.any) return; g.globalAlpha = treeAlpha(opt.leaf == null ? 1 : opt.leaf, G.ev); g.drawImage(G.cv, 0, 0); });
+  g.globalAlpha = 1;
   if (own.length) { g.globalCompositeOperation = 'destination-out'; own.forEach(b => { g.beginPath(); if (path(g, b.pts.map(([e, n]) => [e, n, 0]))) g.fill(); }); g.globalCompositeOperation = 'source-over'; }
   const faces = []; near.forEach(b => { const A = b.pts.reduce((a, p, i) => { const q = b.pts[(i + 1) % b.pts.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0), ccw = A > 0;
     b.pts.forEach((p1, i) => { const p2 = b.pts[(i + 1) % b.pts.length], dx = p2[0] - p1[0], dy = p2[1] - p1[1], nx = ccw ? dy : -dy, ny = ccw ? -dx : dx, mx = (p1[0] + p2[0]) / 2, my = (p1[1] + p2[1]) / 2;
@@ -13264,7 +13274,7 @@ function sfRender(fast) {
   if (sun.alt <= 0.5) { sfInfo(`Kl ${hm(SF.t)} den ${dstr} är solen under horisonten, så inga skuggor syns.`); return; }
   if (!SF.osm) { sfInfo(`Kl ${hm(SF.t)} den ${dstr} står solen i ${sunWord(sun.az)}, ${Math.round(sun.alt)}° över horisonten.`); return; }
   const pe = SF.pos ? SF.pos.e : 0, pn = SF.pos ? SF.pos.n : 0, prisms = SF.osm.b.map(b => ({ pts: b.pts.map(([e, n]) => [e - pe, n - pn]), h: b.h })), trees = SF.osm.t.map(t => ({ e: t.e - pe, n: t.n - pn, h: t.h, r: t.r }));
-  shadowPaint(c, W, H, { M: arMat(SF.o.a, SF.o.b, SF.o.g), off: SF.off + SF.adj, hfov: SF.hfov, pitch: SF.pitch, roll: SF.roll, ownR: SF.src === 'gps' && !(SF.pos && (SF.pos.e || SF.pos.n)) ? Math.max(3, Math.min(25, SF.acc || 10)) : 3 }, prisms, trees, sun, { blur: Math.max(1, Math.round(W / 600)), samples: fast ? 1 : 11, soft: SF.soft ?? 1.2, str: SF.str ?? 1, lines: SF.lines, lineW: Math.max(1.5, W / 400) });
+  shadowPaint(c, W, H, { M: arMat(SF.o.a, SF.o.b, SF.o.g), off: SF.off + SF.adj, hfov: SF.hfov, pitch: SF.pitch, roll: SF.roll, ownR: SF.src === 'gps' && !(SF.pos && (SF.pos.e || SF.pos.n)) ? Math.max(3, Math.min(25, SF.acc || 10)) : 3 }, prisms, trees, sun, { blur: Math.max(1, Math.round(W / 600)), leaf: leafFrac(SF.ds, SF.lat), samples: fast ? 1 : 11, soft: SF.soft ?? 1.2, str: SF.str ?? 1, lines: SF.lines, lineW: Math.max(1.5, W / 400) });
   sfInfo(`Kl <b>${hm(SF.t)}</b> den ${dstr} står solen i ${sunWord(sun.az)}, ${Math.round(sun.alt)}° över horisonten. ${sfPosTxt()}${nB ? `Skuggor från ${nB} ${nB === 1 ? 'byggnad' : 'byggnader'} ${SF.osm.laser ? 'och trädkronor från laserskanning (Skogsstyrelsen).' : 'och ' + nT + ' träd på kartan.'}` : 'Kartan har inga byggnader inom 150 m från positionen. Kontrollera koordinaterna eller tryck Min position.'}`);
 }
 async function sfSave() {
@@ -13308,7 +13318,7 @@ function arPrisms(o) {
 }
 function arShadowDraw(c, W, H, M, off, hf, cur) {
   const o = (arAtHome() && arOrigin()) || { x: 0, y: 0 }, P = arPrisms(o);
-  if (cur.alt > 0.5 && P.n) shadowPaint(c, W, H, { M, off, hfov: hf, ownR: Math.max(3, Math.min(25, (AR.geo && AR.geo.acc) || 10)) }, P.prisms, P.trees, cur, { over: true, lines: true, blur: 3, lineCol: 'rgba(255,255,255,.4)' });
+  if (cur.alt > 0.5 && P.n) shadowPaint(c, W, H, { M, off, hfov: hf, ownR: Math.max(3, Math.min(25, (AR.geo && AR.geo.acc) || 10)) }, P.prisms, P.trees, cur, { over: true, leaf: leafFrac(sunDay(), (AR.geo || sunLoc()).lat), lines: true, blur: 3, lineCol: 'rgba(255,255,255,.4)' });
   return P;
 }
 function arDraw() {
@@ -14202,7 +14212,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.368';
+const APP_VERSION = 'Beta 0.369';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
