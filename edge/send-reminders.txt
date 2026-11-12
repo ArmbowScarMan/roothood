@@ -261,7 +261,9 @@ Deno.serve(async (req) => {
       const harv = s.pref_harvest === false ? [] : harvestToday((s.harvest as { c?: string; d?: string }[]) || [], todayStr, yesterdayStr, s.last_sent);
       const tipTitle: Record<string, string> = { heat: "Varmt väder på väg ☀️", frost: "Frostvarning ❄️", rain: "Regn idag 🌧️", spring: "Köldfall på väg 🥶", cold: "Sträng kyla ❄️", uv: "Stark sol ☀️" };
       title = names.length ? "Dags att vattna 💧" : harv.length ? "Skördeklart 🧺" : tip ? (tipTitle[tip.kind] || "Dagens tips 🌿") : "Dagens tips 🌿";
-      body = [names.length ? namesText(names) + " behöver vatten idag." : "", harv.length ? namesText(harv) + " är redo att skördas." : "", tip ? tip.text : "", where, plantTip].filter(Boolean).join(" ");
+      // Färre notiser: inget skickas en dag då det varken finns något att vattna, skörda eller varna för.
+      if (!names.length && !harv.length && !tip) continue;
+      body = [names.length ? "Dags att ge " + namesText(names) + " vatten." : "", harv.length ? namesText(harv) + " är redo att skördas." : "", tip ? tip.text : "", where, plantTip].filter(Boolean).join(" ");
     }
     try {
       await webpush.sendNotification(

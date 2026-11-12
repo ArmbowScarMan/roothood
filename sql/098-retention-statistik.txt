@@ -1,0 +1,23 @@
+-- 098: Anonym statistik över hur nya användare stannar kvar. Ger bara summor, aldrig namn eller id.
+-- Bara moderatorer/admin får några rader. Kolumnerna visar hur många som varit aktiva minst 1, 7 respektive 30 dagar efter att kontot skapades. Bygger på uppgifter som redan finns (konto, växter, skötsel, frågor, svar).
+create or replace function public.retention_stats()
+returns table (kohort date, nya int, la_till_vaxt int, aktiva_dag1 int, aktiva_dag7 int, aktiva_dag30 int)
+language sql stable security definer set search_path = public as $$
+  with u as (select id, created_at::date d0 from profiles),
+  act as (
+    select user_id, created_at::date d from user_plants
+    union select user_id, created_at::date from care_log
+    union select user_id, created_at::date from posts
+    union select user_id, created_at::date from answers)
+  select date_trunc('week', u.d0)::date,
+    count(*)::int,
+    count(*) filter (where exists (select 1 from user_plants p where p.user_id = u.id))::int,
+    count(*) filter (where exists (select 1 from act where act.user_id = u.id and act.d >= u.d0 + 1))::int,
+    count(*) filter (where exists (select 1 from act where act.user_id = u.id and act.d >= u.d0 + 7))::int,
+    count(*) filter (where exists (select 1 from act where act.user_id = u.id and act.d >= u.d0 + 30))::int
+  from u
+  where public.my_role() in ('mod', 'admin')
+  group by 1 order by 1 desc;
+$$;
+revoke all on function public.retention_stats() from public, anon;
+grant execute on function public.retention_stats() to authenticated;
