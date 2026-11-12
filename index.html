@@ -12200,6 +12200,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.394', '12 nov', ['Skanna rummet (bara admin): knappen Visa rum i 3D visar rummet i en egen 3D-vy som du kan snurra och zooma i']],
   ['Beta 0.393', '12 nov', ['Växter med växtlampa får inte längre en lampa ovanför sig i 3D. Lampor placerar du själv med lampverktyget', 'Zonkartan: bilden var felaktig (Älvsbyn låg fel) och är borttagen. I stället öppnas Svensk Trädgårds egen zonkarta på zonkartan.se']],
   ['Beta 0.392', '12 nov', ['Rabatten: appen visar nu när växterna blommar månad för månad och säger om något månad saknas', 'Rabatten: råd om höga och låga växter, marktäckare och för många sorter', 'Rabatten: en bild framifrån som visar hur hög och bred rabatten blir', 'Ny rabatt: börja från färdiga mallar', 'Ritningen: knappen Bild sparar eller delar ritningen som bild', 'Nya konton: tydligare första steg med val att ta foto av växten']],
   ['Beta 0.391', '12 nov', ['Skanna rummet (bara admin): knapp direkt på sidan Mitt hem']],
@@ -13347,7 +13348,8 @@ function scanResV() {
   <div style="display:flex;gap:8px;flex-wrap:wrap">${wl.map(([k, n]) => `<label class="btn line sm" style="cursor:pointer"><input type="file" accept="image/*" capture="environment" hidden onchange="scanPhoto('${k}', this)">${ph[k] ? '✓ ' : ''}${n}</label>`).join('')}</div>
   <button class="btn line wide" style="margin-top:10px" ${nW && !c.busy ? '' : 'disabled'} onclick="scanAnalyze()">${c.busy ? 'Analyserar…' : 'Låt AI hitta fönster och dörrar (' + nW + ' foton)'}</button>
   ${c.wins ? `<p style="margin:10px 0 0;font-size:14.5px">AI föreslog ${c.wins.filter(x => x.k !== 'door').length} fönster och ${c.wins.filter(x => x.k === 'door').length} dörrar. Du kan flytta dem i ritningen sedan.</p>` : ''}
-  <button class="btn wide formbtn" style="margin-top:16px" onclick="scanMake()">Skapa rum med dessa mått</button>`;
+  <button class="btn line wide" style="margin-top:16px" onclick="scanPreview()">Visa rum i 3D</button>
+  <button class="btn wide formbtn" style="margin-top:10px" onclick="scanMake()">Skapa rum med dessa mått</button>`;
 }
 async function scanPhoto(w, el) { const f = el.files && el.files[0]; if (!f) return; try { const url = await fileShrink(f, 1024, true); S.scn.ph = Object.assign(S.scn.ph || {}, { [w]: url }); render(); } catch (e) { toast('Fotot gick inte att läsa.'); } }
 async function scanAnalyze() {
@@ -13368,6 +13370,46 @@ function scanMake() {
   newRoom('plan', rect); if (c.wins && c.wins.length) { S.rf.wins = c.wins.slice(); }
   if (c.ceil) S.rf.ceilH = Math.round(c.ceil * 10) / 10;
   S.scn = null; render();
+}
+// Visar det skannade rummet i en egen 3D-vy som man kan snurra och zooma i
+async function scanPreview() {
+  const c = S.scn || {}, w = c.w, d = c.d; if (!(w >= 1.5 && w <= 30 && d >= 1.5 && d <= 30)) return toast('Skriv bredd och djup mellan 1,5 och 30 meter.');
+  if (document.getElementById('scprev')) return;
+  const H = Math.max(2, Math.min(5, c.ceil || 2.5)), wins = (c.wins || []).slice(), ov = document.createElement('div'); ov.id = 'scprev';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#14201a;touch-action:none';
+  ov.innerHTML = '<canvas style="width:100%;height:100%;display:block"></canvas><div style="position:absolute;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 10px;display:flex;align-items:center;gap:10px;background:linear-gradient(#14201a,transparent);color:#fff"><b style="flex:1;font-size:18px">Rummet i 3D</b><button id="scpx" style="border:0;border-radius:99px;padding:10px 18px;font-weight:800;background:#fff;color:#14201a;font-size:15px">Stäng</button></div><p style="position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);margin:0;text-align:center;color:#cfe3d4;font-size:14px;padding:0 20px">Dra för att snurra. Nyp eller rulla för att zooma. ' + w.toString().replace('.', ',') + ' × ' + d.toString().replace('.', ',') + ' m, tak ' + (Math.round(H * 10) / 10).toString().replace('.', ',') + ' m</p>';
+  document.body.appendChild(ov);
+  let THREE; try { THREE = (T3 && T3.THREE) || await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js'); } catch (e) { ov.remove(); return toast('3D-vyn kunde inte laddas. Kolla nätverket.'); }
+  const cv = ov.querySelector('canvas'); let R; try { R = new THREE.WebGLRenderer({ canvas: cv, antialias: true }); } catch (e) { ov.remove(); return toast('Telefonen kan inte visa 3D här.'); }
+  R.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); R.setClearColor(0x14201a);
+  const sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, 1, 0.05, 200);
+  sc.add(new THREE.AmbientLight(0xffffff, 0.85)); const dl = new THREE.DirectionalLight(0xffffff, 0.7); dl.position.set(3, 8, 4); sc.add(dl);
+  const mat = (col, o) => new THREE.MeshLambertMaterial(Object.assign({ color: col }, o || {}));
+  const WALL = mat(0xEDE6D6, { side: THREE.BackSide }), WALLE = mat(0xBFB8A8), GLASS = mat(0x9FD3F0, { transparent: true, opacity: 0.45, side: THREE.DoubleSide }), DOOR = mat(0x8A6440), FRAME = mat(0xffffff);
+  const box = (x0, x1, y0, y1, z0, z1, m) => { const b = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.001, x1 - x0), Math.max(0.001, y1 - y0), Math.max(0.001, z1 - z0)), m); b.position.set((x0 + x1) / 2 - w / 2, (y0 + y1) / 2, (z0 + z1) / 2 - d / 2); sc.add(b); return b; };
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat(0xC9A978, { side: THREE.DoubleSide })); floor.rotation.x = -Math.PI / 2; sc.add(floor);
+  const T = 0.08;
+  [['t', w], ['b', w], ['l', d], ['r', d]].forEach(([sd, L]) => {
+    const ops = wins.filter(x => x.s === sd).map(x => { const a = Math.max(0, Math.min(L - 0.2, +x.p || 0)), b = Math.min(L, a + Math.max(0.4, +x.l || 1)), dr = x.k === 'door'; return { a, b, y0: dr ? 0 : Math.min(0.9, H - 0.6), y1: dr ? Math.min(2.05, H - 0.1) : Math.min(2.1, H - 0.1), dr }; }).sort((p, q) => p.a - q.a);
+    const place = (a, b, y0, y1, m) => { if (!(b - a > 0.001) || !(y1 - y0 > 0.001)) return; if (sd === 't') box(a, b, y0, y1, -T, 0, m); else if (sd === 'b') box(a, b, y0, y1, d, d + T, m); else if (sd === 'l') box(-T, 0, y0, y1, a, b, m); else box(w, w + T, y0, y1, a, b, m); };
+    const piece = (a, b, y0, y1) => { place(a, b, y0, y1, WALL); };
+    let cur = 0; ops.forEach(o => { if (o.a < cur) return; piece(cur, o.a, 0, H); piece(o.a, o.b, 0, o.y0); piece(o.a, o.b, o.y1, H); place(o.a, o.b, o.y0, o.y1, o.dr ? DOOR : GLASS); cur = o.b; });
+    piece(cur, L, 0, H);
+  });
+  // yttre kant så rummet syns som ett hus även utifrån
+  const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(w, H, d)), new THREE.LineBasicMaterial({ color: 0x5E9E48 })); edge.position.set(0, H / 2, 0); sc.add(edge);
+  const st = { az: 0.8, el: 0.7, dist: Math.max(w, d) * 1.5 + 1 }, ptr = new Map(); let pd = 0;
+  const lim = () => { st.el = Math.max(0.08, Math.min(1.5, st.el)); st.dist = Math.max(1, Math.min(60, st.dist)); };
+  const size = () => { const W = ov.clientWidth, Hh = ov.clientHeight; R.setSize(W, Hh, false); cam.aspect = W / Hh; cam.updateProjectionMatrix(); };
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (ptr.size === 2) { const [a, b] = [...ptr.values()]; pd = Math.hypot(a.x - b.x, a.y - b.y); } });
+  cv.addEventListener('pointermove', e => { const p = ptr.get(e.pointerId); if (!p) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+    if (ptr.size === 1) { st.az -= dx * 0.008; st.el += dy * 0.008; } else if (ptr.size === 2) { const [a, b] = [...ptr.values()], nd = Math.hypot(a.x - b.x, a.y - b.y); if (pd) st.dist *= pd / nd; pd = nd; } lim(); });
+  const up = e => { ptr.delete(e.pointerId); pd = 0; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', e => { e.preventDefault(); st.dist *= e.deltaY > 0 ? 1.1 : 0.9; lim(); }, { passive: false });
+  let raf = 0; const stop = () => { cancelAnimationFrame(raf); window.removeEventListener('resize', size); try { R.dispose(); } catch (e) { } ov.remove(); };
+  ov.querySelector('#scpx').onclick = stop; window.addEventListener('resize', size); size();
+  const loop = () => { if (!ov.isConnected) return stop(); cam.position.set(Math.sin(st.az) * Math.cos(st.el) * st.dist, H / 2 + Math.sin(st.el) * st.dist, Math.cos(st.az) * Math.cos(st.el) * st.dist); cam.lookAt(0, H / 3, 0); R.render(sc, cam); raf = requestAnimationFrame(loop); };
+  loop();
 }
 // ===== Skuggor med djup (WebXR med djupavkänning, Chrome på Android med ARCore) =====
 // Kameran mäter avståndet till det den ser. Allt som sticker upp minst 25 cm över marken läggs in i en höjdkarta
@@ -14766,7 +14808,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.393';
+const APP_VERSION = 'Beta 0.394';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
