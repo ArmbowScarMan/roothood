@@ -267,6 +267,15 @@ nav button{border:0;width:52px;height:52px;border-radius:999px;background:var(--
 nav button span{display:none}
 nav button.on{width:auto;padding:0 22px;background:var(--pri);color:var(--onpri)}
 nav button.on span{display:inline}
+/* Alla: tydligare tryckytor, och menyn visar namn under ikonerna */
+.btn:not(.sm){min-height:46px}.chips2 button{min-height:40px}
+nav{border-radius:28px}nav button{width:auto;min-width:64px;height:58px;flex-direction:column;gap:2px;padding:4px 8px;border-radius:22px}
+nav button span,nav button.on span{display:block;font-size:12px;font-weight:700;line-height:1.1}nav button.on{padding:4px 12px}
+/* Enkel vy: större text och knappar, färre val */
+html[data-simple] .btn:not(.sm){min-height:56px;font-size:18px}html[data-simple] .chips2 button{min-height:48px;font-size:16px}
+html[data-simple] nav button{height:66px;min-width:72px}html[data-simple] nav button span{font-size:14px}
+.simpletiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 18px 0}.simpletiles button{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px 10px;border:0;border-radius:22px;background:var(--surf);box-shadow:var(--sh);font:inherit;font-weight:800;font-size:18px;color:var(--ink);cursor:pointer;min-height:112px}
+.simplepick .opt{display:block;width:100%;text-align:left;margin:10px 0 0;padding:16px;border-radius:18px;border:2px solid var(--line);background:var(--surf);font:inherit;color:var(--ink);cursor:pointer}.simplepick .opt b{display:block;font-size:18px}.simplepick .opt span{display:block;margin-top:4px;color:var(--mut);font-size:15px;line-height:1.4}
 
 /* Rutor och formulär */
 .ov{position:absolute;inset:0;background:rgba(8,20,10,.45);z-index:10;display:flex;align-items:flex-end}
@@ -3548,6 +3557,21 @@ function roomHints(p, r, win, pd) {
   return h;
 }
 async function loadRole() { if (!S.user) return; try { S.role = await api.myRole(); applyUI(); S.blocks = await api.myBlocks(); if (isMod()) S.modOpen = await api.modOpen(); } catch (e) { console.warn('Roothood:', e); } try { S.pfol = await api.myPlantFollows(); } catch (e) { S.pfol = S.pfol || []; } }
+// Enkel vy: ett val vid första start, och en inställning. Färre flikar och val, större text och knappar.
+const simpleOn = () => !!store.get('simple', false);
+function simpleKey() { return 'simpleAsked_' + (S.user ? S.user.id : 'anon'); }
+function simplePickV() {
+  return `<div class="simplepick"><div class="mh"><h2>Hur vill du ha appen?</h2></div>
+  <p style="margin:0;font-size:16px;line-height:1.45">Du kan byta när som helst under Inställningar.</p>
+  <button class="opt" onclick="simpleChoose(true)"><b>Enkel</b><span>Stor text, få val och stora knappar. Du ser dina växter, vattning och att fråga andra.</span></button>
+  <button class="opt" onclick="simpleChoose(false)"><b>Vanlig</b><span>Alla verktyg och funktioner.</span></button></div>`;
+}
+function simpleChoose(on) { try { store.set(simpleKey(), true); } catch (e) {} setSimple(on); S.modal = null; render(); toast(on ? 'Enkel vy är på' : 'Vanlig vy är på'); }
+function setSimple(on) { store.set('simple', !!on); if (on && (store.get('textsize', 1) || 1) < 1.1) store.set('textsize', 1.1); applyPrefs(); S.ctab = on && !['friends', 'q', 'swap'].includes(S.ctab) ? 'q' : S.ctab; render(); }
+function simpleAskWhenFree() { if (!S.user || DEMO || store.get(simpleKey(), false)) return; if (S.modal || S.tool) return; try { store.set(simpleKey(), true); } catch (e) {} openModal('simplepick'); }
+function simpleTilesV() {
+  return `<div class="simpletiles"><button onclick="S.mtab='mine';go('mine')">${ic('ph-plant', 'currentColor', 34)}Min samling</button><button onclick="openAsk()">${ic('ph-sparkle', 'currentColor', 34)}Fråga om en växt</button><button onclick="openDb()">${ic('ph-magnifying-glass', 'currentColor', 34)}Sök växter</button><button onclick="go('comm');setCtab('q')">${ic('ph-chats-circle', 'currentColor', 34)}Fråga andra</button></div>`;
+}
 // Odlingszon är obligatorisk (felrapport #79). Saknas den på profilen används zonen från Såkalendern,
 // annars får man välja i en ruta som inte går att stänga. Om SQL 081 inte är körd händer inget.
 async function checkZone() {
@@ -7101,13 +7125,31 @@ async function googleLogin() {
   try { S.busy = true; render(); await api.signInGoogle(); }
   catch (e) { S.busy = false; S.msg = 'Google-inloggningen går inte att använda just nu. ' + errMsg(e); render(); }
 }
+// Odlingszon är obligatorisk när man skapar konto. Sök på stad eller välj på kartan. Ritas om utan att resten av formuläret töms.
+function suCityHits() { const q = (S.suq || '').trim().toLowerCase(); if (!q) return ''; const hits = Object.keys(CITYZ).filter(c => c.toLowerCase().startsWith(q)).concat(Object.keys(CITYZ).filter(c => !c.toLowerCase().startsWith(q) && c.toLowerCase().includes(q))).slice(0, 8);
+  const btns = hits.flatMap(c => [].concat(CITYZ[c]).map(z => `<button type="button" onclick="suPick(${z})">${esc(c)}<span>zon ${z}</span></button>`));
+  return btns.length ? btns.join('') : '<p>Hittar inte orten. Välj zon nedan eller titta på kartan.</p>'; }
+function suZoneV() {
+  const z = S.suZone || 0;
+  return `<b class="fl" style="display:block;margin:6px 0 4px">Var bor du? Välj odlingszon <span style="color:var(--bad,#b3261e)">(krävs)</span></b>
+  <p class="mut" style="margin:0 0 8px;font-size:13.5px">Zonen visar hur kallt det blir där du bor, så att du får råd som passar. Sök på din stad eller välj på kartan.</p>
+  ${z ? `<p class="suok"><b>Vald: zon ${z}</b> <button type="button" class="link3" onclick="S.suZone=0;suRedraw()">Ändra</button></p>` : ''}
+  <div class="sowcity"><input type="search" id="suq" placeholder="Skriv din stad, t.ex. Umeå" value="${esc(S.suq || '')}" oninput="S.suq=this.value;const e=$('#sucity');if(e)e.innerHTML=suCityHits()" aria-label="Sök stad"><div id="sucity" class="sowcityh">${suCityHits()}</div></div>
+  <div class="chips2 zpchips" style="margin-top:8px">${[1, 2, 3, 4, 5, 6, 7, 8].map(k => `<button type="button" class="${z === k ? 'on' : ''}" aria-pressed="${z === k}" onclick="suPick(${k})">Zon ${k}</button>`).join('')}</div>
+  <button type="button" class="btn sm line" style="margin-top:8px" onclick="S.suMap=!S.suMap;suRedraw()">${S.suMap ? 'Dölj zonkartan' : 'Visa zonkartan'}</button>
+  ${S.suMap ? '<img class="zonkarta" src="zonkarta.jpg" alt="Karta över Sveriges odlingszoner 1 till 8">' : ''}`;
+}
+function suRedraw() { const e = $('#suzone'); if (e) e.innerHTML = suZoneV(); }
+function suPick(z) { S.suZone = z; suRedraw(); }
 async function doAuth(form) {
   const d = Object.fromEntries(new FormData(form));
+  if (S.authMode === 'up' && !S.suZone) { S.authEmail = d.email; S.authName = d.name || ''; S.msgOk = false; S.msg = 'Välj din odlingszon innan du skapar kontot.'; render(); const e = $('#suzone'); if (e) e.scrollIntoView({ block: 'center' }); return; }
   S.authEmail = d.email; S.authName = d.name || '';
   S.busy = true; S.msg = ''; S.needConfirm = false; render();
   try {
     if (S.authMode === 'up') {
       const active = await api.signUp(d.email.trim(), d.pw, d.name.trim());
+      store.set('zone', S.suZone); applyPrefs();
       if (!active) { S.busy = false; S.authMode = 'in'; S.msgOk = true; S.msg = 'Vi har skickat en länk till ' + d.email + '. Klicka på den och logga sedan in här.'; return render(); }
     } else await api.signIn(d.email.trim(), d.pw);
     resetUserState();
@@ -7624,7 +7666,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -9710,6 +9752,7 @@ function homeBlocks(intro) {
   const flush = () => { if (tiles.length) { out.push(`<div class="tools">${tiles.join('')}</div>`); tiles = []; } };
   L.forEach(x => {
     const sz = sizeOf(x);
+    if (simpleOn() && !['todo', 'alerts', 'weather', 'mine'].includes(x.k)) return;
     // Städad (109): ingen separat verktygslista längre ner, alla verktyg finns under Alla
     if (HB_M[x.k][3] === 'tool') { if (!qfav.includes(x.k) && !stadUI()) tiles.push(toolTile(x.k, sz)); return; }
     flush();
@@ -9723,6 +9766,7 @@ function homeBlocks(intro) {
     else if (x.k === 'quick') out.push(quickV());
   });
   flush();
+  if (simpleOn()) out.push(simpleTilesV());
   return out.join('\n');
 }
 const CHATI = 'ph-chats-circle', PEOPLEI = 'ph-users';
@@ -10229,6 +10273,7 @@ function loginV() {
   ${up ? '<label>Namn som andra ser<input name="name" required maxlength="40" autocomplete="nickname" value="' + esc(S.authName) + '"></label>' : ''}
   <label>E-post<input name="email" type="email" required autocomplete="email" value="${esc(S.authEmail)}"></label>
   <label>Lösenord<input name="pw" type="password" required minlength="6" autocomplete="${up ? 'new-password' : 'current-password'}"></label>
+  ${up ? `<div id="suzone" class="suzone">${suZoneV()}</div>` : ''}
   ${S.msg ? `<p class="formmsg ${S.msgOk ? 'ok' : ''}">${esc(S.msg)}</p>` : ''}
   ${S.needConfirm ? `<button type="button" class="btn sm line" style="margin:-4px 0 12px" onclick="resendConfirm()">Skicka bekräftelsemejlet igen</button>` : ''}
   <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''}>${S.busy ? 'Vänta…' : up ? 'Skapa konto' : 'Logga in'}</button>
@@ -10599,7 +10644,7 @@ function loadTabCounts() {
   if (S.tcDone || S.tcBusy || !S.user) return; S.tcBusy = true;
   Promise.all([api.feed('thread').then(l => { S.threads = l; }).catch(() => {}), api.feed('question').then(l => { if (!S.feed) S.feed = l; }).catch(() => {})]).then(() => { S.tcDone = true; S.tcBusy = false; if (S.tab === 'comm') keepMain(); });
 }
-function ctabsFor() { loadTabCounts(); return (document.documentElement.getAttribute('data-ui') === 'stad' ? CTABS.filter(([k]) => !CTABS_STAD_HIDE.includes(k)) : CTABS).filter(([k]) => S.ctab === k || !tabThin(k)); }
+function ctabsFor() { loadTabCounts(); return (document.documentElement.getAttribute('data-ui') === 'stad' ? CTABS.filter(([k]) => !CTABS_STAD_HIDE.includes(k)) : CTABS).filter(([k]) => S.ctab === k || (!tabThin(k) && !(simpleOn() && !['friends', 'q', 'swap'].includes(k)))); }
 function segBar() {
   if (document.documentElement.getAttribute('data-ui') === 'stad' && CTABS_STAD_HIDE.includes(S.ctab)) S.ctab = 'q';
   if (stadUI()) {
@@ -11930,6 +11975,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.380', '12 nov', ['Ny Enkel vy: du väljer vid första start om du vill ha en enkel eller vanlig app, och kan byta under Inställningar. Menyn visar nu namn under ikonerna för alla. Du måste välja odlingszon (stad eller karta) när du skapar konto.']],
   ['Beta 0.379', '12 nov', ['Välkomstkort i Gemenskap med tre små uppgifter. Du ser obesvarade frågor om dina växter överst. I Detektiver kan du trycka Jag håller med på någon annans gissning.']],
   ['Beta 0.378', '12 nov', ['Gemenskap har färre flikar. Händer nära dig är nu ett filter, Nära mig, under Byt & ge bort, och Visa upp och Forum göms tills det finns några inlägg.']],
   ['Beta 0.377', '12 nov', ['Ny rundtur som visar de vanligaste funktionerna steg för steg: söka växter, Samling och vattning, Gemenskap, Snabbfråga, Solbana, rabattplanering, 3D-vyn och Profil. Den startar en gång för alla och finns alltid under Inställningar → Visa rundturen'], ],
@@ -14371,7 +14417,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.379';
+const APP_VERSION = 'Beta 0.380';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -14446,6 +14492,7 @@ function applyPrefs() {
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
   const pal = store.get('pal', ''); if (pal) document.documentElement.dataset.pal = pal; else delete document.documentElement.dataset.pal;
   const app = $('#app'); if (app) app.style.zoom = ts;
+  if (store.get('simple', false)) document.documentElement.dataset.simple = '1'; else delete document.documentElement.dataset.simple;
   applyUI();
 }
 function applyInterests(list) {
@@ -14684,6 +14731,7 @@ const STAD_SUBV = {
     return `<div class="sform"><label class="fl">Språk</label><div data-notr>${langPick()}</div>
     <label class="fl">Tema</label>${seg3([['system', 'Auto'], ['light', 'Ljust'], ['dark', 'Mörkt']], th, "(v=>setPref('theme',v))")}
     <label class="fl">Textstorlek</label>${seg3([[1, 'Normal'], [1.1, 'Större'], [1.2, 'Störst']], ts, "(v=>setPref('textsize',v))")}
+    <label class="fl" style="margin-top:14px">Vy</label>${seg3([[0, 'Vanlig'], [1, 'Enkel']], simpleOn() ? 1 : 0, "(v=>setSimple(!!v))")}<p class="mut" style="margin:6px 0 0;font-size:13px">Enkel vy har stor text, få val och stora knappar.</p>
     <label class="fl">Färgtema</label><div class="pdots">${[['', 'Roothood', '#1F4D3A']].concat(PALS).map(([k, n, c]) => `<button class="pdot${pal === k ? ' on' : ''}" aria-pressed="${pal === k}" aria-label="${n}" onclick="setPref('pal','${k}')"><i style="background:${c}"></i><span>${pal === k ? n : ''}</span></button>`).join('')}</div></div>
     ${sgroup('', [sswitch(store.get('growlight', false), 'setGrowlight(this.checked)', 'Högkontrast för växtlampor')])}
     ${isMod() ? sgroup('Designvariant (utvecklare)', UI_VARS.map(([k, n]) => `<button class="srow" onclick="setPref('ui','${k}')"><span class="st">${n}</span>${store.get('ui', '') === k ? ic('ph-check', 'var(--pri)', 20) : ''}</button>`)) : ''}`; },
@@ -14745,6 +14793,7 @@ function settingsFullV() {
     <div class="palrow">${[['', 'Roothood', '#1F4D3A']].concat(PALS).map(([k, n, c]) => `<button class="pal ${store.get('pal', '') === k ? 'on' : ''}" aria-pressed="${store.get('pal', '') === k}" onclick="setPref('pal','${k}')"><i style="background:${c}"></i><span>${n}</span></button>`).join('')}</div>
     <label class="remrow" style="margin-top:14px"><input type="checkbox" ${store.get('growlight', false) ? 'checked' : ''} onchange="setGrowlight(this.checked)"><span><b>Högkontrast för växtlampor</b><span class="mut">Svart bakgrund och vit text, med tydliga former i stället för färger</span></span></label>
     <label class="fl" style="margin-top:14px">Textstorlek</label>${seg3([[1, 'Normal'], [1.1, 'Större'], [1.2, 'Störst']], ts, "(v=>setPref('textsize',v))")}
+    <label class="fl" style="margin-top:14px">Vy</label>${seg3([[0, 'Vanlig'], [1, 'Enkel']], simpleOn() ? 1 : 0, "(v=>setSimple(!!v))")}<p class="mut" style="margin:6px 0 0;font-size:13px">Enkel vy har stor text, få val och stora knappar.</p>
     ${isMod() ? `<label class="fl" style="margin-top:14px">Designvariant (test)</label><div class="chips2 sm">${UI_VARS.map(([k, n]) => `<button class="${store.get('ui', '') === k ? 'on' : ''}" aria-pressed="${store.get('ui', '') === k}" onclick="setPref('ui','${k}')">${n}</button>`).join('')}</div><p class="mut" style="font-size:12.5px;margin:6px 0 0">Bara moderatorer ser det här. Det ändrar bara utseendet på den här telefonen.</p>` : ''}
   </div></div>
   <div class="sec"><h2>Trädgård</h2></div><div class="pad"><div class="setcard" id="szonesec">
@@ -15086,7 +15135,8 @@ function tourPlace() {
 // Startar av sig själv en gång för varje inloggat konto, när inget annat ligger ivägen
 setInterval(() => {
   try {
-    if (TOURS || !S.user || DEMO || document.hidden) return; if (store.get(tourKey(), false)) return;
+    if (S.user && !DEMO && !document.hidden && !store.get(simpleKey(), false) && !S.modal && !S.tool && !TOURS && Date.now() - (window.__t0 || (window.__t0 = Date.now())) > 5000) return simpleAskWhenFree();
+    if (TOURS || !S.user || DEMO || document.hidden) return; if (!store.get(simpleKey(), false)) return; if (store.get(tourKey(), false)) return;
     if (S.modal || S.tool || S.wz || S.tab !== 'home') return; if (Date.now() - (window.__t0 || (window.__t0 = Date.now())) < 8000) return;
     tourStart();
   } catch (e) {}
