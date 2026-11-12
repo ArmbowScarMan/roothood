@@ -11888,6 +11888,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.376', '12 nov', ['Skuggfoto och Skuggor med djup är pausade och visas som under konstruktion. Kameran med solbanan fungerar som vanligt. De kommer tillbaka senare'], ],
   ['Beta 0.375', '12 nov', ['Dela trädgårdsplan: under Inställningar kan du dela din plan med vänner i appen. De ser rum, tomt, rabatter och träd, men kan bara titta'], ],
   ['Beta 0.374', '12 nov', ['Växtdatabasen: ny sortering Botaniskt namn A–Ö. Då visas det botaniska namnet först och det svenska namnet efter. Förslag från en testare'], ],
   ['Beta 0.373', '12 nov', ['Skuggor med djup: kameran mäter fler punkter och ritar en finare höjdkarta, rensar bort enstaka felmätningar och fyller små hål. Skuggkanten blir mjukare och följer vädret'], ],
@@ -12941,6 +12942,9 @@ function arMarkGo() {
   store.set('sunObs', L); AR.shP = null; arMarkStep(-1);
   toast(`Hindret är sparat: ca ${String(h).replace('.', ',')} m högt, ${Math.round(m.d)} m bort, i ${sunWord(dir)}.`);
 }
+// Skuggfoto och Skuggor med djup är pausade (under konstruktion). Sätt till false för att slå på dem igen. All kod finns kvar.
+const SHADOW_WIP = true;
+const wipToast = () => toast('Under konstruktion. Den här funktionen är pausad och kommer tillbaka senare.');
 // ===== Skuggor med djup (WebXR med djupavkänning, Chrome på Android med ARCore) =====
 // Kameran mäter avståndet till det den ser. Allt som sticker upp minst 25 cm över marken läggs in i en höjdkarta
 // (48 × 48 m, rutor på 30 cm) som byggs på medan du vänder telefonen. Husen och träden från kartan läggs in i samma höjdkarta,
@@ -12952,6 +12956,7 @@ async function xrCheck() { try { S.xrAR = !!(navigator.xr && navigator.xr.isSess
 const circMean = L => { let sx = 0, sy = 0; L.forEach(a => { sx += Math.sin(a * Math.PI / 180); sy += Math.cos(a * Math.PI / 180); }); return (Math.atan2(sx, sy) * 180 / Math.PI + 360) % 360; };
 function xrState(over) { return Object.assign({ floorY: 0, floorKnown: true, lows: [], Hd: new Float32Array(XR_N * XR_N), Cn: new Uint8Array(XR_N * XR_N), Ho: new Float32Array(XR_N * XR_N), To: new Float32Array(XR_N * XR_N), Sh: new Float32Array(XR_N * XR_N), D: new Float32Array(XR_DW * XR_DH), yaw: null, yawS: [], adj: +store.get('arNorthAdj', 0) || 0, cal: false, dirty: true, dirtyO: true, lastSh: -1e9, frame: 0, dots: true, geo: null, osm: null, shKey: '', st: '' }, over || {}); }
 async function xrOpen() {
+  if (SHADOW_WIP) return wipToast();
   if (XR || AR) return; if (S.sunT == null) S.sunT = sunNowMin();
   const root = document.createElement('div'); root.id = 'xrov'; root.style.cssText = 'position:fixed;inset:0;z-index:99999;color:#fff;font-family:system-ui,sans-serif;pointer-events:none';
   const bs = 'height:40px;border-radius:12px;border:0;padding:0 12px;background:rgba(255,255,255,.92);color:#16261D;font-size:14px';
@@ -13594,6 +13599,7 @@ function arWinDraw(c, P, ds) {
   }
 }
 async function arOpen(mode, origin) {
+  if (SHADOW_WIP && mode === 'photo') return wipToast();
   if (AR) return;
   if (typeof DeviceOrientationEvent === 'undefined') return toast('Den här webbläsaren har ingen orienteringssensor. Öppna appen i Chrome på telefonen.');
   if (typeof DeviceOrientationEvent.requestPermission === 'function') { try { if ((await DeviceOrientationEvent.requestPermission()) !== 'granted') return toast('Tillåt rörelse- och orienteringssensorn i inställningarna'); } catch (e) { return; } }
@@ -13686,7 +13692,7 @@ function sunPathV() {
     <input type="range" class="sunr" min="0" max="1435" step="5" value="${t}" style="width:100%" oninput="sunLive(+this.value)" aria-label="Tid på dygnet">
     <p id="suncur" style="margin:10px 0 4px;font-size:15px">${curTxt}</p>
     <p class="mut" style="margin:0;font-size:14px">${dayTxt}</p>
-    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">${S.user && S.pro ? '<button class="btn sm" onclick="sunTo3d()">' + ic('ph-cube', 'currentColor', 16) + ' Visa skuggorna i 3D</button>' : ''}${typeof DeviceOrientationEvent !== 'undefined' ? (cmpOn ? '<button class="btn sm line" onclick="stopCompass();keepMain()">Stäng kompassen</button>' : '<button class="btn sm line" onclick="startCompass().then(keepMain)">🧭 Rikta telefonen</button>') : ''}${typeof DeviceOrientationEvent !== 'undefined' ? '<button class="btn sm" onclick="arOpen()">' + ic('ph-camera', 'currentColor', 16) + ' Kamera</button><button class="btn sm line" onclick="arOpen(\'photo\')">' + ic('ph-image', 'currentColor', 16) + ' Skuggfoto</button>' : ''}${S.xrAR ? '<button class="btn sm line" onclick="xrOpen()">' + ic('ph-cube-focus', 'currentColor', 16) + ' Skuggor med djup</button>' : ''}</div><p id="sunaim" class="mut" style="margin:8px 0 0;font-size:13.5px">${sunAimTxt(cur)}</p>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">${S.user && S.pro ? '<button class="btn sm" onclick="sunTo3d()">' + ic('ph-cube', 'currentColor', 16) + ' Visa skuggorna i 3D</button>' : ''}${typeof DeviceOrientationEvent !== 'undefined' ? (cmpOn ? '<button class="btn sm line" onclick="stopCompass();keepMain()">Stäng kompassen</button>' : '<button class="btn sm line" onclick="startCompass().then(keepMain)">🧭 Rikta telefonen</button>') : ''}${typeof DeviceOrientationEvent !== 'undefined' ? '<button class="btn sm" onclick="arOpen()">' + ic('ph-camera', 'currentColor', 16) + ' Kamera</button>' + (SHADOW_WIP ? '<button class="btn sm line" disabled style="opacity:.55">' + ic('ph-image', 'currentColor', 16) + ' Skuggfoto · under konstruktion</button>' : '<button class="btn sm line" onclick="arOpen(\'photo\')">' + ic('ph-image', 'currentColor', 16) + ' Skuggfoto</button>') + '' : ''}${S.xrAR || SHADOW_WIP ? (SHADOW_WIP ? '<button class="btn sm line" disabled style="opacity:.55">' + ic('ph-cube-focus', 'currentColor', 16) + ' Skuggor med djup · under konstruktion</button>' : '<button class="btn sm line" onclick="xrOpen()">' + ic('ph-cube-focus', 'currentColor', 16) + ' Skuggor med djup</button>') : ''}</div><p id="sunaim" class="mut" style="margin:8px 0 0;font-size:13.5px">${sunAimTxt(cur)}</p>
   </div></div>
   <div class="sec"><h2>Soltimmar här</h2></div>
   <div class="pad"><div class="setcard" style="padding:14px">
@@ -14320,7 +14326,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.375';
+const APP_VERSION = 'Beta 0.376';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
