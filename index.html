@@ -2527,6 +2527,7 @@ const demoApi = {
   async resetPw() {},
   async user() { return { id: 'demo', name: (store.get('profile', {}) || {}).display_name || 'Du' }; },
   async getNames() { return store.get('names', null); },
+  async scanRoom() { throw new Error('SCAN_NOT_READY'); },
   async saveNames(f, l) { store.set('names', { first: f, last: l }); },
   async saveAvatar(url) { store.set('avatarDemo', url || null); return; },
   async deleteAccount() { try { localStorage.clear(); } catch (e) { console.warn('Roothood:', e); } },
@@ -2913,6 +2914,14 @@ const sbApi = {
     const j = await r.json().catch(() => ({}));
     if (!r.ok || !j.url) throw new Error(j.error || 'PAY_FAILED');
     return j.url;
+  },
+  // Skanna rummet (admin, test): foton analyseras av en serverfunktion som anropar Claude.
+  async scanRoom(images) {
+    const sess = (await sb.auth.getSession()).data.session;
+    const r = await fetch(SUPABASE_URL + '/functions/v1/scan-room', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + (sess ? sess.access_token : SUPABASE_ANON_KEY) }, body: JSON.stringify({ images }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(r.status === 404 ? 'SCAN_NOT_READY' : (j.error || 'SCAN_FAILED'));
+    return j;
   },
   async startProCheckout(plan, code) { location.href = await this._fnPost('create-checkout', { plan, code: code || '' }); },
   async openProPortal() { location.href = await this._fnPost('create-portal', {}); },
@@ -3993,6 +4002,7 @@ function roomFormV() {
     return `<button class="cdir ${on ? 'on' : ''}" style="left:${x}%;top:${y}%" aria-pressed="${on}" aria-label="${n}" onclick="rfDir('${k}')">${k}</button>`; }).join('');
   return `<div class="mh"><h2>${f.id ? 'Ändra rum' : 'Nytt rum'}</h2><button class="close" onclick="closeRoom()" aria-label="Stäng">×</button></div>
   <div class="pdform">
+  ${isAdmin() && !f.id ? `<button class="btn line wide" style="margin-bottom:12px" onclick="S.scn = S.scn || {}; openModal('scanres')">Skanna rummet (test, bara admin)</button>` : ''}
   <label class="fl" style="margin-top:0">Vad är det för rum?</label>
   <div class="chips2">${ROOM_TYPES.map(t => `<button class="${f.type === t ? 'on' : ''}" onclick="rfType('${t}')">${t}</button>`).join('')}</div>
   <label class="fl" for="rfname">Namn</label><input id="rfname" maxlength="30" placeholder="t.ex. Vardagsrummet" value="${esc(f.name)}" oninput="S.rf.name=this.value">
@@ -4001,7 +4011,7 @@ function roomFormV() {
   <p class="mut" style="font-size:13px;margin:-2px 0 8px">${(f.wins || []).length || (f.bays || []).length ? 'Räknas fram från fönstren du ritat. Du kan ändra här, men det skrivs över när du ändrar fönstren.' : 'Tryck på ett eller flera väderstreck. Osäker? Tryck på Mät med kompassen och håll telefonen platt med toppen mot fönstret.' + (f.rect ? ' Du kan också rita in fönster i ritningen.' : '')}</p>
   <div class="cpick"><div class="cring"></div><div class="cmid">${f.dirs.length ? f.dirs.join(' + ') : 'Inget<br>fönster'}</div>${pts}</div>
   <p class="mut" style="text-align:center;font-size:14px;margin:4px 0 0"><b style="color:var(--ink)">${esc(roomLightWord(f))}</b> · ${esc(dirTxt(f))}</p>
-  ${ps.length ? `<div style="text-align:center;margin:10px 0 0"><button class="btn sm line" onclick="waterRoom(${r.id})">${ic('ph-drop', 'currentColor', 15)} Vattna hela rummet</button></div>` : ''}<div style="text-align:center;margin:10px 0 0"><button class="btn sm" onclick="rfCompass()">🧭 Mät med kompassen</button></div>
+  ${f.id && plantsIn(f.id).length ? `<div style="text-align:center;margin:10px 0 0"><button class="btn sm line" onclick="waterRoom(${jsArg(f.id)})">${ic('ph-drop', 'currentColor', 15)} Vattna hela rummet</button></div>` : ''}<div style="text-align:center;margin:10px 0 0"><button class="btn sm" onclick="rfCompass()">🧭 Mät med kompassen</button></div>
   <label class="tog"><input type="checkbox" ${f.lamp ? 'checked' : ''} onchange="S.rf.lamp=this.checked;keepScroll()"><span><b>Växtlampa i rummet</b></span></label>
   <div class="two"><div><label class="fl">Temperatur</label><div class="chips2 sm">${TEMPS.map(t => `<button class="${f.temp === t ? 'on' : ''}" onclick="S.rf.temp='${t}';keepScroll()">${t}</button>`).join('')}</div></div>
   <div><label class="fl">Luften</label><div class="chips2 sm">${HUMS.map(t => `<button class="${f.hum === t ? 'on' : ''}" onclick="S.rf.hum='${t}';keepScroll()">${t}</button>`).join('')}</div></div></div>
@@ -7791,7 +7801,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -12154,6 +12164,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.390', '12 nov', ['Formuläret Nytt rum fungerar igen. Det blev tomt för några.', 'Skanna rummet (bara admin): mät rummet med djupkameran och föreslå fönster och dörrar från foton']],
   ['Beta 0.389', '12 nov', ['Förnamn och efternamn krävs. Andra ser bara förnamn och första bokstaven i efternamnet, till exempel Jim O. Du som redan har konto får fylla i dem. Enklare ord: Plantswipe heter Svep bland växter, Villhöver heter Önskelista, Nycklas heter Rapportera fel, Detektiver heter Vad är det för växt? Knapparna längst upp har ord under symbolen. Min samling heter likadant överallt. Svåra ord som Leca, Pon och Lux förklaras där de visas. En mening överst i varje verktyg. Att göra på Start: väder och djurvarningar går att bocka av och visar vad du ska göra. Tomma sidor säger vad som saknas och har en knapp. Alla verktyg är sorterade efter vad du vill göra och har en sökruta']],
   ['Beta 0.388', '12 nov', ['Större tryckytor på små knappar, och rundturen följer din textstorlek.']],
   ['Beta 0.387', '12 nov', ['Rundturen går att minimera till en liten knapp längst ner och öppna igen när du vill.']],
@@ -12497,7 +12508,11 @@ const NEWS = [
   ['1.5x', 'Tidigare', ['Rabattläge med växtavstånd och djup', 'Utomhus i 3D med höjd på träd och buskar', 'Reptiler, akvarium och giftvarningar', 'Äppelsorter och bärbuskar för zon 4 och uppåt', 'Vetenskapliga namn först, svenska under']],
 ];
 function openNews() { stopLight(); S.sel = null; S.modal = null; S.tool = 'news'; render(); $('#main').scrollTop = 0; }
-function updV() { const norm = v => String(v).replace(/^Beta 0\./, '1.'), from = S.updFrom, list = []; for (const n of NEWS) { if (norm(n[0]) === norm(from)) break; list.push(n); } const items = (list.length ? list : NEWS.slice(0, 1)).slice(0, 1), more = list.length > 1;
+// Poster om moderering och admin-funktioner (t.ex. Skuggor och Skanna rummet) syns bara för moderatorer.
+const MODNEWS = /^Moderering:|^Admin|Skuggfoto|Skuggor med djup|^Skuggor:|^Solbana: .*kameraläget|Förberett för betald Pro: moderatorer/i;
+const ADMNEWS = /Skanna rummet/i; // bara admin
+function newsFor() { return NEWS.map(n => [n[0], n[1], n[2].filter(x => (isMod() || !MODNEWS.test(x)) && (isAdmin() || !ADMNEWS.test(x)))]).filter(n => n[2].length); }
+function updV() { const NW = newsFor(), norm = v => String(v).replace(/^Beta 0\./, '1.'), from = S.updFrom, list = []; for (const n of NW) { if (norm(n[0]) === norm(from)) break; list.push(n); } const items = (list.length ? list : NW.slice(0, 1)).slice(0, 1), more = list.length > 1;
   return `<div class="mh"><h2>Nytt i version ${APP_VERSION}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div><p style="margin:10px 0 4px;font-size:14.5px;line-height:1.5">Kul att du testar Roothood! Kolla gärna vad som är nytt nedan och testa det. Säg gärna till om något ska fixas, ändras, tas bort eller läggas till.</p>${LANG === 'en' ? '<p class="mut" style="margin:0 0 8px;font-size:13.5px">Uppdateringarna nedan är på svenska.</p>' : ''}<div data-notr style="max-height:60vh;overflow:auto">${items.map(n => `<div class="setcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b>Version ${n[0]}</b><span class="mut" style="font-size:13px">${n[1]}</span></div><ul style="margin:8px 0 0;padding-left:18px;font-size:14.5px;line-height:1.5">${n[2].map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}${more ? '<p class="mut" style="margin:4px 0 0;font-size:13.5px">Tidigare ändringar finns under Hela loggen.</p>' : ''}</div><div class="cta" style="padding:12px 0 0;display:flex;gap:8px"><button class="btn" onclick="closeModal()">Klart</button><button class="btn line" onclick="closeModal();openNews()">Hela loggen</button></div>`; }
 // Meddelande till testarna: visas en gång per telefon. I Play-appen (sluten test) en kort text, på webben för inloggade betatestare även hur man installerar.
 const PLAY_URL = 'https://play.google.com/store/apps/details?id=se.roothood.app', PLAY_TEST_URL = 'https://play.google.com/apps/testing/se.roothood.app';
@@ -12506,8 +12521,8 @@ function testerMsgV() {
   const install = IS_TWA ? '' : `<h3 style="margin:16px 0 6px">Installera appen</h3><p style="margin:0 0 6px"><b>Android:</b> <a href="${PLAY_URL}" target="_blank" rel="noopener">installera Roothood från Google Play</a></p><p style="margin:0 0 6px"><b>Från webben eller iPhone:</b> <a href="${PLAY_TEST_URL}" target="_blank" rel="noopener">gå med i testet här</a></p><p style="margin:10px 0 4px"><b>Installera från webbläsaren:</b></p><ul style="padding-left:20px;line-height:1.6;margin:0"><li>Android (Chrome): öppna <a href="https://armbowscarman.github.io/roothood/" target="_blank" rel="noopener">armbowscarman.github.io/roothood</a>, tryck på menyn med tre prickar uppe till höger och välj <b>Installera app</b> eller <b>Lägg till på startskärmen</b>.</li><li>iPhone (Safari): öppna samma adress, tryck på dela-knappen (fyrkanten med en pil uppåt) och välj <b>Lägg till på hemskärmen</b>.</li></ul>`;
   return `<h2 style="margin:0 0 10px">Tack för att du testar Roothood!</h2><p>Google kollar hur mycket appen används innan den får släppas, så det hjälper jättemycket om du de närmaste två veckorna:</p><ul style="padding-left:20px;line-height:1.6"><li>öppnar appen några gånger</li><li>lägger till ett par växter och provar att identifiera en med kameran</li><li>testar Svep bland växter och ställer eller svarar på en fråga i Gemenskap</li><li>skickar minst en kommentar via nyckelpigan nere till vänster. Både fel och förslag är välkomna.</li></ul>${install}<p style="margin:14px 0 16px">Tack! /Roothood</p><button class="btn wide formbtn" onclick="closeModal()">Okej</button>`;
 }
-function checkUpdate() { let seen = '1.202'; try { seen = store.get('seenVer', '1.202'); } catch (e) {} if (seen === APP_VERSION) return; store.set('seenVer', APP_VERSION); S.updFrom = seen; S.modal = 'upd'; render(); }
-function newsV() { return `${topbar('Uppdateringar', 'closeTool()')}<div class="pad">${LANG === 'en' ? '<p class="mut" style="margin:0 0 12px">Uppdateringarna nedan är på svenska.</p>' : ''}<div data-notr>${NEWS.map(n => `<div class="setcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b>Version ${n[0]}</b><span class="mut" style="font-size:13px">${n[1]}</span></div><ul style="margin:8px 0 0;padding-left:18px;font-size:14.5px;line-height:1.5">${n[2].map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div></div><div style="height:24px"></div>`; }
+function checkUpdate() { let seen = '1.202'; try { seen = store.get('seenVer', '1.202'); } catch (e) {} if (seen === APP_VERSION) return; store.set('seenVer', APP_VERSION); const norm = v => String(v).replace(/^Beta 0\./, '1.'); let nw = false; for (const n of newsFor()) { if (norm(n[0]) === norm(seen)) break; nw = true; break; } if (!nw) return; S.updFrom = seen; S.modal = 'upd'; render(); }
+function newsV() { return `${topbar('Uppdateringar', 'closeTool()')}<div class="pad">${LANG === 'en' ? '<p class="mut" style="margin:0 0 12px">Uppdateringarna nedan är på svenska.</p>' : ''}<div data-notr>${newsFor().map(n => `<div class="setcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b>Version ${n[0]}</b><span class="mut" style="font-size:13px">${n[1]}</span></div><ul style="margin:8px 0 0;padding-left:18px;font-size:14.5px;line-height:1.5">${n[2].map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div></div><div style="height:24px"></div>`; }
 // ===== Såkalender =====
 // Sista vårfrost och första höstfrost per odlingszon (ungefär, 70 % sannolikhet). Zon 1 är mildast (Skåne), zon 8 kallast (fjällen).
 const FROST = { 1: [5, 1], 2: [5, 10], 3: [5, 20], 4: [5, 25], 5: [6, 1], 6: [6, 5], 7: [6, 12], 8: [6, 18] };
@@ -13224,6 +13239,98 @@ function arMarkGo() {
 // Skuggfoto och Skuggor med djup är pausade (under konstruktion). Bara admin (du) kommer in och kan testa. För att öppna för alla: låt shadowWip returnera false. All kod finns kvar.
 const shadowWip = () => !isAdmin();
 const wipToast = () => toast('Under konstruktion. Den här funktionen är pausad och kommer tillbaka senare.');
+// ===== Skanna rummet (test, bara admin) =====
+// Djupkameran (samma teknik som Skuggor med djup) samlar punkter på väggar och möbler medan du vänder dig ett varv.
+// Rummets mått gissas som den minsta rektangel som rymmer punkterna. Foton av väggarna kan skickas till en AI som föreslår fönster och dörrar.
+let SCN = null;
+const SCN_W = 48, SCN_H = 36, SCN_CAP = 30000;
+const scnNum = v => { const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return Number.isFinite(n) ? n : null; };
+const scnFmt = v => v == null ? '' : String(Math.round(v * 10) / 10).replace('.', ',');
+async function scanOpen() {
+  if (!isAdmin() || SCN || XR || AR) return;
+  if (!(await xrCheck())) return toast('Kameran kan inte mäta djup på den här telefonen. Det kräver Chrome på Android med ARCore.');
+  const root = document.createElement('div'); root.id = 'scnov'; root.style.cssText = 'position:fixed;inset:0;z-index:99999;color:#fff;font-family:system-ui,sans-serif;pointer-events:none';
+  root.innerHTML = `<div style="position:absolute;top:0;left:0;right:0;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;display:flex;gap:10px;align-items:flex-start;background:linear-gradient(rgba(0,0,0,.65),transparent);pointer-events:auto"><button id="scx" aria-label="Avbryt" style="flex:none;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:22px">✕</button><div id="sci" style="flex:1;font-size:15px;line-height:1.4;text-shadow:0 1px 3px #000">Startar kameran…</div></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.8));pointer-events:auto"><div id="scs" style="font-size:14px;margin-bottom:10px;min-height:20px"></div><button id="scd" style="width:100%;height:52px;border-radius:14px;border:0;background:#FFC83D;color:#16261D;font-size:17px;font-weight:700">Klart</button></div>`;
+  document.body.appendChild(root);
+  const gl = document.createElement('canvas').getContext('webgl', { xrCompatible: true, alpha: true, antialias: false });
+  let session;
+  try { session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['depth-sensing', 'dom-overlay'], optionalFeatures: ['local-floor'], domOverlay: { root }, depthSensing: { usagePreference: ['cpu-optimized'], dataFormatPreference: ['luminance-alpha', 'float32'] } }); }
+  catch (e) { root.remove(); return toast('Djupkameran gick inte att starta på den här telefonen.'); }
+  try { if (gl.makeXRCompatible) await gl.makeXRCompatible(); session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) }); } catch (e) { try { session.end(); } catch (x) {} root.remove(); return toast('Djupkameran gick inte att starta.'); }
+  let space, floorKnown = true; try { space = await session.requestReferenceSpace('local-floor'); } catch (e) { space = await session.requestReferenceSpace('local'); floorKnown = false; }
+  SCN = { session, gl, space, root, floorKnown, floorY: floorKnown ? 0 : null, lows: [], px: [], pz: [], ch: [], cov: new Array(12).fill(0), frame: 0, n: 0, hasDepth: false };
+  root.querySelector('#scx').onclick = () => { SCN.cancel = true; session.end(); };
+  root.querySelector('#scd').onclick = scanDone;
+  session.addEventListener('end', scanEnd);
+  session.requestAnimationFrame(scanFrame);
+}
+function scanEnd() { const X = SCN; if (X && X.root) X.root.remove(); SCN = null; if (X && !X.cancel && X.result) { S.scn = Object.assign(S.scn || {}, X.result); S.modal = 'scanres'; render(); } else if (X && X.cancel && S.scn) { S.modal = 'scanres'; render(); } }
+function scanDone() { const X = SCN; if (!X) return; const est = scanEstimate(X); X.result = est ? { w: est.w, d: est.d, ceil: est.ceil, msg: 'Måtten är en gissning från kameran. Kontrollera dem och ändra om de inte stämmer.' } : { msg: 'Kameran hann inte samla tillräckligt. Prova igen och vänd dig långsamt ett helt varv.' }; try { X.session.end(); } catch (e) { scanEnd(); } }
+function scanFrame(t, frame) {
+  const X = SCN; if (!X) return; X.session.requestAnimationFrame(scanFrame); X.frame++;
+  const gl = X.gl, BL = X.session.renderState.baseLayer; gl.bindFramebuffer(gl.FRAMEBUFFER, BL.framebuffer); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  const pose = frame.getViewerPose(X.space); if (!pose) return; const view = pose.views[0], Vm = view.transform.matrix, P = view.projectionMatrix;
+  const fx = -Vm[8], fz = -Vm[10], az = (Math.atan2(fx, -fz) * 180 / Math.PI + 360) % 360, bin = Math.floor(az / 30) % 12;
+  if (X.floorY == null) X.floorY = Vm[13] - 1.45;
+  let di = null; try { di = frame.getDepthInformation(view); } catch (e) {}
+  if (di && X.frame % 3 === 0) { X.hasDepth = true; let added = 0;
+    for (let jv = 0; jv < SCN_H; jv++) for (let iu = 0; iu < SCN_W; iu++) { const u = (iu + 0.5) / SCN_W, v = (jv + 0.5) / SCN_H; let d = 0; try { d = di.getDepthInMeters(u, v); } catch (e) {}
+      if (d > 0.4 && d < 7) { const xn = 2 * u - 1, yn = 1 - 2 * v, xv = d * (xn + P[8]) / P[0], yv = d * (yn + P[9]) / P[5], zv = -d, wx = Vm[0] * xv + Vm[4] * yv + Vm[8] * zv + Vm[12], wy = Vm[1] * xv + Vm[5] * yv + Vm[9] * zv + Vm[13], wz = Vm[2] * xv + Vm[6] * yv + Vm[10] * zv + Vm[14];
+        if (!X.floorKnown && v > 0.6) { X.lows.push(wy); if (X.lows.length > 3000) X.lows.splice(0, 600); }
+        const h = wy - X.floorY;
+        if (h > 0.3 && h < 4.5) { if (X.px.length < SCN_CAP) { X.px.push(wx); X.pz.push(wz); X.ch.push(h); } else { const k = Math.floor(Math.random() * SCN_CAP); X.px[k] = wx; X.pz[k] = wz; X.ch[k] = h; } X.n++; added++; } } }
+    X.cov[bin] += added;
+    if (!X.floorKnown && X.frame % 30 === 0 && X.lows.length > 200) { const L = X.lows.slice().sort((a, b) => a - b), f = L[Math.floor(L.length * 0.05)]; X.floorY = Math.max(Vm[13] - 2.2, Math.min(Vm[13] - 0.6, f)); } }
+  if (X.frame % 15 === 0) { const got = X.cov.filter(c => c >= 150).length, est = X.n > 600 ? scanEstimate(X, 1) : null;
+    X.root.querySelector('#sci').innerHTML = !X.hasDepth ? 'Väntar på djupet… Rör telefonen långsamt.' : got < 12 ? 'Stå mitt i rummet och vänd dig <b>långsamt ett helt varv</b>. Rikta kameran mot väggarna.' : 'Bra! Du har täckt hela rummet. Tryck <b>Klart</b>.';
+    X.root.querySelector('#scs').textContent = `Riktningar: ${got} av 12` + (est ? ` · ungefär ${scnFmt(est.w)} × ${scnFmt(est.d)} m` : ''); }
+}
+function scanEstimate(X, quick) {
+  const n = X.px.length; if (n < 400) return null;
+  const step = Math.max(1, Math.floor(n / (quick ? 2500 : 8000))), XS = [], ZS = [];
+  for (let i = 0; i < n; i += step) { XS.push(X.px[i]); ZS.push(X.pz[i]); }
+  const q = (a, p) => a[Math.min(a.length - 1, Math.max(0, Math.floor(p * a.length)))]; let best = null;
+  for (let th = 0; th < 90; th += 5) { const c = Math.cos(th * Math.PI / 180), s = Math.sin(th * Math.PI / 180), A = XS.map((x, i) => x * c + ZS[i] * s).sort((a, b) => a - b), B = XS.map((x, i) => -x * s + ZS[i] * c).sort((a, b) => a - b), w = q(A, 0.96) - q(A, 0.04), d = q(B, 0.96) - q(B, 0.04); if (!best || w * d < best.w * best.d) best = { w, d }; }
+  const hs = X.ch.filter(h => h > 1.9).sort((a, b) => a - b);
+  return { w: Math.max(best.w, best.d), d: Math.min(best.w, best.d), ceil: hs.length > 80 ? q(hs, 0.5) : null };
+}
+function scanResV() {
+  const c = S.scn || (S.scn = {}), ph = c.ph || {}, nW = Object.keys(ph).length, wl = [['t', 'Övre väggen'], ['r', 'Högra väggen'], ['b', 'Nedre väggen'], ['l', 'Vänstra väggen']];
+  return `<div class="mh"><h2>Skanna rummet</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <p class="mut" style="margin:0 0 10px;font-size:14px">Testfunktion, bara för admin. Mät med kameran, eller skriv måtten själv.</p>
+  <button class="btn wide" onclick="closeModal();setTimeout(scanOpen, 80)">Mät med djupkameran</button>
+  ${c.msg ? `<p style="margin:12px 0 0;font-size:14.5px">${esc(c.msg)}</p>` : ''}
+  <label class="fl" for="scw">Bredd i meter</label><input id="scw" inputmode="decimal" value="${scnFmt(c.w)}" oninput="S.scn.w = scnNum(this.value)">
+  <label class="fl" for="scd2">Djup i meter</label><input id="scd2" inputmode="decimal" value="${scnFmt(c.d)}" oninput="S.scn.d = scnNum(this.value)">
+  ${c.ceil ? `<p class="mut" style="margin:6px 0 0">Takhöjd ungefär ${scnFmt(c.ceil)} m</p>` : ''}
+  <h3 style="margin:18px 0 6px;font-size:16px">Fönster och dörrar från foton</h3>
+  <p class="mut" style="margin:0 0 8px;font-size:14px">Stå mitt i rummet och fota väggarna, en i taget. Börja med väggen som ska ligga överst i ritningen och gå medsols.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">${wl.map(([k, n]) => `<label class="btn line sm" style="cursor:pointer"><input type="file" accept="image/*" capture="environment" hidden onchange="scanPhoto('${k}', this)">${ph[k] ? '✓ ' : ''}${n}</label>`).join('')}</div>
+  <button class="btn line wide" style="margin-top:10px" ${nW && !c.busy ? '' : 'disabled'} onclick="scanAnalyze()">${c.busy ? 'Analyserar…' : 'Låt AI hitta fönster och dörrar (' + nW + ' foton)'}</button>
+  ${c.wins ? `<p style="margin:10px 0 0;font-size:14.5px">AI föreslog ${c.wins.filter(x => x.k !== 'door').length} fönster och ${c.wins.filter(x => x.k === 'door').length} dörrar. Du kan flytta dem i ritningen sedan.</p>` : ''}
+  <button class="btn wide formbtn" style="margin-top:16px" onclick="scanMake()">Skapa rum med dessa mått</button>`;
+}
+async function scanPhoto(w, el) { const f = el.files && el.files[0]; if (!f) return; try { const url = await fileShrink(f, 1024, true); S.scn.ph = Object.assign(S.scn.ph || {}, { [w]: url }); render(); } catch (e) { toast('Fotot gick inte att läsa.'); } }
+async function scanAnalyze() {
+  const c = S.scn; if (!c || c.busy) return; const w = c.w || 4, d = c.d || 3;
+  const images = Object.entries(c.ph || {}).map(([k, u]) => ({ wall: k, data: String(u).split(',')[1] })); if (!images.length) return;
+  c.busy = true; render();
+  try {
+    const r = await api.scanRoom(images), wins = [];
+    ['t', 'r', 'b', 'l'].forEach(s => { const len = (s === 't' || s === 'b') ? w : d; ((r.walls && r.walls[s]) || []).forEach(x => { const a = Math.max(0, Math.min(1, +x.from)), b = Math.max(a, Math.min(1, +x.to)); if (!(b - a > 0.03)) return; const o = { s, p: Math.round(a * len * 10) / 10, l: Math.max(0.5, Math.round((b - a) * len * 10) / 10) }; if (x.k === 'door') o.k = 'door'; wins.push(o); }); });
+    c.wins = wins; c.msg = r.notes || '';
+  } catch (e) { toast(e.message === 'SCAN_NOT_READY' ? 'Fotoanalysen är inte påslagen än.' : 'Fotoanalysen misslyckades: ' + (e.message || '')); }
+  c.busy = false; render();
+}
+function scanMake() {
+  const c = S.scn || {}, w = c.w, d = c.d; if (!(w >= 1.5 && w <= 30 && d >= 1.5 && d <= 30)) return toast('Skriv bredd och djup mellan 1,5 och 30 meter.');
+  const rs = (S.home || []).filter(r => r.rect), right = rs.length ? Math.max(...rs.map(r => r.rect.x + r.rect.w)) : -1, sn = v => Math.round(v * 2) / 2;
+  const rect = { x: rs.length ? Math.ceil(right) + 1 : 0, y: 0, w: sn(w), h: sn(d) };
+  newRoom('plan', rect); if (c.wins && c.wins.length) { S.rf.wins = c.wins.slice(); }
+  if (c.ceil) S.rf.ceilH = Math.round(c.ceil * 10) / 10;
+  S.scn = null; render();
+}
 // ===== Skuggor med djup (WebXR med djupavkänning, Chrome på Android med ARCore) =====
 // Kameran mäter avståndet till det den ser. Allt som sticker upp minst 25 cm över marken läggs in i en höjdkarta
 // (48 × 48 m, rutor på 30 cm) som byggs på medan du vänder telefonen. Husen och träden från kartan läggs in i samma höjdkarta,
@@ -14605,7 +14712,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.389';
+const APP_VERSION = 'Beta 0.390';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
