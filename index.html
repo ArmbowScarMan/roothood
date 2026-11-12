@@ -2697,6 +2697,10 @@ const sbApi = {
   async friendAnswer(reqId, accept) { const r = accept ? await sb.from('friend_requests').update({ status: 'accepted', responded_at: new Date().toISOString() }).eq('id', reqId) : await sb.from('friend_requests').delete().eq('id', reqId); if (r.error) throw r.error; },
   async friendRemove(id) { const me = S.user.id, { error } = await sb.from('friend_requests').delete().or(`and(from_user.eq.${me},to_user.eq.${id}),and(from_user.eq.${id},to_user.eq.${me})`); if (error) throw error; },
   async myFriends() { const { data, error } = await sb.rpc('my_friends'); if (error) return []; return data || []; },
+  async planShareList() { const { data, error } = await sb.rpc('my_plan_shares'); if (error) throw error; return data || []; },
+  async planShareSet(uid, on) { const r = on ? await sb.from('plan_shares').upsert({ owner: S.user.id, shared_with: uid }, { onConflict: 'owner,shared_with', ignoreDuplicates: true }) : await sb.from('plan_shares').delete().eq('owner', S.user.id).eq('shared_with', uid); if (r.error) throw r.error; },
+  async sharedPlans() { const { data, error } = await sb.rpc('shared_plans_for_me'); if (error) throw error; return data || []; },
+  async planShareLeave(owner) { const { error } = await sb.from('plan_shares').delete().eq('owner', owner).eq('shared_with', S.user.id); if (error) throw error; },
   async sitterList() { const { data, error } = await sb.from('plant_sitters').select('id,sitter_id,starts_on,ends_on').order('starts_on', { ascending: false }); if (error) throw error; return data || []; },
   async sitterAdd(sitterId, from, to) { const { error } = await sb.from('plant_sitters').insert({ owner_id: S.user.id, sitter_id: sitterId, starts_on: from, ends_on: to }); if (error) throw error; },
   async sitterDel(id) { const { error } = await sb.from('plant_sitters').delete().eq('id', id); if (error) throw error; },
@@ -7619,7 +7623,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -11884,6 +11888,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.375', '12 nov', ['Dela trädgårdsplan: under Inställningar kan du dela din plan med vänner i appen. De ser rum, tomt, rabatter och träd, men kan bara titta'], ],
   ['Beta 0.374', '12 nov', ['Växtdatabasen: ny sortering Botaniskt namn A–Ö. Då visas det botaniska namnet först och det svenska namnet efter. Förslag från en testare'], ],
   ['Beta 0.373', '12 nov', ['Skuggor med djup: kameran mäter fler punkter och ritar en finare höjdkarta, rensar bort enstaka felmätningar och fyller små hål. Skuggkanten blir mjukare och följer vädret'], ],
   ['Beta 0.372', '12 nov', ['Skuggfoto: vädret styr nu hur skarpa skuggorna är. Vid mulet väder blir skuggorna ljusare och mjukare, och vid sol blir de skarpa. Kan stängas av'], ],
@@ -14315,7 +14320,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.374';
+const APP_VERSION = 'Beta 0.375';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -14398,6 +14403,57 @@ function applyInterests(list) {
   if (ints.every(c => INDOOR.includes(c))) S.env = 'in';
   else if (ints.every(c => OUTDOOR.includes(c))) S.env = 'out';
 }
+// ===== Dela trädgårdsplanen med vänner =====
+async function loadPShare() {
+  if (!S.user || DEMO || S.pshLoad) return; S.pshLoad = true;
+  try { const [fr, sh, inb] = await Promise.all([api.myFriends(), api.planShareList(), api.sharedPlans()]); S.psh = { friends: fr, shared: new Set(sh.map(x => x.shared_with)), inbox: inb }; }
+  catch (e) { S.psh = { err: true }; }
+  S.pshLoad = false; if (S.tool === 'settings') render();
+}
+async function psToggle(id, on) { try { await api.planShareSet(id, on); if (S.psh && S.psh.shared) { if (on) S.psh.shared.add(id); else S.psh.shared.delete(id); } toast(on ? 'Planen delas nu med din vän' : 'Du delar inte längre planen med personen'); } catch (e) { toast('Kunde inte ändra just nu'); } render(); }
+async function psLeave(owner) { if (!confirm('Sluta se den här planen? Ägaren kan dela den igen.')) return; try { await api.planShareLeave(owner); S.psh.inbox = (S.psh.inbox || []).filter(x => x.owner !== owner); toast('Planen visas inte längre hos dig'); } catch (e) { toast('Kunde inte just nu'); } closeModal(); render(); }
+function psOpen(i) { S.psI = i; openModal('psview'); }
+function psV() {
+  if (!S.user || DEMO) return '';
+  const p = S.psh, head = '<div class="sec"><h2>Dela trädgårdsplan</h2></div>';
+  if (!p) { loadPShare(); return head + '<div class="pad"><div class="setcard"><p class="mut" style="margin:0">Hämtar…</p></div></div>'; }
+  if (p.err) return head + '<div class="pad"><div class="setcard"><p class="mut" style="margin:0">Delning av plan är inte klar ännu. Försök igen senare.</p></div></div>';
+  const fr = (p.friends || []).map(f => `<label style="display:flex;align-items:center;gap:10px;padding:6px 0"><input type="checkbox" ${p.shared.has(f.id) ? 'checked' : ''} onchange="psToggle(${jsArg(f.id)}, this.checked)" style="width:22px;height:22px;margin:0;flex:none"><span>${esc(f.display_name || 'Vän')}</span></label>`).join('');
+  const inb = (p.inbox || []).map((x, i) => `<button class="btn sm line" style="margin:4px 8px 4px 0" onclick="psOpen(${i})">${esc(x.display_name || 'Vän')}s plan</button>`).join('');
+  return head + `<div class="pad"><div class="setcard">
+    <p style="margin:0 0 6px"><b>Dela din plan med vänner</b></p>
+    <p class="mut" style="margin:0 0 8px;font-size:13.5px">Vännerna ser rum, tomt, rabatter och träd, men kan inte ändra något. Din plats på kartan följer inte med. Du kan sluta dela när du vill.</p>
+    ${fr || '<p class="mut" style="margin:0">Du har inga vänner i appen än. Lägg till vänner under Community, så kan du dela planen med dem.</p>'}
+    ${(p.inbox || []).length ? `<p style="margin:14px 0 6px"><b>Planer som delas med dig</b></p>${inb}` : ''}</div></div>`;
+}
+const PS_COL = { lot: 'rgba(120,170,90,.08)' };
+function sharedPlanSvg(rooms, plan) {
+  const fin = v => typeof v === 'number' && isFinite(v);
+  const areas = ((plan && plan.areas) || []).filter(a => a && Array.isArray(a.pts) && a.pts.length >= 3 && a.pts.every(q => fin(q[0]) && fin(q[1])));
+  const rs = (rooms || []).filter(r => r && r.rect && fin(r.rect.x) && fin(r.rect.y) && fin(r.rect.w) && fin(r.rect.h));
+  const gs = ((plan && plan.garden) || []).filter(g => g && fin(g.x) && fin(g.y) && g.t !== 'elev');
+  const ws = ((plan && plan.walls) || []).filter(w => w && fin(w.x1) && fin(w.y1) && fin(w.x2) && fin(w.y2));
+  const xs = [], ys = []; areas.forEach(a => a.pts.forEach(q => { xs.push(q[0]); ys.push(q[1]); })); rs.forEach(r => { xs.push(r.rect.x, r.rect.x + r.rect.w); ys.push(r.rect.y, r.rect.y + r.rect.h); }); gs.forEach(g => { const R = g.r || 1; xs.push(g.x - R, g.x + R); ys.push(g.y - R, g.y + R); }); ws.forEach(w => { xs.push(w.x1, w.x2); ys.push(w.y1, w.y2); });
+  if (!xs.length) return '';
+  const x0 = Math.min(...xs) - 1, x1 = Math.max(...xs) + 1, y0 = Math.min(...ys) - 1, y1 = Math.max(...ys) + 1, W = 340, k = Math.min(W / (x1 - x0), 440 / (y1 - y0)), H = (y1 - y0) * k, Wd = (x1 - x0) * k;
+  const X = x => ((x - x0) * k).toFixed(1), Y = y => ((y - y0) * k).toFixed(1);
+  let o = '';
+  areas.slice().sort((a, b) => (b.t === 'lot') - (a.t === 'lot')).forEach(a => { const st = AREA_ST[a.t] || ['rgba(150,150,150,.35)', '#777']; o += `<polygon points="${a.pts.map(q => X(q[0]) + ',' + Y(q[1])).join(' ')}" fill="${st[0]}" stroke="${st[1]}" stroke-width="${a.t === 'lot' ? 2 : 1.2}" ${st[2] ? `stroke-dasharray="${st[2]}"` : ''} stroke-linejoin="round"/>`;
+    if (a.t !== 'lot' && UK_M[a.t]) { const cx = a.pts.reduce((s, q) => s + q[0], 0) / a.pts.length, cy = a.pts.reduce((s, q) => s + q[1], 0) / a.pts.length, bw = (Math.max(...a.pts.map(q => q[0])) - Math.min(...a.pts.map(q => q[0]))) * k; if (bw > 50) o += `<text x="${X(cx)}" y="${Y(cy)}" text-anchor="middle" font-size="10" font-weight="700" fill="${st[1]}">${esc(UK_M[a.t][1])}</text>`; } });
+  ws.filter(w => w.h === 'hedge').forEach(w => { o += `<line x1="${X(w.x1)}" y1="${Y(w.y1)}" x2="${X(w.x2)}" y2="${Y(w.y2)}" stroke="#4E8B3A" stroke-width="5" stroke-linecap="round" opacity=".8"/>`; });
+  rs.forEach(r => { const { x, y, w, h } = r.rect; o += `<rect x="${X(x)}" y="${Y(y)}" width="${(w * k).toFixed(1)}" height="${(h * k).toFixed(1)}" fill="rgba(255,255,255,.7)" stroke="#333" stroke-width="2"/>`; if (w * k > 36) o += `<text x="${(+X(x) + 4).toFixed(1)}" y="${(+Y(y) + 13).toFixed(1)}" font-size="10" font-weight="700" fill="#222">${esc(r.name || '')}</text>`; });
+  ws.filter(w => w.h !== 'hedge').forEach(w => { o += `<line x1="${X(w.x1)}" y1="${Y(w.y1)}" x2="${X(w.x2)}" y2="${Y(w.y2)}" stroke="#333" stroke-width="2.5" stroke-linecap="square"/>`; });
+  gs.forEach(g => { const R = Math.max(3, (g.r || 1) * k); o += `<circle cx="${X(g.x)}" cy="${Y(g.y)}" r="${R.toFixed(1)}" fill="${g.t === 'conifer' ? 'rgba(40,95,55,.55)' : g.t === 'bush' ? 'rgba(120,170,80,.55)' : 'rgba(80,140,70,.45)'}" stroke="#4E8B3A" stroke-width="1.2"/>` + (g.t === 'fruit' ? `<circle cx="${X(g.x)}" cy="${Y(g.y)}" r="${Math.max(1.5, R * 0.2).toFixed(1)}" fill="#D2553F"/>` : ''); });
+  return `<svg viewBox="0 0 ${Wd.toFixed(0)} ${H.toFixed(0)}" width="100%" role="img" aria-label="Trädgårdsplan" style="background:var(--surf);border-radius:12px;max-height:60vh">${o}</svg>`;
+}
+function psViewV() {
+  const x = ((S.psh && S.psh.inbox) || [])[S.psI]; if (!x) return `<div class="mh"><h2>Plan</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div><p class="mut">Planen finns inte längre.</p>`;
+  const svg = sharedPlanSvg(x.rooms, x.plan);
+  return `<div class="mh"><h2>${esc(x.display_name || 'Vän')}s plan</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  ${svg || '<p class="mut">Planen är tom ännu.</p>'}
+  <p class="mut" style="font-size:13px;margin:10px 0">Du ser planen som den är nu. Den uppdateras när ägaren ändrar den. Du kan bara titta.</p>
+  <button class="btn sm line" onclick="psLeave(${jsArg(x.owner)})">Sluta se planen</button>`;
+}
 // ===== Familj: hushåll med flera konton =====
 async function loadFam() {
   try {
@@ -14449,7 +14505,7 @@ function famV() {
 async function openSettings(sub) {
   stopLight();
   S.tool = 'settings'; S.setSub = typeof sub === 'string' ? sub : null; S.prof = null; S.del = null; S.pwMsg = ''; S.fam = null; S.famMsg = '';
-  if (S.user && !DEMO) loadFam();
+  if (S.user && !DEMO) { loadFam(); S.psh = null; }
   render(); $('#main').scrollTop = 0;
   refreshPush();
   if (S.user) {
@@ -14648,6 +14704,7 @@ function settingsFullV() {
   <div class="sec"><h2>Notifikationer</h2></div><div class="pad"><button class="btn wide" onclick="S.notifSet=true;render()">${ic(BELL, 'currentColor', 18)} Notifikations-inställningar</button></div>
   ${S.user ? `<div class="sec"><h2>Blockerade</h2></div><div class="pad"><div class="setcard">${S.blockedL == null ? (loadBlocked(), '<p class="mut" style="margin:0">Hämtar…</p>') : S.blockedL.length ? S.blockedL.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b></span><button class="btn sm line" onclick="blockUser(${jsArg(u.id)},false)">Avblockera</button></div>`).join('') : '<p class="mut" style="margin:0">Du har inte blockerat någon.</p>'}</div></div>` : ''}
   ${famV()}
+  ${psV()}
   ${account}
   <div class="sec"><h2>Nytt i appen</h2></div><div class="pad"><button class="setrow" onclick="openNews()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Uppdateringslogg</b><span>Se vad som är nytt i version ${APP_VERSION}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   ${PRO_FREE && !S.user ? '' : `<div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="${S.pro ? "openModal('prointro')" : "openModal('pro')"}"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`}
