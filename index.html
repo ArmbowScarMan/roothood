@@ -962,6 +962,7 @@ button.pw{cursor:pointer}
 .bhits{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .bhits button{all:unset;box-sizing:border-box;display:flex;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:12px;background:var(--bg);cursor:pointer;font-size:14px}
 .bhits button span{color:var(--mut);font-size:12.5px}
+.bcal{display:flex;gap:2px;align-items:center;margin:2px 0}.bcal i,.bcal b{flex:1;height:14px;border-radius:3px;background:var(--bg);font-size:10px;text-align:center;font-style:normal;color:var(--mut,#777)}.bcal b{height:auto;background:none}.bcal .bcn{flex:0 0 84px;font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bfill{height:10px;border-radius:99px;background:var(--bg);overflow:hidden;margin-top:12px}
 .bfill div{height:100%;background:var(--pri2,#5E9E48);border-radius:99px}
 .bfill div.over{background:var(--acc)}
@@ -3666,7 +3667,8 @@ async function helpShare() {
 function firstGoalV() {
   const b = (ic1, t, sub, fn) => `<button class="opt fg" onclick="${fn}"><span class="fgi">${ic(ic1, 'currentColor', 30)}</span><span class="grow"><b>${t}</b><span>${sub}</span></span></button>`;
   return `<div class="pad firstgoal" style="margin-top:14px"><h2 style="margin:0 0 4px">Vad vill du göra först?</h2><p class="mut" style="margin:0 0 6px;font-size:15px">Välj ett. Du kan alltid göra det andra sedan.</p>
-  ${b('ph-plant', 'Lägga till en växt jag har', 'Sök på namn och tryck Lägg till. Sedan får du en vattningsplan.', "toast('Sök din växt och tryck Lägg till i min samling');openDb()")}
+  ${b('ph-plant', 'Lägga till en växt jag har', 'Skriv namnet och tryck +. Sedan får du en vattningsplan.', 'openQAdd()')}
+  ${b('ph-camera', 'Jag vet inte vad min växt heter', 'Ta ett foto så berättar appen vad det är.', "openTool('id')")}
   ${b('ph-leaf', 'Hitta en växt som passar mig', 'Svep igenom växter efter din zon och ditt ljus.', 'openDiscover()')}
   ${b('ph-chats-circle', 'Fråga om en växt', 'Få svar direkt eller fråga andra odlare.', 'openAsk()')}</div>`;
 }
@@ -6462,7 +6464,7 @@ function planV() {
   ${plSunBar()}${solBarV()}  <div class="planbox" id="planbox">${m === 'room' ? `${P.roomDraw === 'free' ? `<div class="freebar"><button class="newroomb on" onclick="freeCancel()">Avbryt</button><button class="newroomb" onclick="freeUndo()" ${(P.free || []).length ? '' : 'disabled'}>Ångra hörn</button><button class="newroomb" onclick="freeDone()" ${(P.free || []).length >= 3 ? '' : 'disabled'}>Klar</button></div>` : `<div class="freebar"><button class="newroomb ${P.roomDraw ? 'on' : ''}" onclick="PL().roomDraw=PL().roomDraw?false:true;PL().free=null;PL().sel=null;PL().msg=null;render()">${P.roomDraw ? 'Avbryt nytt rum' : '+ Nytt rum'}</button>${P.roomDraw ? '' : `<button class="newroomb" onclick="PL().roomDraw='free';PL().free=[];PL().sel=null;PL().msg=null;render()">+ Rum med fri form</button>`}</div>`}` : ''}${m === 'ute' ? `<div class="wkind">${UK.map(([k, n, ty, e]) => `<button class="${P.ukind === k ? 'on ute' : ''}" onclick="uteKind('${k}')"><span style="font-size:15px">${e}</span>${n}</button>`).join('')}</div>` : ''}${m === 'place' && P.pick && (P.pick.k === 'furn' || P.pick.k === 'dev') ? `<div class="wkind">${P.pick.k === 'furn' ? (BLD.has(P.pick.t) ? '' : `<button class="${OUTF.has(P.pick.t) ? '' : 'on'}" onclick="PL().pick={k:'furn',t:'sofa'};render()">🏠 Inne</button><button class="${OUTF.has(P.pick.t) ? 'on ute' : ''}" onclick="PL().pick={k:'furn',t:'rbed'};render()">🌳 Ute</button>`) + (BLD.has(P.pick.t) ? FURN_BLD : OUTF.has(P.pick.t) ? FURN_UTE : FURN).map(([k, n, w, h, e]) => `<button class="${P.pick.t === k ? 'on' : ''}" onclick="PL().pick={k:'furn',t:'${k}'};PL().msg=null;render()"><span style="font-size:15px">${e}</span>${n}</button>`).join('') : Object.entries(DEVS).map(([k, [n, e]]) => `<button class="${P.pick.t === k ? 'on' : ''}" onclick="PL().pick={k:'dev',t:'${k}'};PL().msg=null;render()"><span style="font-size:15px">${e}</span>${n}</button>`).join('')}</div>` : ''}${m === 'win' ? `<div class="wkind">${WK.map(([k, n]) => `<button class="${P.wkind === k ? 'on' : ''}" onclick="PL().wkind='${k}';PL().msg=null;render()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${WKI[k]}</svg>${n}</button>`).join('')}</div>` : ''}${(S.undo || []).length ? `<button class="pundo" onclick="undoPlan()" aria-label="Ångra"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Ångra</button>` : ''}<svg id="plan" width="100%" height="100%" onpointerdown="planDown(event)" onpointermove="planMove(event)" onpointerup="planUp(event)" onpointercancel="planUp(event)" onwheel="planWheel(event)">${planInner()}</svg>
     <button class="pmapb ${m === 'map' ? 'on' : ''}" onclick="planMapToggle()" aria-label="Karta i bakgrunden"><i class="ph ph-map-trifold" style="font-size:20px"></i><span>Karta</span></button>${m === 'map' ? mapPanelV() : ''}${mapOn() && m !== 'map' ? `<span class="mattr">${TILES[S.hplan.map.layer || 'sat'][2]}</span>` : ''}
     <button class="pnorth" onclick="rotNorth()" aria-label="Vrid norrpilen" title="Vrid norrpilen så den pekar mot norr"><span style="transform:rotate(${northDeg() + viewRot()}deg)">${compassSvg([], 40)}</span><span class="pnl">Norr</span></button>
-    <div class="pzoom"><button onclick="undoPlan()" ${(S.undo || []).length ? '' : 'disabled'} aria-label="Ångra" title="Ångra" style="font-size:17px">↶</button><button onclick="planZoom(1.6)" aria-label="Zooma in">+</button><button onclick="planZoom(0.625)" aria-label="Zooma ut">−</button><button onclick="PL().fit=true;renderPlan()" style="font-size:12px;font-weight:800">Allt</button></div>${planSelV()}</div>
+    <div class="pzoom"><button onclick="undoPlan()" ${(S.undo || []).length ? '' : 'disabled'} aria-label="Ångra" title="Ångra" style="font-size:17px">↶</button><button onclick="planZoom(1.6)" aria-label="Zooma in">+</button><button onclick="planZoom(0.625)" aria-label="Zooma ut">−</button><button onclick="PL().fit=true;renderPlan()" style="font-size:12px;font-weight:800">Allt</button><button onclick="planSaveImg()" style="font-size:11px;font-weight:800" aria-label="Spara ritningen som bild" title="Spara som bild">Bild</button></div>${planSelV()}</div>
   ${unplaced.length ? `<div class="sec"><h2>Rum som inte är ritade</h2></div><div class="pad"><div class="chips2">${unplaced.map(r => `<button onclick="drawIn('${r.id}')">+ ${esc(r.name)}</button>`).join('')}</div></div>` : ''}
   <p class="mut" style="margin:14px 18px 24px;font-size:14px">Fönstrens färg visar ljuset: <b style="color:#D9921B">gul</b> ger mycket ljus, <b style="color:#B9A23F">ljusgul</b> lagom och <b style="color:#5E8FC9">blå</b> lite ljus. Pilen uppe till höger visar norr. Tryck på den för att vrida den rätt.</p>`;
 }
@@ -9083,6 +9085,8 @@ function bedNewAt(pt) { const P = PL(), d = P.bdim || { L: 3, D: 1.2, shape: 're
 // Rabattkanter: sten, gatsten, trä, cortenstål, tegel, flätad vide eller ingen (spadkant)
 const BED_EDGES = [['sten', 'Natursten', '#A39E91'], ['gatsten', 'Gatsten', '#8F8C86'], ['tra', 'Trä', '#8A6440'], ['corten', 'Cortenstål', '#8B4A26'], ['tegel', 'Tegel', '#A5533C'], ['vide', 'Flätad vide', '#9C7A4E'], ['ingen', 'Ingen (spadkant)', '']];
 function edgeChips(cur, mode) { return `<div class="chips2 sm bedges">${BED_EDGES.map(([k, n, c]) => `<button class="${cur === k ? 'on' : ''}" aria-pressed="${cur === k}" onclick="bedEdge('${k}','${mode}')">${c ? `<span class="sw2" style="background:${c}"></span>` : ''}${n}</button>`).join('')}</div>`; }
+const BED_TPL = [['Smal kantrabatt 4 × 0,8 m', 4, 0.8, 'rect'], ['Vanlig rabatt 3 × 1,2 m', 3, 1.2, 'rect'], ['Stor rabatt 4 × 2 m', 4, 2, 'rect'], ['Rund rabatt 2 m', 2, 2, 'round']];
+function bedTpl(L, D, sh) { const P = PL(); P.bdim = Object.assign({ H: 0.3 }, P.bdim, { L, D, shape: sh }); render(); }
 function bedEdge(k, mode) { const P = PL(); if (mode === 'new') { P.bedge = k; return render(); } const a = curBed(); if (!a) return; pushUndo(); a.edge = k; saveHomeSoon(); render(); }
 function bedSetDim(k, v) { const P = PL(), a = curBed(); v = parseFloat(String(v).replace(',', '.')); if (!(v > 0)) return; v = Math.max(0.2, Math.min(50, Math.round(v * 100) / 100));
   if (!a || P.bnew) { P.bdim = Object.assign({ L: 3, D: 1.2, shape: 'rect' }, P.bdim, { [k]: v }); render(); return; }
@@ -9260,7 +9264,7 @@ function bedRename(v) { const a = curBed(), n = (v || '').trim(); if (!a) return
 function bedPanelV() {
   const P = PL(), a = curBed(), d = P.bdim || { L: 3, D: 1.2, shape: 'rect' };
   const dims = (L, D, sh, dis) => `<div class="bdims"><label>Höjd<input type="text" inputmode="decimal" value="${String(((curBed() || {}).br || {}).H || (PL().bdim || {}).H || 0.3).replace('.', ',')}" ${dis ? 'disabled' : ''} onchange="bedSetH(this.value)"><small>m</small></label><label>Längd<input type="text" inputmode="decimal" value="${String(L).replace('.', ',')}" ${dis ? 'disabled' : ''} onchange="bedSetDim('L',this.value)"><small>m</small></label><label>Djup<input type="text" inputmode="decimal" value="${String(D).replace('.', ',')}" ${dis ? 'disabled' : ''} onchange="bedSetDim('D',this.value)"><small>m</small></label><div class="chips2 sm">${[['rect', '▭ Rak'], ['round', '◯ Rund']].map(([k, t]) => `<button class="${sh === k ? 'on' : ''}" ${dis ? 'disabled' : ''} onclick="bedShape('${k}')">${t}</button>`).join('')}</div></div>`;
-  if (P.bnew || !a) return `<div class="psel col bpanel"><b>Ny rabatt</b><div class="bname"><label>Namn på rabatten (valfritt)</label><input type="text" value="${esc(P.bname || '')}" placeholder="Lämna tomt så blir det Ny rabatt" oninput="PL().bname=this.value"></div><p class="bstep"><span>1</span>Välj storlek och form</p>${dims(d.L, d.D, d.shape)}<p class="bstep"><span>2</span>Välj kant runt rabatten</p>${edgeChips(P.bedge || 'sten', 'new')}<p class="bstep"><span>3</span>Tryck på gården där rabatten ska ligga</p>${planAreas().some(x => ['bed', 'veg'].includes(x.t)) ? '<button class="link3" onclick="PL().bnew=false;render()">Avbryt</button>' : ''}</div>`;
+  if (P.bnew || !a) return `<div class="psel col bpanel"><b>Ny rabatt</b><div class="bname"><label>Namn på rabatten (valfritt)</label><input type="text" value="${esc(P.bname || '')}" placeholder="Lämna tomt så blir det Ny rabatt" oninput="PL().bname=this.value"></div><p class="bstep"><span>1</span>Välj storlek och form</p><p class="mut" style="margin:0 0 4px;font-size:13px">Börja från en färdig mall, eller skriv egna mått:</p><div class="chips2 sm">${BED_TPL.map(([n, L, D, sh]) => `<button class="${d.L === L && d.D === D && d.shape === sh ? 'on' : ''}" onclick="bedTpl(${L},${D},'${sh}')">${n}</button>`).join('')}</div>${dims(d.L, d.D, d.shape)}<p class="bstep"><span>2</span>Välj kant runt rabatten</p>${edgeChips(P.bedge || 'sten', 'new')}<p class="bstep"><span>3</span>Tryck på gården där rabatten ska ligga</p>${planAreas().some(x => ['bed', 'veg'].includes(x.t)) ? '<button class="link3" onclick="PL().bnew=false;render()">Avbryt</button>' : ''}</div>`;
   const p = plantById(P.bpick), [L, D] = a.br ? [a.br.L, a.br.D] : bedDims(a.pts), sp = a.spots || [], bad = sp.filter((s, i) => spotBad(a, i)).length;
   const cnt = {}; sp.forEach(s => cnt[s.pid] = (cnt[s.pid] || 0) + 1);
   const sel = P.ssel != null && sp[P.ssel] ? sp[P.ssel] : null, sp2 = sel && plantById(sel.pid), nn = sel ? spotNear(a, P.ssel) : null;
@@ -9364,6 +9368,11 @@ function bedTips(a) {
   const per = it.filter(([x, p]) => guessType(p) === 'perenn' && x.n < 3); if (per.length && polyArea(a.pts) > 2) out.push(['u', `Plantera perenner i grupper om 3, 5 eller 7 av samma sort. Det ser lugnare ut än en och en, till exempel ${per[0][1].swedish_name.toLowerCase()}.`]);
   it.filter(([x, p]) => guessType(p) === 'lok').slice(0, 1).forEach(([x, p]) => out.push(['u', `Sätt ${p.swedish_name.toLowerCase()} ${BULB_DEPTH[genusOf(p)] || 10} cm djupt på hösten. Lökar kan stå mellan perennerna, som döljer bladen när de vissnar.`]));
   it.filter(([x, p]) => p.row_cm).slice(0, 2).forEach(([x, p]) => out.push(['u', `${p.swedish_name}: ${pSize(p)[2]} cm mellan plantorna och ${p.row_cm} cm mellan raderna.`]));
+  if (a.t !== 'veg' && it.length >= 2) { const ar = polyArea(a.pts), hs = it.map(([x, p]) => pSize(p)[0]), mx = Math.max(...hs), lowN = hs.filter(h => h <= mx * 0.4).length;
+    if (mx >= 60 && !lowN) out.push(['u', `Alla växter är ganska höga. Lägg några låga växter längst fram, under ${Math.round(mx * 0.4)} cm, så syns de höga bakom.`]);
+    else if (lowN) out.push(['s', `Du har både höga och låga växter. Sätt de låga längst fram och de höga bakom.`]);
+    if (ar > 2 && !it.some(([x, p]) => ['marktack'].includes(guessType(p)))) out.push(['u', `Ingen marktäckare än. Låga täckande växter längst ner hindrar ogräs och gör rabatten mer färdig.`]);
+    if (it.length >= 5 && ar < 4) out.push(['u', `${it.length} olika sorter på ${String(Math.round(ar * 10) / 10).replace('.', ',')} m² kan se rörigt ut. Välj färre sorter och upprepa dem.`]); }
   const G = it.map(([x, p]) => genusOf(p)), has = g => g === '*' ? true : G.includes(g);
   FRIENDS.forEach(([g1, g2, t]) => { if (has(g1) && has(g2) && g1 !== g2) out.push(['s', t + '.']); });
   FOES.forEach(([g1, g2, t]) => { if (!t) return; if (g2 === '*' ? has(g1) && G.length > 1 : has(g1) && has(g2)) out.push(['w', t + '.']); });
@@ -9408,6 +9417,33 @@ function bedPrint() {
   w.document.open(); w.document.write(html); w.document.close();
   setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 300);
 }
+// Rabatten sedd framifrån: växternas höjd och bredd i skala. Ungefärlig bild.
+function bedFrontV(a, it, len) {
+  if (!it.length || !(len > 0)) return '';
+  const W = 320, Hh = 130, g = Hh - 14, padx = 12, maxH = Math.max(...it.map(([x, p]) => pSize(p)[0])) / 100, sx = (W - 2 * padx) / Math.max(len, 0.5), sy = Math.min(sx, (g - 8) / Math.max(maxH, 0.1));
+  let best = null; a.pts.forEach((q, i) => { const n = a.pts[(i + 1) % a.pts.length], L = Math.hypot(n[0] - q[0], n[1] - q[1]); if (!best || L > best[0]) best = [L, q, n]; });
+  const [L0, p0, p1] = best, ux = (p1[0] - p0[0]) / L0, uy = (p1[1] - p0[1]) / L0, al = a.pts.map(q => (q[0] - p0[0]) * ux + (q[1] - p0[1]) * uy), amin = Math.min(...al);
+  const items = []; it.forEach(([x, p]) => { const sp = (a.spots || []).filter(t => t.pid === p.id);
+    if (sp.length) sp.forEach(t => items.push([p, ((t.x - p0[0]) * ux + (t.y - p0[1]) * uy) - amin])); else { const n = Math.min(x.n, 12); for (let i = 0; i < n; i++) items.push([p, len * (i + 0.5) / n]); } });
+  items.sort((u, v) => pSize(v[0])[0] - pSize(u[0])[0]);
+  const sh = items.slice(0, 80).map(([p, pos]) => { const [h, w] = pSize(p), cx = padx + pos * sx, rx = Math.max(3, w / 200 * sx), ry = Math.max(3, h / 200 * sy), hu = plantHue(p.id);
+    return `<ellipse cx="${cx.toFixed(1)}" cy="${(g - ry).toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="hsla(${hu},55%,55%,.8)" stroke="hsl(${hu},50%,32%)" stroke-width="1"/>`; }).join('');
+  return `<h3 style="margin:16px 0 6px;font-size:16px">Så kan rabatten se ut framifrån</h3><svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Rabatten sedd framifrån" style="background:var(--bg);border-radius:12px"><rect x="0" y="${g}" width="${W}" height="${Hh - g}" fill="#8A6A4A" opacity=".5"/>${sh}</svg><p class="mut" style="margin:4px 0 0;font-size:13px">Ungefärlig bild. Höjd och bredd är växternas fullvuxna storlek. De högsta står bakom.</p>`;
+}
+// Ungefärlig blomningstid (månader) per släkte. Databasen har ingen blomningstid, så detta är en uppskattning.
+const BLOOM_G = { Galanthus: [2, 3], Crocus: [3, 4], Helleborus: [3, 5], Narcissus: [3, 5], Forsythia: [4, 5], Magnolia: [4, 5], Prunus: [4, 5], Bergenia: [4, 5], Tulipa: [4, 5], Primula: [4, 6], Vinca: [4, 6], Aquilegia: [5, 6], Syringa: [5, 6], Rhododendron: [5, 6], Paeonia: [5, 6], Malus: [5, 5], Allium: [5, 7], Iris: [5, 7], Papaver: [5, 7], Geranium: [6, 8], Delphinium: [6, 7], Lupinus: [6, 7], Digitalis: [6, 7], Heuchera: [6, 7], Alchemilla: [6, 8], Campanula: [6, 8], Hemerocallis: [6, 8], Lilium: [6, 8], Spiraea: [5, 8], Rosa: [6, 9], Clematis: [6, 9], Salvia: [6, 9], Nepeta: [6, 9], Achillea: [6, 9], Viola: [4, 9], Tagetes: [6, 10], Petunia: [6, 10], Lavandula: [7, 8], Hosta: [7, 8], Astilbe: [7, 8], Echinacea: [7, 9], Hydrangea: [7, 9], Phlox: [7, 9], Rudbeckia: [7, 10], Dahlia: [7, 10], Sedum: [8, 10], Aster: [8, 10] };
+const BLOOM_T = { lok: [4, 5], sommar: [6, 9], ros: [6, 9] };
+function bloomMonths(p) { if (p.bloom_from && p.bloom_to) return [p.bloom_from, p.bloom_to]; return BLOOM_G[genusOf(p)] || BLOOM_T[guessType(p)] || null; }
+function bloomCalV(it) {
+  if (!it.length) return '';
+  const M = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'], rows = it.map(([x, p]) => [p, bloomMonths(p)]), known = rows.filter(r => r[1]);
+  if (!known.length) return `<h3 style="margin:16px 0 6px;font-size:16px">När blommar rabatten?</h3><p class="mut" style="font-size:14px">Jag vet inte blomningstiden för de här växterna ännu.</p>`;
+  const cover = m => known.some(r => m >= r[1][0] && m <= r[1][1]), gaps = [4, 5, 6, 7, 8, 9].filter(m => !cover(m)), MN = ['', 'januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober'];
+  const row = ([p, b]) => `<div class="bcal"><span class="bcn">${esc(p.swedish_name)}</span>${M.map((l, i) => `<i class="${b && i + 1 >= b[0] && i + 1 <= b[1] ? 'on' : ''}" style="${b && i + 1 >= b[0] && i + 1 <= b[1] ? 'background:hsl(' + plantHue(p.id) + ',55%,55%)' : ''}"></i>`).join('')}</div>`;
+  const unk = rows.filter(r => !r[1]);
+  return `<h3 style="margin:16px 0 6px;font-size:16px">När blommar rabatten?</h3><div class="bcal head"><span class="bcn"></span>${M.map(l => `<b>${l}</b>`).join('')}</div>${known.map(row).join('')}
+  <p class="mut" style="margin:6px 0 0;font-size:13px">${gaps.length ? `Inget blommar i ${gaps.map(m => MN[m]).join(', ')}. Välj en växt som blommar då, så blir rabatten fin hela säsongen.` : 'Något blommar varje månad från april till september. Bra!'}${unk.length ? ` Blomningstiden är okänd för ${unk.map(r => esc(r[0].swedish_name)).join(', ')}.` : ''} Tiderna är ungefärliga.</p>`;
+}
 function bedV() {
   const a = bedArea(S.bedId); if (!a) return '';
   const it = bedItems(a), area = polyArea(a.pts), used = bedUsed(a), pct = area ? Math.round(used / area * 100) : 0, [len, dep] = bedDims(a.pts), tips = bedTips(a), lvIcon = { d: '⛔', w: '⚠️', u: 'ℹ️', s: '✅' };
@@ -9420,7 +9456,7 @@ function bedV() {
   ${it.length ? `<div class="bfill"><div style="width:${Math.min(100, pct)}%" class="${pct > 105 ? 'over' : ''}"></div></div><p class="mut" style="margin:4px 0 8px;font-size:13px">${pct} % av ytan är planerad${pct > 105 ? '. Det är för många plantor' : pct < 70 ? '. Det finns plats för fler' : ''}</p>
   <div class="blist">${it.map(([x, p]) => { const [h, w, cc] = pSize(p), hh = plantHue(p.id); return `<div class="brow"><span class="bdot" style="background:hsl(${hh},55%,55%)"></span><span class="grow"><b>${esc(p.swedish_name)}</b><span>${PT_NAME[guessType(p)] || ''} · ${h >= 100 ? fmtM(h / 100) : h + ' cm'} hög · ${cc} cm mellan${p.spacing_cm ? '' : ' (uppskattat)'}</span></span><span class="stp"><button onclick="bedN(${p.id},-1)" aria-label="Färre">−</button><b>${x.n}</b><button onclick="bedN(${p.id},1)" aria-label="Fler">+</button></span><button class="x" onclick="bedDel(${p.id})" aria-label="Ta bort">×</button></div>`; }).join('')}</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm line" onclick="openBedHelp()">Hjälp mig med växtförslag</button><button class="btn sm line" onclick="bedFill()">Fyll ytan</button><button class="btn sm" onclick="bedPlace()">Placera i ritningen</button>${it.length ? '<button class="btn sm line" onclick="bedSave()">Spara bild</button><button class="btn sm line" onclick="bedPrint()">Skriv ut</button>' : ''}${(a.spots || []).length ? '<button class="btn sm line" onclick="bedClear()">Ta bort placeringen</button>' : ''}</div>
-  <h3 style="margin:16px 0 6px;font-size:16px">Råd för rabatten</h3><div class="aqchk">${tips.map(c => `<div class="ac ${c[0]}"><span>${lvIcon[c[0]]}</span><span>${esc(c[1])}</span></div>`).join('')}</div>`
+  ${a.t !== 'veg' ? bloomCalV(it) : ''}${a.t !== 'veg' ? bedFrontV(a, it, len) : ''}<h3 style="margin:16px 0 6px;font-size:16px">Råd för rabatten</h3><div class="aqchk">${tips.map(c => `<div class="ac ${c[0]}"><span>${lvIcon[c[0]]}</span><span>${esc(c[1])}</span></div>`).join('')}</div>`
   : `<p class="mut" style="font-size:14px;margin-top:12px">Sök och lägg till växterna du vill ha. Appen räknar ut hur många som får plats med rätt avstånd, och ger råd om djup, jord och vilka växter som trivs ihop.</p>`}`;
 }
 // Växtförslag för rabatten: några frågor om ljus, vatten, syfte och höjd.
@@ -12165,6 +12201,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.392', '12 nov', ['Rabatten: appen visar nu när växterna blommar månad för månad och säger om något månad saknas', 'Rabatten: råd om höga och låga växter, marktäckare och för många sorter', 'Rabatten: en bild framifrån som visar hur hög och bred rabatten blir', 'Ny rabatt: börja från färdiga mallar', 'Ritningen: knappen Bild sparar eller delar ritningen som bild', 'Nya konton: tydligare första steg med val att ta foto av växten']],
   ['Beta 0.391', '12 nov', ['Skanna rummet (bara admin): knapp direkt på sidan Mitt hem']],
   ['Beta 0.390', '12 nov', ['Formuläret Nytt rum fungerar igen. Det blev tomt för några.', 'Skanna rummet (bara admin): mät rummet med djupkameran och föreslå fönster och dörrar från foton']],
   ['Beta 0.389', '12 nov', ['Förnamn och efternamn krävs. Andra ser bara förnamn och första bokstaven i efternamnet, till exempel Jim O. Du som redan har konto får fylla i dem. Enklare ord: Plantswipe heter Svep bland växter, Villhöver heter Önskelista, Nycklas heter Rapportera fel, Detektiver heter Vad är det för växt? Knapparna längst upp har ord under symbolen. Min samling heter likadant överallt. Svåra ord som Leca, Pon och Lux förklaras där de visas. En mening överst i varje verktyg. Att göra på Start: väder och djurvarningar går att bocka av och visar vad du ska göra. Tomma sidor säger vad som saknas och har en knapp. Alla verktyg är sorterade efter vad du vill göra och har en sökruta']],
@@ -13778,6 +13815,22 @@ function sfRender(fast) {
   shadowPaint(c, W, H, { M: arMat(SF.o.a, SF.o.b, SF.o.g), off: SF.off + SF.adj, hfov: SF.hfov, pitch: SF.pitch, roll: SF.roll, gh: SF.gnd ? (e, n) => gndAt(SF.gnd, e + pe, n + pn) - gC : null, ownR: SF.src === 'gps' && !(SF.pos && (SF.pos.e || SF.pos.n)) ? Math.max(3, Math.min(25, SF.acc || 10)) : 3 }, prisms, trees, sun, { blur: Math.max(1, Math.round(W / 600)), leaf: leafFrac(SF.ds, SF.lat), mask: SF.mask, keep: SF.keep, samples: fast ? 1 : 11, soft: (SF.soft ?? 1.2) * sfWxK().soft, str: (SF.str ?? 1) * sfWxK().k, lines: SF.lines, lineW: Math.max(1.5, W / 400) });
   sfInfo(`Kl <b>${hm(SF.t)}</b> den ${dstr} står solen i ${sunWord(sun.az)}, ${Math.round(sun.alt)}° över horisonten. ${sfPosTxt()}${SF.gnd ? 'Markens lutning ingår. ' : ''}${nB ? `Skuggor från ${nB} ${nB === 1 ? 'byggnad' : 'byggnader'} ${SF.osm.laser ? 'och trädkronor från laserskanning (Skogsstyrelsen).' : 'och ' + nT + ' träd på kartan.'}` : 'Kartan har inga byggnader inom 150 m från positionen. Kontrollera koordinaterna eller tryck Min position.'}`);
 }
+// Sparar ritningen som en PNG-bild som man kan dela
+async function planSaveImg() {
+  const sv = document.getElementById('plan'); if (!sv) return toast('Ritningen finns inte här');
+  const r = sv.getBoundingClientRect(), W = Math.round(r.width), H = Math.round(r.height); if (!W || !H) return toast('Ritningen är tom');
+  const cs = getComputedStyle(document.documentElement), c = sv.cloneNode(true);
+  c.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); c.setAttribute('width', W); c.setAttribute('height', H); c.removeAttribute('onpointerdown'); c.removeAttribute('onwheel');
+  let x = new XMLSerializer().serializeToString(c).replace(/var\((--[\w-]+)(?:,[^)]*)?\)/g, (m, v) => cs.getPropertyValue(v).trim() || '#1F4D3A');
+  const img = new Image(); img.decoding = 'async';
+  try { await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(x); }); } catch (e) { return toast('Kunde inte göra bilden'); }
+  const k = 2, cv = document.createElement('canvas'); cv.width = W * k; cv.height = H * k; const g = cv.getContext('2d'); g.fillStyle = '#FBF8F1'; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(img, 0, 0, cv.width, cv.height);
+  g.font = '700 ' + 12 * k + 'px sans-serif'; g.fillStyle = 'rgba(31,77,58,.7)'; g.fillText('Roothood', 10 * k, H * k - 10 * k);
+  const blob = await new Promise(ok => cv.toBlob(ok, 'image/png')); if (!blob) return toast('Kunde inte spara bilden');
+  const name = 'roothood-ritning.png', file = new File([blob], name, { type: 'image/png' });
+  try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Min ritning' }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Bilden är sparad');
+}
 async function sfSave() {
   if (!SF) return; const cv = SF.el.querySelector('#sfc'), name = 'skuggfoto-' + SF.ds + '-' + hm(SF.t).replace(':', '') + '.jpg';
   const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.9)); if (!blob) return toast('Kunde inte spara bilden');
@@ -14714,7 +14767,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.391';
+const APP_VERSION = 'Beta 0.392';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];

@@ -1,0 +1,19 @@
+-- Lägger till blomningstid (från och med månad, till och med månad) på växterna.
+-- Fylls per släkte, bara där uppgiften saknas. Ändrar inga andra kolumner.
+alter table plants add column if not exists bloom_from smallint check (bloom_from between 1 and 12);
+alter table plants add column if not exists bloom_to smallint check (bloom_to between 1 and 12);
+
+update plants p set bloom_from = v.f, bloom_to = v.t
+from (values
+ ('Galanthus',2,3),('Crocus',3,4),('Helleborus',3,5),('Narcissus',3,5),('Forsythia',4,5),('Magnolia',4,5),
+ ('Prunus',4,5),('Bergenia',4,5),('Tulipa',4,5),('Primula',4,6),('Vinca',4,6),('Ribes',4,5),('Pyrus',5,5),
+ ('Malus',5,5),('Amelanchier',5,5),('Aquilegia',5,6),('Syringa',5,6),('Rhododendron',5,6),('Paeonia',5,6),
+ ('Fragaria',5,6),('Vaccinium',5,6),('Allium',5,7),('Iris',5,7),('Papaver',5,7),('Spiraea',5,8),
+ ('Rubus',6,7),('Geranium',6,8),('Delphinium',6,7),('Lupinus',6,7),('Digitalis',6,7),('Heuchera',6,7),
+ ('Alchemilla',6,8),('Campanula',6,8),('Hemerocallis',6,8),('Lilium',6,8),('Lonicera',6,7),('Dianthus',6,8),
+ ('Rosa',6,9),('Clematis',6,9),('Salvia',6,9),('Nepeta',6,9),('Achillea',6,9),('Viola',4,9),
+ ('Tagetes',6,10),('Petunia',6,10),('Lavandula',7,8),('Hosta',7,8),('Astilbe',7,8),('Echinacea',7,9),
+ ('Hydrangea',7,9),('Phlox',7,9),('Rudbeckia',7,10),('Dahlia',7,10),('Sedum',8,10),('Aster',8,10),('Anemone',8,10)
+) as v(g,f,t)
+where p.bloom_from is null
+  and coalesce(nullif(p.genus,''), split_part(p.latin_name,' ',1)) = v.g;
