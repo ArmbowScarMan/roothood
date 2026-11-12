@@ -1,0 +1,14 @@
+-- 099: För- och efternamn. Efternamnet ligger i en egen tabell som bara du själv kan läsa.
+-- Andra användare ser bara display_name i profiles (t.ex. "Jim O"), som appen skriver själv.
+create table if not exists public.profile_realname (
+  id uuid primary key references auth.users(id) on delete cascade,
+  first_name text not null,
+  last_name text not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.profile_realname enable row level security;
+create policy "Läs eget namn" on public.profile_realname for select to authenticated using (id = auth.uid());
+create policy "Skapa eget namn" on public.profile_realname for insert to authenticated with check (id = auth.uid());
+create policy "Ändra eget namn" on public.profile_realname for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
+revoke all on public.profile_realname from anon;
+grant select, insert, update on public.profile_realname to authenticated;
