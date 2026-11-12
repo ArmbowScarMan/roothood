@@ -60,6 +60,11 @@ h3{font-size:16px;font-weight:700}
 .top h1{font-size:19px;font-weight:800;text-align:center}
 .circ{width:44px;height:44px;border-radius:50%;border:0;background:var(--surf);color:var(--ink);display:grid;place-items:center;cursor:pointer;box-shadow:var(--sh);position:relative;padding:0}
 .circ.flat{box-shadow:none;background:none;cursor:default}
+.circ.lab{width:auto;min-width:48px;height:auto;min-height:48px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:4px 6px}
+.circ.lab .cl{font-size:11px;font-weight:700;line-height:1.1;white-space:nowrap}
+.circ.lab .dot{top:2px;right:2px}
+.xgrp{margin:0 18px}.xgrp .xlist{margin-top:6px}
+.toolone{margin:0;padding:0 20px 10px;font-size:15px;line-height:1.4;color:var(--mut)}
 .logo{width:40px;height:40px;border-radius:13px;background:var(--pri);display:grid;place-items:center}
 .dot{position:absolute;top:6px;right:6px;min-width:17px;height:17px;border-radius:9px;background:var(--acc);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px;border:2px solid var(--surf)}
 .badge{display:inline-block;font-size:12px;font-weight:600;background:var(--surf);color:var(--mut);border-radius:999px;padding:4px 10px;box-shadow:var(--sh)}
@@ -2318,12 +2323,12 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 <div id="app"><div id="main"></div>
 <nav aria-label="Huvudmeny">
 <button data-t="home" onclick="navTap('home')" aria-label="Start"><i class="ph ph-house" style="font-size:22px"></i><span>Start</span></button>
-<button data-t="mine" onclick="navTap('mine')" aria-label="Min samling"><i class="ph ph-plant" style="font-size:22px"></i><span>Samling</span></button>
+<button data-t="mine" onclick="navTap('mine')" aria-label="Min samling"><i class="ph ph-plant" style="font-size:22px"></i><span>Min samling</span></button>
 <button data-t="comm" onclick="navTap('comm')" aria-label="Gemenskap"><i class="ph ph-chats-circle" style="font-size:22px"></i><span>Gemenskap</span></button>
 <button data-t="me" onclick="navTap('me')" aria-label="Profil"><i class="ph ph-user-circle" style="font-size:22px"></i><span>Profil</span></button>
 </nav>
 <button id="fab" class="fab" onclick="openQAdd()" aria-label="Lägg till växt" hidden><i class="ph ph-plus" style="font-size:26px"></i></button>
-<button id="bugb" class="bugb" onclick="openFb()" aria-label="Nycklas: rapportera fel eller ge förslag" title="Nycklas" hidden><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M13.2 5.2C12.4 3.4 11 2.4 9.4 2.2M18.8 5.2C19.6 3.4 21 2.4 22.6 2.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="9.2" cy="2.3" r="1.4" fill="currentColor"/><circle cx="22.8" cy="2.3" r="1.4" fill="currentColor"/><circle cx="16" cy="9" r="6" fill="#2A2422" stroke="rgba(255,255,255,.35)" stroke-width=".8"/><circle cx="16" cy="20.2" r="10.2" fill="#E5484D" stroke="#B8323A" stroke-width=".8"/><path d="M16 10.2V30.2" stroke="#2A2422" stroke-width="1.3"/><circle cx="10.8" cy="16.6" r="2.1" fill="#2A2422"/><circle cx="21.2" cy="16.6" r="2.1" fill="#2A2422"/><circle cx="9.6" cy="23" r="1.8" fill="#2A2422"/><circle cx="22.4" cy="23" r="1.8" fill="#2A2422"/><circle cx="13.4" cy="27" r="1.3" fill="#2A2422"/><circle cx="18.6" cy="27" r="1.3" fill="#2A2422"/><ellipse cx="11.4" cy="13.4" rx="2.2" ry="1.2" fill="#fff" opacity=".45" transform="rotate(-30 11.4 13.4)"/><circle cx="13.6" cy="7.6" r="1.6" fill="#fff"/><circle cx="18.4" cy="7.6" r="1.6" fill="#fff"/><circle cx="13.9" cy="7.9" r=".8" fill="#2A2422"/><circle cx="18.7" cy="7.9" r=".8" fill="#2A2422"/><circle cx="12.4" cy="10.4" r=".9" fill="#F49BA0" opacity=".85"/><circle cx="19.6" cy="10.4" r=".9" fill="#F49BA0" opacity=".85"/></svg></button>
+<button id="bugb" class="bugb" onclick="openFb()" aria-label="Rapportera fel eller ge förslag" title="Rapportera fel" hidden><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M13.2 5.2C12.4 3.4 11 2.4 9.4 2.2M18.8 5.2C19.6 3.4 21 2.4 22.6 2.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="9.2" cy="2.3" r="1.4" fill="currentColor"/><circle cx="22.8" cy="2.3" r="1.4" fill="currentColor"/><circle cx="16" cy="9" r="6" fill="#2A2422" stroke="rgba(255,255,255,.35)" stroke-width=".8"/><circle cx="16" cy="20.2" r="10.2" fill="#E5484D" stroke="#B8323A" stroke-width=".8"/><path d="M16 10.2V30.2" stroke="#2A2422" stroke-width="1.3"/><circle cx="10.8" cy="16.6" r="2.1" fill="#2A2422"/><circle cx="21.2" cy="16.6" r="2.1" fill="#2A2422"/><circle cx="9.6" cy="23" r="1.8" fill="#2A2422"/><circle cx="22.4" cy="23" r="1.8" fill="#2A2422"/><circle cx="13.4" cy="27" r="1.3" fill="#2A2422"/><circle cx="18.6" cy="27" r="1.3" fill="#2A2422"/><ellipse cx="11.4" cy="13.4" rx="2.2" ry="1.2" fill="#fff" opacity=".45" transform="rotate(-30 11.4 13.4)"/><circle cx="13.6" cy="7.6" r="1.6" fill="#fff"/><circle cx="18.4" cy="7.6" r="1.6" fill="#fff"/><circle cx="13.9" cy="7.9" r=".8" fill="#2A2422"/><circle cx="18.7" cy="7.9" r=".8" fill="#2A2422"/><circle cx="12.4" cy="10.4" r=".9" fill="#F49BA0" opacity=".85"/><circle cx="19.6" cy="10.4" r=".9" fill="#F49BA0" opacity=".85"/></svg></button>
 <div id="ov"></div><div id="toast" class="toast" hidden role="status"></div>
 </div>
 <script>
@@ -2521,10 +2526,12 @@ const demoApi = {
   async resend() {},
   async resetPw() {},
   async user() { return { id: 'demo', name: (store.get('profile', {}) || {}).display_name || 'Du' }; },
+  async getNames() { return store.get('names', null); },
+  async saveNames(f, l) { store.set('names', { first: f, last: l }); },
   async saveAvatar(url) { store.set('avatarDemo', url || null); return; },
   async deleteAccount() { try { localStorage.clear(); } catch (e) { console.warn('Roothood:', e); } },
   async getProfile() { return Object.assign({ avatar_url: store.get('avatarDemo', null), display_name: 'Du', city: '', interests: [], share_photos: store.get('share', false) }, store.get('profile', {})); },
-  async saveProfile(p) { store.set('profile', { display_name: p.display_name, city: p.city, interests: p.interests, vis: p.vis || (store.get('profile', {}).vis) }); },
+  async saveProfile(p) { store.set('profile', { display_name: p.display_name, first_name: p.first_name, last_name: p.last_name, city: p.city, interests: p.interests, vis: p.vis || (store.get('profile', {}).vis) }); },
   async changePassword() {},
   _raw() {
     let m = store.get('mine', null);
@@ -2786,9 +2793,17 @@ const sbApi = {
     const { data } = await sb.auth.getSession();
     const u = data.session && data.session.user;
     const md = (u && u.user_metadata) || {}, gname = (md.full_name || md.name || '').trim().slice(0, 40) || null;
-    return u ? { id: u.id, name: md.display_name || gname || u.email, gname, email: u.email } : null;
+    return u ? { id: u.id, name: md.display_name || (gname ? pubName(splitName(gname).first, splitName(gname).last) : '') || u.email, gname, email: u.email, fn: md.first_name || '', ln: md.last_name || '' } : null;
   },
-  async fixName(n) { const { error } = await sb.from('profiles').update({ display_name: n }).eq('id', S.user.id); if (error) throw error; },
+  // För- och efternamn ligger i en privat tabell som bara du själv kan läsa. Andra ser bara display_name (Jim O).
+  async getNames() { const { data, error } = await sb.from('profile_realname').select('first_name,last_name').eq('id', S.user.id); if (error) return undefined; const r = data && data[0]; return r ? { first: r.first_name || '', last: r.last_name || '' } : null; },
+  async saveNames(f, l) {
+    const { error } = await sb.from('profile_realname').upsert({ id: S.user.id, first_name: f, last_name: l });
+    if (error) throw /profile_realname/.test(error.message || '') ? new Error('NAMES_NOT_READY') : error;
+    const { error: e2 } = await sb.from('profiles').update({ display_name: pubName(f, l) }).eq('id', S.user.id); if (e2) throw e2;
+    try { await sb.auth.updateUser({ data: { display_name: pubName(f, l), first_name: f, last_name: l } }); } catch (e) { console.warn('Roothood:', e); }
+  },
+  async fixName(n) { const sp = splitName(n); const { error } = await sb.from('profiles').update({ display_name: pubName(sp.first, sp.last) }).eq('id', S.user.id); if (error) throw error; },
   async saveZone(z) { const { error } = await sb.from('profiles').update({ zone: z }).eq('id', S.user.id); if (error) throw /zone/.test(error.message || '') ? new Error('ZONE_NOT_READY') : error; },
   async myZone() { const { data, error } = await sb.from('profiles').select('zone').eq('id', S.user.id); if (error) return undefined; return (data && data[0] && data[0].zone) || null; },
   async saveAvatar(url) { const { error } = await sb.from('profiles').update({ avatar_url: url }).eq('id', S.user.id); if (error) throw /avatar/.test(error.message || '') ? new Error('AVATAR_NOT_READY') : error; },
@@ -2798,19 +2813,22 @@ const sbApi = {
     if (error && /avatar/.test(error.message || '')) ({ data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos,vis').eq('id', S.user.id));
     if (error && /vis/.test(error.message || '')) ({ data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos').eq('id', S.user.id));
     if (error) throw error;
-    return (data && data[0]) || { display_name: S.user.name, city: '', interests: [] };
+    const pr = (data && data[0]) || { display_name: S.user.name, city: '', interests: [] };
+    const nm = await api.getNames().catch(() => undefined); if (nm) { pr.first_name = nm.first; pr.last_name = nm.last; }
+    return pr;
   },
   async saveProfile(p) {
     const { data, error } = await sb.from('profiles').update({ display_name: p.display_name, city: p.city || null, interests: p.interests }).eq('id', S.user.id).select('id');
     if (error) throw error;
     if (Array.isArray(data) && !data.length) throw new Error('Kunde inte spara profilen. Logga ut och in igen.');
     await sb.auth.updateUser({ data: { display_name: p.display_name } });
+    if (p.first_name && p.last_name) { try { await api.saveNames(p.first_name, p.last_name); } catch (e) { console.warn('Roothood:', e); } }
   },
   async changePassword(pw) { const { error } = await sb.auth.updateUser({ password: pw }); if (error) throw error; },
   async signInGoogle() { const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }); if (error) throw error; },
   async signIn(email, pw) { const { error } = await sb.auth.signInWithPassword({ email, password: pw }); if (error) throw error; },
-  async signUp(email, pw, name) {
-    const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { display_name: name }, emailRedirectTo: location.origin + location.pathname } });
+  async signUp(email, pw, first, last) {
+    const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { display_name: pubName(first, last), first_name: first, last_name: last }, emailRedirectTo: location.origin + location.pathname } });
     if (error) throw error;
     if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) throw new Error('ALREADY_EXISTS');
     return !!data.session;
@@ -3084,7 +3102,7 @@ function sheetAnim() { if (!S.modal) { sheetOpen = null; return; } if (sheetOpen
   o.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' });
   m.animate(RM() ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { duration: RM() ? 200 : 380, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' }); }
 // Stänger direkt som förut. En kopia av panelen glider ut och tas sedan bort, så att inget annat behöver vänta.
-function closeModal() { if (S.modal === 'zonepick' && !store.get('zone', 0)) return;
+function closeModal() { if (S.modal === 'zonepick' && !store.get('zone', 0)) return; if (S.modal === 'namepick' && !S.namesOk) return;
   // Städad (129): stänger man Ställ en fråga med text i fältet frågar appen först
   if (S.modal === 'askq' && stadUI() && ((S.draft || '').trim() || S.cph) && !S.askDiscard) { S.askDiscard = true; return keepScroll(); }
   S.askDiscard = false; const o = $('#ov .ov');
@@ -3351,7 +3369,7 @@ function pdetV() {
   : `<div class="two"><div><label class="fl" for="pdh">Växtens höjd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="4000" placeholder="${ps ? 'Fullvuxen ca ' + ps[0] : ''}" value="${d.h || ''}" oninput="S.pd.h=+this.value||null"></div>
   <div><label class="fl" for="pdw">Bredd (cm)</label><input id="pdw" type="number" inputmode="numeric" min="1" max="3000" placeholder="${ps ? 'Fullvuxen ca ' + ps[1] : ''}" value="${d.w || ''}" oninput="S.pd.w=+this.value||null"></div></div>
   <label class="fl" for="pdleaf">Största bladet (cm)</label><input id="pdleaf" type="number" inputmode="numeric" min="1" max="300" placeholder="Längd på bladskivan" value="${d.leaf || ''}" oninput="S.pd.leaf=+this.value||null">${outd ? '<p class="mut" style="font-size:12.5px;margin:6px 0 0">Höjden och bredden används när växten visas i 3D och på ritningen av Mitt hem.</p>' : ''}`}
-  <label class="fl">Jord och substrat (välj flera)</label>${pdChips('soil', true)}
+  <label class="fl">Vad står växten i? (välj flera)</label>${pdChips('soil', true)}${glossD(['Substrat', 'Leca', 'Pon', 'Perlit', 'Pimpsten', 'Kokosfiber', 'Vitmossa'])}
   ${S.pro ? `<label class="fl">Vilket rum står den i?</label>
   <div class="chips2">${(S.home || []).map(r => `<button class="${d.room === r.id ? 'on' : ''}" aria-pressed="${d.room === r.id}" onclick="pdSet('room','${r.id}')">${esc(r.name)}</button>`).join('')}<button class="addroom" onclick="newRoom('pdet')">+ Nytt rum</button></div>
   ${d.room && roomOf(null, d) ? `${(roomOf(null, d).dirs || []).length ? `<label class="fl">Hur nära fönstret?</label><div class="chips2">${WIN.map(v => `<button class="${d.win === v ? 'on' : ''}" aria-pressed="${d.win === v}" onclick="pdSet('win','${v}')">${v}</button>`).join('')}</div>` : ''}`
@@ -3471,6 +3489,7 @@ function sensorCard(m, inModal) {
     <div><small>Näring</small><b>${fmt(sn.ec)}</b><span class="mut" style="font-size:12px">µS/cm${sn.ec < 200 ? ', lite näring' : ''}</span></div>` : ''}
     ${cl ? `<div><small>Luftfukt</small><b>${cl.hum} %</b></div><div><small>Rummet</small><b>${fmt(cl.temp, 1)} °C</b></div>` : ''}
   </div>
+  ${sn ? glossD(['Lux', 'PPFD']) : ''}
   ${dry ? `<div class="pdhint warn" style="margin-top:10px"><span class="ck">💧</span><span>Jorden är torr för ${esc(m.name.toLowerCase())}. Dags att vattna! Under ${DRY_AT[lvl]} % räknas som torrt för den här växten.</span></div>` : ''}
   ${cl && p && /hög/i.test(p.humidity || '') && cl.hum < 50 ? `<div class="pdhint warn" style="margin-top:8px"><span class="ck">💨</span><span>Växten vill ha hög luftfuktighet (50–70 %) men rummet har ${cl.hum} %. En luftfuktare hjälper, se Smarta hemmet.</span></div>` : ''}
   <p class="mut" style="font-size:12.5px;margin:8px 0 0">${sn ? 'Sensor avläst ' + agoShort(sn.at) + (sn.battery != null ? ', batteri ' + sn.battery + ' %' : '') + (sn.demo ? ' (exempelvärden)' : '') : ''}${sn && cl ? ' · ' : ''}${cl ? 'Klimat ' + agoShort(cl.at) + (cl.demo ? ' (exempel)' : '') : ''}</p>`
@@ -3572,7 +3591,7 @@ function simpleChoose(on) { try { store.set(simpleKey(), true); } catch (e) {} s
 function setSimple(on) { store.set('simple', !!on); if (on && (store.get('textsize', 1) || 1) < 1.1) store.set('textsize', 1.1); applyPrefs(); S.ctab = on && !['friends', 'q', 'swap'].includes(S.ctab) ? 'q' : S.ctab; render(); }
 function simpleAskWhenFree() { if (!S.user || DEMO || store.get(simpleKey(), false)) return; if (S.modal || S.tool) return; try { store.set(simpleKey(), true); } catch (e) {} openModal('simplepick'); }
 // Hjälp mig: en knapp som alltid finns på Start. Fråga andra om skärmen man står på, se rundturen igen eller be någon hjälpa till.
-const HELP_SCREEN = { home: 'Start', mine: 'Samling', comm: 'Gemenskap', me: 'Profil' };
+const HELP_SCREEN = { home: 'Start', mine: 'Min samling', comm: 'Gemenskap', me: 'Profil' };
 function helpBtnV() { return `<div class="pad" style="margin-top:12px"><button class="btn wide line" onclick="openModal('helpme')">${ic('ph-lifebuoy', 'currentColor', 20)} Hjälp mig</button></div>`; }
 function helpMeV() {
   const b = (i, t, sub, fn) => `<button class="opt hm" onclick="${fn}"><span class="fgi">${ic(i, 'currentColor', 26)}</span><span class="grow"><b>${t}</b><span>${sub}</span></span></button>`;
@@ -3583,6 +3602,25 @@ function helpMeV() {
   ${b('ph-headset', 'Kontakta support', 'Mejla oss, rapportera ett fel eller läs svar på vanliga frågor.', "openModal('support')")}</div>`;
 }
 const SUPPORT_MAIL = 'roothood.app@gmail.com';
+// Ordlista: förklarar svåra ord där de visas. glossD(['Leca','Pon']) ger en liten "Vad betyder orden?" som man trycker på.
+const GLOSS = {
+  'Substrat': 'Det som växten står i, till exempel jord, bark, leca eller vatten.',
+  'Leca': 'Små bakade lerkulor. De håller vatten men ger ingen näring, så du behöver ge växtnäring.',
+  'Pon': 'En blandning av mineraler som ger rötterna både vatten och lite näring.',
+  'Semi-hydro': 'Odling i leca eller pon med lite vatten i botten av krukan, i stället för jord.',
+  'Hydroponi': 'Odling i vatten med växtnäring, utan jord.',
+  'Perlit': 'Små vita kulor som gör jorden luftig så att rötterna inte ruttnar.',
+  'Pimpsten': 'Lätta bitar av vulkansten som gör jorden luftig och dränerande.',
+  'Kokosfiber': 'Fibrer från kokosnöt som håller fukt och gör jorden luftig.',
+  'Vitmossa': 'Torkad mossa som håller mycket vatten. Används ofta till orkidéer och köttätande växter.',
+  'Lux': 'Hur starkt ljuset är. Mörkt hörn: under 2 500. Ljust fönster: över 10 000.',
+  'PPFD': 'Hur mycket av ljuset som växten kan använda.',
+  'DLI': 'Hur mycket ljus växten får under en hel dag, räknat i mol per kvadratmeter.',
+  'Stickling': 'En bit av en växt som du sätter i vatten eller jord så att den får egna rötter.',
+  'Permakultur': 'Odling som följer naturens sätt, så att den sköter sig mest själv.',
+  'Härdig': 'Klarar vintern utomhus där du bor.',
+};
+function glossD(terms, label) { return `<details class="faq gloss"><summary>${esc(label || 'Vad betyder orden?')}</summary>${(terms || Object.keys(GLOSS)).filter(t => GLOSS[t]).map(t => `<p><b>${esc(t)}:</b> ${esc(GLOSS[t])}</p>`).join('')}</details>`; }
 const SUPPORT_FAQ = [
   ['Hur lägger jag till en växt?', 'Gå till Start och tryck Sök växter. Sök på namnet och tryck Lägg till i min samling.'],
   ['Jag får inga påminnelser', 'Öppna Inställningar och slå på notiser och välj vilken tid du vill ha dem. Tillåt också notiser för Roothood i telefonens inställningar.'],
@@ -3595,9 +3633,9 @@ function supportV() {
   <a class="opt hm" style="text-decoration:none" href="mailto:${SUPPORT_MAIL}?subject=${encodeURIComponent('Roothood: hjälp')}"><span class="fgi">${ic('ph-envelope-simple', 'currentColor', 26)}</span><span class="grow"><b>Mejla support</b><span>${SUPPORT_MAIL}</span></span></a>
   <button class="opt hm" onclick="closeModal();openFb()"><span class="fgi">${ic('ph-bug', 'currentColor', 26)}</span><span class="grow"><b>Rapportera fel eller ge förslag</b><span>Skickas direkt till oss, inloggad.</span></span></button>
   <h3 style="margin:18px 0 4px;font-size:17px">Vanliga frågor</h3>
-  ${SUPPORT_FAQ.map(([q, a]) => `<details class="faq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</div>`;
+  ${SUPPORT_FAQ.map(([q, a]) => `<details class="faq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}${glossD(null, 'Vad betyder orden? (Leca, Pon, Lux …)')}</div>`;
 }
-function supportBtn() { return `<button class="circ" onclick="openModal('support')" aria-label="Hjälp och support" title="Hjälp och support">${ic('ph-lifebuoy', null, 22)}</button>`; }
+function supportBtn() { return `<button class="circ lab" onclick="openModal('support')" aria-label="Hjälp och support" title="Hjälp och support">${ic('ph-lifebuoy', null, 22)}<span class="cl">Hjälp</span></button>`; }
 function helpAsk() { const sc = HELP_SCREEN[S.tab] || 'appen'; S.draft = 'Jag behöver hjälp på sidan ' + sc + ': '; closeModal(); S.tab = 'comm'; S.ctab = 'q'; S.post = null; render(); loadFeed(); openAskQ(); }
 async function helpShare() {
   let url = 'https://armbowscarman.github.io/roothood/';
@@ -3626,6 +3664,34 @@ function firstGoalV() {
 function simpleTilesV() {
   return `<div class="simpletiles"><button onclick="S.mtab='mine';go('mine')">${ic('ph-plant', 'currentColor', 34)}Min samling</button><button onclick="openAsk()">${ic('ph-sparkle', 'currentColor', 34)}Fråga om en växt</button><button onclick="openDb()">${ic('ph-magnifying-glass', 'currentColor', 34)}Sök växter</button><button onclick="go('comm');setCtab('q')">${ic('ph-chats-circle', 'currentColor', 34)}Fråga andra</button></div>`;
 }
+// Namn: man anger förnamn och efternamn. Andra ser bara förnamn och efternamnets första bokstav, t.ex. Jim O.
+function pubName(f, l) { const cap = x => { x = (x || '').trim().replace(/\s+/g, ' '); return x.charAt(0).toLocaleUpperCase('sv') + x.slice(1); }; f = cap(f); l = cap(l); return l ? (f + ' ' + l.charAt(0)).trim() : f; }
+function splitName(full) { const w = (full || '').trim().replace(/\s+/g, ' ').split(' ').filter(Boolean); return { first: w[0] || '', last: w.slice(1).join(' ') }; }
+async function checkNames() {
+  if (DEMO || !S.user) return;
+  const n = await api.getNames().catch(() => undefined); if (n === undefined || !S.user) return;
+  if (n && n.first && n.last) { S.namesOk = true; S.user.name = pubName(n.first, n.last); return; }
+  if (S.user.fn && S.user.ln) { try { await api.saveNames(S.user.fn, S.user.ln); S.namesOk = true; S.user.name = pubName(S.user.fn, S.user.ln); return; } catch (e) { if (e.message === 'NAMES_NOT_READY') return; } }
+  const sp = splitName(S.user.gname || (/@/.test(S.user.name || '') ? '' : S.user.name)); S.npF = (n && n.first) || S.user.fn || sp.first; S.npL = (n && n.last) || S.user.ln || sp.last; S.npMsg = '';
+  namesAskWhenFree();
+}
+function namesAskWhenFree() { if (!S.user || S.namesOk) return; if (S.modal && S.modal !== 'namepick') return setTimeout(namesAskWhenFree, 1500); openModal('namepick'); }
+function namePickV() {
+  return `<div class="mh"><h2>Vad heter du?</h2></div>
+  <p style="margin:0 0 10px;font-size:15px;line-height:1.45">Skriv både förnamn och efternamn. Andra ser bara ditt förnamn och första bokstaven i efternamnet, till exempel <b>Jim O</b>. Ditt efternamn syns aldrig för någon annan.</p>
+  <label class="fl" for="npf">Förnamn</label><input id="npf" maxlength="30" autocomplete="given-name" value="${esc(S.npF || '')}" oninput="S.npF=this.value;npPrev()">
+  <label class="fl" for="npl">Efternamn</label><input id="npl" maxlength="40" autocomplete="family-name" value="${esc(S.npL || '')}" oninput="S.npL=this.value;npPrev()">
+  <p class="mut" style="margin:10px 0 0">Andra ser: <b id="npprev">${esc(pubName(S.npF, S.npL) || '')}</b></p>
+  ${S.npMsg ? `<p class="formmsg">${esc(S.npMsg)}</p>` : ''}
+  <button class="btn wide formbtn" style="margin-top:12px" onclick="saveNamePick()">Spara</button>`;
+}
+function npPrev() { const e = $('#npprev'); if (e) e.textContent = pubName(S.npF, S.npL); }
+async function saveNamePick() {
+  const f = (S.npF || '').trim(), l = (S.npL || '').trim();
+  if (f.length < 2 || l.length < 2) { S.npMsg = 'Skriv både förnamn och efternamn, minst 2 bokstäver var.'; return render(); }
+  try { await api.saveNames(f, l); S.namesOk = true; S.user.name = pubName(f, l); S.meCard = undefined; S.prof = null; S.modal = null; render(); toast('Tack, ' + S.user.name + '! Så ser andra dig.'); }
+  catch (e) { if (e.message === 'NAMES_NOT_READY') { S.namesOk = true; S.modal = null; render(); return; } S.npMsg = errMsg(e); render(); }
+}
 // Odlingszon är obligatorisk (felrapport #79). Saknas den på profilen används zonen från Såkalendern,
 // annars får man välja i en ruta som inte går att stänga. Om SQL 081 inte är körd händer inget.
 async function checkZone() {
@@ -3651,7 +3717,7 @@ function zonePickV() {
   <img class="zonkarta" src="zonkarta.jpg" alt="Karta över Sveriges odlingszoner 1 till 8">
   <p class="mut" style="font-size:13px;margin:6px 0 0">Hitta din ort på kartan och välj zonen den ligger i.</p>`;
 }
-async function loadHome() { if (!S.user) return; syncHarvest(); checkZone(); loadSitTasks(); loadFavs(); loadWishes(); loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
+async function loadHome() { if (!S.user) return; syncHarvest(); checkZone(); checkNames(); loadSitTasks(); loadFavs(); loadWishes(); loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
 // Ett tryck från Hem: rakt in i rabattplaneringen i ritningen
 function openBedPlan() {
   if (needPro()) return; openHouse(); S.hmode = 'adv';
@@ -6904,7 +6970,7 @@ function smResult(sec) {
     let h = dli * 1e6 / (ppfdV * 3600); const tooMuch = h > 18; h = Math.min(18, Math.max(1, h));
     const hh = Math.floor(h), mm = Math.round((h - hh) * 60 / 15) * 15, [sh, sm] = (s.start || '07:00').split(':').map(Number);
     const end = new Date(2000, 0, 1, sh, sm + hh * 60 + mm), endTxt = String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
-    return `Tänd lampan <b>${hh} tim${mm ? ' ' + mm + ' min' : ''}</b> om dagen: <b>${esc(s.start || '07:00')}–${endTxt}</b><br><span class="mut">Ger cirka ${fmt(dli, 1)} mol/m²/dag (DLI) med ${fmt(ppfdV)} PPFD.${tooMuch ? ' Lampan är för svag för det här målet, flytta den närmare växten.' : ''}${h < 8 ? ' Lampan är stark, du kan också höja den en bit.' : ''}</span>`;
+    return `Tänd lampan <b>${hh} tim${mm ? ' ' + mm + ' min' : ''}</b> om dagen: <b>${esc(s.start || '07:00')}–${endTxt}</b><br><span class="mut">Ger cirka ${fmt(dli, 1)} mol/m²/dag (DLI) med ${fmt(ppfdV)} PPFD.${tooMuch ? ' Lampan är för svag för det här målet, flytta den närmare växten.' : ''}${h < 8 ? ' Lampan är stark, du kan också höja den en bit.' : ''}</span>${glossD(['DLI', 'PPFD'])}`;
   }
   if (sec === 'water') {
     const flow = +s.flow, ml = +s.ml, m = S.mine.find(x => x.id === +s.wplant);
@@ -7022,14 +7088,18 @@ function friendReqCard() {
   if (!S.user || !l.length) return '';
   return `<div class="frcard">${l.slice(0, 3).map(n => `<div class="frc"><span class="frem">👋</span><div class="grow"><b>${esc(n.who || 'Någon')} vill bli din vän</b><span>${n.msg ? '”' + esc(n.msg) + '”' : 'Vill du acceptera vänförfrågan?'}</span><div class="fbtns"><button class="btn sm" onclick="friendAnswer(${jsArg(String(n.req))},${jsArg(n.from)},true)">Acceptera</button><button class="btn sm line" onclick="friendAnswer(${jsArg(String(n.req))},${jsArg(n.from)},false)">Neka</button><button class="link3" onclick="openUser(${jsArg(n.from)})">Visa profil</button></div></div></div>`).join('')}</div>`;
 }
+// Bocka av en uppgift utan egen åtgärd (väder, djur): den döljs resten av dagen.
+function todoHidden() { const h = store.get('tdHide', null); return h && h.d === dayStr() ? h.ids : []; }
+function todoHide(id) { store.set('tdHide', { d: dayStr(), ids: todoHidden().concat(id) }); render(); toast('Klart, borta för idag'); }
 function todoItems() {
   const t = [];
   S.mine.filter(m => left(m) === 0 && !sensorDry(m)).forEach(m => t.push({ id: 'w' + m.id, txt: 'Vattna ' + m.name, act: `water(${m.id})`, open: `openMine(${m.id})` }));
   S.mine.filter(sensorDry).forEach(m => t.push({ id: 's' + m.id, txt: 'Kolla jorden i ' + m.name + ' (sensorn säger torrt)', act: `water(${m.id})`, open: `openMine(${m.id})` }));
-  if (S.pets) { petWarnings().filter(x => x.lv === 'd').slice(0, 2).forEach(x => t.push({ id: 'p' + x.m.id + x.a.id, txt: x.m.name + ' är farlig för ' + x.a.name + '. Flytta den.', open: 'openPets()' })); }
+  if (S.pets) { petWarnings().filter(x => x.lv === 'd').slice(0, 2).forEach(x => t.push({ id: 'p' + x.m.id + x.a.id, txt: x.m.name + ' är farlig för ' + x.a.name + '. Flytta den.', act: `todoHide('p${x.m.id}${x.a.id}')`, open: 'openPets()' })); }
   try { sowDue(0).slice(0, 4).forEach(x => t.push({ id: 'sw' + x.L.id + x.k, txt: x.t, act: `sowDone(${x.L.id},'${x.k}')`, open: 'openSow()' })); } catch (e) {}
-  if (S.wx && S.wx.d) outWeatherAlerts().slice(0, 3).forEach(([m, msg]) => t.push({ id: 'o' + m.id, txt: m.name + ': ' + msg.split('.')[0], open: `openMine(${m.id})` }));
-  return t;
+  if (S.wx && S.wx.d) outWeatherAlerts().slice(0, 3).forEach(([m, msg]) => t.push({ id: 'o' + m.id, txt: m.name + ': ' + msg, act: `todoHide('o${m.id}')`, open: `openMine(${m.id})` }));
+  const hid = todoHidden();
+  return t.filter(x => !hid.includes(x.id));
 }
 // Städad (108): att göra-rad med växtfoto 40 px, text och checkbox till höger. Avbockning fylls, en droppe faller och raden fälls ihop efter 600 ms.
 function todoPh(x) { const id = +(/^[ws](\d+)$/.exec(x.id) || [])[1]; const m = id && S.mine.find(y => y.id === id); return m ? mPhoto(m) : `<div class="ph pinit tdi">${ic(x.id[0] === 'p' ? 'ph-paw-print' : x.id[0] === 'o' ? 'ph-cloud-sun' : 'ph-plant', 'currentColor', 18)}</div>`; }
@@ -7160,8 +7230,8 @@ async function saveCustom(form) {
   const dup = (f.latin && S.plants.find(p => low(p.latin_name) === low(f.latin))) || S.plants.find(p => low(p.swedish_name) === low(f.name));
   S.modal = null;
   if (f.dest === 'wish') {
-    if (dup) { if (!isWish(dup.id)) await toggleWish(dup.id); toast(dup.swedish_name + ' fanns redan i databasen och ligger nu i Villhöver'); }
-    else await run(async () => { const id = await api.addCustom(f); S.plants = await api.plants(); if (id != null && !isWish(id)) { wishSet(wishList().concat({ id, note: '' })); if (!DEMO && sb) { try { await sb.from('plant_wishes').insert({ plant_id: id }); } catch (e) { console.warn('Roothood:', e); } } } }, f.name + ' ligger nu i Villhöver och är föreslagen till databasen. En moderator granskar den innan andra kan se den.');
+    if (dup) { if (!isWish(dup.id)) await toggleWish(dup.id); toast(dup.swedish_name + ' fanns redan i databasen och ligger nu på önskelistan'); }
+    else await run(async () => { const id = await api.addCustom(f); S.plants = await api.plants(); if (id != null && !isWish(id)) { wishSet(wishList().concat({ id, note: '' })); if (!DEMO && sb) { try { await sb.from('plant_wishes').insert({ plant_id: id }); } catch (e) { console.warn('Roothood:', e); } } } }, f.name + ' ligger nu på önskelistan och är föreslagen till databasen. En moderator granskar den innan andra kan se den.');
     S.ap = null; S.mtab = 'wish'; S.tab = 'mine'; S.tool = null; S.sel = null; render(); return;
   }
   if (f.dest === 'db') {
@@ -7197,12 +7267,13 @@ function suRedraw() { const e = $('#suzone'); if (e) e.innerHTML = suZoneV(); }
 function suPick(z) { S.suZone = z; suRedraw(); }
 async function doAuth(form) {
   const d = Object.fromEntries(new FormData(form));
-  if (S.authMode === 'up' && !S.suZone) { S.authEmail = d.email; S.authName = d.name || ''; S.msgOk = false; S.msg = 'Välj din odlingszon innan du skapar kontot.'; render(); const e = $('#suzone'); if (e) e.scrollIntoView({ block: 'center' }); return; }
-  S.authEmail = d.email; S.authName = d.name || '';
+  if (S.authMode === 'up' && !S.suZone) { S.authEmail = d.email; S.authFirst = d.first || ''; S.authLast = d.last || ''; S.msgOk = false; S.msg = 'Välj din odlingszon innan du skapar kontot.'; render(); const e = $('#suzone'); if (e) e.scrollIntoView({ block: 'center' }); return; }
+  S.authEmail = d.email; S.authFirst = d.first || ''; S.authLast = d.last || '';
+  if (S.authMode === 'up' && ((d.first || '').trim().length < 2 || (d.last || '').trim().length < 2)) { S.msgOk = false; S.msg = 'Skriv både förnamn och efternamn, minst 2 bokstäver var.'; return render(); }
   S.busy = true; S.msg = ''; S.needConfirm = false; render();
   try {
     if (S.authMode === 'up') {
-      const active = await api.signUp(d.email.trim(), d.pw, d.name.trim());
+      const active = await api.signUp(d.email.trim(), d.pw, d.first.trim(), d.last.trim());
       store.set('zone', S.suZone); applyPrefs();
       if (!active) { S.busy = false; S.authMode = 'in'; S.msgOk = true; S.msg = 'Vi har skickat en länk till ' + d.email + '. Klicka på den och logga sedan in här.'; return render(); }
     } else await api.signIn(d.email.trim(), d.pw);
@@ -7253,7 +7324,7 @@ async function deleteAccount() {
 }
 // Nollställer allt som hör till ett konto, så nästa användare inte ser förra kontots data
 function resetUserState() {
-  S.user = null; S.mine = []; S.home = []; S.hplan = {}; S.log = {}; S.logForm = null; S.prof = null; S.meCard = undefined; S.ucard = null; S.pro = PRO_FREE;
+  S.user = null; S.namesOk = false; S.mine = []; S.home = []; S.hplan = {}; S.log = {}; S.logForm = null; S.prof = null; S.meCard = undefined; S.ucard = null; S.pro = PRO_FREE;
   S.feed = null; S.listings = null; S.friends = null; S.frLoad = false; S.inbox = null; S.blockedL = null; S.msgErr = null;
   S.threads = []; S.cases = []; S.notifs = []; S.blocks = []; S.follows = []; S.pfol = []; S.modData = []; S.modRes = []; S.role = 'user';
 }
@@ -7645,18 +7716,18 @@ function topbar(title, backFn, extra) {
   if (!backFn && !stadRoot && !(S.tab === 'home' && !S.tool && !S.sel)) backFn = 'navBack()';
   const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0;
   const left_ = backFn
-    ? `<button class="circ" onclick="${backFn}" aria-label="Tillbaka">${ic(I.back, null, 22)}</button>`
+    ? `<button class="circ lab" onclick="${backFn}" aria-label="Tillbaka">${ic(I.back, null, 22)}<span class="cl">Tillbaka</span></button>`
     : `<img class="logoimg" src="${LOGO}" alt="Roothood" width="40" height="40">`;
-  const right = stadUI() && ((title === 'Profil' && S.tab === 'me' && !S.tool) || S.tool === 'notif') ? '' : bellBtn(), help = S.tool === 'house' ? helpBtn() : (title === 'Min samling' && !backFn ? `<button class="circ" onclick="openQAdd()" aria-label="Lägg till växt">${ic('ph-plus', null, 22)}</button>` : '');
+  const right = stadUI() && ((title === 'Profil' && S.tab === 'me' && !S.tool) || S.tool === 'notif') ? '' : bellBtn(), help = S.tool === 'house' ? helpBtn() : (title === 'Min samling' && !backFn ? `<button class="circ lab" onclick="openQAdd()" aria-label="Lägg till växt">${ic('ph-plus', null, 22)}<span class="cl">Lägg till</span></button>` : '');
   return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1${title.length > 26 ? ' class="long"' : ''}>${esc(title)}</h1>${extra || (title === 'Gemenskap' ? communityBtns() : '')}${help}${S.user && !help && !extra && title !== 'Gemenskap' && !backFn ? supportBtn() : ''}${right}</div>`;
 }
 function communityBtns() {
   // Städad (116): bara sök och notiser till höger, hjälpen ligger i en ⋯-meny
-  if (stadUI()) return `<span class="cmwrap"><button class="circ" onclick="S.cmenu=!S.cmenu;render()" aria-label="Mer" aria-expanded="${!!S.cmenu}">${ic('ph-dots-three', null, 22)}</button>${S.cmenu ? `<span class="cmenu" role="menu"><button role="menuitem" onclick="S.cmenu=false;openModal('chelp')">${ic('ph-question', 'currentColor', 18)} Hjälp om Gemenskap</button><button role="menuitem" onclick="S.cmenu=false;openPeople()">${ic('ph-user-plus', 'currentColor', 18)} Hitta användare</button></span>` : ''}</span>${peopleSearchBtn()}`;
+  if (stadUI()) return `<span class="cmwrap"><button class="circ lab" onclick="S.cmenu=!S.cmenu;render()" aria-label="Mer" aria-expanded="${!!S.cmenu}">${ic('ph-dots-three', null, 22)}<span class="cl">Mer</span></button>${S.cmenu ? `<span class="cmenu" role="menu"><button role="menuitem" onclick="S.cmenu=false;openModal('chelp')">${ic('ph-question', 'currentColor', 18)} Hjälp om Gemenskap</button><button role="menuitem" onclick="S.cmenu=false;openPeople()">${ic('ph-user-plus', 'currentColor', 18)} Hitta användare</button></span>` : ''}</span>${peopleSearchBtn()}`;
   return communityBtns0();
 }
-function communityBtns0() { return `<button class="circ" onclick="openModal('chelp')" aria-label="Hjälp om Gemenskap" style="font-weight:800;font-size:18px">?</button>${peopleSearchBtn()}`; }
-function peopleSearchBtn() { return `<button class="circ" onclick="openPeople()" aria-label="Hitta användare">${ic('ph-magnifying-glass', null, 22)}</button>`;
+function communityBtns0() { return `<button class="circ lab" onclick="openModal('chelp')" aria-label="Hjälp om Gemenskap"><span style="font-weight:800;font-size:18px;line-height:22px">?</span><span class="cl">Hjälp</span></button>${peopleSearchBtn()}`; }
+function peopleSearchBtn() { return `<button class="circ lab" onclick="openPeople()" aria-label="Hitta användare">${ic('ph-magnifying-glass', null, 22)}<span class="cl">Sök</span></button>`;
 }
 
 // ===== Vyer =====
@@ -7720,7 +7791,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -7736,7 +7807,7 @@ function render() {
 // ===== Kom ihåg var man var (och tillbaka-knappen) =====
 let curHash = null, scrollT = null;
 const TOOL_LABEL = { sunpath: 'Solbana', house: 'Ritning', people: 'Vänner', mod: 'Moderering', explore: 'Utforska', experts: 'Experter', user: 'Användarprofil', settings: 'Inställningar', notif: 'Notiser', msgs: 'Meddelanden', chat: 'Chatt', news: 'Nyheter', nearby: 'Händer nära dig', pets: 'Djur', season: 'Säsong', learn: 'Lär dig', inspo: 'Inspiration', ask: 'Snabbfråga', db: 'Växtdatabas', sow: 'Så och skörd', smart: 'Smarta förslag', perma: 'Perma', compass: 'Kompass' };
-const TAB_LABEL = { home: 'Start', mine: 'Samling', comm: 'Gemenskap', me: 'Profil' };
+const TAB_LABEL = { home: 'Start', mine: 'Min samling', comm: 'Gemenskap', me: 'Profil' };
 function viewName() { // läsbar text om var användaren var, t.ex. "Ritning · Rum: Kök (#t/house/kok)"
   const hash = viewHash();
   let name;
@@ -7823,6 +7894,7 @@ window.addEventListener('popstate', e => {
   // Bakåt med en ruta öppen stänger bara rutan
   // Odlingszonen måste väljas först: bakåt-knappen i webbläsaren får inte ta bort rutan eller ta användaren vidare
   if (S.modal === 'zonepick' && !store.get('zone', 0)) { history.pushState(history.state, '', location.href); return; }
+  if (S.modal === 'namepick' && !S.namesOk) { history.pushState(history.state, '', location.href); return; }
   if (S.modal) { if (typeof tlStop === 'function') tlStop(); S.modal = null; S.msg = ''; render(); return; }
   // Rutan stängdes redan i appen och historiken har nu hunnit ikapp
   if (location.hash === curHash) return;
@@ -7967,7 +8039,7 @@ function openDb(focus) { stopLight(); S.sel = null; S.modal = null; S.tool = 'db
 function dbV() {
   const n = dbFilterN();
   return `${topbar('Växtbiblioteket', 'closeTool()')}
-  <div style="padding:0 16px 4px"><button class="btn line sm" onclick="openDiscover()">Plantswipe</button></div>
+  <div style="padding:0 16px 4px"><button class="btn line sm" onclick="openDiscover()">Svep bland växter</button></div>
   <div class="searchrow dbsr"><div class="search">${ic(I.search, null, 20)}<input type="search" placeholder="Sök växt eller vetenskapligt namn" value="${esc(S.q)}" oninput="S.q=this.value;renderList()" aria-label="Sök växter"></div>
     <button class="dbfb ${n ? 'on' : ''}" onclick="openModal('dbf')" aria-label="Filter${n ? ', ' + n + ' valda' : ''}">${ic('ph-sliders-horizontal', 'currentColor', 20)}${n ? `<em>${n}</em>` : ''}</button></div>
   <div class="seg2 dbenv" role="tablist">${[['all', 'Alla'], ['in', 'Inomhus'], ['out', 'Utomhus']].map(([k, t]) => `<button class="${S.env === k ? 'on' : ''}" role="tab" aria-selected="${S.env === k}" onclick="setEnv('${k}')">${t}</button>`).join('')}</div>
@@ -8516,13 +8588,13 @@ function followBtn(p) {
 }
 async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); S.notifErr = false; } catch (e) { S.notifs = S.notifs || []; S.notifErr = true; } try { S.notifs = (S.notifs || []).filter(n => n.t !== 'follow').concat(await followHits()); } catch (e) { console.warn('Roothood:', e); } if (isMod()) { try { S.modOpen = await api.modOpen(); } catch (e) { console.warn('Roothood:', e); } } try { S.inboxC = await api.inboxCounts(); } catch (e) { S.inboxC = null; }
   await loadInbox(); if (!S.tool && !S.modal) render(); }
-function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due + (isMod() ? (S.modOpen || 0) : 0) + ((S.inboxC && S.inboxC.fb) || 0) + ((S.inboxC && S.inboxC.xq) || 0); return `<button class="circ bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
+function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due + (isMod() ? (S.modOpen || 0) : 0) + ((S.inboxC && S.inboxC.fb) || 0) + ((S.inboxC && S.inboxC.xq) || 0); return `<button class="circ lab bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}<span class="cl">Notiser</span>${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
 let inboxAsked = false;
 function msgBtn() {
   if (!S.user) return '';
   if (S.inbox == null && !inboxAsked) { inboxAsked = true; loadInbox().then(() => { if (S.tab === 'home' && !S.tool) keepMain(); }).catch(() => {}); }
   const n = msgUnread();
-  return `<button class="circ bellb" onclick="openMsgs()" aria-label="Meddelanden${n ? ', ' + n + ' olästa' : ''}">${ic('ph-chat-circle-dots', null, 22)}${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`;
+  return `<button class="circ lab bellb" onclick="openMsgs()" aria-label="Meddelanden${n ? ', ' + n + ' olästa' : ''}">${ic('ph-chat-circle-dots', null, 22)}<span class="cl">Meddelanden</span>${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`;
 }
 function notifAllRead() { const a = notifArr(); (S.notifs || []).forEach(n => { const k = NKEY(n); if (!a.includes(k)) a.push(k); }); try { store.set('notifOpened', a.slice(-400)); } catch (e) {} keepMain(); toast('Alla notiser är markerade som lästa'); }
 function openNotif() { if (!S.user) return openModal('login'); stopLight(); S.sel = null; S.modal = null; S.tool = 'notif'; render(); $('#main').scrollTop = 0; loadNotifs().then(() => { if (S.tool === 'notif') render(); }); }
@@ -8751,7 +8823,7 @@ async function fbSend() { const t = $('#fbt'), body = ((t && t.value) || '').tri
   try { await api.sendFb({ kind: S.fbf.kind, body: body.slice(0, 4000), view: (S.fbView || '').slice(0, 200), version: APP_VERSION, ua: navigator.userAgent.slice(0, 300) }, (S.fbf.photos || []).map(x => x.file)); S.fbf = null; S.modal = null; toast('Tack! Din rapport är skickad 🙏'); }
   catch (e) { toast(e.message === 'FB_NOT_READY' ? 'Rapporter är inte påslagna än. Kör SQL-filen 056-feedback i Supabase.' : errMsg(e)); } S.busy = false; render(); }
 function fbV() { const F = S.fbf || { kind: 'bug' };
-  return `<div class="mh"><h2>Nycklas: rapportera fel eller ge förslag</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  return `<div class="mh"><h2>Rapportera fel eller ge förslag</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div class="chips2">${[['bug', '🐞 Något är fel'], ['idea', '💡 Förslag'], ['other', 'Annat']].map(([k, n]) => `<button class="${F.kind === k ? 'on' : ''}" aria-pressed="${F.kind === k}" onclick="S.fbf.kind='${k}';keepScroll()">${n}</button>`).join('')}</div>
   <label class="fl" for="fbt">${F.kind === 'bug' ? 'Vad hände? Vad tryckte du på och vad förväntade du dig?' : F.kind === 'idea' ? 'Vad vill du kunna göra?' : 'Berätta'}</label><textarea id="fbt" rows="5" maxlength="4000" oninput="S.fbf.body=this.value">${esc(F.body || '')}</textarea>
   ${(F.photos || []).length ? `<div class="fbshots">${F.photos.map((ph, i) => `<div class="fbsh"><img class="fbshot" src="${esc(ph.url)}" alt="Bifogad bild ${i + 1}" onclick="this.classList.toggle('big')" onerror="fbBroken(this)"><button class="x" onclick="fbPhotoDel(${i})" aria-label="Ta bort bild ${i + 1}">Ta bort</button></div>`).join('')}</div>` : ''}
@@ -8761,7 +8833,7 @@ function fbV() { const F = S.fbf || { kind: 'bug' };
 function modFbV(D, t) { const st = { new: 'Ny', seen: 'Sedd', fixed: 'Fixad', wontfix: 'Görs inte' }, kd = { bug: '🐞 Fel', idea: '💡 Förslag', other: 'Annat' };
   const sorted = [...(D || [])].sort(FB_SORTS[S.modFbSort || 'new'][1]);
   return `<div class="pad">${sorted.length ? modStatusGroups(sorted, st).map(([k, L]) => `<details class="mgrp" ${k === 'fixed' || k === 'wontfix' ? '' : 'open'}><summary>${st[k] || 'Övrigt'} <em class="tabn">${L.length}</em></summary>${L.map(f => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">${kd[f.kind] || ''} · ${esc(f.author || '')} · ${ago(f.created_at)} · ${esc(f.version || '')}</small><p style="white-space:pre-wrap;margin:6px 0">${esc(f.body)}</p>${fbUrls(f.photo_url).length ? `<div class="fbshots">${fbUrls(f.photo_url).map((u, i) => `<img class="fbshot" src="${esc(u)}" alt="Bifogad skärmbild ${i + 1}" onclick="this.classList.toggle('big')" onerror="fbBroken(this)">`).join('')}</div>` : ''}<p style="margin:4px 0;font-size:14px"><b>Sida:</b> ${esc(f.view || 'okänd')}</p><small class="mut" style="display:block;word-break:break-all">${esc((f.ua || '').slice(0, 120))}</small>
-    <div class="chips2 sm" style="margin-top:8px">${Object.entries(st).map(([k, n]) => `<button class="${f.status === k ? 'on' : ''}" onclick="modFbSet(${f.id},'${k}')">${n}</button>`).join('')}</div></div>`).join('')}</details>`).join('') : `<p class="mut">${t === 'err' ? 'Inga felrapporter än.' : t === 'nyckl' ? 'Inget har kommit in via Nycklas än.' : 'Inga förslag eller annan feedback än.'}</p>`}</div>`; }
+    <div class="chips2 sm" style="margin-top:8px">${Object.entries(st).map(([k, n]) => `<button class="${f.status === k ? 'on' : ''}" onclick="modFbSet(${f.id},'${k}')">${n}</button>`).join('')}</div></div>`).join('')}</details>`).join('') : `<p class="mut">${t === 'err' ? 'Inga felrapporter än.' : t === 'nyckl' ? 'Inget har kommit in via felknappen än.' : 'Inga förslag eller annan feedback än.'}</p>`}</div>`; }
 async function modFbSet(id, k) { try { await api.modFbSet(id, k); const x = (S.modData || []).find(y => y.id === id); if (x) x.status = k; keepMain(); } catch (e) { toast(errMsg(e)); } }
 function modUsersV(D) {
   const q = S.modUQ || '', n = S.modUN, roleTag = r => r === 'admin' ? '<span class="tag lime">Admin</span>' : r === 'mod' ? '<span class="tag lime">Moderator</span>' : '';
@@ -8805,7 +8877,7 @@ function modOnlineV(D) {
   return `<div class="pad"><p class="mut" style="margin:4px 0 12px;font-size:13px">${on} online · ${idle} inaktiva. Uppdateras var 30:e sekund.</p>
   <div class="setcard" style="padding:6px 14px">${D.length ? D.map(x => { const [c, t] = L[x.status] || L.offline; return `<div class="prow2"><span class="pdot ${c}" aria-hidden="true"></span><button class="grow" style="text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer" onclick="modOpenUser(${jsArg(x.user_id)})"><b>${esc(x.display_name || 'Okänd')}</b><small class="mut" style="display:block">${t}${x.status === 'offline' ? ' · senast ' + ago(x.last_seen) : x.status === 'idle' ? ' · senaste åtgärd ' + ago(x.last_action) : ''}</small></button></div>`; }).join('') : '<p class="mut" style="margin:10px 0">Ingen har varit i appen de senaste 48 timmarna.</p>'}</div></div>`;
 }
-const MOD_TREE = [['Granska', [['open', 'Rapporter'], ['best', 'Bästa svar'], ['plants', 'Växter'], ['feed', 'Gemenskap']]], ['Hantering', [['done', 'Hanterade'], ['users', 'Alla användare']]], ['Appen', [['stats', 'Statistik'], ['online', 'Användare online']]], ['Nycklas', [['nyckl', 'Alla'], ['err', 'Felrapporter'], ['fb', 'Feedback']]], ];
+const MOD_TREE = [['Granska', [['open', 'Rapporter'], ['best', 'Bästa svar'], ['plants', 'Växter'], ['feed', 'Gemenskap']]], ['Hantering', [['done', 'Hanterade'], ['users', 'Alla användare']]], ['Appen', [['stats', 'Statistik'], ['online', 'Användare online']]], ['Felknappen', [['nyckl', 'Alla'], ['err', 'Felrapporter'], ['fb', 'Feedback']]], ];
 function modNavItems(n) { return MOD_TREE.find(([x]) => x === n)[1].concat(n === 'Hantering' && isAdmin() ? [['team', 'Team']] : []).concat(n === 'Appen' && isAdmin() ? [['sentry', 'Sentry-test']] : []); }
 // Testknapp för Sentry: skickar ett testfel så att man ser att felrapporteringen fungerar. Bara för admins.
 function sentryTest() { const msg = document.getElementById('sentrymsg'); const id = (window.Sentry && Sentry.captureException) ? Sentry.captureException(new Error('Roothood testfel från adminknappen ' + new Date().toISOString())) : null; if (msg) msg.textContent = id ? 'Skickat. Event-id: ' + id : 'Sentry är inte laddat. Ladda om appen och försök igen.'; }
@@ -9575,7 +9647,7 @@ async function openUser(id, fromHash, asMod) {
 }
 function userBack() { const b = S.uBack; S.uid = null; if (b === 'mod') { S.uMod = false; S.tool = 'mod'; S.modTab = 'users'; render(); const y = S.modUScroll || 0; setTimeout(() => { const m = $('#main'); if (m) m.scrollTop = y; }, 0); return; } S.uMod = false; if (b === 'people') { S.tool = 'people'; render(); } else { S.tool = null; render(); } }
 const KIND_TAB = { question: 'q', thread: 'forum', listing: 'swap', mystery: 'detect' };
-const KIND_NAME = { question: 'Fråga', thread: 'Forumtråd', listing: 'Byt & ge bort', mystery: 'Detektivfall' };
+const KIND_NAME = { question: 'Fråga', thread: 'Forumtråd', listing: 'Byt & ge bort', mystery: 'Vad är det för växt?' };
 function openUserPost(id, kind, cat) { S.tool = null; S.tab = 'comm'; S.ctab = KIND_TAB[kind] || 'q'; S.forum = kind === 'thread' ? cat : null; S.post = id; S.newL = false; S.newCase = false; render(); loadFeed(); $('#main').scrollTop = 0; }
 function userV() {
   const c = S.ucard, back = 'userBack()';
@@ -9761,7 +9833,7 @@ const HB = [
   ['todo', 'Att göra', 'Checklista för idag, till exempel vattning'],
   ['alerts', 'Varningar', 'Torr jord, luftfukt och vattning idag'],
   ['quick', 'Snabbval', 'De viktigaste funktionerna som knappar'],
-  ['mine', 'Mina växter', 'Dina växter med temperatur, fukt och ljus'],
+  ['mine', 'Min samling', 'Dina växter med temperatur, fukt och ljus'],
   ['home3d', 'Mitt hem i 3D', 'Din bostad i 3D med knapp för att ändra'],
   ['db', 'Växtbiblioteket', 'Sök bland alla växter och skötselråd', 'tool'],
   ['local', 'Händer nära dig', 'Byten och fall från din ort'],
@@ -9834,19 +9906,19 @@ const QUICK = () => [
   ['people', 'Hitta vänner', PEOPLEI, 'xp', 'openPeople()'], ['inspo', 'Odlare att följa', INSPI, 'inspo', 'openInspo()', 1], ['season', 'Säsongstips', I.leaf, 'sun', 'openSeason()', 1], ['sow', 'Såkalender', SOWI, 'db', 'openSow()', 1], ['perma', 'Permakultur', I.leaf, 'inspo', 'openPerma()', 1], ['jord', 'Jord och substrat', 'ph-shovel', 'db', "openLearn('jord')", 1], ['hydro', 'Hydroponi', 'ph-drop', 'xp', "openLearn('hydro')", 1], ['naring', 'Gödsel och näring', 'ph-flask', 'sun', "openLearn('naring')", 1], ['ljuslara', 'Ljus', I.sun, 'sun', "openLearn('ljus')", 1], ['rosor', 'Rosor', 'ph-flower', 'inspo', "openLearn('rosor')", 1],
   ['mine', 'Min samling', I.plant || I.leaf, 'db', "S.mtab='mine';go('mine')"], ['care', 'Växtjournalen', CALI, 'sun', 'openCare()'], ['notif', 'Notiser', BELLI, 'house', 'openNotif()'], ['cfg', 'Anpassa Hem', PEN, 'smart', "go('home');openHomeCfg()"],
 ];
-const QGROUPS = [['Växter', ['db', 'id', 'care', 'sit', 'season', 'sow']], ['Verktyg', ['light', 'sunpath', 'rain', 'elev', 'compass', 'nearby']], ['Hjälp med växterna', ['ask', 'doc', 'expert', 'detect']], ['Gemenskap', ['comm', 'forum', 'swap', 'people', 'inspo']], ['Mitt', ['mine']], ['Fördjupning: hem och trädgård', ['house', 'bed', 'smart']], ['Fördjupning: djur', ['pets']], ['Fördjupning: lär dig', ['jord', 'hydro', 'naring', 'ljuslara', 'rosor', 'perma']]];
+const QGROUPS = [['Hitta en växt', ['db', 'id', 'detect']], ['Sköta mina växter', ['mine', 'care', 'season', 'sit']], ['Få hjälp', ['ask', 'doc', 'expert']], ['Planera hem och trädgård', ['sow', 'bed', 'house', 'light', 'sunpath', 'compass', 'elev', 'rain']], ['Lär dig mer', ['jord', 'hydro', 'naring', 'ljuslara', 'rosor', 'perma', 'inspo']], ['Träffa andra odlare', ['comm', 'forum', 'swap', 'people']], ['Husdjur, sensorer och trädgårdar nära dig', ['nearby', 'pets', 'smart']]];
 const favs = () => { const f = store.get('favQuick', null); if (Array.isArray(f)) { if (!store.get('askFavAdded', false)) { store.set('askFavAdded', true); if (!f.includes('ask')) { f.unshift('ask'); store.set('favQuick', f); } } if (!store.get('careFavAdded', false)) { store.set('careFavAdded', true); if (!f.includes('care') && f.length < 7) { f.push('care'); store.set('favQuick', f); } } if (!store.get('petsFavAdded', false)) { store.set('petsFavAdded', true); if (!f.includes('pets') && f.length < 7) { f.push('pets'); store.set('favQuick', f); } } if (!store.get('bedFavAdded', false)) { store.set('bedFavAdded', true); if (!f.includes('bed') && f.length < 7) { f.push('bed'); store.set('favQuick', f); } } return f; } return ['ask', 'db', 'id', 'care', 'doc', 'pets', 'bed']; };
 
 const SEEDLING = '<path d="M12 21v-9"/><path d="M12 12c0-4 3-6.5 7.5-6.5 0 4.5-3 6.5-7.5 6.5z"/><path d="M12 14.5c0-3.5-2.5-5.5-6.5-5.5 0 3.5 2.5 5.5 6.5 5.5z"/><path d="M7 21h10"/>';
 const WATER_CAN = '<path d="M3 10h12v7a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M15 13l5-7"/><path d="M7 10V7a3 3 0 0 1 6 0"/><path d="M19.5 4.5l1.5-1.5"/><path d="M6 21.5v.5M10 21.5v.5"/>';
-const QPH = { sit: ['ph-hand-heart', 'Växtpassning'], elev: ['ph-mountains', 'Marknivå'], rain: ['ph-cloud-rain', 'Regnvatten'], sunpath: ['ph-sun-horizon', 'Solbana'], jord: ['ph-shovel', 'Jord och substrat'], hydro: ['ph-drop', 'Hydroponi'], naring: ['ph-flask', 'Gödsel och näring'], ljuslara: ['ph-sun', 'Ljus'], rosor: ['ph-flower', 'Rosor'], ask: ['ph-sparkle', 'Snabbfråga'], bed: ['ph-flower-tulip', 'Planera rabatt'], db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-notebook', 'Växtjournalen'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-seal-check', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Mina djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: [SEEDLING, 'Såkalender'], perma: ['ph-recycle', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Detektiver'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
+const QPH = { sit: ['ph-hand-heart', 'Växtpassning'], elev: ['ph-mountains', 'Marknivå'], rain: ['ph-cloud-rain', 'Regnvatten'], sunpath: ['ph-sun-horizon', 'Solbana'], jord: ['ph-shovel', 'Jord och substrat'], hydro: ['ph-drop', 'Hydroponi'], naring: ['ph-flask', 'Gödsel och näring'], ljuslara: ['ph-sun', 'Ljus'], rosor: ['ph-flower', 'Rosor'], ask: ['ph-sparkle', 'Snabbfråga'], bed: ['ph-flower-tulip', 'Planera rabatt'], db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-notebook', 'Växtjournalen'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-seal-check', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Mina djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: [SEEDLING, 'Såkalender'], perma: ['ph-recycle', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Vad är det för växt?'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
 // Mina växter på Hem: kort med bild, de som behöver vatten först
 function mineStrip(sz) { const n = { s: 4, m: 8, l: 14 }[sz || 'm'], L = S.mine.slice().sort((a, b) => { const x = left(a), y = left(b); return (x === null ? 99 : x) - (y === null ? 99 : y); }).slice(0, n);
   // Städad (109): karusell med kort på ca 42 % bredd, alltid riktigt foto eller initial med "Lägg till foto", status som pill och "Visa alla ›"
-  if (stadUI()) return `<div class="sec cap2"><h2>Mina växter</h2><button class="viewall" onclick="go('mine')">Visa alla ›</button></div><div class="hcar">${L.map(m => { const d = left(m), p = plantById(m.plant_id), u = m.photo || (p && p.photo_url), nm = (m.details && m.details.nick) || m.sv || m.name;
+  if (stadUI()) return `<div class="sec cap2"><h2>Min samling</h2><button class="viewall" onclick="go('mine')">Visa alla ›</button></div><div class="hcar">${L.map(m => { const d = left(m), p = plantById(m.plant_id), u = m.photo || (p && p.photo_url), nm = (m.details && m.details.nick) || m.sv || m.name;
     return `<div class="hcard"><button class="hcimg" onclick="openMine(${m.id})" aria-label="Visa ${esc(nm)}">${u ? `<img src="${esc(u)}" alt="" loading="lazy">` : `<span class="hcini" style="--h:${hueOf(m.name)}">${esc(((nm || '?').trim()[0] || '?').toUpperCase())}</span>`}</button>${u ? '' : `<label class="hcadd" onclick="photoPick(event,this)">${ic('ph-camera', 'currentColor', 14)} Lägg till foto<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>`}
     <button class="hcname" onclick="openMine(${m.id})">${esc(nm)}</button><span class="mpill${d === 0 ? ' due' : ''}">${d === null ? 'Vid torka' : d <= 0 ? 'Vattna idag' : d === 1 ? 'I morgon' : 'Om ' + d + ' dagar'}</span></div>`; }).join('')}</div>`;
-  return `<div class="sec cap2"><h2>Mina växter</h2><button class="viewall" onclick="go('mine')">Alla ${S.mine.length}</button></div><div class="hscroll">${L.map(m => { const d = left(m), w = d === null ? 'Vid torka' : d <= 0 ? 'Vattna idag' : d === 1 ? 'I morgon' : 'Om ' + d + ' dagar';
+  return `<div class="sec cap2"><h2>Min samling</h2><button class="viewall" onclick="go('mine')">Alla ${S.mine.length}</button></div><div class="hscroll">${L.map(m => { const d = left(m), w = d === null ? 'Vid torka' : d <= 0 ? 'Vattna idag' : d === 1 ? 'I morgon' : 'Om ' + d + ' dagar';
     return `<button class="hmc" onclick="openMine(${m.id})"><span class="hmimg">${myPh(m)}</span><b>${esc((m.details && m.details.nick) || m.name)}</b><small class="${d !== null && d <= 0 ? 'due' : ''}">${ic(I.drop, 'currentColor', 13)} ${w}</small></button>`; }).join('')}</div>`; }
 
 function qcard(q) {
@@ -9856,7 +9928,7 @@ function qcard(q) {
 }
 function plantswipeW() {
   const n = dsRight().length;
-  return `<div class="pad"><button class="setrow" onclick="openDiscover()"><span class="tic">${ic('ph-leaf', 'currentColor', 20)}</span><span class="grow"><b>Plantswipe</b><span>${n ? n + ' i Villhöver. Svep vidare' : 'Svep höger för att lägga en växt i Villhöver, vänster för att hoppa över'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`;
+  return `<div class="pad"><button class="setrow" onclick="openDiscover()"><span class="tic">${ic('ph-leaf', 'currentColor', 20)}</span><span class="grow"><b>Svep bland växter</b><span>${n ? n + ' på önskelistan. Svep vidare' : 'Svep höger för att lägga en växt på önskelistan, vänster för att hoppa över'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`;
 }
 // ===== Städad: startsidan (felrapport 108–111) =====
 // Snabbåtgärder: fyra i en rad med samma gröna ikonfärg. Fråga har en egen ikon i stället för gnistan, och Såkalendern en ikon som fungerar.
@@ -9868,7 +9940,7 @@ function allToolsModalV() { const Q = QUICK();
   return `<div class="mh2"><h2>Alla verktyg</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
   <div class="atgrid">${ALL_TOOLS.map(k => Q.find(q => q[0] === k)).filter(Boolean).map(q => qtileS(q[0], q[1], `S.modal=null;${q[4]}`)).join('')}</div>`; }
 function plantswipeS() { const n = dsRight().length, P = S.plants.filter(p => p.photo_url).slice(0, 3);
-  return `<div class="pad"><button class="psrow" onclick="openDiscover()"><span class="pstack">${P.map(p => `<img src="${esc(p.photo_url)}" alt="" loading="lazy">`).join('') || ic('ph-leaf', 'currentColor', 20)}</span><span class="grow"><b>Plantswipe</b><small>${n ? n + ' i Villhöver' : 'Svep och lägg växter du gillar i Villhöver'}</small></span>${ic('ph-caret-right', 'var(--mut)', 18)}</button></div>`; }
+  return `<div class="pad"><button class="psrow" onclick="openDiscover()"><span class="pstack">${P.map(p => `<img src="${esc(p.photo_url)}" alt="" loading="lazy">`).join('') || ic('ph-leaf', 'currentColor', 20)}</span><span class="grow"><b>Svep bland växter</b><small>${n ? n + ' på önskelistan' : 'Svep och lägg växter du gillar på önskelistan'}</small></span>${ic('ph-caret-right', 'var(--mut)', 18)}</button></div>`; }
 // Ögonblicksbild av 3D-hemmet till startsidan. Tas när 3D-vyn ritas, högst var 20:e sekund, och sparas i telefonen.
 let h3SnapT = 0;
 function h3Snap() { if (!stadUI() || !S.user || Date.now() - h3SnapT < 20000) return; h3SnapT = Date.now();
@@ -9884,14 +9956,37 @@ function quickV() {
 }
 function openExplore() { stopLight(); S.sel = null; S.modal = null; S.tool = 'explore'; S.favEdit = false; render(); $('#main').scrollTop = 0; }
 function togFav(k) { let f = favs(); if (f.includes(k)) f = f.filter(x => x !== k); else { if (f.length >= 7) return toast('Du kan ha högst 7 favoriter på Hem'); f = f.concat(k); } store.set('favQuick', f); if (S.modal) keepScroll(); else keepMain(); }
-const XDESC = { sit: 'Be en vän passa dina växter, eller passa någon annans', elev: 'Höjdskillnader runt en adress', rain: 'Hur mycket regnvatten taket samlar', sunpath: 'Var solen går och hur många soltimmar en plats får', ask: 'Skriv en fråga och få svar direkt', detect: 'Experter tar reda på vad växten heter', jord: 'Krukjord, bark, leca, pon och trädgårdsjord', hydro: 'Odla i vatten, leca och pon', naring: 'När och hur du gödslar', ljuslara: 'Fönster, lux och växtlampor', db: 'Hitta växter i växtbiblioteket', id: 'Ta ett foto och få reda på vad det är', care: 'Vattning, gödsling och anteckningar', doc: 'Felsök gula blad, skadedjur och mer', expert: 'Fråga en expert med foto', house: 'Rum, fönster och växter i ditt hem', light: 'Mät ljuset där växten står', nearby: 'Trädgårdar och handelsträdgårdar nära dig', compass: 'Hitta norr', pets: 'Husdjur, fåglar, fiskar och terrarier', smart: 'Sensorer, lampor och bevattning', season: 'Vad du kan göra just nu', sow: 'När du sår och förkultiverar', perma: 'Permakultur och zonplanering', inspo: 'Odlare att följa på YouTube och Instagram', comm: 'Frågor och svar', forum: 'Diskussioner i kategorier', swap: 'Ge bort, byt eller önska', detect: 'Gissa vilken växt det är', people: 'Vänner och meddelanden', mine: 'Dina växter och påminnelser', notif: 'Påminnelser och svar', cfg: 'Ändra ordning på startskärmen' };
+const XDESC = { sit: 'Be en vän passa dina växter, eller passa någon annans', elev: 'Höjdskillnader runt en adress', rain: 'Hur mycket regnvatten taket samlar', sunpath: 'Var solen går och hur många soltimmar en plats får', ask: 'Skriv en fråga och få svar direkt', detect: 'Experter tar reda på vad växten heter', jord: 'Krukjord, bark, leca, pon och trädgårdsjord', hydro: 'Odla i vatten, leca och pon', naring: 'När och hur du gödslar', ljuslara: 'Fönster, lux och växtlampor', db: 'Hitta växter i växtbiblioteket', id: 'Ta ett foto och få reda på vad det är', care: 'Vattning, gödsling och anteckningar', doc: 'Felsök gula blad, skadedjur och mer', expert: 'Fråga en expert med foto', house: 'Rum, fönster och växter i ditt hem', light: 'Mät ljuset där växten står', nearby: 'Trädgårdar och handelsträdgårdar nära dig', compass: 'Hitta norr', pets: 'Husdjur, fåglar, fiskar och terrarier', smart: 'Sensorer, lampor och bevattning', season: 'Vad du kan göra just nu', sow: 'När du sår och förkultiverar', perma: 'Permakultur och zonplanering', inspo: 'Odlare att följa på YouTube och Instagram', comm: 'Frågor och svar', forum: 'Diskussioner i kategorier', swap: 'Ge bort, byt eller önska', detect: 'Fråga andra vad en växt heter', people: 'Vänner och meddelanden', mine: 'Dina växter och påminnelser', notif: 'Påminnelser och svar', cfg: 'Ändra ordning på startskärmen' };
 function xRow(q, e) {
   const [k, n, , , act, pro] = q, [icn, lbl] = QPH[k] || ['ph-star', n], on = favs().includes(k);
   return `<button class="xrow" onclick="${e ? `togFav('${k}')` : act}"><span class="xic">${ic(icn, 'currentColor', 20)}</span><span class="grow"><b>${lbl}</b><small>${XDESC[k] || ''}</small></span>${e ? `<i class="fav ${on ? 'on' : ''}">${on ? '★' : '☆'}</i>` : ''}${pro && !S.pro ? '<em class="pro">PRO</em>' : ''}</button>`;
 }
+// Sök bland verktygen med vanliga ord ("gula blad", "vattna", "semester").
+const TKEY = {
+  db: 'sök växt växter bibliotek hitta namn', id: 'foto fota kamera vad heter växten känna igen identifiera', detect: 'vad är det för växt gissa grannar artbestämma okänd',
+  doc: 'gula blad bruna fläckar skadedjur löss sjuk sjukdom mögel ruttna mår dåligt växtdoktor', ask: 'fråga snabbt råd svar hjälp', expert: 'expert proffs människa fråga foto',
+  care: 'vattna vattning gödsla journal anteckning dagbok', mine: 'mina växter samling påminnelse vattna', season: 'säsong vad göra nu månad tips', sit: 'passa semester bortrest resa vän ledig',
+  sow: 'så sådd förodla frö kalender', bed: 'rabatt planera odlingsbädd bädd', house: 'hem rum fönster rita hus', light: 'ljus mäta ljusmätare lux ljust mörkt',
+  sunpath: 'sol solbana skugga soltimmar solig', compass: 'kompass norr väderstreck', elev: 'höjd marknivå lutning sluttning', rain: 'regn regnvatten tak tunna',
+  jord: 'jord substrat kruka omplantera leca pon bark', hydro: 'hydroponi vatten leca pon semihydro', naring: 'gödsel näring gödsla', ljuslara: 'ljus lux växtlampa lampa fönster',
+  rosor: 'ros rosor', perma: 'permakultur trädgård planera', inspo: 'inspiration youtube instagram odlare följa', comm: 'gemenskap frågor fråga andra', forum: 'forum diskussion tråd',
+  swap: 'byt ge bort stickling sälja annons', people: 'vänner vän hitta användare', nearby: 'handelsträdgård plantskola köpa nära trädgård', pets: 'husdjur katt hund giftig djur', smart: 'sensor smart bevattning automatisk',
+};
+function toolHits(q) {
+  const toks = (q || '').toLowerCase().split(/[\s,.]+/).filter(t => t.length > 1 && !['vad', 'den', 'det', 'för', 'jag', 'vill', 'min', 'mina', 'och', 'på', 'hur', 'som', 'att'].includes(t)); if (!toks.length) return [];
+  return QUICK().map(t => { const k = t[0], hay = ((QPH[k] || [0, t[1]])[1] + ' ' + (XDESC[k] || '') + ' ' + (TKEY[k] || '')).toLowerCase(), words = hay.split(/[^a-zåäö0-9]+/);
+    const sc = toks.reduce((a, tk) => a + (words.some(w => w.startsWith(tk)) ? 2 : hay.includes(tk) ? 1 : 0), 0); return [t, sc]; }).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 6).map(x => x[0]);
+}
+function toolHitsV() {
+  const q = (S.tq || '').trim(); if (q.length < 2) return '';
+  const h = toolHits(q);
+  return h.length ? `<div class="xlist" style="margin-top:8px">${h.map(t => xRow(t, false)).join('')}</div>` : `<p class="mut" style="margin:10px 2px">Hittar inget på "${esc(q)}". Prova ett annat ord, eller fråga i Snabbfråga.</p><button class="btn sm" onclick="openAsk()">Fråga i Snabbfråga</button>`;
+}
+function toolSearchIn(v) { S.tq = v; const e = $('#tqres'); if (e) e.innerHTML = toolHitsV(); }
 function exploreV() { const Q = QUICK(), by = k => Q.find(q => q[0] === k), e = false;
-  return `${topbar('Utforska', 'S.tool=null;render()')}
-  ${QGROUPS.map(([g, ks]) => `<div class="sec cap2"><h2>${g}</h2></div><div class="xlist">${ks.filter(k => !(document.documentElement.getAttribute('data-ui') === 'stad' && k === 'local')).map(by).filter(Boolean).map(q => xRow(q, e)).join('')}</div>`).join('')}
+  return `${topbar('Alla verktyg', 'S.tool=null;render()')}
+  <div class="pad" style="padding-top:2px"><label class="fl" for="tq" style="margin-top:0">Vad vill du göra?</label><input id="tq" type="search" placeholder="Skriv till exempel vattna, gula blad eller semester" value="${esc(S.tq || '')}" oninput="toolSearchIn(this.value)" autocomplete="off"><div id="tqres">${toolHitsV()}</div></div>
+  ${QGROUPS.map(([g, ks], gi) => { const rows = ks.map(by).filter(Boolean).map(q => xRow(q, e)).join(''); return gi < 3 ? `<div class="sec cap2"><h2>${g}</h2></div><div class="xlist">${rows}</div>` : `<details class="faq xgrp"><summary>${g}</summary><div class="xlist">${rows}</div></details>`; }).join('')}
   <div style="height:24px"></div>`; }
 function welcomeV() { return `<div class="welc"><div class="wh"><b>Välkommen till Roothood 🌱</b><button class="x" onclick="store.set('welcomeDone',true);render()" aria-label="Stäng">×</button></div><div data-notr style="margin:4px 0 10px">${langPick()}</div>
   <p>Så kommer du igång på tre steg:</p>
@@ -10108,7 +10203,7 @@ async function toggleWish(id) {
   const cur = wishList(), on = !cur.some(w => w.id === id);
   wishSet(on ? cur.concat({ id, note: '' }) : cur.filter(w => w.id !== id));
   if (S.user && !DEMO && sb) { try { if (on) await sb.from('plant_wishes').insert({ plant_id: id }); else await sb.from('plant_wishes').delete().eq('user_id', S.user.id).eq('plant_id', id); } catch (e) { console.warn('Roothood:', e); } }
-  toast(on ? 'Tillagd i Villhöver' : 'Borttagen från Villhöver');
+  toast(on ? 'Tillagd på önskelistan' : 'Borttagen från önskelistan');
   keepMain();
 }
 async function wishNote(id, v) {
@@ -10128,13 +10223,13 @@ function wishListHtml() {
   const L = wishList().map(w => [w, S.plants.find(p => p.id === w.id)]).filter(x => x[1]);
   return L.length ? `<div class="pad" style="display:flex;flex-direction:column;gap:10px">${L.map(([w, p]) => `<div class="setcard" style="padding:12px 14px"><div style="display:flex;gap:10px;align-items:center"><button class="link3" style="flex:1;text-align:left;font-size:16px;font-weight:800" onclick="openPlant(${p.id})">${esc(p.swedish_name)}<small style="display:block;font-weight:400;font-style:italic;color:var(--mut)">${esc(p.latin_name || '')}</small></button><button class="btn sm" onclick="wishBought(${p.id})">Köpt! Lägg till</button></div>
   <input class="rname" style="width:100%;margin-top:8px;box-sizing:border-box" value="${esc(w.note || '')}" maxlength="200" placeholder="Anteckning, t.ex. köp hos Plantagen eller byt med Maria" onchange="wishNote(${p.id},this.value)" aria-label="Anteckning">
-  <button class="link3" style="margin-top:6px;color:var(--mut)" onclick="toggleWish(${p.id})">Ta bort från Villhöver</button></div>`).join('')}</div>`
-  : `<div class="list"><div class="empty"><p>Här samlas växter du vill ha. Öppna en växt i Växtbiblioteket och tryck Villhöver. När du köpt den trycker du Köpt, så hamnar den i din samling.</p><button class="btn sm" onclick="openDb(true)">Sök växter</button></div></div>`;
+  <button class="link3" style="margin-top:6px;color:var(--mut)" onclick="toggleWish(${p.id})">Ta bort från önskelistan</button></div>`).join('')}</div>`
+  : `<div class="list"><div class="empty"><p><b>Din önskelista är tom.</b><br>Här samlas växter du vill ha. Hitta en växt och tryck Önskelista.</p><button class="btn" onclick="openDb(true)">Hitta växter</button></div></div>`;
 }
 function wishV() {
   const n = wishList().filter(w => S.plants.some(p => p.id === w.id)).length;
   return `${topbar('Min samling')}${mtabBar()}
-  <div class="sec"><h2>Villhöver</h2><span class="mut">${n} ${n === 1 ? 'växt' : 'växter'}</span></div>
+  <div class="sec"><h2>Önskelista</h2><span class="mut">${n} ${n === 1 ? 'växt' : 'växter'}</span></div>
   ${wishListHtml()}
   <div class="pad" style="margin-top:14px"><button class="btn line wide" onclick="addCustomStart('wish')">+ Lägg till en växt som inte finns i databasen</button></div>`;
 }
@@ -10148,11 +10243,11 @@ function favV() {
   const L = favList().map(id => S.plants.find(p => p.id === id)).filter(Boolean);
   return `${topbar('Min samling')}${mtabBar()}
   <div class="sec"><h2>Favoriter</h2><span class="mut">${L.length} ${L.length === 1 ? 'växt' : 'växter'}</span></div>
-  ${L.length ? `<div class="grid">${L.map(plantMini).join('')}</div>` : `<div class="list"><div class="empty"><p>Här samlas växter du gillar. Tryck på hjärtat vid en växt i Växtbiblioteket så sparas den här. Den hamnar inte i Samling, dit lägger du bara växter du har.</p><button class="btn sm" onclick="openDb(true)">Sök växter</button></div></div>`}`;
+  ${L.length ? `<div class="grid">${L.map(plantMini).join('')}</div>` : `<div class="list"><div class="empty"><p><b>Du har inga favoriter än.</b><br>Tryck på hjärtat vid en växt så sparas den här.</p><button class="btn" onclick="openDb(true)">Sök växter</button></div></div>`}`;
 }
 function mtabBar() { const t = S.mtab || 'mine';
-  if (stadUI()) { requestAnimationFrame(ctabInd); return `<div class="ctabs stadtabs" data-bar="m" role="tablist" onscroll="ctabFade(this)">${[['mine', 'Samling'], ['care', 'Journal'], ['fav', 'Favoriter'], ['wish', 'Villhöver']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="S.mtab='${k}';S.mdue=false;S.mAnimDone=false;render()">${n}</button>`).join('')}<span class="ctabind" aria-hidden="true"></span></div>`; }
-  return `<div class="seg2 four" role="tablist">${[['mine', 'Samling'], ['care', 'Journal'], ['fav', 'Favoriter'], ['wish', 'Villhöver']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="S.mtab='${k}';render()">${n}</button>`).join('')}</div>`; }
+  if (stadUI()) { requestAnimationFrame(ctabInd); return `<div class="ctabs stadtabs" data-bar="m" role="tablist" onscroll="ctabFade(this)">${[['mine', 'Växter'], ['care', 'Journal'], ['fav', 'Favoriter'], ['wish', 'Önskelista']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="S.mtab='${k}';S.mdue=false;S.mAnimDone=false;render()">${n}</button>`).join('')}<span class="ctabind" aria-hidden="true"></span></div>`; }
+  return `<div class="seg2 four" role="tablist">${[['mine', 'Växter'], ['care', 'Journal'], ['fav', 'Favoriter'], ['wish', 'Önskelista']].map(([k, n]) => `<button class="${t === k ? 'on' : ''}" role="tab" aria-selected="${t === k}" onclick="S.mtab='${k}';render()">${n}</button>`).join('')}</div>`; }
 function shortTemp(t) { const m = /\d+\s*–\s*\d+\s*°C/.exec(t || ''); return m ? m[0] : (t || '').split(',')[0]; }
 function tile(label, value, desc, icon, color, bad) {
   // Saknat värde: rutan finns kvar med ett grått streck, så att skötselrutorna alltid har samma form
@@ -10169,7 +10264,7 @@ function detail() {
   const similar = S.plants.filter(x => x.category === p.category && x.id !== p.id).slice(0, 8);
   const status = my ? `<span class="tag green">${d === null ? 'I din samling' : d === 0 ? 'Vattna idag' : 'Vattnas om ' + d + (d === 1 ? ' dag' : ' dagar')}</span>` : '';
   const fv = `<button class="btn line" onclick="heart(${p.id})" aria-pressed="${isFav(p.id)}">${isFav(p.id) ? '♥ Favorit' : '♡ Favorit'}</button>`;
-  const wv = `<button class="btn line" onclick="toggleWish(${p.id})" aria-pressed="${isWish(p.id)}">${isWish(p.id) ? '★ I Villhöver' : '☆ Villhöver'}</button>`;
+  const wv = `<button class="btn line" onclick="toggleWish(${p.id})" aria-pressed="${isWish(p.id)}">${isWish(p.id) ? '★ På önskelistan' : '☆ Önskelista'}</button>`;
   const cta = !my ? `<button class="btn" onclick="addPlant(${p.id})">Lägg till i min samling</button>${fv}${wv}`
     : (my.interval ? `<button class="btn" onclick="water(${my.id})">Markera som vattnad</button>` : '') + `<button class="btn line" onclick="addAnother(${p.id})">+ En till</button>${fv}${S.delAsk === my.id ? `<p class="mut" style="margin:4px 0 0;font-size:14px;text-align:center">Är du säker att du vill ta bort ${esc(my.name)}?</p><button class="btn danger" onclick="S.delAsk=null;S.del=${my.id};removeMine(${my.id})">Ja, ta bort</button><button class="btn line" onclick="S.delAsk=null;render()">Avbryt</button>` : `<button class="btn danger" onclick="S.delAsk=${my.id};render()">Ta bort från samlingen</button>`}`;
   return `${topbar(p.category, 'S.sel=null;render()')}
@@ -10275,7 +10370,7 @@ function mineV() {
   ${stadM ? '' : `<div class="sec"><h2>Dina växter</h2><span style="display:flex;gap:8px"><button class="btn sm line" onclick="addCustomStart()">+ Egen växt</button></span></div>`}
   ${S.pro && rooms.length && S.mine.length ? `<div class="roomchips">${[[null, 'Alla']].concat(rooms.map(r => [r.id, r.name]), [['-', 'Utan rum']]).filter(([id]) => id === null || S.mroom === id || S.mine.some(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id)).map(([id, n]) => `<button class="${S.mroom === id ? 'on' : ''}" onclick="S.mroom=${id ? `'${id}'` : 'null'};render()">${esc(n)}<small>${id === null ? S.mine.length : S.mine.filter(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id).length}</small></button>`).join('')}</div>` : ''}
   ${stadM ? '' : `<div class="seg2 mview" role="tablist" aria-label="Visa som">${[['compact', 'Kompakt'], ['detail', 'Detaljerad']].map(([k, t]) => `<button class="${view === k ? 'on' : ''}" role="tab" aria-selected="${view === k}" onclick="setMview('${k}')">${t}</button>`).join('')}</div>`}
-  <div class="list" style="padding-top:0">${S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p>Öppna en växt under Växter och tryck Lägg till i min samling, så hamnar den här med vattningspåminnelser. Hjärtat sparar växter du gillar under Favoriter.</p><button class="btn sm" onclick="go('home')">Hitta växter</button></div>`}</div>`;
+  <div class="list" style="padding-top:0">${S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p><b>Du har inga växter här än.</b><br>Lägg till en växt så får du påminnelser om när den ska vattnas.</p><button class="btn" onclick="openQAdd()">Lägg till din första växt</button></div>`}</div>`;
 }
 // ===== Badges (punkt 12). Beräknas lokalt från samlingen och loggen. Sparas per konto på telefonen tills tabellen user_badges finns. =====
 const BADGES = { vattare: { n: 'Vattenkannans mästare', e: '🪷', d: 'Vattna 10 gånger' }, aroid: { n: 'Aroid-entusiasten', e: '🍃', d: 'Ha 5 eller fler aroider i samlingen' }, beta: { n: 'Beta-testare', e: '🌱', d: 'Skapa konto under betatestperioden' } };
@@ -10309,7 +10404,7 @@ function meV() {
   return `${topbar('Profil', null, (isMod() ? modBtn() : '') + gearBtn())}${userBody(meCardNow(), S.meCard ? S.meCard.posts : null, true)}${S.user ? badgeSection() : ''}${DEMO ? '<p class="mut" style="margin:0 18px">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}
   <div class="sec"><h2>Konto och inställningar</h2></div>
   ${S.user ? proCard() : ''}
-  ${S.user ? `<button class="setcard fbcard" onclick="openFb()"><span class="tic">${ic('ph-bug', 'currentColor', 22)}</span><span class="grow"><b>Nycklas: rapportera fel eller ge förslag</b><span>Nycklas är felknappen. Hjälp oss göra Roothood bättre. Skärmbild går bra att bifoga.</span></span></button>` : ''}
+  ${S.user ? `<button class="setcard fbcard" onclick="openFb()"><span class="tic">${ic('ph-bug', 'currentColor', 22)}</span><span class="grow"><b>Rapportera fel eller ge förslag</b><span>Hjälp oss göra Roothood bättre. Skärmbild går bra att bifoga.</span></span></button>` : ''}
   ${installCard()}
   ${settingsRow()}
   <div class="pad" style="padding-top:12px"><button class="setrow" onclick="openPeople()"><span class="tic">${ic('ph-users', 'currentColor', 20)}</span><span class="grow"><b>Hitta användare</b><span>Sök på namn eller ort och följ andra växtvänner</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
@@ -10326,7 +10421,7 @@ function loginV() {
   <button type="button" class="btn wide" style="background:#fff;color:#1f1f1f;border:1px solid var(--line);margin-bottom:10px" onclick="googleLogin()" ${S.busy ? 'disabled' : ''}><svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:-4px;margin-right:8px"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Fortsätt med Google</button>
   <p class="mut" style="text-align:center;margin:0 0 10px;font-size:12.5px">eller med e-post</p>
   <form onsubmit="event.preventDefault();doAuth(this)">
-  ${up ? '<label>Namn som andra ser<input name="name" required maxlength="40" autocomplete="nickname" value="' + esc(S.authName) + '"></label>' : ''}
+  ${up ? '<label>Förnamn<input name="first" required minlength="2" maxlength="30" autocomplete="given-name" value="' + esc(S.authFirst || '') + '"></label><label>Efternamn<input name="last" required minlength="2" maxlength="40" autocomplete="family-name" value="' + esc(S.authLast || '') + '"></label><p class="mut" style="margin:-6px 0 12px;font-size:13px">Andra ser bara förnamn och första bokstaven i efternamnet, till exempel <b>Jim O</b>.</p>' : ''}
   <label>E-post<input name="email" type="email" required autocomplete="email" value="${esc(S.authEmail)}"></label>
   <label>Lösenord<input name="pw" type="password" required minlength="6" autocomplete="${up ? 'new-password' : 'current-password'}"></label>
   ${up ? `<div id="suzone" class="suzone">${suZoneV()}</div>` : ''}
@@ -10342,7 +10437,7 @@ function addV() {
   return `<div class="mh"><h2>Lägg till egen växt</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div id="apbox">${apBox()}</div>
   <form onsubmit="event.preventDefault();saveCustom(this)">
-  <div class="destpick" role="radiogroup" aria-label="Var ska växten hamna?"><b>Var ska den hamna?</b><div class="chips2">${[['mine', 'I min samling'], ['wish', 'I Villhöver'], ['db', 'Bara i växtbiblioteket']].map(([k, n]) => `<label class="dchip"><input type="radio" name="dest" value="${k}" ${(S.addDest || 'mine') === k ? 'checked' : ''} onchange="S.addDest=this.value"><span>${n}</span></label>`).join('')}</div><p class="mut" style="margin:6px 0 0;font-size:12.5px">Växten läggs alltid till i växtbiblioteket. En moderator granskar den innan andra kan se den.</p></div>
+  <div class="destpick" role="radiogroup" aria-label="Var ska växten hamna?"><b>Var ska den hamna?</b><div class="chips2">${[['mine', 'I min samling'], ['wish', 'På önskelistan'], ['db', 'Bara i växtbiblioteket']].map(([k, n]) => `<label class="dchip"><input type="radio" name="dest" value="${k}" ${(S.addDest || 'mine') === k ? 'checked' : ''} onchange="S.addDest=this.value"><span>${n}</span></label>`).join('')}</div><p class="mut" style="margin:6px 0 0;font-size:12.5px">Växten läggs alltid till i växtbiblioteket. En moderator granskar den innan andra kan se den.</p></div>
   <label>Namn<input name="name" id="cname" required maxlength="60" value="${esc(S.prefill)}" placeholder="t.ex. Elefantöra" oninput="const c=$('#samelat');if(c&&c.checked)$('#clatin').value=this.value;syncLatin()"></label>
   <p class="mut" id="nameprev" style="margin:-8px 0 12px;font-size:13px"></p>
   <div class="taxbox"><b>Vetenskaplig indelning (valfritt)</b>
@@ -10521,7 +10616,7 @@ async function refreshComm() {
 }
 async function loadFeed() {
   try { await refreshComm(); S.feedErr = null; }
-  catch (e) { S.feedErr = e.message === 'DETECT_NOT_READY' ? 'Detektiver går inte att använda just nu.' : e.message === 'FORUM_NOT_READY' ? 'Forumet går inte att använda just nu.' : e.message === 'SWAP_NOT_READY' ? 'Byt & ge bort går inte att använda just nu.' : errMsg(e); }
+  catch (e) { S.feedErr = e.message === 'DETECT_NOT_READY' ? 'Artbestämning går inte att använda just nu.' : e.message === 'FORUM_NOT_READY' ? 'Forumet går inte att använda just nu.' : e.message === 'SWAP_NOT_READY' ? 'Byt & ge bort går inte att använda just nu.' : errMsg(e); }
   render();
 }
 async function commRun(fn, ok) {
@@ -10833,7 +10928,7 @@ function friendsV() {
   return `${topbar('Gemenskap')}${segBar()}
   ${!S.user ? `<div class="empty"><p>Logga in för att se och skriva till dina vänner.</p><button class="btn sm" onclick="openModal('login')">Logga in eller skapa konto</button></div>` : `${friendReqCard()}
   <div class="sec"><h2>Mina vänner</h2><button class="btn sm line" onclick="openMsgs()">${ic('ph-chat-circle', 'currentColor', 16)} Meddelanden${msgUnread() ? ' (' + msgUnread() + ')' : ''}</button></div>
-  <div class="pad">${F == null ? '<p class="mut">Hämtar…</p>' : F.length ? F.map(f => `<div class="prow2"><button class="popen" onclick="openUser(${jsArg(f.id)})">${avBig(f.display_name)}<span class="grow"><b>${esc(f.display_name)}</b><span>${f.city ? ic('ph-map-pin', 'currentColor', 13) + ' ' + esc(f.city) : 'Vän'}</span></span></button><button class="btn sm" onclick="openChat(${jsArg(f.id)},${jsArg(f.display_name)})">💬 Skriv${un(f.id) ? ' (' + un(f.id) + ')' : ''}</button></div>`).join('') : `<div class="empty"><p>Du har inga vänner än. Hitta andra odlare och skicka en vänförfrågan.</p><button class="btn sm" onclick="openPeople()">Hitta användare</button></div>`}</div>${friendWallV(F)}`}`;
+  <div class="pad">${F == null ? '<p class="mut">Hämtar…</p>' : F.length ? F.map(f => `<div class="prow2"><button class="popen" onclick="openUser(${jsArg(f.id)})">${avBig(f.display_name)}<span class="grow"><b>${esc(f.display_name)}</b><span>${f.city ? ic('ph-map-pin', 'currentColor', 13) + ' ' + esc(f.city) : 'Vän'}</span></span></button><button class="btn sm" onclick="openChat(${jsArg(f.id)},${jsArg(f.display_name)})">💬 Skriv${un(f.id) ? ' (' + un(f.id) + ')' : ''}</button></div>`).join('') : `<div class="empty"><p><b>Du har inga vänner än.</b><br>Hitta andra odlare och skicka en vänförfrågan.</p><button class="btn" onclick="openPeople()">Hitta användare</button></div>`}</div>${friendWallV(F)}`}`;
 }
 function showV() {
   if (S.post) return postV();
@@ -10841,9 +10936,9 @@ function showV() {
   const L = (S.feed || []).filter(p => p.photo_url);
   if (document.documentElement.getAttribute('data-ui') === 'stad') {
     // Städad: fotorutnät i två kolumner och en knapp "Visa upp" längst ner till höger
-    return `${topbar('Gemenskap')}${segBar()}<div class="pad" style="padding-top:12px">${st || (L.length ? `<div class="vgrid">${L.map(postCard).join('')}</div>` : '<div class="empty"><p>Inga bilder än. Bifoga ett foto när du frågar, så visas det här.</p></div>')}</div><button class="fabshow" onclick="openAskQ()" aria-label="Visa upp">${ic(CAM, 'currentColor', 18)}<span>Visa upp</span></button>`;
+    return `${topbar('Gemenskap')}${segBar()}<div class="pad" style="padding-top:12px">${st || (L.length ? `<div class="vgrid">${L.map(postCard).join('')}</div>` : '<div class="empty"><p><b>Inga bilder än.</b><br>Bifoga ett foto när du frågar, så visas det här.</p><button class="btn" onclick="openAskQ()">Ställ en fråga</button></div>')}</div><button class="fabshow" onclick="openAskQ()" aria-label="Visa upp">${ic(CAM, 'currentColor', 18)}<span>Visa upp</span></button>`;
   }
-  return `${topbar('Gemenskap')}${segBar()}<div class="pad" style="padding-top:12px">${st || (L.length ? L.map(postCard).join('') : '<div class="empty"><p>Inga bilder än. Bifoga ett foto när du frågar, så visas det här.</p></div>')}</div>`;
+  return `${topbar('Gemenskap')}${segBar()}<div class="pad" style="padding-top:12px">${st || (L.length ? L.map(postCard).join('') : '<div class="empty"><p><b>Inga bilder än.</b><br>Bifoga ett foto när du frågar, så visas det här.</p><button class="btn" onclick="openAskQ()">Ställ en fråga</button></div>')}</div>`;
 }
 // Annonser nära dig: växla mellan egen ort och egen odlingszon.
 function zoneMatchCity(city) { const mine = myZones(); return cityZones(city).some(z => mine.includes(z)); }
@@ -10955,7 +11050,7 @@ function swapV() {
   const list = (S.listings || []).filter(p => (S.lf === 'Alla' || p.category === S.lf) && (zonOn ? zoneMatchCity(p.city) : (!c || String(p.city || '').toLowerCase().includes(c))))
     .sort((a, b) => (a.taken - b.taken) || b.created_at.localeCompare(a.created_at));
   const body = st && (S.feedErr || !S.listings) ? st
-    : !list.length ? `<div class="empty"><p>${S.listings.length ? 'Inga annonser matchar. Prova en annan ort eller "Alla".' : 'Inga annonser än. Har du en stickling att ge bort?'}</p></div>`
+    : !list.length ? `<div class="empty"><p>${S.listings.length ? 'Inga annonser matchar. Prova en annan ort eller "Alla".' : '<b>Inga annonser än.</b><br>Har du en stickling att ge bort?'}</p>${S.listings.length ? '' : `<button class="btn" onclick="startListing()">Lägg ut en annons</button>`}</div>`
     : list.map(p => `<button class="lcard ${p.taken ? 'taken' : ''}" onclick="openPost(${p.id})">${lThumb(p)}<span class="grow">${ltPill(p)}${p.taken ? ' <span class="pill">Bortlovad</span>' : ''}<b>${esc(p.title || '')}</b><span class="mut">${p.city ? esc(p.city) + ' · ' : ''}${ulink(p.user_id, p.author)} · ${ago(p.created_at)}</span>${p.answers.length ? `<span class="mut" style="display:block">${p.answers.length} svar</span>` : ''}</span></button>`).join('');
   return `${topbar('Gemenskap')}${segBar()}
   ${document.documentElement.getAttribute('data-ui') === 'stad' ? cityRowL() : ''}
@@ -11063,7 +11158,7 @@ function detectV() {
   const c0 = city ? open.filter(c => String(c.city || '').toLowerCase().includes(city.toLowerCase())) : [];
   const show = c0.length ? c0.concat(open.filter(c => !c0.includes(c))) : open;
   return `${topbar('Gemenskap')}${segBar()}
-  <div class="dhead"><div class="grow"><h2 class="brand2">Detektiver</h2><span class="mut">Hjälp grannar${city ? ' i ' + esc(city) : ''} att artbestämma</span></div><span class="ptschip">${ic('ph-trophy', 'currentColor', 14)} ${mine} p</span></div>
+  <div class="dhead"><div class="grow"><h2 class="brand2">Vad är det för växt?</h2><span class="mut">Hjälp grannar${city ? ' i ' + esc(city) : ''} att artbestämma</span></div><span class="ptschip">${ic('ph-trophy', 'currentColor', 14)} ${mine} p</span></div>
   <div class="addbar" style="padding:12px 18px 0"><button class="btn wide" onclick="startCase()">${ic('ph-camera', 'currentColor', 18)} Fråga detektiverna om en växt</button></div>
   ${st && (S.feedErr || !S.cases) ? `<div class="pad" style="padding-top:12px">${st}</div>` : `
   <div class="cases">${show.length ? show.map(c => `<div class="casec">${caseImg(c, 'cimg')}
@@ -11093,8 +11188,8 @@ async function sendCase() {
   S.busy = true; render();
   try {
     await api.newCase(place, (S.cbody || '').trim() || 'Vad är detta?', S.city || place, S.cphoto);
-    S.newCase = false; S.cphoto = null; S.cbody = ''; await refreshComm(); toast('Fallet är publicerat! Detektiverna är på väg 🔎');
-  } catch (e) { toast(e.message === 'DETECT_NOT_READY' ? 'Detektiver går inte att använda just nu.' : errMsg(e)); }
+    S.newCase = false; S.cphoto = null; S.cbody = ''; await refreshComm(); toast('Fallet är publicerat! Andra hjälper dig snart 🔎');
+  } catch (e) { toast(e.message === 'DETECT_NOT_READY' ? 'Artbestämning går inte att använda just nu.' : errMsg(e)); }
   S.busy = false; render();
 }
 function sendGuess(pid) {
@@ -11114,13 +11209,13 @@ function agreeGuess(pid, aid) {
   if (c.answers.some(x => x.user_id === myId() && String(x.body).trim().toLowerCase() === String(a.body).trim().toLowerCase())) return toast('Du håller redan med.');
   commRun(() => api.answer(pid, a.body), 'Du håller med. Rätt gissning ger ' + CASE_PTS + ' p.');
 }
-function markCorrect(pid, aid) { commRun(() => api.best(pid, aid), 'Fallet är löst! Detektiven får ' + CASE_PTS + ' p 🏆'); }
+function markCorrect(pid, aid) { commRun(() => api.best(pid, aid), 'Fallet är löst! Den som hjälpte dig får ' + CASE_PTS + ' p 🏆'); }
 function caseV() {
   const c = (S.cases || []).find(x => x.id === S.post);
   if (!c) { S.post = null; return detectV(); }
   const mine = !!(S.user && c.user_id === myId()), best = c.best_answer_id && c.answers.find(a => a.id === c.best_answer_id);
   const bp = best && S.plants.find(p => p.swedish_name.toLowerCase() === best.body.toLowerCase() || p.latin_name.toLowerCase() === best.body.toLowerCase());
-  return `${topbar('Detektiver', 'S.post=null;S.del=null;render()')}<div class="pad">
+  return `${topbar('Vad är det för växt?', 'S.post=null;S.del=null;render()')}<div class="pad">
   <div class="post" style="margin-top:10px;padding:0;overflow:hidden">${caseImg(c, 'cbig')}<div style="padding:16px">${whoP(c, 'Upplagd i ' + (c.title || c.city || '') + ' · ' + ago(c.created_at), best ? '<span class="pill ok">Löst</span>' : '<span class="pill">Olöst</span>')}
   <h2 style="font-size:21px;margin:6px 0">${best ? esc(best.body) : 'Okänd växt (' + esc(c.title || '') + ')'}</h2><p style="margin:0;white-space:pre-line">${esc(c.body || '')}</p>
   ${best ? `<p class="mut" style="margin:8px 0 0">Löst av <b>${ulink(best.user_id, best.author)}</b>, som fick ${CASE_PTS} p.</p>${bp ? `<button class="btn sm" style="margin-top:10px" onclick="S.tab='home';openPlant(${bp.id})">Se skötselråd för ${esc(bp.swedish_name)}</button>` : ''}` : ''}
@@ -11511,7 +11606,7 @@ function dsfV() {
 function dsSwipe(dir) {
   if (S.dsView === 'match') return mSwipe(dir);
   const id = dsQueue()[0]; if (id == null) return;
-  if (dir === 'r') { wishAdd(id); toast('Sparad i Villhöver'); }
+  if (dir === 'r') { wishAdd(id); toast('Sparad på önskelistan'); }
   else { (S.dsSkip || (S.dsSkip = new Set())).add(id); dsHistPush(id, 'svep'); }
   S.dsQ.shift(); dsRender();
 }
@@ -11546,9 +11641,9 @@ function dsBind() {
 }
 function discoverV() {
   const c = dsF(), n = dsCount();
-  const head = topbar('Plantswipe', 'closeTool()');
+  const head = topbar('Svep bland växter', 'closeTool()');
   if (S.dsView === 'match') return `${head}<div class="seg2" role="tablist"><button onclick="S.dsView='';dsRender()">Svep</button><button class="on">Matcha</button></div>${matchV()}`;
-  const tabs = `<div class="seg2" role="tablist"><button class="${S.dsView !== 'saved' ? 'on' : ''}" onclick="S.dsView='';dsRender()">Svep</button><button onclick="S.dsView='match';S.mq=null;dsRender()">Matcha</button><button class="${S.dsView === 'saved' ? 'on' : ''}" onclick="S.dsView='saved';dsRender()">Villhöver (${dsRight().length})</button></div>`;
+  const tabs = `<div class="seg2" role="tablist"><button class="${S.dsView !== 'saved' ? 'on' : ''}" onclick="S.dsView='';dsRender()">Svep</button><button onclick="S.dsView='match';S.mq=null;dsRender()">Matcha</button><button class="${S.dsView === 'saved' ? 'on' : ''}" onclick="S.dsView='saved';dsRender()">Önskelista (${dsRight().length})</button></div>`;
   if (S.dsView === 'saved') return `${head}${tabs}<div style="margin-top:12px">${wishListHtml()}</div>`;
   const q = dsQueue(), p = q.length ? S.plants.find(x => x.id === q[0]) : null;
   const chips = `<div style="padding:0 16px;display:flex;align-items:center;gap:12px"><button class="btn sm line" onclick="openModal('dsf')">${ic('ph-sliders-horizontal', 'currentColor', 16)} Filter${n ? ' · ' + n : ''}</button>${n ? '<button class="link3" onclick="dsReset()">Rensa</button>' : ''}</div>`;
@@ -11560,10 +11655,10 @@ function discoverV() {
       <button class="link3" style="margin-top:8px" onclick="openPlant(${p.id})">Visa mer om växten</button><br>${imgSearchBtn(p, 'margin-top:6px')}</div></div></div>
     <div style="display:flex;justify-content:center;gap:28px;margin:18px 0 8px">
       <button class="circ" onclick="dsButton('l')" aria-label="Hoppa över" style="width:64px;height:64px;font-size:26px">${ic(KOMPOST_IC, 'currentColor', 26)}</button>
-      <button class="circ" onclick="dsButton('r')" aria-label="Lägg i Villhöver" style="width:64px;height:64px;font-size:26px">💚</button>
+      <button class="circ" onclick="dsButton('r')" aria-label="Lägg på önskelistan" style="width:64px;height:64px;font-size:26px">💚</button>
     </div>
     ${dsUndoBtn()}
-    <p class="mut" style="text-align:center;font-size:13px;margin:0 0 12px">Svep höger för att lägga i Villhöver, vänster för att hoppa över.</p>`;
+    <p class="mut" style="text-align:center;font-size:13px;margin:0 0 12px">Svep höger för att lägga på önskelistan, vänster för att hoppa över.</p>`;
   return `${head}${tabs}<div class="sec" style="margin-top:10px"><h2>Filter</h2></div>${chips}<div style="margin-top:6px">${body}</div>`;
 }
 // ===== Utskrift: veckans skötsel (punkt 1) =====
@@ -11632,15 +11727,15 @@ function matchV() {
   const p = q.ids.length ? S.plants.find(x => x.id === q.ids[0]) : null;
   if (!p) return `<div class="empty" style="margin:24px 16px"><p>Inga fler förslag. Ändra svaren för att se andra växter.</p><button class="btn sm" onclick="S.mq=null;dsRender()">Börja om</button></div>`;
   return `<div style="display:flex;justify-content:center;padding:12px 16px 0"><div id="dscard" style="width:100%;max-width:360px;touch-action:pan-y;user-select:none;background:var(--surf);border-radius:20px;box-shadow:var(--sh);overflow:hidden">${plantPh(p)}<div style="padding:14px 16px 16px"><h3 style="margin:0;font-size:20px">${esc(p.swedish_name)}</h3><i style="color:var(--mut)">${esc(p.latin_name)}</i><button class="link3" style="display:block;margin-top:8px" onclick="openPlant(${p.id})">Visa mer om växten</button>${imgSearchBtn(p, 'margin-top:6px')}</div></div></div>
-  <div style="display:flex;justify-content:center;gap:28px;margin:18px 0 8px"><button class="circ" onclick="dsButton('l')" aria-label="Nästa" style="width:64px;height:64px;font-size:26px">${ic(KOMPOST_IC, 'currentColor', 26)}</button><button class="circ" onclick="dsButton('r')" aria-label="Lägg i Villhöver" style="width:64px;height:64px;font-size:26px">💚</button></div>
+  <div style="display:flex;justify-content:center;gap:28px;margin:18px 0 8px"><button class="circ" onclick="dsButton('l')" aria-label="Nästa" style="width:64px;height:64px;font-size:26px">${ic(KOMPOST_IC, 'currentColor', 26)}</button><button class="circ" onclick="dsButton('r')" aria-label="Lägg på önskelistan" style="width:64px;height:64px;font-size:26px">💚</button></div>
   ${dsUndoBtn()}
-  <p class="mut" style="text-align:center;font-size:13px;margin:0 0 12px">Svep höger för Villhöver, vänster för nästa.</p>`;
+  <p class="mut" style="text-align:center;font-size:13px;margin:0 0 12px">Svep höger för önskelistan, vänster för nästa.</p>`;
 }
 function matchAns(k, v) { const q = S.mq || (S.mq = { step: 0, L: null, W: null, P: null, ids: null, n: 0 }); q[k] = v; if (k === 'P' && !v) q.P = 0; q.step++; q.ids = null; if (q.step >= 3) { q.ids = matchQueue(); } dsRender(); }
 function mSwipe(dir) {
   const q = S.mq; if (!q || !q.ids || !q.ids.length) return;
   const id = q.ids.shift();
-  if (dir === 'r') { wishAdd(id); toast('Lagd i Villhöver'); }
+  if (dir === 'r') { wishAdd(id); toast('Lagd på önskelistan'); }
   else dsHistPush(id, 'match');
   dsRender();
 }
@@ -11927,7 +12022,35 @@ function elvV() { const E = elvS(), D = E.d, C = D ? elvContours(E) : null, num 
     <small class="mut" style="display:block;margin-top:10px">${D ? 'Källa: ' + esc(D.src) + '. Markhöjden är en uppskattning från satellitdata, inte en mätning.' : ''}</small>
   </div>`; }
 
-function toolV() { return S.tool === 'sit' ? sitV() : S.tool === 'elev' ? elvV() : S.tool === 'rain' ? rainV() : S.tool === 'learn' ? learnV() : S.tool === 'ask' ? askV() : S.tool === 'explore' ? exploreV() : S.tool === 'notif' ? notifV() : S.tool === 'msgs' ? msgsV() : S.tool === 'chat' ? chatV() : S.tool === 'mod' ? modV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'news' ? newsV() : S.tool === 'sow' ? sowV() : S.tool === 'perma' ? permaV() : S.tool === 'smart' ? smartV() : S.tool === 'sunpath' ? sunPathV() : S.tool === 'compass' ? compassV() : S.tool === 'nearby' ? nbV() : S.tool === 'discover' ? discoverV() : lightV(); }
+// En mening överst i varje verktyg om vad det gör.
+const TOOLONE = {
+  sit: 'Be en vän passa dina växter när du är bortrest, eller hjälp någon annan.',
+  elev: 'Här ser du hur marken lutar och höjdskillnader runt en adress.',
+  rain: 'Här räknar du ut hur mycket regnvatten ditt tak kan samla.',
+  sunpath: 'Här ser du var solen går och hur många timmar sol en plats får.',
+  ask: 'Skriv din fråga om en växt och få svar direkt.',
+  db: 'Sök i växtbiblioteket och lägg till växter i din samling.',
+  id: 'Ta ett foto av en växt så får du veta vad den heter.',
+  doc: 'Berätta vad som är fel på växten, till exempel gula blad eller skadedjur, så får du hjälp.',
+  experts: 'Fråga en expert och bifoga gärna ett foto. Du får svar av en människa.',
+  light: 'Här mäter du hur ljust det är där växten står.',
+  nearby: 'Här hittar du trädgårdar och handelsträdgårdar nära dig.',
+  compass: 'Kompassen visar var norr är, så att du vet vilket väderstreck fönstret ligger åt.',
+  pets: 'Lägg in dina husdjur så varnar appen om en växt är giftig för dem.',
+  smart: 'Koppla sensorer, lampor och bevattning till dina växter.',
+  season: 'Tips om vad du kan göra med växterna just nu på året.',
+  sow: 'Se när du ska så och förodla de växter du vill odla.',
+  perma: 'Planera en trädgård som härmar naturen så att den sköter sig mest själv.',
+  inspo: 'Hitta odlare att följa på YouTube och Instagram.',
+  discover: 'Svep höger för att lägga en växt på önskelistan, vänster för att hoppa över.',
+  notif: 'Här ser du påminnelser, svar och vänförfrågningar.',
+  msgs: 'Här skriver du meddelanden till dina vänner.',
+};
+function toolV() {
+  const h = toolV0(), t = TOOLONE[S.tool];
+  return t ? h.replace(/(<div class="top[^"]*">[\s\S]*?<\/div>)/, `$1<p class="toolone">${esc(t)}</p>`) : h;
+}
+function toolV0() { return S.tool === 'sit' ? sitV() : S.tool === 'elev' ? elvV() : S.tool === 'rain' ? rainV() : S.tool === 'learn' ? learnV() : S.tool === 'ask' ? askV() : S.tool === 'explore' ? exploreV() : S.tool === 'notif' ? notifV() : S.tool === 'msgs' ? msgsV() : S.tool === 'chat' ? chatV() : S.tool === 'mod' ? modV() : S.tool === 'pets' ? petsV() : S.tool === 'inspo' ? inspoV() : S.tool === 'experts' ? expertsV() : S.tool === 'people' ? peopleV() : S.tool === 'user' ? userV() : S.tool === 'db' ? dbV() : S.tool === 'doc' ? docV() : S.tool === 'house' ? houseV() : S.tool === 'id' ? idV() : S.tool === 'settings' ? settingsV() : S.tool === 'season' ? seasonV() : S.tool === 'news' ? newsV() : S.tool === 'sow' ? sowV() : S.tool === 'perma' ? permaV() : S.tool === 'smart' ? smartV() : S.tool === 'sunpath' ? sunPathV() : S.tool === 'compass' ? compassV() : S.tool === 'nearby' ? nbV() : S.tool === 'discover' ? discoverV() : lightV(); }
 
 // --- Säsongstips ---
 // Varje tips: [typ, rubrik, text, månader i zon 1–2, zon 3–5, zon 6–8]. En lista gäller alla zoner.
@@ -12031,6 +12154,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.389', '12 nov', ['Förnamn och efternamn krävs. Andra ser bara förnamn och första bokstaven i efternamnet, till exempel Jim O. Du som redan har konto får fylla i dem. Enklare ord: Plantswipe heter Svep bland växter, Villhöver heter Önskelista, Nycklas heter Rapportera fel, Detektiver heter Vad är det för växt? Knapparna längst upp har ord under symbolen. Min samling heter likadant överallt. Svåra ord som Leca, Pon och Lux förklaras där de visas. En mening överst i varje verktyg. Att göra på Start: väder och djurvarningar går att bocka av och visar vad du ska göra. Tomma sidor säger vad som saknas och har en knapp. Alla verktyg är sorterade efter vad du vill göra och har en sökruta']],
   ['Beta 0.388', '12 nov', ['Större tryckytor på små knappar, och rundturen följer din textstorlek.']],
   ['Beta 0.387', '12 nov', ['Rundturen går att minimera till en liten knapp längst ner och öppna igen när du vill.']],
   ['Beta 0.386', '12 nov', ['Inbjudan till Familj fungerar nu med en länk. Den som får länken skapar konto, trycker på länken och får frågan om hen vill gå med.']],
@@ -12380,7 +12504,7 @@ const PLAY_URL = 'https://play.google.com/store/apps/details?id=se.roothood.app'
 function checkTesterMsg() { if (S.modal) return; const key = IS_TWA ? 'testMsgSeen' : 'testMsgWebSeen'; if (!IS_TWA && !(S.user && BETA_TESTER)) return; try { if (store.get(key, 0)) return; store.set(key, 1); } catch (e) { return; } S.modal = 'testmsg'; render(); }
 function testerMsgV() {
   const install = IS_TWA ? '' : `<h3 style="margin:16px 0 6px">Installera appen</h3><p style="margin:0 0 6px"><b>Android:</b> <a href="${PLAY_URL}" target="_blank" rel="noopener">installera Roothood från Google Play</a></p><p style="margin:0 0 6px"><b>Från webben eller iPhone:</b> <a href="${PLAY_TEST_URL}" target="_blank" rel="noopener">gå med i testet här</a></p><p style="margin:10px 0 4px"><b>Installera från webbläsaren:</b></p><ul style="padding-left:20px;line-height:1.6;margin:0"><li>Android (Chrome): öppna <a href="https://armbowscarman.github.io/roothood/" target="_blank" rel="noopener">armbowscarman.github.io/roothood</a>, tryck på menyn med tre prickar uppe till höger och välj <b>Installera app</b> eller <b>Lägg till på startskärmen</b>.</li><li>iPhone (Safari): öppna samma adress, tryck på dela-knappen (fyrkanten med en pil uppåt) och välj <b>Lägg till på hemskärmen</b>.</li></ul>`;
-  return `<h2 style="margin:0 0 10px">Tack för att du testar Roothood!</h2><p>Google kollar hur mycket appen används innan den får släppas, så det hjälper jättemycket om du de närmaste två veckorna:</p><ul style="padding-left:20px;line-height:1.6"><li>öppnar appen några gånger</li><li>lägger till ett par växter och provar att identifiera en med kameran</li><li>testar Plantswipe och ställer eller svarar på en fråga i Gemenskap</li><li>skickar minst en kommentar via nyckelpigan (Nycklas) nere till vänster. Både fel och förslag är välkomna.</li></ul>${install}<p style="margin:14px 0 16px">Tack! /Roothood</p><button class="btn wide formbtn" onclick="closeModal()">Okej</button>`;
+  return `<h2 style="margin:0 0 10px">Tack för att du testar Roothood!</h2><p>Google kollar hur mycket appen används innan den får släppas, så det hjälper jättemycket om du de närmaste två veckorna:</p><ul style="padding-left:20px;line-height:1.6"><li>öppnar appen några gånger</li><li>lägger till ett par växter och provar att identifiera en med kameran</li><li>testar Svep bland växter och ställer eller svarar på en fråga i Gemenskap</li><li>skickar minst en kommentar via nyckelpigan nere till vänster. Både fel och förslag är välkomna.</li></ul>${install}<p style="margin:14px 0 16px">Tack! /Roothood</p><button class="btn wide formbtn" onclick="closeModal()">Okej</button>`;
 }
 function checkUpdate() { let seen = '1.202'; try { seen = store.get('seenVer', '1.202'); } catch (e) {} if (seen === APP_VERSION) return; store.set('seenVer', APP_VERSION); S.updFrom = seen; S.modal = 'upd'; render(); }
 function newsV() { return `${topbar('Uppdateringar', 'closeTool()')}<div class="pad">${LANG === 'en' ? '<p class="mut" style="margin:0 0 12px">Uppdateringarna nedan är på svenska.</p>' : ''}<div data-notr>${NEWS.map(n => `<div class="setcard" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><b>Version ${n[0]}</b><span class="mut" style="font-size:13px">${n[1]}</span></div><ul style="margin:8px 0 0;padding-left:18px;font-size:14.5px;line-height:1.5">${n[2].map(x => `<li>${x}</li>`).join('')}</ul></div>`).join('')}</div></div><div style="height:24px"></div>`; }
@@ -14086,7 +14210,7 @@ function idV() {
   ${top}
   ${S.idShots.length && !S.idRes ? `<div class="cta" style="padding:16px 0 4px"><button class="btn" ${S.idBusy ? 'disabled' : ''} onclick="identify()">Identifiera</button></div>` : ''}
   ${res}
-  ${(S.idRes || S.idErr) && !S.idBusy ? `<div class="setcard" style="margin-top:14px;text-align:center"><b style="display:block;font-size:16px">Är det ingen av de här?</b><p class="mut" style="margin:4px 0 12px">Lägg till växten själv med ditt foto. Den hamnar i din samling och i databasen.</p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn sm" onclick="addFromId('','')">+ Lägg till växten själv</button><button class="btn sm cop" onclick="caseFromId()">Fråga Detektiver</button></div></div>` : ''}
+  ${(S.idRes || S.idErr) && !S.idBusy ? `<div class="setcard" style="margin-top:14px;text-align:center"><b style="display:block;font-size:16px">Är det ingen av de här?</b><p class="mut" style="margin:4px 0 12px">Lägg till växten själv med ditt foto. Den hamnar i din samling och i databasen.</p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn sm" onclick="addFromId('','')">+ Lägg till växten själv</button><button class="btn sm cop" onclick="caseFromId()">Fråga andra</button></div></div>` : ''}
   ${!S.idImg && !S.idLive ? `<div class="pdhint" style="margin-top:18px"><span class="ck">💡</span><span><b>Snabbare nästa gång:</b> installera Roothood som app, håll fingret på Roothood-ikonen på startskärmen och dra ut <b>Identifiera växt</b> som en egen genväg. Då öppnas kameran direkt.</span></div>` : ''}</div>`;
 }
 const ID_BAND = s => s >= .6 ? ['Säker', 'ok'] : s >= .2 ? ['Trolig', 'mid'] : ['Osäker', 'low'];
@@ -14481,7 +14605,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.388';
+const APP_VERSION = 'Beta 0.389';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -14696,9 +14820,10 @@ function toggleInterest(c, btn) {
   btn.classList.toggle('on', i < 0); btn.setAttribute('aria-pressed', i < 0);
 }
 async function saveProfile() {
-  const name = ($('#sname').value || '').trim(), city = ($('#scity').value || '').trim();
-  if (name.length < 2) return toast('Namnet måste ha minst 2 tecken.');
-  S.prof.display_name = name; S.prof.city = city; if (S.city !== city) { S.wx = null; } S.city = city;
+  const fn = ($('#sfirst').value || '').trim(), ln = ($('#slast').value || '').trim(), city = ($('#scity').value || '').trim();
+  if (fn.length < 2 || ln.length < 2) return toast('Skriv både förnamn och efternamn, minst 2 bokstäver var.');
+  const name = pubName(fn, ln);
+  S.prof.first_name = fn; S.prof.last_name = ln; S.prof.display_name = name; S.prof.city = city; if (S.city !== city) { S.wx = null; } S.city = city;
   try {
     S.meCard = undefined; await api.saveProfile(S.prof);
     S.user.name = name; applyInterests(S.prof.interests);
@@ -14760,7 +14885,7 @@ function stadSetHome() {
     ])}
   ${sgroup('Mer', [
       PRO_FREE && !S.user ? '' : srow('ph-leaf', 'Roothood Pro', S.pro ? 'Aktiv' : '', S.pro ? "openModal('prointro')" : "openModal('pro')"),
-      S.user ? srow('ph-bug', 'Rapportera fel eller ge förslag', 'Nycklas', 'openFb()') : '',
+      S.user ? srow('ph-bug', 'Rapportera fel eller ge förslag', '', 'openFb()') : '',
       srow('ph-users', 'Hitta användare', '', 'openPeople()'),
       srow('ph-layout', 'Anpassa startskärmen', '', "go('home');openHomeCfg()"),
       srow(DOORI, 'Mitt hem', (S.home || []).length ? S.home.length + ' rum' : '', 'openHouse()'),
@@ -14780,8 +14905,9 @@ function czSugV(city) {
 let profT = null;
 function profAuto() { clearTimeout(profT); const c = $('#scity'), el = $('#czsug'); if (c && el) el.innerHTML = czSugV(c.value.trim()); profT = setTimeout(stadSaveProfile, 900); }
 async function stadSaveProfile() {
-  const n = $('#sname'), c = $('#scity'); if (!n || !S.prof) return;
-  const name = n.value.trim(), city = (c ? c.value : '').trim(); if (name.length < 2) return toast('Namnet måste ha minst 2 tecken.');
+  const n = $('#sfirst'), l = $('#slast'), c = $('#scity'); if (!n || !l || !S.prof) return;
+  const fn = n.value.trim(), ln = l.value.trim(), city = (c ? c.value : '').trim(); if (fn.length < 2 || ln.length < 2) return;
+  const name = pubName(fn, ln); S.prof.first_name = fn; S.prof.last_name = ln;
   S.prof.display_name = name; if (S.city !== city) S.wx = null; S.prof.city = city; S.city = city;
   try { S.meCard = undefined; await api.saveProfile(S.prof); S.user.name = name; applyInterests(S.prof.interests); toast('Sparat'); } catch (e) { toast(errMsg(e)); }
 }
@@ -14797,7 +14923,7 @@ function famSheetV() {
 }
 const STAD_SUBV = {
   profil: () => { const P = S.prof; if (!S.user) return '<p class="mut sexpl">Logga in för att ändra din profil.</p>'; if (!P) return '<p class="mut sexpl">Hämtar profilen…</p>';
-    return `<div class="sform"><label class="fl" for="sname">Namn som andra ser</label><input id="sname" maxlength="40" value="${esc(P.display_name || '')}" oninput="profAuto()">
+    return `<div class="sform"><label class="fl" for="sfirst">Förnamn</label><input id="sfirst" maxlength="30" autocomplete="given-name" value="${esc(P.first_name || splitName(P.display_name).first)}" oninput="profAuto()"><label class="fl" for="slast">Efternamn</label><input id="slast" maxlength="40" autocomplete="family-name" value="${esc(P.last_name || '')}" oninput="profAuto()"><p class="mut sexpl">Andra ser: <b>${esc(pubName(P.first_name || splitName(P.display_name).first, P.last_name) || '')}</b>. Ditt efternamn syns aldrig för andra.</p>
     <label class="fl" for="scity">Ort</label><input id="scity" maxlength="60" placeholder="t.ex. Uppsala" value="${esc(P.city || '')}" oninput="profAuto()"><div id="czsug">${czSugV(P.city || '')}</div>
     <label class="fl">Intressen</label><div class="chips2">${CATS.map(c => `<button class="${P.interests.includes(c) ? 'on' : ''}" aria-pressed="${P.interests.includes(c)}" onclick="toggleInterest('${c}',this);profAuto()">${c}</button>`).join('')}</div>
     <p class="mut sexpl">Ändringar sparas automatiskt.</p></div>`; },
@@ -14842,7 +14968,7 @@ function settingsFullV() {
   const P = S.prof;
   const profile = !S.user ? `<div class="setcard"><p class="mut" style="margin:0 0 12px">Logga in för att ändra din profil.</p><button class="btn sm" onclick="openModal('login')">Logga in eller skapa konto</button></div>`
     : !P ? '<div class="setcard"><p class="mut" style="margin:0">Hämtar profilen…</p></div>'
-    : `<div class="setcard"><label class="fl" for="sname">Namn som andra ser</label><input id="sname" maxlength="40" value="${esc(P.display_name || '')}">
+    : `<div class="setcard"><label class="fl" for="sfirst">Förnamn</label><input id="sfirst" maxlength="30" autocomplete="given-name" value="${esc(P.first_name || splitName(P.display_name).first)}"><label class="fl" for="slast">Efternamn</label><input id="slast" maxlength="40" autocomplete="family-name" value="${esc(P.last_name || '')}"><p class="mut" style="margin:6px 0 0;font-size:13px">Andra ser: <b>${esc(pubName(P.first_name || splitName(P.display_name).first, P.last_name) || '')}</b>. Ditt efternamn syns aldrig för andra.</p>
       <label class="fl" for="scity">Ort (valfritt)</label><input id="scity" maxlength="60" placeholder="t.ex. Uppsala" value="${esc(P.city || '')}">
       <label class="fl">Mina intressen</label><div class="chips2">${CATS.map(c => `<button class="${P.interests.includes(c) ? 'on' : ''}" aria-pressed="${P.interests.includes(c)}" onclick="toggleInterest('${c}',this)">${c}</button>`).join('')}</div>
       <p class="mut" style="margin:8px 0 0;font-size:13px">Intressena styr vad appen visar först.</p>
@@ -14894,8 +15020,8 @@ function settingsFullV() {
     ${DEMO ? `<button class="btn wide line" style="margin-top:12px" onclick="resetDemo()">${S.del === 'reset' ? 'Tryck igen för att börja om' : 'Återställ demodata'}</button>` : ''}
   </div>`;
 }
-function modBtn() { return `<button class="circ" onclick="openMod('open')" aria-label="Moderering" title="Moderering">${ic('ph-shield-check', null, 22)}</button>`; }
-function gearBtn() { return `<button class="circ" onclick="openSettings()" aria-label="Inställningar" title="Inställningar">${ic(GEAR, null, 22)}</button>`; }
+function modBtn() { return `<button class="circ lab" onclick="openMod('open')" aria-label="Moderering" title="Moderering">${ic('ph-shield-check', null, 22)}<span class="cl">Moderera</span></button>`; }
+function gearBtn() { return `<button class="circ lab" onclick="openSettings()" aria-label="Inställningar" title="Inställningar">${ic(GEAR, null, 22)}<span class="cl">Inställningar</span></button>`; }
 function settingsRow() {
   return `<div class="pad" style="padding-top:12px"><button class="setrow" onclick="openSettings()"><span class="tic">${ic(GEAR, 'currentColor', 20)}</span><span class="grow"><b>Inställningar</b><span>Profil, utseende, odlingszon och konto</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`;
 }
@@ -15193,7 +15319,7 @@ let TOURS = null;
 function tourKey() { return 'tourDone_' + (S.user ? S.user.id : 'anon'); }
 function tourPosKey() { return 'tourPos_' + (S.user ? S.user.id : 'anon'); }
 function tourStart(from) { if (TOURS) tourStop(false); closeModalSafe(); TOURS = { i: Math.max(0, Math.min(TOUR.length - 2, +from || 0)) }; tourDraw(); if (!TOURS.tm) TOURS.tm = setInterval(tourPlace, 350); document.addEventListener('click', tourClick, true); window.addEventListener('resize', tourPlace); }
-function closeModalSafe() { if (S.modal && S.modal !== 'zonepick') { try { closeModal(); } catch (e) {} } }
+function closeModalSafe() { if (S.modal && S.modal !== 'zonepick' && S.modal !== 'namepick') { try { closeModal(); } catch (e) {} } }
 function tourStop(done) {
   if (TOURS && TOURS.tm) clearInterval(TOURS.tm); TOURS = null; document.removeEventListener('click', tourClick, true); window.removeEventListener('resize', tourPlace);
   const e = document.getElementById('tourov'); if (e) e.remove(); if (done) { try { store.set(tourKey(), true); } catch (x) {} }
