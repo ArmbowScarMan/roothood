@@ -275,7 +275,7 @@ nav button span,nav button.on span{display:block;font-size:12px;font-weight:700;
 html[data-simple] .btn:not(.sm){min-height:56px;font-size:18px}html[data-simple] .chips2 button{min-height:48px;font-size:16px}
 html[data-simple] nav button{height:66px;min-width:72px}html[data-simple] nav button span{font-size:14px}
 .simpletiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 18px 0}.simpletiles button{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px 10px;border:0;border-radius:22px;background:var(--surf);box-shadow:var(--sh);font:inherit;font-weight:800;font-size:18px;color:var(--ink);cursor:pointer;min-height:112px}
-.firstgoal .opt.fg{display:flex !important;align-items:center;gap:14px}.firstgoal .fgi{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:var(--soft,var(--bg))}.simplepick .opt,.firstgoal .opt{display:block;width:100%;text-align:left;margin:10px 0 0;padding:16px;border-radius:18px;border:2px solid var(--line);background:var(--surf);font:inherit;color:var(--ink);cursor:pointer}.simplepick .opt b,.firstgoal .opt b{display:block;font-size:18px;color:var(--ink)}.firstgoal .fgi{color:var(--pri)}.simplepick .opt span,.firstgoal .opt span{display:block;margin-top:4px;color:var(--mut);font-size:15px;line-height:1.4}
+.firstgoal .opt.hm{display:flex !important;align-items:center;gap:14px}.firstgoal .opt.fg{display:flex !important;align-items:center;gap:14px}.firstgoal .fgi{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:var(--soft,var(--bg))}.simplepick .opt,.firstgoal .opt{display:block;width:100%;text-align:left;margin:10px 0 0;padding:16px;border-radius:18px;border:2px solid var(--line);background:var(--surf);font:inherit;color:var(--ink);cursor:pointer}.simplepick .opt b,.firstgoal .opt b{display:block;font-size:18px;color:var(--ink)}.firstgoal .fgi{color:var(--pri)}.simplepick .opt span,.firstgoal .opt span{display:block;margin-top:4px;color:var(--mut);font-size:15px;line-height:1.4}
 
 /* Rutor och formulär */
 .ov{position:absolute;inset:0;background:rgba(8,20,10,.45);z-index:10;display:flex;align-items:flex-end}
@@ -3569,6 +3569,22 @@ function simplePickV() {
 function simpleChoose(on) { try { store.set(simpleKey(), true); } catch (e) {} setSimple(on); S.modal = null; render(); toast(on ? 'Enkel vy är på' : 'Vanlig vy är på'); }
 function setSimple(on) { store.set('simple', !!on); if (on && (store.get('textsize', 1) || 1) < 1.1) store.set('textsize', 1.1); applyPrefs(); S.ctab = on && !['friends', 'q', 'swap'].includes(S.ctab) ? 'q' : S.ctab; render(); }
 function simpleAskWhenFree() { if (!S.user || DEMO || store.get(simpleKey(), false)) return; if (S.modal || S.tool) return; try { store.set(simpleKey(), true); } catch (e) {} openModal('simplepick'); }
+// Hjälp mig: en knapp som alltid finns på Start. Fråga andra om skärmen man står på, se rundturen igen eller be någon hjälpa till.
+const HELP_SCREEN = { home: 'Start', mine: 'Samling', comm: 'Gemenskap', me: 'Profil' };
+function helpBtnV() { return `<div class="pad" style="margin-top:12px"><button class="btn wide line" onclick="openModal('helpme')">${ic('ph-lifebuoy', 'currentColor', 20)} Hjälp mig</button></div>`; }
+function helpMeV() {
+  const b = (i, t, sub, fn) => `<button class="opt hm" onclick="${fn}"><span class="fgi">${ic(i, 'currentColor', 26)}</span><span class="grow"><b>${t}</b><span>${sub}</span></span></button>`;
+  return `<div class="simplepick firstgoal"><div class="mh"><h2>Hur kan vi hjälpa dig?</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  ${b('ph-chats-circle', 'Fråga andra odlare', 'Skriv vad du fastnat på, så svarar någon.', 'helpAsk()')}
+  ${b('ph-path', 'Visa rundturen igen', 'Steg för steg, med bilder.', 'closeModal();tourFromSettings()')}
+  ${b('ph-share-network', 'Be någon hjälpa mig', 'Skicka appen till en anhörig som kan visa dig.', 'helpShare()')}</div>`;
+}
+function helpAsk() { const sc = HELP_SCREEN[S.tab] || 'appen'; S.draft = 'Jag behöver hjälp på sidan ' + sc + ': '; closeModal(); S.tab = 'comm'; S.ctab = 'q'; S.post = null; render(); loadFeed(); openAskQ(); }
+async function helpShare() {
+  const url = 'https://armbowscarman.github.io/roothood/', text = 'Kan du hjälpa mig komma igång med Roothood, en app för växter?';
+  try { if (navigator.share) { await navigator.share({ title: 'Roothood', text, url }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(text + ' ' + url); toast('Länken är kopierad. Klistra in den i ett meddelande.'); } catch (e) { toast('Skicka den här adressen: ' + url); }
+}
 // Ett första mål för den som inte har någon växt än: en enda fråga, tre stora val.
 function firstGoalV() {
   const b = (ic1, t, sub, fn) => `<button class="opt fg" onclick="${fn}"><span class="fgi">${ic(ic1, 'currentColor', 30)}</span><span class="grow"><b>${t}</b><span>${sub}</span></span></button>`;
@@ -7674,7 +7690,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -9756,7 +9772,7 @@ function homeBlocks(intro) {
   if (!store.get('welcomeDone', false) && !(S.user && !(S.mine && S.mine.length))) out.push(welcomeV());
   out.push(friendReqCard()); out.push(sitReqCard());
   // Nya användare utan växter: bara första steget, resten visas när det finns något att visa
-  if (!(S.mine && S.mine.length)) { out.push(S.user ? firstGoalV() : (intro || '')); if (S.user) out.push(`<div class="pad" style="margin-top:12px"><button class="btn wide line" onclick="openDb()">Bläddra bland ${S.plants.length} växter</button></div>`); return out.join('\n'); }
+  if (!(S.mine && S.mine.length)) { out.push(S.user ? firstGoalV() : (intro || '')); if (S.user) out.push(helpBtnV()); if (S.user) out.push(`<div class="pad" style="margin-top:12px"><button class="btn wide line" onclick="openDb()">Bläddra bland ${S.plants.length} växter</button></div>`); return out.join('\n'); }
   // Växtbiblioteket: alltid en tydlig väg dit, eftersom den är det mest använda verktyget
   const flush = () => { if (tiles.length) { out.push(`<div class="tools">${tiles.join('')}</div>`); tiles = []; } };
   L.forEach(x => {
@@ -9776,6 +9792,7 @@ function homeBlocks(intro) {
   });
   flush();
   if (simpleOn()) out.push(simpleTilesV());
+  if (S.user) out.push(helpBtnV());
   return out.join('\n');
 }
 const CHATI = 'ph-chats-circle', PEOPLEI = 'ph-users';
@@ -11984,6 +12001,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.383', '12 nov', ['Ny knapp Hjälp mig på Start: fråga andra odlare, se rundturen igen eller skicka appen till en anhörig som kan hjälpa dig.']],
   ['Beta 0.382', '12 nov', ['Varje steg i rundturen har nu en bild på funktionen.']],
   ['Beta 0.381', '12 nov', ['Ny på Start utan växter? Du får en enda fråga, Vad vill du göra först?, med tre stora val. Rundturen minns var du var. Påminnelser: vänligare text, och ingen notis de dagar det inte finns något att vattna, skörda eller varna för.']],
   ['Beta 0.380', '12 nov', ['Ny Enkel vy: du väljer vid första start om du vill ha en enkel eller vanlig app, och kan byta under Inställningar. Menyn visar nu namn under ikonerna för alla. Du måste välja odlingszon (stad eller karta) när du skapar konto.']],
@@ -14428,7 +14446,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.382';
+const APP_VERSION = 'Beta 0.383';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
