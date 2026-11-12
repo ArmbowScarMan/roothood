@@ -3725,7 +3725,7 @@ function zonePickV() {
   <div class="chips2 zpchips">${[1, 2, 3, 4, 5, 6, 7, 8].map(z => `<button onclick="pickZone(${z})">Zon ${z}</button>`).join('')}</div>
   <p class="mut" style="font-size:13px;margin:8px 0 0">Zon 1 är mildast (Skåne och kusten i söder) och zon 8 är kallast (fjällen).</p>
   <p class="fl" style="margin:16px 0 6px">Zonkartan</p>
-  <img class="zonkarta" src="zonkarta.jpg" alt="Karta över Sveriges odlingszoner 1 till 8">
+  <a class="btn sm line" href="https://zonkartan.se/" target="_blank" rel="noopener" style="margin-top:8px;display:inline-block">Öppna Svensk Trädgårds zonkarta</a><p class="mut" style="font-size:12px;margin:4px 0 0">Skriv din adress där så ser du din zon. Kartan tillhör Riksförbundet Svensk Trädgård.</p>
   <p class="mut" style="font-size:13px;margin:6px 0 0">Hitta din ort på kartan och välj zonen den ligger i.</p>`;
 }
 async function loadHome() { if (!S.user) return; syncHarvest(); checkZone(); checkNames(); loadSitTasks(); loadFavs(); loadWishes(); loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
@@ -4839,7 +4839,7 @@ function build3dInner(first) {
       planFurnAll().forEach(f => { if (!SURF.includes(f.t) || flOf(f) !== pfl) return; const dx = sx - f.x, dz = sy - f.y, r = (f.rot || 0) * Math.PI / 180, lx = dx * Math.cos(r) + dz * Math.sin(r), lz = -dx * Math.sin(r) + dz * Math.cos(r);
         const inside = ROUNDS.has(f.t) ? Math.hypot(dx, dz) <= f.w / 2 + 0.05 : Math.abs(lx) <= f.w / 2 + 0.05 && Math.abs(lz) <= f.h / 2 + 0.05; if (inside) lift = Math.max(lift, (FH[f.t] || 0.8) + 0.01); }); }
     if (m.details.place !== 'Upp och ner' && !m.details.lamp) leanToLight3d(THREE, gr.userData.pl, pRoom, sx, sy, pfl);
-    (gr.userData || (gr.userData = {})).pid = m.id; gr.position.set(sx, fyOf(pfl) + lift, sy); sc.add(gr); if (m.details.lamp && !['Ampel', 'Upp och ner'].includes(m.details.place) && !planItems().some(it => it.t === 'grow' && Math.hypot(it.x - sx, it.y - sy) < 0.6)) { const lg = new THREE.Group(), K = kit3(THREE, M, lg, 5), fy0 = fyOf(pfl), y0 = Math.min(fy0 + 2.32, fy0 + lift + PT.top + (+m.details.lampcm || 40) / 100), top = fy0 + 2.4 - y0; K.cyl(0.003, 0.003, top, '#3A3A3A', 0, top / 2, 0, 4); K.cyl(0.016, 0.016, 0.04, '#2A2A2A', 0, 0.06, 0, 10); K.cyl(0.032, 0.05, 0.06, '#E2E2E0', 0, 0.012, 0, 16); K.cyl(0.045, 0.045, 0.006, '#FFF6E2', 0, -0.02, 0, 20, { emissive: '#FFE2A8' }); lg.position.set(sx, y0, sy); (lg.userData || (lg.userData = {})).pid = m.id; sc.add(lg); } if (mineSunBad(m)) sunRing3d(THREE, M, sc, sx, sy, fyOf(pfl) + lift - 0.02, m.id); PLT.push({ x: sx, z: sy, y: fyOf(pfl) + lift, top: fyOf(pfl) + lift + (PT.inv ? PT.H + 0.04 : PT.top), fl: pfl }); });
+    (gr.userData || (gr.userData = {})).pid = m.id; gr.position.set(sx, fyOf(pfl) + lift, sy); sc.add(gr); if (mineSunBad(m)) sunRing3d(THREE, M, sc, sx, sy, fyOf(pfl) + lift - 0.02, m.id); PLT.push({ x: sx, z: sy, y: fyOf(pfl) + lift, top: fyOf(pfl) + lift + (PT.inv ? PT.H + 0.04 : PT.top), fl: pfl }); });
   // smarta saker
   devices3d(THREE, M, sc, PLT, fyOf);
   growZones3d(THREE, M, sc, fyOf);
@@ -7273,8 +7273,7 @@ function suZoneV() {
   ${z ? `<p class="suok"><b>Vald: zon ${z}</b> <button type="button" class="link3" onclick="S.suZone=0;suRedraw()">Ändra</button></p>` : ''}
   <div class="sowcity"><input type="search" id="suq" placeholder="Skriv din stad, t.ex. Umeå" value="${esc(S.suq || '')}" oninput="S.suq=this.value;const e=$('#sucity');if(e)e.innerHTML=suCityHits()" aria-label="Sök stad"><div id="sucity" class="sowcityh">${suCityHits()}</div></div>
   <div class="chips2 zpchips" style="margin-top:8px">${[1, 2, 3, 4, 5, 6, 7, 8].map(k => `<button type="button" class="${z === k ? 'on' : ''}" aria-pressed="${z === k}" onclick="suPick(${k})">Zon ${k}</button>`).join('')}</div>
-  <button type="button" class="btn sm line" style="margin-top:8px" onclick="S.suMap=!S.suMap;suRedraw()">${S.suMap ? 'Dölj zonkartan' : 'Visa zonkartan'}</button>
-  ${S.suMap ? '<img class="zonkarta" src="zonkarta.jpg" alt="Karta över Sveriges odlingszoner 1 till 8">' : ''}`;
+  <a class="btn sm line" href="https://zonkartan.se/" target="_blank" rel="noopener" style="margin-top:8px;display:inline-block">Öppna Svensk Trädgårds zonkarta</a><p class="mut" style="font-size:12px;margin:4px 0 0">Skriv din adress där så ser du din zon. Kartan tillhör Riksförbundet Svensk Trädgård.</p>`;
 }
 function suRedraw() { const e = $('#suzone'); if (e) e.innerHTML = suZoneV(); }
 function suPick(z) { S.suZone = z; suRedraw(); }
@@ -12201,6 +12200,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.393', '12 nov', ['Växter med växtlampa får inte längre en lampa ovanför sig i 3D. Lampor placerar du själv med lampverktyget', 'Zonkartan: bilden var felaktig (Älvsbyn låg fel) och är borttagen. I stället öppnas Svensk Trädgårds egen zonkarta på zonkartan.se']],
   ['Beta 0.392', '12 nov', ['Rabatten: appen visar nu när växterna blommar månad för månad och säger om något månad saknas', 'Rabatten: råd om höga och låga växter, marktäckare och för många sorter', 'Rabatten: en bild framifrån som visar hur hög och bred rabatten blir', 'Ny rabatt: börja från färdiga mallar', 'Ritningen: knappen Bild sparar eller delar ritningen som bild', 'Nya konton: tydligare första steg med val att ta foto av växten']],
   ['Beta 0.391', '12 nov', ['Skanna rummet (bara admin): knapp direkt på sidan Mitt hem']],
   ['Beta 0.390', '12 nov', ['Formuläret Nytt rum fungerar igen. Det blev tomt för några.', 'Skanna rummet (bara admin): mät rummet med djupkameran och föreslå fönster och dörrar från foton']],
@@ -12679,8 +12679,7 @@ function monthsTxt(h) { if (!h || !h.length) return ''; const a = h[0], b = h[h.
 const sowKeep = () => S.modal ? keepScroll() : keepMain();
 function zoneEditV(z) {
   return `<div class="sowcity"><input type="search" placeholder="Skriv din ort, t.ex. Umeå" value="${esc(S.sowCq || '')}" oninput="sowCityQ(this.value)" aria-label="Sök ort"><div id="sowcity" class="sowcityh">${sowCityHits()}</div></div>
-  <div class="sowhintr"><p class="sowhint">Eller välj din zon direkt.</p><button class="btn sm line" onclick="S.sowMap=!S.sowMap;sowKeep()">${S.sowMap ? 'Dölj zonkarta' : 'Visa zonkarta'}</button></div>
-  ${S.sowMap ? '<img class="zonkarta" src="zonkarta.jpg" alt="Sveriges odlingszoner, zon 1 till 8 och fjäll" loading="lazy">' : ''}
+  <div class="sowhintr"><p class="sowhint">Eller välj din zon direkt.</p><a class="btn sm line" href="https://zonkartan.se/" target="_blank" rel="noopener">Öppna zonkartan</a></div>
   <div class="sowzs">${[1, 2, 3, 4, 5, 6, 7, 8].map(k => `<button class="${z === k ? 'on' : ''}" aria-pressed="${z === k}" onclick="setPref('zone',${k})"><b>${k}</b><span>${SOWZN[k]}</span></button>`).join('')}</div>`;
 }
 // "Ändra zon" i Säsongstips: öppna inställningarna och scrolla direkt till zonvalet
@@ -12696,7 +12695,7 @@ const d0 = () => { const t = new Date(); return new Date(t.getFullYear(), t.getM
 const dIso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const dParse = s => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, m - 1, d); };
 const SOWZN = { 1: 'Malmö, Lund, Ystad, Visby, Öland', 2: 'Göteborg, Halmstad, Kalmar, Karlskrona', 3: 'Stockholm, Linköping, Västerås, Skövde', 4: 'Örebro, Karlstad, Gävle, Jönköping', 5: 'Umeå, Sundsvall, Mora, Falun', 6: 'Luleå, Piteå, Skellefteå, Haparanda', 7: 'Östersund, Strömsund, Gällivare, Jokkmokk', 8: 'Kiruna och Pajala' };
-// Stad → zon (efter zonkartan från Blomsterlandet). Sök på staden så väljs zonen åt dig.
+// Stad → zon (ungefärlig lista, officiell karta: zonkartan.se). Sök på staden så väljs zonen åt dig.
 const CITYZ = { 'Malmö': 1, 'Lund': 1, 'Ystad': 1, 'Trelleborg': 1, 'Visby': 1, 'Borgholm': 1, 'Mörbylånga': 1,
   'Göteborg': 2, 'Halmstad': 2, 'Falkenberg': 2, 'Kungsbacka': 2, 'Kalmar': 2, 'Karlskrona': 2, 'Strömstad': 2, 'Trollhättan': 2, 'Kristianstad': 2, 'Ängelholm': 2, 'Helsingborg': 2,
   'Stockholm': 3, 'Linköping': 3, 'Norrköping': 3, 'Nyköping': 3, 'Västerås': 3, 'Enköping': 3, 'Skövde': 3, 'Uppsala': 3, 'Alingsås': 2,
@@ -14767,7 +14766,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.392';
+const APP_VERSION = 'Beta 0.393';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
