@@ -3912,6 +3912,7 @@ function simpleHomeV() {
   const shut = store.get('rmShut', false);
   return `${topbar('Mitt hem', 'closeTool()')}<div class="wz"><h1 style="margin-bottom:2px">Ditt hem</h1><p class="mut" style="margin:0 0 6px">${rooms.length} rum · ${placed} ${placed === 1 ? 'växt' : 'växter'} placerade. Tryck på ett rum för att ändra.</p>
     <div class="hacts"><button class="pri" onclick="wzStart()">${ic('ph-plus-circle', 'currentColor', 22)}Lägg till rum</button><button onclick="setHMode('adv','3d')">${ic('ph-cube', 'currentColor', 22)}Visa huset i 3D</button><button onclick="setHMode('adv','plan')">${ic(PEN, 'currentColor', 22)}Rita planritning</button></div>
+    ${isAdmin() ? `<button class="btn wide line" style="margin:0 0 10px" onclick="S.scn = S.scn || {}; openModal('scanres')">Skanna rummet (test, bara admin)</button>` : ''}
     <button class="rmhead ${shut ? 'shut' : ''}" aria-expanded="${!shut}" onclick="store.set('rmShut', ${!shut}); keepMain()">${ic('ph-caret-down', 'currentColor', 16)} Rum <small>${rooms.length} st · ${shut ? 'Visa' : 'Dölj'}</small></button>
     ${shut ? '' : `<div class="wzlist sl">${rooms.map(r => { const n = plantsIn(r.id).length, l = lightOf(r); return `<button class="wzroom" onclick="wzStart(null,'${r.id}')">${ic(lightIc(l), l === 'Mycket ljust' ? '#E0A11B' : l === 'Halvljust' ? '#D99A2B' : 'var(--mut)', 22)}<span class="grow"><b>${esc(r.name)}</b><span>${[(r.dirs || []).map(dirName).join(' och '), l].filter(Boolean).join(' · ')}</span></span><span class="wzbadge ${n ? 'on' : ''}">${n ? n + (n === 1 ? ' växt' : ' växter') : 'Tomt'}</span></button>`; }).join('')}</div>`}
     ${noRoom.length ? `<p class="wzlbl">${noRoom.length} ${noRoom.length === 1 ? 'växt' : 'växter'} utan rum</p><div class="wzlist">${noRoom.slice(0, 6).map(m => `<button class="wzl" onclick="pickRoomFor(${m.id})">${myPh(m)}<span class="grow"><b>${esc(m.name)}</b><span>Tryck för att välja rum</span></span></button>`).join('')}</div>` : ''}</div>`;
@@ -12164,6 +12165,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.391', '12 nov', ['Skanna rummet (bara admin): knapp direkt på sidan Mitt hem']],
   ['Beta 0.390', '12 nov', ['Formuläret Nytt rum fungerar igen. Det blev tomt för några.', 'Skanna rummet (bara admin): mät rummet med djupkameran och föreslå fönster och dörrar från foton']],
   ['Beta 0.389', '12 nov', ['Förnamn och efternamn krävs. Andra ser bara förnamn och första bokstaven i efternamnet, till exempel Jim O. Du som redan har konto får fylla i dem. Enklare ord: Plantswipe heter Svep bland växter, Villhöver heter Önskelista, Nycklas heter Rapportera fel, Detektiver heter Vad är det för växt? Knapparna längst upp har ord under symbolen. Min samling heter likadant överallt. Svåra ord som Leca, Pon och Lux förklaras där de visas. En mening överst i varje verktyg. Att göra på Start: väder och djurvarningar går att bocka av och visar vad du ska göra. Tomma sidor säger vad som saknas och har en knapp. Alla verktyg är sorterade efter vad du vill göra och har en sökruta']],
   ['Beta 0.388', '12 nov', ['Större tryckytor på små knappar, och rundturen följer din textstorlek.']],
@@ -14712,7 +14714,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.390';
+const APP_VERSION = 'Beta 0.391';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
