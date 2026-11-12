@@ -275,6 +275,7 @@ nav button span,nav button.on span{display:block;font-size:12px;font-weight:700;
 html[data-simple] .btn:not(.sm){min-height:56px;font-size:18px}html[data-simple] .chips2 button{min-height:48px;font-size:16px}
 html[data-simple] nav button{height:66px;min-width:72px}html[data-simple] nav button span{font-size:14px}
 .simpletiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 18px 0}.simpletiles button{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px 10px;border:0;border-radius:22px;background:var(--surf);box-shadow:var(--sh);font:inherit;font-weight:800;font-size:18px;color:var(--ink);cursor:pointer;min-height:112px}
+.faq{border-top:1px solid var(--line);padding:10px 2px}.faq summary{font-weight:700;font-size:16px;cursor:pointer;min-height:32px}.faq p{margin:8px 0 2px;font-size:15px;line-height:1.45;color:var(--mut)}
 .firstgoal .opt.hm{display:flex !important;align-items:center;gap:14px}.firstgoal .opt.fg{display:flex !important;align-items:center;gap:14px}.firstgoal .fgi{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:var(--soft,var(--bg))}.simplepick .opt,.firstgoal .opt{display:block;width:100%;text-align:left;margin:10px 0 0;padding:16px;border-radius:18px;border:2px solid var(--line);background:var(--surf);font:inherit;color:var(--ink);cursor:pointer}.simplepick .opt b,.firstgoal .opt b{display:block;font-size:18px;color:var(--ink)}.firstgoal .fgi{color:var(--pri)}.simplepick .opt span,.firstgoal .opt span{display:block;margin-top:4px;color:var(--mut);font-size:15px;line-height:1.4}
 
 /* Rutor och formulär */
@@ -3577,8 +3578,25 @@ function helpMeV() {
   return `<div class="simplepick firstgoal"><div class="mh"><h2>Hur kan vi hjälpa dig?</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   ${b('ph-chats-circle', 'Fråga andra odlare', 'Skriv vad du fastnat på, så svarar någon.', 'helpAsk()')}
   ${b('ph-path', 'Visa rundturen igen', 'Steg för steg, med bilder.', 'closeModal();tourFromSettings()')}
-  ${b('ph-share-network', 'Be någon hjälpa mig', 'Skicka appen till en anhörig som kan visa dig.', 'helpShare()')}</div>`;
+  ${b('ph-share-network', 'Be någon hjälpa mig', 'Skicka appen till en anhörig som kan visa dig.', 'helpShare()')}
+  ${b('ph-headset', 'Kontakta support', 'Mejla oss, rapportera ett fel eller läs svar på vanliga frågor.', "openModal('support')")}</div>`;
 }
+const SUPPORT_MAIL = 'roothood.app@gmail.com';
+const SUPPORT_FAQ = [
+  ['Hur lägger jag till en växt?', 'Gå till Start och tryck Sök växter. Sök på namnet och tryck Lägg till i min samling.'],
+  ['Jag får inga påminnelser', 'Öppna Inställningar och slå på notiser och välj vilken tid du vill ha dem. Tillåt också notiser för Roothood i telefonens inställningar.'],
+  ['Hur gör jag appen enklare?', 'Öppna Inställningar, välj Vy och tryck Enkel. Där kan du också göra texten större.'],
+  ['Hur raderar jag mitt konto?', 'Öppna Inställningar och välj Konto. Där kan du radera kontot och allt som hör till det.'],
+  ['Appen strular', 'Stäng appen helt och öppna den igen. Hjälper det inte, tryck på Rapportera fel nedan så ser vi det.']];
+function supportV() {
+  return `<div class="simplepick firstgoal"><div class="mh"><h2>Support</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <p style="margin:0;font-size:15.5px;line-height:1.45">Vi svarar så fort vi kan. Skriv gärna vad du försökte göra och vilken telefon du har.</p>
+  <a class="opt hm" style="text-decoration:none" href="mailto:${SUPPORT_MAIL}?subject=${encodeURIComponent('Roothood: hjälp')}"><span class="fgi">${ic('ph-envelope-simple', 'currentColor', 26)}</span><span class="grow"><b>Mejla support</b><span>${SUPPORT_MAIL}</span></span></a>
+  <button class="opt hm" onclick="closeModal();openFb()"><span class="fgi">${ic('ph-bug', 'currentColor', 26)}</span><span class="grow"><b>Rapportera fel eller ge förslag</b><span>Skickas direkt till oss, inloggad.</span></span></button>
+  <h3 style="margin:18px 0 4px;font-size:17px">Vanliga frågor</h3>
+  ${SUPPORT_FAQ.map(([q, a]) => `<details class="faq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</div>`;
+}
+function supportBtn() { return `<button class="circ" onclick="openModal('support')" aria-label="Hjälp och support" title="Hjälp och support">${ic('ph-lifebuoy', null, 22)}</button>`; }
 function helpAsk() { const sc = HELP_SCREEN[S.tab] || 'appen'; S.draft = 'Jag behöver hjälp på sidan ' + sc + ': '; closeModal(); S.tab = 'comm'; S.ctab = 'q'; S.post = null; render(); loadFeed(); openAskQ(); }
 async function helpShare() {
   const url = 'https://armbowscarman.github.io/roothood/', text = 'Kan du hjälpa mig komma igång med Roothood, en app för växter?';
@@ -7618,7 +7636,7 @@ function topbar(title, backFn, extra) {
     ? `<button class="circ" onclick="${backFn}" aria-label="Tillbaka">${ic(I.back, null, 22)}</button>`
     : `<img class="logoimg" src="${LOGO}" alt="Roothood" width="40" height="40">`;
   const right = stadUI() && ((title === 'Profil' && S.tab === 'me' && !S.tool) || S.tool === 'notif') ? '' : bellBtn(), help = S.tool === 'house' ? helpBtn() : (title === 'Min samling' && !backFn ? `<button class="circ" onclick="openQAdd()" aria-label="Lägg till växt">${ic('ph-plus', null, 22)}</button>` : '');
-  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1${title.length > 26 ? ' class="long"' : ''}>${esc(title)}</h1>${extra || (title === 'Gemenskap' ? communityBtns() : '')}${help}${right}</div>`;
+  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1${title.length > 26 ? ' class="long"' : ''}>${esc(title)}</h1>${extra || (title === 'Gemenskap' ? communityBtns() : '')}${help}${S.user && !help && !extra && title !== 'Gemenskap' && !backFn ? supportBtn() : ''}${right}</div>`;
 }
 function communityBtns() {
   // Städad (116): bara sök och notiser till höger, hjälpen ligger i en ⋯-meny
@@ -7690,7 +7708,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -12001,6 +12019,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.384', '12 nov', ['Support är lätt att hitta: en hjälpknapp längst upp på Start, Samling och Profil, och under Hjälp mig. Där kan du mejla oss, rapportera fel och läsa svar på vanliga frågor.']],
   ['Beta 0.383', '12 nov', ['Ny knapp Hjälp mig på Start: fråga andra odlare, se rundturen igen eller skicka appen till en anhörig som kan hjälpa dig.']],
   ['Beta 0.382', '12 nov', ['Varje steg i rundturen har nu en bild på funktionen.']],
   ['Beta 0.381', '12 nov', ['Ny på Start utan växter? Du får en enda fråga, Vad vill du göra först?, med tre stora val. Rundturen minns var du var. Påminnelser: vänligare text, och ingen notis de dagar det inte finns något att vattna, skörda eller varna för.']],
@@ -14446,7 +14465,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.383';
+const APP_VERSION = 'Beta 0.384';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -14835,6 +14854,7 @@ function settingsFullV() {
   ${famV()}
   ${psV()}
   ${account}
+  <div class="sec"><h2>Support</h2></div><div class="pad"><button class="setrow" onclick="openModal('support')"><span class="tic">${ic('ph-lifebuoy', 'currentColor', 20)}</span><span class="grow"><b>Hjälp och support</b><span>Mejla oss, rapportera fel, vanliga frågor</span></span></button></div>
   <div class="sec"><h2>Rundtur</h2></div><div class="pad"><button class="setrow" onclick="tourFromSettings()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Visa rundturen</b><span>Gå igenom de vanligaste funktionerna steg för steg</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="sec"><h2>Nytt i appen</h2></div><div class="pad"><button class="setrow" onclick="openNews()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Uppdateringslogg</b><span>Se vad som är nytt i version ${APP_VERSION}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   ${PRO_FREE && !S.user ? '' : `<div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="${S.pro ? "openModal('prointro')" : "openModal('pro')"}"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`}
