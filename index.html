@@ -275,7 +275,7 @@ nav button span,nav button.on span{display:block;font-size:12px;font-weight:700;
 html[data-simple] .btn:not(.sm){min-height:56px;font-size:18px}html[data-simple] .chips2 button{min-height:48px;font-size:16px}
 html[data-simple] nav button{height:66px;min-width:72px}html[data-simple] nav button span{font-size:14px}
 .simpletiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 18px 0}.simpletiles button{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px 10px;border:0;border-radius:22px;background:var(--surf);box-shadow:var(--sh);font:inherit;font-weight:800;font-size:18px;color:var(--ink);cursor:pointer;min-height:112px}
-.simplepick .opt{display:block;width:100%;text-align:left;margin:10px 0 0;padding:16px;border-radius:18px;border:2px solid var(--line);background:var(--surf);font:inherit;color:var(--ink);cursor:pointer}.simplepick .opt b{display:block;font-size:18px}.simplepick .opt span{display:block;margin-top:4px;color:var(--mut);font-size:15px;line-height:1.4}
+.firstgoal .opt.fg{display:flex !important;align-items:center;gap:14px}.firstgoal .fgi{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:var(--soft,var(--bg))}.simplepick .opt,.firstgoal .opt{display:block;width:100%;text-align:left;margin:10px 0 0;padding:16px;border-radius:18px;border:2px solid var(--line);background:var(--surf);font:inherit;color:var(--ink);cursor:pointer}.simplepick .opt b,.firstgoal .opt b{display:block;font-size:18px;color:var(--ink)}.firstgoal .fgi{color:var(--pri)}.simplepick .opt span,.firstgoal .opt span{display:block;margin-top:4px;color:var(--mut);font-size:15px;line-height:1.4}
 
 /* Rutor och formulär */
 .ov{position:absolute;inset:0;background:rgba(8,20,10,.45);z-index:10;display:flex;align-items:flex-end}
@@ -3569,6 +3569,14 @@ function simplePickV() {
 function simpleChoose(on) { try { store.set(simpleKey(), true); } catch (e) {} setSimple(on); S.modal = null; render(); toast(on ? 'Enkel vy är på' : 'Vanlig vy är på'); }
 function setSimple(on) { store.set('simple', !!on); if (on && (store.get('textsize', 1) || 1) < 1.1) store.set('textsize', 1.1); applyPrefs(); S.ctab = on && !['friends', 'q', 'swap'].includes(S.ctab) ? 'q' : S.ctab; render(); }
 function simpleAskWhenFree() { if (!S.user || DEMO || store.get(simpleKey(), false)) return; if (S.modal || S.tool) return; try { store.set(simpleKey(), true); } catch (e) {} openModal('simplepick'); }
+// Ett första mål för den som inte har någon växt än: en enda fråga, tre stora val.
+function firstGoalV() {
+  const b = (ic1, t, sub, fn) => `<button class="opt fg" onclick="${fn}"><span class="fgi">${ic(ic1, 'currentColor', 30)}</span><span class="grow"><b>${t}</b><span>${sub}</span></span></button>`;
+  return `<div class="pad firstgoal" style="margin-top:14px"><h2 style="margin:0 0 4px">Vad vill du göra först?</h2><p class="mut" style="margin:0 0 6px;font-size:15px">Välj ett. Du kan alltid göra det andra sedan.</p>
+  ${b('ph-plant', 'Lägga till en växt jag har', 'Sök på namn och tryck Lägg till. Sedan får du en vattningsplan.', "toast('Sök din växt och tryck Lägg till i min samling');openDb()")}
+  ${b('ph-leaf', 'Hitta en växt som passar mig', 'Svep igenom växter efter din zon och ditt ljus.', 'openDiscover()')}
+  ${b('ph-chats-circle', 'Fråga om en växt', 'Få svar direkt eller fråga andra odlare.', 'openAsk()')}</div>`;
+}
 function simpleTilesV() {
   return `<div class="simpletiles"><button onclick="S.mtab='mine';go('mine')">${ic('ph-plant', 'currentColor', 34)}Min samling</button><button onclick="openAsk()">${ic('ph-sparkle', 'currentColor', 34)}Fråga om en växt</button><button onclick="openDb()">${ic('ph-magnifying-glass', 'currentColor', 34)}Sök växter</button><button onclick="go('comm');setCtab('q')">${ic('ph-chats-circle', 'currentColor', 34)}Fråga andra</button></div>`;
 }
@@ -9744,10 +9752,11 @@ function toolTile(k, size) {
 function homeBlocks(intro) {
   const L = homeLayout().filter(x => x.on), out = []; let tiles = [];
   const qfav = L.some(x => x.k === 'quick') ? favs().slice(0, 7) : [];
-  if (!store.get('welcomeDone', false)) out.push(welcomeV());
+  // Utan växter ersätts det gamla välkomstkortet av Vad vill du göra först?
+  if (!store.get('welcomeDone', false) && !(S.user && !(S.mine && S.mine.length))) out.push(welcomeV());
   out.push(friendReqCard()); out.push(sitReqCard());
   // Nya användare utan växter: bara första steget, resten visas när det finns något att visa
-  if (!(S.mine && S.mine.length)) { out.push(intro || ''); if (S.user) out.push(`<div class="pad" style="margin-top:12px"><button class="btn wide line" onclick="openDb()">Bläddra bland ${S.plants.length} växter</button></div>`); return out.join('\n'); }
+  if (!(S.mine && S.mine.length)) { out.push(S.user ? firstGoalV() : (intro || '')); if (S.user) out.push(`<div class="pad" style="margin-top:12px"><button class="btn wide line" onclick="openDb()">Bläddra bland ${S.plants.length} växter</button></div>`); return out.join('\n'); }
   // Växtbiblioteket: alltid en tydlig väg dit, eftersom den är det mest använda verktyget
   const flush = () => { if (tiles.length) { out.push(`<div class="tools">${tiles.join('')}</div>`); tiles = []; } };
   L.forEach(x => {
@@ -11975,6 +11984,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.381', '12 nov', ['Ny på Start utan växter? Du får en enda fråga, Vad vill du göra först?, med tre stora val. Rundturen minns var du var. Påminnelser: vänligare text, och ingen notis de dagar det inte finns något att vattna, skörda eller varna för.']],
   ['Beta 0.380', '12 nov', ['Ny Enkel vy: du väljer vid första start om du vill ha en enkel eller vanlig app, och kan byta under Inställningar. Menyn visar nu namn under ikonerna för alla. Du måste välja odlingszon (stad eller karta) när du skapar konto.']],
   ['Beta 0.379', '12 nov', ['Välkomstkort i Gemenskap med tre små uppgifter. Du ser obesvarade frågor om dina växter överst. I Detektiver kan du trycka Jag håller med på någon annans gissning.']],
   ['Beta 0.378', '12 nov', ['Gemenskap har färre flikar. Händer nära dig är nu ett filter, Nära mig, under Byt & ge bort, och Visa upp och Forum göms tills det finns några inlägg.']],
@@ -14417,7 +14427,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.380';
+const APP_VERSION = 'Beta 0.381';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -15076,11 +15086,12 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.modal) c
   document.addEventListener('scroll', () => { const a = document.activeElement; if (a && a.matches && a.matches('input[type=search]')) a.blur(); }, true);
   window.dropKb = drop; }
 
-function tourFromSettings() { S.tool = null; S.setSub = null; go('home'); setTimeout(tourStart, 150); }
+function tourFromSettings() { S.tool = null; S.setSub = null; go('home'); setTimeout(() => tourStart(0), 150); }
 // ===== Rundtur: guidad genomgång av de vanligaste funktionerna =====
 // Ett steg i taget. Rutan sitter ovanför menyn och appen går att använda under tiden. Steg med "Tryck" bockas av när man trycker på markerade knappen.
 const TOUR = [
   { t: 'Välkommen till Roothood 🌱', b: 'Den här rundturen tar ungefär två minuter och visar det du mest kommer använda. Du kan hoppa över när du vill och starta om den under Inställningar.', nx: 'Starta' },
+  { pic: 'demo', t: 'Så här går det till', b: 'Tre steg: du söker upp din växt, trycker Lägg till, och appen säger när den ska ha vatten. Sedan provar du själv.', nx: 'Prova själv' },
   { t: 'Sök bland alla växter', b: 'Växtbiblioteket har skötselråd för hundratals växter. Sök på namn, filtrera på odlingszon eller blomfärg, och tryck på Lägg till i min samling.', show: ['Visa växtbiblioteket', () => openDb()] },
   { t: 'Din samling', b: 'Tryck på Samling i menyn. Här ligger dina växter.', tap: 'nav button[data-t="mine"]', tab: 'mine', hint: 'Tryck på Samling' },
   { t: 'Vattning och skötsel', b: 'Samling visar vad som behöver vatten i dag. Tryck på en växt för att logga vattning, ladda upp foton och anteckna hur den mår.', tab: 'mine' },
@@ -15092,17 +15103,20 @@ const TOUR = [
   { t: 'Din profil', b: 'Tryck på Profil. Här lägger du in ort och odlingszon, väljer notiser och hittar Inställningar, där du också kan dela din trädgårdsplan med vänner.', tap: 'nav button[data-t="me"]', tab: 'me', hint: 'Tryck på Profil' },
   { t: 'Nu kan du börja 🌿', b: 'Lägg till din första växt via Sök växter på Start. Vill du gå igenom rundturen igen hittar du den under Inställningar.', nx: 'Klart' }
 ];
-const TOUR_PIC = { bed: (() => `<svg viewBox="0 0 300 110" width="100%" aria-hidden="true" style="border-radius:12px;display:block;margin:0 0 10px"><rect width="300" height="110" fill="#CFE5B8"/><polygon points="40,86 70,26 250,22 262,84" fill="#8A5A34" opacity=".55" stroke="#6B4A2A" stroke-width="2"/>${[[80,70,7],[110,70,7],[140,70,7],[170,70,7],[200,70,7],[230,68,7],[95,48,10],[135,46,10],[175,45,10],[215,44,10]].map(([x,y,r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${r>8?'#E07BA0':'#7FB05B'}" stroke="#fff" stroke-width="1.5"/><circle cx="${x}" cy="${y}" r="${r+5}" fill="none" stroke="#fff" stroke-dasharray="2 3" opacity=".8"/>`).join('')}<text x="150" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="#2F5E3A">Norr: högsta växterna</text><text x="150" y="102" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" stroke="#3a5a2a" stroke-width="3" paint-order="stroke">10 plantor, 14 får plats</text></svg>`), '3d': (() => `<svg viewBox="0 0 300 110" width="100%" aria-hidden="true" style="border-radius:12px;display:block;margin:0 0 10px"><rect width="300" height="110" fill="#BFD9EE"/><polygon points="0,78 300,78 300,110 0,110" fill="#9CC37A"/><polygon points="95,78 95,46 150,34 150,66" fill="#E9DCC3"/><polygon points="150,66 150,34 205,46 205,78" fill="#D8C8A8"/><polygon points="88,46 150,24 212,46 150,34" fill="#B55A3C"/><polygon points="215,84 280,80 290,88 225,92" fill="#2F5E3A" opacity=".25"/><circle cx="248" cy="62" r="17" fill="#5E9E48"/><rect x="246" y="76" width="4" height="10" fill="#6B4A2A"/><circle cx="52" cy="70" r="12" fill="#6FAE4F"/><rect x="50" y="80" width="4" height="8" fill="#6B4A2A"/><circle cx="270" cy="16" r="9" fill="#FFC83D"/><text x="150" y="104" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" stroke="#3a5a2a" stroke-width="3" paint-order="stroke">Hus, träd och skuggor i 3D</text></svg>`) };
+const TOUR_PIC = { demo: (() => { const bx = (x, n, t1, t2, ico) => `<g transform="translate(${x},0)"><rect x="4" y="4" width="88" height="112" rx="14" fill="#F4EFE4" stroke="#CFC8B8"/><circle cx="20" cy="20" r="10" fill="#2F6B4F"/><text x="20" y="24" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">${n}</text><text x="48" y="64" font-size="26" text-anchor="middle">${ico}</text><text x="48" y="90" font-size="11.5" font-weight="700" fill="#1B201C" text-anchor="middle">${t1}</text><text x="48" y="104" font-size="10.5" fill="#5A5F58" text-anchor="middle">${t2}</text></g>`;
+  return `<svg viewBox="0 0 300 120" width="100%" aria-hidden="true" style="display:block;margin:0 0 10px">${bx(0, 1, 'Sök', 'din växt', '🔍')}${bx(100, 2, 'Lägg till', 'i din samling', '➕')}${bx(200, 3, 'Få påminnelse', 'om vatten', '💧')}</svg>`; })(),
+  bed: (() => `<svg viewBox="0 0 300 110" width="100%" aria-hidden="true" style="border-radius:12px;display:block;margin:0 0 10px"><rect width="300" height="110" fill="#CFE5B8"/><polygon points="40,86 70,26 250,22 262,84" fill="#8A5A34" opacity=".55" stroke="#6B4A2A" stroke-width="2"/>${[[80,70,7],[110,70,7],[140,70,7],[170,70,7],[200,70,7],[230,68,7],[95,48,10],[135,46,10],[175,45,10],[215,44,10]].map(([x,y,r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${r>8?'#E07BA0':'#7FB05B'}" stroke="#fff" stroke-width="1.5"/><circle cx="${x}" cy="${y}" r="${r+5}" fill="none" stroke="#fff" stroke-dasharray="2 3" opacity=".8"/>`).join('')}<text x="150" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="#2F5E3A">Norr: högsta växterna</text><text x="150" y="102" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" stroke="#3a5a2a" stroke-width="3" paint-order="stroke">10 plantor, 14 får plats</text></svg>`), '3d': (() => `<svg viewBox="0 0 300 110" width="100%" aria-hidden="true" style="border-radius:12px;display:block;margin:0 0 10px"><rect width="300" height="110" fill="#BFD9EE"/><polygon points="0,78 300,78 300,110 0,110" fill="#9CC37A"/><polygon points="95,78 95,46 150,34 150,66" fill="#E9DCC3"/><polygon points="150,66 150,34 205,46 205,78" fill="#D8C8A8"/><polygon points="88,46 150,24 212,46 150,34" fill="#B55A3C"/><polygon points="215,84 280,80 290,88 225,92" fill="#2F5E3A" opacity=".25"/><circle cx="248" cy="62" r="17" fill="#5E9E48"/><rect x="246" y="76" width="4" height="10" fill="#6B4A2A"/><circle cx="52" cy="70" r="12" fill="#6FAE4F"/><rect x="50" y="80" width="4" height="8" fill="#6B4A2A"/><circle cx="270" cy="16" r="9" fill="#FFC83D"/><text x="150" y="104" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" stroke="#3a5a2a" stroke-width="3" paint-order="stroke">Hus, träd och skuggor i 3D</text></svg>`) };
 let TOURS = null;
 function tourKey() { return 'tourDone_' + (S.user ? S.user.id : 'anon'); }
-function tourStart() { if (TOURS) tourStop(false); closeModalSafe(); TOURS = { i: 0 }; tourDraw(); if (!TOURS.tm) TOURS.tm = setInterval(tourPlace, 350); document.addEventListener('click', tourClick, true); window.addEventListener('resize', tourPlace); }
+function tourPosKey() { return 'tourPos_' + (S.user ? S.user.id : 'anon'); }
+function tourStart(from) { if (TOURS) tourStop(false); closeModalSafe(); TOURS = { i: Math.max(0, Math.min(TOUR.length - 2, +from || 0)) }; tourDraw(); if (!TOURS.tm) TOURS.tm = setInterval(tourPlace, 350); document.addEventListener('click', tourClick, true); window.addEventListener('resize', tourPlace); }
 function closeModalSafe() { if (S.modal && S.modal !== 'zonepick') { try { closeModal(); } catch (e) {} } }
 function tourStop(done) {
   if (TOURS && TOURS.tm) clearInterval(TOURS.tm); TOURS = null; document.removeEventListener('click', tourClick, true); window.removeEventListener('resize', tourPlace);
   const e = document.getElementById('tourov'); if (e) e.remove(); if (done) { try { store.set(tourKey(), true); } catch (x) {} }
 }
 function tourClick(e) { if (!TOURS) return; const st = TOUR[TOURS.i]; if (!st || !st.tap) return; const t = e.target && e.target.closest && e.target.closest(st.tap); if (t) setTimeout(() => { if (TOURS && TOUR[TOURS.i] === st) tourNext(); }, 250); }
-function tourNext() { if (!TOURS) return; const st = TOUR[TOURS.i]; if (st && st.tap && st.tab && S.tab !== st.tab) go(st.tab); if (TOURS.i >= TOUR.length - 1) { tourStop(true); toast('Rundturen är klar'); return; } TOURS.i++; tourDraw(); }
+function tourNext() { if (!TOURS) return; const st = TOUR[TOURS.i]; if (st && st.tap && st.tab && S.tab !== st.tab) go(st.tab); if (TOURS.i >= TOUR.length - 1) { tourStop(true); toast('Rundturen är klar'); return; } TOURS.i++; try { store.set(tourPosKey(), TOURS.i); } catch (e) {} tourDraw(); }
 function tourBack() { if (!TOURS || TOURS.i < 1) return; TOURS.i--; tourDraw(); }
 function tourShow() { const st = TOUR[TOURS.i]; if (st && st.show) { st.show[1](); setTimeout(tourPlace, 200); } }
 function tourDraw() {
@@ -15113,7 +15127,7 @@ function tourDraw() {
   o.innerHTML = `<div id="tourhl" style="position:fixed;border-radius:18px;box-shadow:0 0 0 9999px rgba(8,20,10,.55),0 0 0 3px var(--acc,#FFC83D) inset;pointer-events:none;transition:all .2s;display:none"></div>
   <div id="tourcard" role="dialog" aria-label="Rundtur" style="position:fixed;pointer-events:auto;background:var(--surf);color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.35);box-sizing:border-box">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><b style="font-size:16px;flex:1">${esc(st.t)}</b><span class="mut" style="font-size:12.5px">${TOURS.i + 1} av ${TOUR.length}</span></div>
-    ${st.pro && !S.pro && TOUR_PIC[st.pro] ? TOUR_PIC[st.pro]() : ''}
+    ${st.pic && TOUR_PIC[st.pic] ? (typeof TOUR_PIC[st.pic] === 'function' ? TOUR_PIC[st.pic]() : TOUR_PIC[st.pic]) : st.pro && !S.pro && TOUR_PIC[st.pro] ? TOUR_PIC[st.pro]() : ''}
     <p style="margin:0 0 12px;font-size:14.5px;line-height:1.45">${esc(st.b)}${st.pro && !S.pro ? ' Ingår i Roothood Pro.' : ''}</p>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button class="btn sm line" onclick="tourStop(true)">${last ? 'Stäng' : 'Hoppa över'}</button>
@@ -15138,7 +15152,7 @@ setInterval(() => {
     if (S.user && !DEMO && !document.hidden && !store.get(simpleKey(), false) && !S.modal && !S.tool && !TOURS && Date.now() - (window.__t0 || (window.__t0 = Date.now())) > 5000) return simpleAskWhenFree();
     if (TOURS || !S.user || DEMO || document.hidden) return; if (!store.get(simpleKey(), false)) return; if (store.get(tourKey(), false)) return;
     if (S.modal || S.tool || S.wz || S.tab !== 'home') return; if (Date.now() - (window.__t0 || (window.__t0 = Date.now())) < 8000) return;
-    tourStart();
+    tourStart(store.get(tourPosKey(), 0));
   } catch (e) {}
 }, 3000);
 init();
