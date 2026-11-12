@@ -11888,6 +11888,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.377', '12 nov', ['Ny rundtur som visar de vanligaste funktionerna steg för steg: söka växter, Samling och vattning, Gemenskap, Snabbfråga, Solbana och Profil. Den startar en gång för alla och finns alltid under Inställningar → Visa rundturen'], ],
   ['Beta 0.376', '12 nov', ['Skuggfoto och Skuggor med djup är pausade och visas som under konstruktion (testas just nu bara av utvecklaren). Kameran med solbanan fungerar som vanligt. De kommer tillbaka senare'], ],
   ['Beta 0.375', '12 nov', ['Dela trädgårdsplan: under Inställningar kan du dela din plan med vänner i appen. De ser rum, tomt, rabatter och träd, men kan bara titta'], ],
   ['Beta 0.374', '12 nov', ['Växtdatabasen: ny sortering Botaniskt namn A–Ö. Då visas det botaniska namnet först och det svenska namnet efter. Förslag från en testare'], ],
@@ -14326,7 +14327,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.376';
+const APP_VERSION = 'Beta 0.377';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -14712,6 +14713,7 @@ function settingsFullV() {
   ${famV()}
   ${psV()}
   ${account}
+  <div class="sec"><h2>Rundtur</h2></div><div class="pad"><button class="setrow" onclick="tourFromSettings()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Visa rundturen</b><span>Gå igenom de vanligaste funktionerna steg för steg</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="sec"><h2>Nytt i appen</h2></div><div class="pad"><button class="setrow" onclick="openNews()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Uppdateringslogg</b><span>Se vad som är nytt i version ${APP_VERSION}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   ${PRO_FREE && !S.user ? '' : `<div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="${S.pro ? "openModal('prointro')" : "openModal('pro')"}"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`}
   <div class="sec"><h2>Om Roothood</h2></div><div class="pad"><div class="setcard about2">
@@ -14980,6 +14982,66 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.modal) c
   document.addEventListener('pointerdown', e => { const a = document.activeElement; if (isSearch(a) && !(e.target.closest && e.target.closest('input,textarea,label,select'))) a.blur(); }, true);
   document.addEventListener('scroll', () => { const a = document.activeElement; if (a && a.matches && a.matches('input[type=search]')) a.blur(); }, true);
   window.dropKb = drop; }
+
+function tourFromSettings() { S.tool = null; S.setSub = null; go('home'); setTimeout(tourStart, 150); }
+// ===== Rundtur: guidad genomgång av de vanligaste funktionerna =====
+// Ett steg i taget. Rutan sitter ovanför menyn och appen går att använda under tiden. Steg med "Tryck" bockas av när man trycker på markerade knappen.
+const TOUR = [
+  { t: 'Välkommen till Roothood 🌱', b: 'Den här rundturen tar ungefär två minuter och visar det du mest kommer använda. Du kan hoppa över när du vill och starta om den under Inställningar.', nx: 'Starta' },
+  { t: 'Sök bland alla växter', b: 'Växtbiblioteket har skötselråd för hundratals växter. Sök på namn, filtrera på odlingszon eller blomfärg, och tryck på Lägg till i min samling.', show: ['Visa växtbiblioteket', () => openDb()] },
+  { t: 'Din samling', b: 'Tryck på Samling i menyn. Här ligger dina växter.', tap: 'nav button[data-t="mine"]', tab: 'mine', hint: 'Tryck på Samling' },
+  { t: 'Vattning och skötsel', b: 'Samling visar vad som behöver vatten i dag. Tryck på en växt för att logga vattning, ladda upp foton och anteckna hur den mår.', tab: 'mine' },
+  { t: 'Gemenskap', b: 'Tryck på Gemenskap. Här ställer du frågor, visar upp dina växter, byter eller ger bort sticklingar och hjälper andra att hitta vilken växt något är.', tap: 'nav button[data-t="comm"]', tab: 'comm', hint: 'Tryck på Gemenskap' },
+  { t: 'Fråga och få svar direkt', b: 'Snabbfrågan svarar på växtfrågor på en gång, till exempel "varför blir bladen gula?". Hittar den inget säkert svar kan du fråga andra i Gemenskap.', show: ['Prova Snabbfråga', () => openAsk()] },
+  { t: 'Solbana: var vill växten stå?', b: 'Se hur solen rör sig över din tomt eller ditt fönster, så vet du vilken plats som passar växtens ljusbehov.', show: ['Öppna Solbana', () => openSunPath()] },
+  { t: 'Din profil', b: 'Tryck på Profil. Här lägger du in ort och odlingszon, väljer notiser och hittar Inställningar, där du också kan dela din trädgårdsplan med vänner.', tap: 'nav button[data-t="me"]', tab: 'me', hint: 'Tryck på Profil' },
+  { t: 'Nu kan du börja 🌿', b: 'Lägg till din första växt via Sök växter på Start. Vill du gå igenom rundturen igen hittar du den under Inställningar.', nx: 'Klart' }
+];
+let TOURS = null;
+function tourKey() { return 'tourDone_' + (S.user ? S.user.id : 'anon'); }
+function tourStart() { if (TOURS) tourStop(false); closeModalSafe(); TOURS = { i: 0 }; tourDraw(); if (!TOURS.tm) TOURS.tm = setInterval(tourPlace, 350); document.addEventListener('click', tourClick, true); window.addEventListener('resize', tourPlace); }
+function closeModalSafe() { if (S.modal && S.modal !== 'zonepick') { try { closeModal(); } catch (e) {} } }
+function tourStop(done) {
+  if (TOURS && TOURS.tm) clearInterval(TOURS.tm); TOURS = null; document.removeEventListener('click', tourClick, true); window.removeEventListener('resize', tourPlace);
+  const e = document.getElementById('tourov'); if (e) e.remove(); if (done) { try { store.set(tourKey(), true); } catch (x) {} }
+}
+function tourClick(e) { if (!TOURS) return; const st = TOUR[TOURS.i]; if (!st || !st.tap) return; const t = e.target && e.target.closest && e.target.closest(st.tap); if (t) setTimeout(() => { if (TOURS && TOUR[TOURS.i] === st) tourNext(); }, 250); }
+function tourNext() { if (!TOURS) return; const st = TOUR[TOURS.i]; if (st && st.tap && st.tab && S.tab !== st.tab) go(st.tab); if (TOURS.i >= TOUR.length - 1) { tourStop(true); toast('Rundturen är klar'); return; } TOURS.i++; tourDraw(); }
+function tourBack() { if (!TOURS || TOURS.i < 1) return; TOURS.i--; tourDraw(); }
+function tourShow() { const st = TOUR[TOURS.i]; if (st && st.show) { st.show[1](); setTimeout(tourPlace, 200); } }
+function tourDraw() {
+  if (!TOURS) return; const st = TOUR[TOURS.i]; let o = document.getElementById('tourov');
+  if (!o) { o = document.createElement('div'); o.id = 'tourov'; o.style.cssText = 'position:fixed;inset:0;z-index:99990;pointer-events:none;font-family:inherit'; document.body.appendChild(o); }
+  if (st.tab && !st.tap && S.tab !== st.tab && !S.tool) go(st.tab);
+  const last = TOURS.i === TOUR.length - 1, first = TOURS.i === 0;
+  o.innerHTML = `<div id="tourhl" style="position:fixed;border-radius:18px;box-shadow:0 0 0 9999px rgba(8,20,10,.55),0 0 0 3px var(--acc,#FFC83D) inset;pointer-events:none;transition:all .2s;display:none"></div>
+  <div id="tourcard" role="dialog" aria-label="Rundtur" style="position:fixed;pointer-events:auto;background:var(--surf);color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.35);box-sizing:border-box">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><b style="font-size:16px;flex:1">${esc(st.t)}</b><span class="mut" style="font-size:12.5px">${TOURS.i + 1} av ${TOUR.length}</span></div>
+    <p style="margin:0 0 12px;font-size:14.5px;line-height:1.45">${esc(st.b)}</p>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn sm line" onclick="tourStop(true)">${last ? 'Stäng' : 'Hoppa över'}</button>
+      ${first ? '' : '<button class="btn sm line" onclick="tourBack()">Tillbaka</button>'}
+      <span style="flex:1"></span>
+      ${st.show ? `<button class="btn sm line" onclick="tourShow()">${esc(st.show[0])}</button>` : ''}
+      ${st.tap ? `<button class="btn sm line" onclick="tourNext()">Hoppa över steget</button>` : `<button class="btn sm" onclick="tourNext()">${esc(st.nx || 'Nästa')}</button>`}
+    </div></div>`;
+  tourPlace();
+}
+function tourPlace() {
+  if (!TOURS) return; const st = TOUR[TOURS.i], card = document.getElementById('tourcard'), hl = document.getElementById('tourhl'); if (!card || !hl) return;
+  const nav = document.querySelector('nav'), nr = nav ? nav.getBoundingClientRect() : { left: 8, width: window.innerWidth - 16, top: window.innerHeight - 80 };
+  card.style.left = Math.max(8, nr.left) + 'px'; card.style.width = Math.min(nr.width, window.innerWidth - 16) + 'px'; card.style.bottom = (window.innerHeight - nr.top + 10) + 'px';
+  const t = st.tap ? document.querySelector(st.tap) : null;
+  if (t) { const r = t.getBoundingClientRect(); hl.style.display = 'block'; hl.style.left = (r.left - 6) + 'px'; hl.style.top = (r.top - 6) + 'px'; hl.style.width = (r.width + 12) + 'px'; hl.style.height = (r.height + 12) + 'px'; } else hl.style.display = 'none';
+}
+// Startar av sig själv en gång för varje inloggat konto, när inget annat ligger ivägen
+setInterval(() => {
+  try {
+    if (TOURS || !S.user || DEMO || document.hidden) return; if (store.get(tourKey(), false)) return;
+    if (S.modal || S.tool || S.wz || S.tab !== 'home') return; if (Date.now() - (window.__t0 || (window.__t0 = Date.now())) < 8000) return;
+    tourStart();
+  } catch (e) {}
+}, 3000);
 init();
 startPresence();
 </script></body></html>
