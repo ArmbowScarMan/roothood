@@ -3578,7 +3578,7 @@ function helpMeV() {
   return `<div class="simplepick firstgoal"><div class="mh"><h2>Hur kan vi hjälpa dig?</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   ${b('ph-chats-circle', 'Fråga andra odlare', 'Skriv vad du fastnat på, så svarar någon.', 'helpAsk()')}
   ${b('ph-path', 'Visa rundturen igen', 'Steg för steg, med bilder.', 'closeModal();tourFromSettings()')}
-  ${b('ph-share-network', 'Be någon hjälpa mig', 'Skicka appen till en anhörig som kan visa dig.', 'helpShare()')}
+  ${b('ph-share-network', 'Be någon hjälpa mig', 'Bjud in en anhörig i din Familj. Hen kan lägga in och vattna växter åt dig.', 'helpShare()')}
   ${b('ph-headset', 'Kontakta support', 'Mejla oss, rapportera ett fel eller läs svar på vanliga frågor.', "openModal('support')")}</div>`;
 }
 const SUPPORT_MAIL = 'roothood.app@gmail.com';
@@ -3599,9 +3599,20 @@ function supportV() {
 function supportBtn() { return `<button class="circ" onclick="openModal('support')" aria-label="Hjälp och support" title="Hjälp och support">${ic('ph-lifebuoy', null, 22)}</button>`; }
 function helpAsk() { const sc = HELP_SCREEN[S.tab] || 'appen'; S.draft = 'Jag behöver hjälp på sidan ' + sc + ': '; closeModal(); S.tab = 'comm'; S.ctab = 'q'; S.post = null; render(); loadFeed(); openAskQ(); }
 async function helpShare() {
-  const url = 'https://armbowscarman.github.io/roothood/', text = 'Kan du hjälpa mig komma igång med Roothood, en app för växter?';
+  const url = 'https://armbowscarman.github.io/roothood/';
+  let text = 'Kan du hjälpa mig komma igång med Roothood, en app för växter?';
+  // Inloggad: använd Familj, så att den som hjälper kan lägga in och vattna växter åt en. Kräver ett uttryckligt ja.
+  if (S.user && !DEMO && sb) {
+    if (!confirm('Den du skickar till kan, om hen går med i din Familj, se och ändra dina växter och ditt hem. Vill du skicka en inbjudan?')) return;
+    try {
+      if (!S.fam || S.fam.err) await loadFam();
+      if (S.fam && S.fam.none) await famCreate();
+      const code = S.fam && S.fam.code;
+      if (code) text += ' Skapa ett konto, öppna Inställningar, välj Familj och skriv in koden ' + code + ', så kan du hjälpa mig med mina växter.';
+    } catch (e) { /* skickar bara länken */ }
+  }
   try { if (navigator.share) { await navigator.share({ title: 'Roothood', text, url }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
-  try { await navigator.clipboard.writeText(text + ' ' + url); toast('Länken är kopierad. Klistra in den i ett meddelande.'); } catch (e) { toast('Skicka den här adressen: ' + url); }
+  try { await navigator.clipboard.writeText(text + ' ' + url); toast('Inbjudan är kopierad. Klistra in den i ett meddelande.'); } catch (e) { toast('Skicka den här texten: ' + text + ' ' + url); }
 }
 // Ett första mål för den som inte har någon växt än: en enda fråga, tre stora val.
 function firstGoalV() {
@@ -12019,6 +12030,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.385', '12 nov', ['Be någon hjälpa mig bjuder nu in en anhörig i din Familj med en kod, så hen kan lägga in och vattna växter åt dig.']],
   ['Beta 0.384', '12 nov', ['Support är lätt att hitta: en hjälpknapp längst upp på Start, Samling och Profil, och under Hjälp mig. Där kan du mejla oss, rapportera fel och läsa svar på vanliga frågor.']],
   ['Beta 0.383', '12 nov', ['Ny knapp Hjälp mig på Start: fråga andra odlare, se rundturen igen eller skicka appen till en anhörig som kan hjälpa dig.']],
   ['Beta 0.382', '12 nov', ['Varje steg i rundturen har nu en bild på funktionen.']],
@@ -14465,7 +14477,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.384';
+const APP_VERSION = 'Beta 0.385';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
