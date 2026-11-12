@@ -275,7 +275,8 @@ nav button span,nav button.on span{display:block;font-size:12px;font-weight:700;
 html[data-simple] .btn:not(.sm){min-height:56px;font-size:18px}html[data-simple] .chips2 button{min-height:48px;font-size:16px}
 html[data-simple] nav button{height:66px;min-width:72px}html[data-simple] nav button span{font-size:14px}
 .simpletiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 18px 0}.simpletiles button{display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px 10px;border:0;border-radius:22px;background:var(--surf);box-shadow:var(--sh);font:inherit;font-weight:800;font-size:18px;color:var(--ink);cursor:pointer;min-height:112px}
-.firstgoal .opt.fg{display:flex !important;align-items:center;gap:14px}.firstgoal .fgi{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:var(--soft,var(--bg))}.simplepick .opt,.firstgoal .opt{display:block;width:100%;text-align:left;margin:10px 0 0;padding:16px;border-radius:18px;border:2px solid var(--line);background:var(--surf);font:inherit;color:var(--ink);cursor:pointer}.simplepick .opt b,.firstgoal .opt b{display:block;font-size:18px;color:var(--ink)}.firstgoal .fgi{color:var(--pri)}.simplepick .opt span,.firstgoal .opt span{display:block;margin-top:4px;color:var(--mut);font-size:15px;line-height:1.4}
+.faq{border-top:1px solid var(--line);padding:10px 2px}.faq summary{font-weight:700;font-size:16px;cursor:pointer;min-height:32px}.faq p{margin:8px 0 2px;font-size:15px;line-height:1.45;color:var(--mut)}
+.firstgoal .opt.hm{display:flex !important;align-items:center;gap:14px}.firstgoal .opt.fg{display:flex !important;align-items:center;gap:14px}.firstgoal .fgi{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:var(--soft,var(--bg))}.simplepick .opt,.firstgoal .opt{display:block;width:100%;text-align:left;margin:10px 0 0;padding:16px;border-radius:18px;border:2px solid var(--line);background:var(--surf);font:inherit;color:var(--ink);cursor:pointer}.simplepick .opt b,.firstgoal .opt b{display:block;font-size:18px;color:var(--ink)}.firstgoal .fgi{color:var(--pri)}.simplepick .opt span,.firstgoal .opt span{display:block;margin-top:4px;color:var(--mut);font-size:15px;line-height:1.4}
 
 /* Rutor och formulär */
 .ov{position:absolute;inset:0;background:rgba(8,20,10,.45);z-index:10;display:flex;align-items:flex-end}
@@ -3569,6 +3570,50 @@ function simplePickV() {
 function simpleChoose(on) { try { store.set(simpleKey(), true); } catch (e) {} setSimple(on); S.modal = null; render(); toast(on ? 'Enkel vy är på' : 'Vanlig vy är på'); }
 function setSimple(on) { store.set('simple', !!on); if (on && (store.get('textsize', 1) || 1) < 1.1) store.set('textsize', 1.1); applyPrefs(); S.ctab = on && !['friends', 'q', 'swap'].includes(S.ctab) ? 'q' : S.ctab; render(); }
 function simpleAskWhenFree() { if (!S.user || DEMO || store.get(simpleKey(), false)) return; if (S.modal || S.tool) return; try { store.set(simpleKey(), true); } catch (e) {} openModal('simplepick'); }
+// Hjälp mig: en knapp som alltid finns på Start. Fråga andra om skärmen man står på, se rundturen igen eller be någon hjälpa till.
+const HELP_SCREEN = { home: 'Start', mine: 'Samling', comm: 'Gemenskap', me: 'Profil' };
+function helpBtnV() { return `<div class="pad" style="margin-top:12px"><button class="btn wide line" onclick="openModal('helpme')">${ic('ph-lifebuoy', 'currentColor', 20)} Hjälp mig</button></div>`; }
+function helpMeV() {
+  const b = (i, t, sub, fn) => `<button class="opt hm" onclick="${fn}"><span class="fgi">${ic(i, 'currentColor', 26)}</span><span class="grow"><b>${t}</b><span>${sub}</span></span></button>`;
+  return `<div class="simplepick firstgoal"><div class="mh"><h2>Hur kan vi hjälpa dig?</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  ${b('ph-chats-circle', 'Fråga andra odlare', 'Skriv vad du fastnat på, så svarar någon.', 'helpAsk()')}
+  ${b('ph-path', 'Visa rundturen igen', 'Steg för steg, med bilder.', 'closeModal();tourFromSettings()')}
+  ${b('ph-share-network', 'Be någon hjälpa mig', 'Bjud in en anhörig i din Familj. Hen kan lägga in och vattna växter åt dig.', 'helpShare()')}
+  ${b('ph-headset', 'Kontakta support', 'Mejla oss, rapportera ett fel eller läs svar på vanliga frågor.', "openModal('support')")}</div>`;
+}
+const SUPPORT_MAIL = 'roothood.app@gmail.com';
+const SUPPORT_FAQ = [
+  ['Hur lägger jag till en växt?', 'Gå till Start och tryck Sök växter. Sök på namnet och tryck Lägg till i min samling.'],
+  ['Jag får inga påminnelser', 'Öppna Inställningar och slå på notiser och välj vilken tid du vill ha dem. Tillåt också notiser för Roothood i telefonens inställningar.'],
+  ['Hur gör jag appen enklare?', 'Öppna Inställningar, välj Vy och tryck Enkel. Där kan du också göra texten större.'],
+  ['Hur raderar jag mitt konto?', 'Öppna Inställningar och välj Konto. Där kan du radera kontot och allt som hör till det.'],
+  ['Appen strular', 'Stäng appen helt och öppna den igen. Hjälper det inte, tryck på Rapportera fel nedan så ser vi det.']];
+function supportV() {
+  return `<div class="simplepick firstgoal"><div class="mh"><h2>Support</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <p style="margin:0;font-size:15.5px;line-height:1.45">Vi svarar så fort vi kan. Skriv gärna vad du försökte göra och vilken telefon du har.</p>
+  <a class="opt hm" style="text-decoration:none" href="mailto:${SUPPORT_MAIL}?subject=${encodeURIComponent('Roothood: hjälp')}"><span class="fgi">${ic('ph-envelope-simple', 'currentColor', 26)}</span><span class="grow"><b>Mejla support</b><span>${SUPPORT_MAIL}</span></span></a>
+  <button class="opt hm" onclick="closeModal();openFb()"><span class="fgi">${ic('ph-bug', 'currentColor', 26)}</span><span class="grow"><b>Rapportera fel eller ge förslag</b><span>Skickas direkt till oss, inloggad.</span></span></button>
+  <h3 style="margin:18px 0 4px;font-size:17px">Vanliga frågor</h3>
+  ${SUPPORT_FAQ.map(([q, a]) => `<details class="faq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</div>`;
+}
+function supportBtn() { return `<button class="circ" onclick="openModal('support')" aria-label="Hjälp och support" title="Hjälp och support">${ic('ph-lifebuoy', null, 22)}</button>`; }
+function helpAsk() { const sc = HELP_SCREEN[S.tab] || 'appen'; S.draft = 'Jag behöver hjälp på sidan ' + sc + ': '; closeModal(); S.tab = 'comm'; S.ctab = 'q'; S.post = null; render(); loadFeed(); openAskQ(); }
+async function helpShare() {
+  let url = 'https://armbowscarman.github.io/roothood/';
+  let text = 'Kan du hjälpa mig komma igång med Roothood, en app för växter?';
+  // Inloggad: använd Familj, så att den som hjälper kan lägga in och vattna växter åt en. Kräver ett uttryckligt ja.
+  if (S.user && !DEMO && sb) {
+    if (!confirm('Den du skickar till kan, om hen går med i din Familj, se och ändra dina växter och ditt hem. Vill du skicka en inbjudan?')) return;
+    try {
+      if (!S.fam || S.fam.err) await loadFam();
+      if (S.fam && S.fam.none) await famCreate();
+      const code = S.fam && S.fam.code;
+      if (code) { url += '?fam=' + encodeURIComponent(code); text += ' Skapa ett konto och tryck på länken, så kan du hjälpa mig med mina växter. Koden om länken inte fungerar: ' + code + ' (Inställningar, Familj).'; }
+    } catch (e) { /* skickar bara länken */ }
+  }
+  try { if (navigator.share) { await navigator.share({ title: 'Roothood', text, url }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(text + ' ' + url); toast('Inbjudan är kopierad. Klistra in den i ett meddelande.'); } catch (e) { toast('Skicka den här texten: ' + text + ' ' + url); }
+}
 // Ett första mål för den som inte har någon växt än: en enda fråga, tre stora val.
 function firstGoalV() {
   const b = (ic1, t, sub, fn) => `<button class="opt fg" onclick="${fn}"><span class="fgi">${ic(ic1, 'currentColor', 30)}</span><span class="grow"><b>${t}</b><span>${sub}</span></span></button>`;
@@ -7602,7 +7647,7 @@ function topbar(title, backFn, extra) {
     ? `<button class="circ" onclick="${backFn}" aria-label="Tillbaka">${ic(I.back, null, 22)}</button>`
     : `<img class="logoimg" src="${LOGO}" alt="Roothood" width="40" height="40">`;
   const right = stadUI() && ((title === 'Profil' && S.tab === 'me' && !S.tool) || S.tool === 'notif') ? '' : bellBtn(), help = S.tool === 'house' ? helpBtn() : (title === 'Min samling' && !backFn ? `<button class="circ" onclick="openQAdd()" aria-label="Lägg till växt">${ic('ph-plus', null, 22)}</button>` : '');
-  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1${title.length > 26 ? ' class="long"' : ''}>${esc(title)}</h1>${extra || (title === 'Gemenskap' ? communityBtns() : '')}${help}${right}</div>`;
+  return `<div class="top ${backFn ? 'hasback' : ''}">${backFn ? left_ : ''}<h1${title.length > 26 ? ' class="long"' : ''}>${esc(title)}</h1>${extra || (title === 'Gemenskap' ? communityBtns() : '')}${help}${S.user && !help && !extra && title !== 'Gemenskap' && !backFn ? supportBtn() : ''}${right}</div>`;
 }
 function communityBtns() {
   // Städad (116): bara sök och notiser till höger, hjälpen ligger i en ⋯-meny
@@ -7674,7 +7719,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -9756,7 +9801,7 @@ function homeBlocks(intro) {
   if (!store.get('welcomeDone', false) && !(S.user && !(S.mine && S.mine.length))) out.push(welcomeV());
   out.push(friendReqCard()); out.push(sitReqCard());
   // Nya användare utan växter: bara första steget, resten visas när det finns något att visa
-  if (!(S.mine && S.mine.length)) { out.push(S.user ? firstGoalV() : (intro || '')); if (S.user) out.push(`<div class="pad" style="margin-top:12px"><button class="btn wide line" onclick="openDb()">Bläddra bland ${S.plants.length} växter</button></div>`); return out.join('\n'); }
+  if (!(S.mine && S.mine.length)) { out.push(S.user ? firstGoalV() : (intro || '')); if (S.user) out.push(helpBtnV()); if (S.user) out.push(`<div class="pad" style="margin-top:12px"><button class="btn wide line" onclick="openDb()">Bläddra bland ${S.plants.length} växter</button></div>`); return out.join('\n'); }
   // Växtbiblioteket: alltid en tydlig väg dit, eftersom den är det mest använda verktyget
   const flush = () => { if (tiles.length) { out.push(`<div class="tools">${tiles.join('')}</div>`); tiles = []; } };
   L.forEach(x => {
@@ -9776,6 +9821,7 @@ function homeBlocks(intro) {
   });
   flush();
   if (simpleOn()) out.push(simpleTilesV());
+  if (S.user) out.push(helpBtnV());
   return out.join('\n');
 }
 const CHATI = 'ph-chats-circle', PEOPLEI = 'ph-users';
@@ -11984,6 +12030,11 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.386', '12 nov', ['Inbjudan till Familj fungerar nu med en länk. Den som får länken skapar konto, trycker på länken och får frågan om hen vill gå med.']],
+  ['Beta 0.385', '12 nov', ['Be någon hjälpa mig bjuder nu in en anhörig i din Familj med en kod, så hen kan lägga in och vattna växter åt dig.']],
+  ['Beta 0.384', '12 nov', ['Support är lätt att hitta: en hjälpknapp längst upp på Start, Samling och Profil, och under Hjälp mig. Där kan du mejla oss, rapportera fel och läsa svar på vanliga frågor.']],
+  ['Beta 0.383', '12 nov', ['Ny knapp Hjälp mig på Start: fråga andra odlare, se rundturen igen eller skicka appen till en anhörig som kan hjälpa dig.']],
+  ['Beta 0.382', '12 nov', ['Varje steg i rundturen har nu en bild på funktionen.']],
   ['Beta 0.381', '12 nov', ['Ny på Start utan växter? Du får en enda fråga, Vad vill du göra först?, med tre stora val. Rundturen minns var du var. Påminnelser: vänligare text, och ingen notis de dagar det inte finns något att vattna, skörda eller varna för.']],
   ['Beta 0.380', '12 nov', ['Ny Enkel vy: du väljer vid första start om du vill ha en enkel eller vanlig app, och kan byta under Inställningar. Menyn visar nu namn under ikonerna för alla. Du måste välja odlingszon (stad eller karta) när du skapar konto.']],
   ['Beta 0.379', '12 nov', ['Välkomstkort i Gemenskap med tre små uppgifter. Du ser obesvarade frågor om dina växter överst. I Detektiver kan du trycka Jag håller med på någon annans gissning.']],
@@ -14427,7 +14478,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.381';
+const APP_VERSION = 'Beta 0.386';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -14588,6 +14639,20 @@ async function famJoin() {
   const { error } = await sb.rpc('join_household', { p_code: c });
   S.famMsg = !error ? 'Du är nu med i hushållet.' : /BAD_CODE/.test(error.message || '') ? 'Koden finns inte. Kontrollera att du skrev rätt.' : /ALREADY_MEMBER/.test(error.message || '') ? 'Du är redan med i ett hushåll.' : 'Kunde inte gå med just nu.';
   S.fam = null; await loadFam(); if (!error) await refreshFamData();
+}
+// Inbjudan via länk: koden sparas tills man är inloggad, och man får alltid frågan innan man går med.
+async function famInviteCheck() {
+  const code = store.get('famPending', ''); if (!code || !S.user || DEMO || !sb || S.modal || S.tool || window.__famAsking) return;
+  window.__famAsking = true;
+  try {
+    store.set('famPending', '');
+    await loadFam();
+    if (S.fam && !S.fam.none && !S.fam.err) { toast('Du är redan med i en Familj, så inbjudan användes inte.'); return; }
+    if (!confirm('Du har fått en inbjudan till en Familj i Roothood. Om du går med delar du växter och hem med de andra i Familjen. Vill du gå med?')) return;
+    const { error } = await sb.rpc('join_household', { p_code: code });
+    toast(!error ? 'Du är nu med i Familjen.' : /BAD_CODE/.test(error.message || '') ? 'Inbjudan gick inte att använda. Be om en ny.' : 'Kunde inte gå med just nu.');
+    if (!error) { S.fam = null; await loadFam(); await refreshFamData(); }
+  } finally { window.__famAsking = false; }
 }
 async function famLeave() {
   if (!confirm('Lämna hushållet? Dina växter och ditt konto ligger kvar.')) return;
@@ -14816,6 +14881,7 @@ function settingsFullV() {
   ${famV()}
   ${psV()}
   ${account}
+  <div class="sec"><h2>Support</h2></div><div class="pad"><button class="setrow" onclick="openModal('support')"><span class="tic">${ic('ph-lifebuoy', 'currentColor', 20)}</span><span class="grow"><b>Hjälp och support</b><span>Mejla oss, rapportera fel, vanliga frågor</span></span></button></div>
   <div class="sec"><h2>Rundtur</h2></div><div class="pad"><button class="setrow" onclick="tourFromSettings()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Visa rundturen</b><span>Gå igenom de vanligaste funktionerna steg för steg</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   <div class="sec"><h2>Nytt i appen</h2></div><div class="pad"><button class="setrow" onclick="openNews()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Uppdateringslogg</b><span>Se vad som är nytt i version ${APP_VERSION}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
   ${PRO_FREE && !S.user ? '' : `<div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="${S.pro ? "openModal('prointro')" : "openModal('pro')"}"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`}
@@ -15061,6 +15127,7 @@ async function init() {
   S.loading = false;
   let restoreY = null;
   try { restoreY = restoreView(); } catch (e) { console.warn('Roothood:', e); }
+  { const fc = (new URLSearchParams(location.search).get('fam') || '').trim(); if (/^[A-Za-z0-9-]{4,24}$/.test(fc)) { try { store.set('famPending', fc); history.replaceState(null, '', location.pathname + location.hash); } catch (e) { console.warn('Roothood:', e); } } }
   const startTab = new URLSearchParams(location.search).get('tab');
   if (startTab === 'mine') { S.tab = 'mine'; try { history.replaceState(null, '', location.pathname); } catch (e) { console.warn('Roothood:', e); } }
   const startTool = new URLSearchParams(location.search).get('tool');
@@ -15090,21 +15157,34 @@ function tourFromSettings() { S.tool = null; S.setSub = null; go('home'); setTim
 // ===== Rundtur: guidad genomgång av de vanligaste funktionerna =====
 // Ett steg i taget. Rutan sitter ovanför menyn och appen går att använda under tiden. Steg med "Tryck" bockas av när man trycker på markerade knappen.
 const TOUR = [
-  { t: 'Välkommen till Roothood 🌱', b: 'Den här rundturen tar ungefär två minuter och visar det du mest kommer använda. Du kan hoppa över när du vill och starta om den under Inställningar.', nx: 'Starta' },
+  { pic: 'welcome', t: 'Välkommen till Roothood 🌱', b: 'Den här rundturen tar ungefär två minuter och visar det du mest kommer använda. Du kan hoppa över när du vill och starta om den under Inställningar.', nx: 'Starta' },
   { pic: 'demo', t: 'Så här går det till', b: 'Tre steg: du söker upp din växt, trycker Lägg till, och appen säger när den ska ha vatten. Sedan provar du själv.', nx: 'Prova själv' },
-  { t: 'Sök bland alla växter', b: 'Växtbiblioteket har skötselråd för hundratals växter. Sök på namn, filtrera på odlingszon eller blomfärg, och tryck på Lägg till i min samling.', show: ['Visa växtbiblioteket', () => openDb()] },
-  { t: 'Din samling', b: 'Tryck på Samling i menyn. Här ligger dina växter.', tap: 'nav button[data-t="mine"]', tab: 'mine', hint: 'Tryck på Samling' },
-  { t: 'Vattning och skötsel', b: 'Samling visar vad som behöver vatten i dag. Tryck på en växt för att logga vattning, ladda upp foton och anteckna hur den mår.', tab: 'mine' },
-  { t: 'Gemenskap', b: 'Tryck på Gemenskap. Här ställer du frågor, visar upp dina växter, byter eller ger bort sticklingar och hjälper andra att hitta vilken växt något är.', tap: 'nav button[data-t="comm"]', tab: 'comm', hint: 'Tryck på Gemenskap' },
-  { t: 'Fråga och få svar direkt', b: 'Snabbfrågan svarar på växtfrågor på en gång, till exempel "varför blir bladen gula?". Hittar den inget säkert svar kan du fråga andra i Gemenskap.', show: ['Prova Snabbfråga', () => openAsk()] },
-  { t: 'Solbana: var vill växten stå?', b: 'Se hur solen rör sig över din tomt eller ditt fönster, så vet du vilken plats som passar växtens ljusbehov.', show: ['Öppna Solbana', () => openSunPath()] },
-  { pro: 'bed', t: 'Planera rabatter (Pro)', b: 'Rita en rabatt eller ett odlingsland, välj växter och se hur många som får plats. Appen varnar när det blir för tätt, ger råd om avstånd, ljus och jord och placerar de högsta växterna längst bak.', show: ['Visa Planera rabatt', () => openBedPlan()] },
-  { pro: '3d', t: 'Se allt i 3D (Pro)', b: 'I Mitt hem kan du se huset och trädgården i 3D, med växterna på rätt höjd. Växla mellan årstider och se hur skuggorna faller över dagen.', show: ['Öppna Mitt hem i 3D', () => { openHouse(); if (S.tool === 'house') { S.hview = '3d'; render(); } }] },
-  { t: 'Din profil', b: 'Tryck på Profil. Här lägger du in ort och odlingszon, väljer notiser och hittar Inställningar, där du också kan dela din trädgårdsplan med vänner.', tap: 'nav button[data-t="me"]', tab: 'me', hint: 'Tryck på Profil' },
-  { t: 'Nu kan du börja 🌿', b: 'Lägg till din första växt via Sök växter på Start. Vill du gå igenom rundturen igen hittar du den under Inställningar.', nx: 'Klart' }
+  { pic: 'search', t: 'Sök bland alla växter', b: 'Växtbiblioteket har skötselråd för hundratals växter. Sök på namn, filtrera på odlingszon eller blomfärg, och tryck på Lägg till i min samling.', show: ['Visa växtbiblioteket', () => openDb()] },
+  { pic: 'mine', t: 'Din samling', b: 'Tryck på Samling i menyn. Här ligger dina växter.', tap: 'nav button[data-t="mine"]', tab: 'mine', hint: 'Tryck på Samling' },
+  { pic: 'water', t: 'Vattning och skötsel', b: 'Samling visar vad som behöver vatten i dag. Tryck på en växt för att logga vattning, ladda upp foton och anteckna hur den mår.', tab: 'mine' },
+  { pic: 'comm', t: 'Gemenskap', b: 'Tryck på Gemenskap. Här ställer du frågor, visar upp dina växter, byter eller ger bort sticklingar och hjälper andra att hitta vilken växt något är.', tap: 'nav button[data-t="comm"]', tab: 'comm', hint: 'Tryck på Gemenskap' },
+  { pic: 'ask', t: 'Fråga och få svar direkt', b: 'Snabbfrågan svarar på växtfrågor på en gång, till exempel "varför blir bladen gula?". Hittar den inget säkert svar kan du fråga andra i Gemenskap.', show: ['Prova Snabbfråga', () => openAsk()] },
+  { pic: 'sun', t: 'Solbana: var vill växten stå?', b: 'Se hur solen rör sig över din tomt eller ditt fönster, så vet du vilken plats som passar växtens ljusbehov.', show: ['Öppna Solbana', () => openSunPath()] },
+  { pic: 'bed', pro: 'bed', t: 'Planera rabatter (Pro)', b: 'Rita en rabatt eller ett odlingsland, välj växter och se hur många som får plats. Appen varnar när det blir för tätt, ger råd om avstånd, ljus och jord och placerar de högsta växterna längst bak.', show: ['Visa Planera rabatt', () => openBedPlan()] },
+  { pic: '3d', pro: '3d', t: 'Se allt i 3D (Pro)', b: 'I Mitt hem kan du se huset och trädgården i 3D, med växterna på rätt höjd. Växla mellan årstider och se hur skuggorna faller över dagen.', show: ['Öppna Mitt hem i 3D', () => { openHouse(); if (S.tool === 'house') { S.hview = '3d'; render(); } }] },
+  { pic: 'me', t: 'Din profil', b: 'Tryck på Profil. Här lägger du in ort och odlingszon, väljer notiser och hittar Inställningar, där du också kan dela din trädgårdsplan med vänner.', tap: 'nav button[data-t="me"]', tab: 'me', hint: 'Tryck på Profil' },
+  { pic: 'done', t: 'Nu kan du börja 🌿', b: 'Lägg till din första växt via Sök växter på Start. Vill du gå igenom rundturen igen hittar du den under Inställningar.', nx: 'Klart' }
 ];
+const tpw = inner => () => `<svg viewBox="0 0 300 120" width="100%" aria-hidden="true" style="display:block;margin:0 0 10px;border-radius:12px"><rect width="300" height="120" rx="12" fill="#EFE9DB"/>${inner}</svg>`;
+const tpCard = (x, y, w, h, fill = '#fff') => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="${fill}" stroke="#D8D0BD"/>`;
+const TOUR_PIC2 = {
+  welcome: tpw(`<text x="150" y="62" font-size="46" text-anchor="middle">🌱</text><text x="150" y="92" font-size="16" font-weight="800" fill="#1F4D3A" text-anchor="middle">Roothood</text><text x="150" y="108" font-size="11" fill="#5A5F58" text-anchor="middle">Din växtapp</text>`),
+  search: tpw(`${tpCard(20, 14, 260, 28)}<text x="34" y="33" font-size="13">🔍</text><text x="56" y="33" font-size="12" fill="#5A5F58">Monstera</text>${tpCard(20, 50, 260, 28)}<text x="34" y="69" font-size="14">🪴</text><text x="56" y="69" font-size="12" font-weight="700" fill="#1B201C">Monstera</text><text x="262" y="69" font-size="10.5" fill="#2F6B4F" text-anchor="end" font-weight="700">+ Lägg till</text>${tpCard(20, 84, 260, 28)}<text x="34" y="103" font-size="14">🌿</text><text x="56" y="103" font-size="12" fill="#1B201C">Fönsterblad</text>`),
+  mine: tpw(`${[0, 1, 2].map(i => tpCard(20 + i * 90, 16, 80, 88) + `<text x="${60 + i * 90}" y="58" font-size="30" text-anchor="middle">${['🪴', '🌵', '🌿'][i]}</text><text x="${60 + i * 90}" y="84" font-size="11" font-weight="700" fill="#1B201C" text-anchor="middle">${['Monstera', 'Kaktus', 'Palm'][i]}</text><text x="${60 + i * 90}" y="97" font-size="9.5" fill="#5A5F58" text-anchor="middle">${['Vattna idag', 'Om 9 dagar', 'Om 3 dagar'][i]}</text>`).join('')}`),
+  water: tpw(`${tpCard(30, 14, 240, 92)}<text x="62" y="62" font-size="32" text-anchor="middle">🪴</text><text x="92" y="42" font-size="13" font-weight="800" fill="#1B201C">Monstera</text><text x="92" y="58" font-size="11" fill="#B0683F" font-weight="700">Behöver vatten idag</text><rect x="92" y="68" width="120" height="26" rx="13" fill="#2F6B4F"/><text x="152" y="86" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">💧 Vattnad</text><text x="238" y="86" font-size="20" text-anchor="middle">✅</text>`),
+  comm: tpw(`${tpCard(20, 12, 190, 40)}<text x="32" y="30" font-size="11" font-weight="700" fill="#1B201C">Varför blir bladen gula?</text><text x="32" y="44" font-size="10" fill="#5A5F58">Anna · 2 svar</text>${tpCard(90, 62, 190, 44, '#E3EFD9')}<text x="102" y="80" font-size="11" fill="#1B201C">Prova att vattna mindre.</text><text x="102" y="96" font-size="10" fill="#2F6B4F" font-weight="700">Lösta frågor ✔</text><text x="250" y="36" font-size="22">💬</text>`),
+  ask: tpw(`${tpCard(20, 14, 260, 30)}<text x="32" y="34" font-size="12" fill="#5A5F58">Varför blir bladen gula?</text><circle cx="262" cy="29" r="11" fill="#2F6B4F"/><text x="262" y="34" font-size="13" fill="#fff" text-anchor="middle">➤</text>${tpCard(20, 54, 260, 54, '#E3EFD9')}<text x="32" y="74" font-size="11.5" font-weight="700" fill="#1B201C">✨ Svar</text><text x="32" y="92" font-size="11" fill="#1B201C">Oftast för mycket vatten.</text>`),
+  sun: tpw(`<path d="M30 96 Q150 -10 270 96" stroke="#E0A526" stroke-width="3" fill="none" stroke-dasharray="5 4"/><circle cx="214" cy="38" r="13" fill="#F6C945"/><rect x="118" y="66" width="64" height="38" fill="#B0683F"/><polygon points="110,66 150,38 190,66" fill="#8A5A34"/><rect x="140" y="80" width="18" height="24" fill="#EFE9DB"/><text x="30" y="112" font-size="10" fill="#5A5F58">Morgon</text><text x="270" y="112" font-size="10" fill="#5A5F58" text-anchor="end">Kväll</text>`),
+  me: tpw(`<circle cx="62" cy="44" r="24" fill="#2F6B4F"/><text x="62" y="52" font-size="22" fill="#fff" text-anchor="middle" font-weight="800">A</text><text x="104" y="38" font-size="13" font-weight="800" fill="#1B201C">Din profil</text><rect x="104" y="48" width="64" height="20" rx="10" fill="#E3EFD9"/><text x="136" y="62" font-size="10.5" font-weight="700" fill="#2F6B4F" text-anchor="middle">Zon 3</text>${tpCard(20, 82, 260, 28)}<text x="34" y="100" font-size="12" fill="#1B201C">⚙️  Inställningar</text>`),
+  done: tpw(`<text x="150" y="66" font-size="48" text-anchor="middle">🌿</text><circle cx="214" cy="40" r="15" fill="#2F6B4F"/><text x="214" y="46" font-size="17" fill="#fff" text-anchor="middle">✓</text><text x="150" y="102" font-size="13" font-weight="800" fill="#1F4D3A" text-anchor="middle">Dags att lägga till din första växt</text>`)
+};
 const TOUR_PIC = { demo: (() => { const bx = (x, n, t1, t2, ico) => `<g transform="translate(${x},0)"><rect x="4" y="4" width="88" height="112" rx="14" fill="#F4EFE4" stroke="#CFC8B8"/><circle cx="20" cy="20" r="10" fill="#2F6B4F"/><text x="20" y="24" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">${n}</text><text x="48" y="64" font-size="26" text-anchor="middle">${ico}</text><text x="48" y="90" font-size="11.5" font-weight="700" fill="#1B201C" text-anchor="middle">${t1}</text><text x="48" y="104" font-size="10.5" fill="#5A5F58" text-anchor="middle">${t2}</text></g>`;
-  return `<svg viewBox="0 0 300 120" width="100%" aria-hidden="true" style="display:block;margin:0 0 10px">${bx(0, 1, 'Sök', 'din växt', '🔍')}${bx(100, 2, 'Lägg till', 'i din samling', '➕')}${bx(200, 3, 'Få påminnelse', 'om vatten', '💧')}</svg>`; })(),
+  return `<svg viewBox="0 0 300 120" width="100%" aria-hidden="true" style="display:block;margin:0 0 10px">${bx(0, 1, 'Sök', 'din växt', '🔍')}${bx(100, 2, 'Lägg till', 'i din samling', '➕')}${bx(200, 3, 'Påminnelse', 'om vatten', '💧')}</svg>`; })(),
   bed: (() => `<svg viewBox="0 0 300 110" width="100%" aria-hidden="true" style="border-radius:12px;display:block;margin:0 0 10px"><rect width="300" height="110" fill="#CFE5B8"/><polygon points="40,86 70,26 250,22 262,84" fill="#8A5A34" opacity=".55" stroke="#6B4A2A" stroke-width="2"/>${[[80,70,7],[110,70,7],[140,70,7],[170,70,7],[200,70,7],[230,68,7],[95,48,10],[135,46,10],[175,45,10],[215,44,10]].map(([x,y,r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${r>8?'#E07BA0':'#7FB05B'}" stroke="#fff" stroke-width="1.5"/><circle cx="${x}" cy="${y}" r="${r+5}" fill="none" stroke="#fff" stroke-dasharray="2 3" opacity=".8"/>`).join('')}<text x="150" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="#2F5E3A">Norr: högsta växterna</text><text x="150" y="102" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" stroke="#3a5a2a" stroke-width="3" paint-order="stroke">10 plantor, 14 får plats</text></svg>`), '3d': (() => `<svg viewBox="0 0 300 110" width="100%" aria-hidden="true" style="border-radius:12px;display:block;margin:0 0 10px"><rect width="300" height="110" fill="#BFD9EE"/><polygon points="0,78 300,78 300,110 0,110" fill="#9CC37A"/><polygon points="95,78 95,46 150,34 150,66" fill="#E9DCC3"/><polygon points="150,66 150,34 205,46 205,78" fill="#D8C8A8"/><polygon points="88,46 150,24 212,46 150,34" fill="#B55A3C"/><polygon points="215,84 280,80 290,88 225,92" fill="#2F5E3A" opacity=".25"/><circle cx="248" cy="62" r="17" fill="#5E9E48"/><rect x="246" y="76" width="4" height="10" fill="#6B4A2A"/><circle cx="52" cy="70" r="12" fill="#6FAE4F"/><rect x="50" y="80" width="4" height="8" fill="#6B4A2A"/><circle cx="270" cy="16" r="9" fill="#FFC83D"/><text x="150" y="104" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" stroke="#3a5a2a" stroke-width="3" paint-order="stroke">Hus, träd och skuggor i 3D</text></svg>`) };
 let TOURS = null;
 function tourKey() { return 'tourDone_' + (S.user ? S.user.id : 'anon'); }
@@ -15119,6 +15199,7 @@ function tourClick(e) { if (!TOURS) return; const st = TOUR[TOURS.i]; if (!st ||
 function tourNext() { if (!TOURS) return; const st = TOUR[TOURS.i]; if (st && st.tap && st.tab && S.tab !== st.tab) go(st.tab); if (TOURS.i >= TOUR.length - 1) { tourStop(true); toast('Rundturen är klar'); return; } TOURS.i++; try { store.set(tourPosKey(), TOURS.i); } catch (e) {} tourDraw(); }
 function tourBack() { if (!TOURS || TOURS.i < 1) return; TOURS.i--; tourDraw(); }
 function tourShow() { const st = TOUR[TOURS.i]; if (st && st.show) { st.show[1](); setTimeout(tourPlace, 200); } }
+function tourPicHtml(st) { try { const f = TOUR_PIC2[st.pic] || TOUR_PIC[st.pic] || (st.pro && TOUR_PIC[st.pro]); return f ? (typeof f === 'function' ? f() : f) : ''; } catch (e) { return ''; } }
 function tourDraw() {
   if (!TOURS) return; const st = TOUR[TOURS.i]; let o = document.getElementById('tourov');
   if (!o) { o = document.createElement('div'); o.id = 'tourov'; o.style.cssText = 'position:fixed;inset:0;z-index:99990;pointer-events:none;font-family:inherit'; document.body.appendChild(o); }
@@ -15127,7 +15208,7 @@ function tourDraw() {
   o.innerHTML = `<div id="tourhl" style="position:fixed;border-radius:18px;box-shadow:0 0 0 9999px rgba(8,20,10,.55),0 0 0 3px var(--acc,#FFC83D) inset;pointer-events:none;transition:all .2s;display:none"></div>
   <div id="tourcard" role="dialog" aria-label="Rundtur" style="position:fixed;pointer-events:auto;background:var(--surf);color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.35);box-sizing:border-box">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><b style="font-size:16px;flex:1">${esc(st.t)}</b><span class="mut" style="font-size:12.5px">${TOURS.i + 1} av ${TOUR.length}</span></div>
-    ${st.pic && TOUR_PIC[st.pic] ? (typeof TOUR_PIC[st.pic] === 'function' ? TOUR_PIC[st.pic]() : TOUR_PIC[st.pic]) : st.pro && !S.pro && TOUR_PIC[st.pro] ? TOUR_PIC[st.pro]() : ''}
+    ${tourPicHtml(st)}
     <p style="margin:0 0 12px;font-size:14.5px;line-height:1.45">${esc(st.b)}${st.pro && !S.pro ? ' Ingår i Roothood Pro.' : ''}</p>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button class="btn sm line" onclick="tourStop(true)">${last ? 'Stäng' : 'Hoppa över'}</button>
@@ -15148,6 +15229,7 @@ function tourPlace() {
 }
 // Startar av sig själv en gång för varje inloggat konto, när inget annat ligger ivägen
 setInterval(() => {
+  try { famInviteCheck(); } catch (e) {}
   try {
     if (S.user && !DEMO && !document.hidden && !store.get(simpleKey(), false) && !S.modal && !S.tool && !TOURS && Date.now() - (window.__t0 || (window.__t0 = Date.now())) > 5000) return simpleAskWhenFree();
     if (TOURS || !S.user || DEMO || document.hidden) return; if (!store.get(simpleKey(), false)) return; if (store.get(tourKey(), false)) return;
