@@ -3599,7 +3599,7 @@ function supportV() {
 function supportBtn() { return `<button class="circ" onclick="openModal('support')" aria-label="Hjälp och support" title="Hjälp och support">${ic('ph-lifebuoy', null, 22)}</button>`; }
 function helpAsk() { const sc = HELP_SCREEN[S.tab] || 'appen'; S.draft = 'Jag behöver hjälp på sidan ' + sc + ': '; closeModal(); S.tab = 'comm'; S.ctab = 'q'; S.post = null; render(); loadFeed(); openAskQ(); }
 async function helpShare() {
-  const url = 'https://armbowscarman.github.io/roothood/';
+  let url = 'https://armbowscarman.github.io/roothood/';
   let text = 'Kan du hjälpa mig komma igång med Roothood, en app för växter?';
   // Inloggad: använd Familj, så att den som hjälper kan lägga in och vattna växter åt en. Kräver ett uttryckligt ja.
   if (S.user && !DEMO && sb) {
@@ -3608,7 +3608,7 @@ async function helpShare() {
       if (!S.fam || S.fam.err) await loadFam();
       if (S.fam && S.fam.none) await famCreate();
       const code = S.fam && S.fam.code;
-      if (code) text += ' Skapa ett konto, öppna Inställningar, välj Familj och skriv in koden ' + code + ', så kan du hjälpa mig med mina växter.';
+      if (code) { url += '?fam=' + encodeURIComponent(code); text += ' Skapa ett konto och tryck på länken, så kan du hjälpa mig med mina växter. Koden om länken inte fungerar: ' + code + ' (Inställningar, Familj).'; }
     } catch (e) { /* skickar bara länken */ }
   }
   try { if (navigator.share) { await navigator.share({ title: 'Roothood', text, url }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
@@ -12030,6 +12030,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.386', '12 nov', ['Inbjudan till Familj fungerar nu med en länk. Den som får länken skapar konto, trycker på länken och får frågan om hen vill gå med.']],
   ['Beta 0.385', '12 nov', ['Be någon hjälpa mig bjuder nu in en anhörig i din Familj med en kod, så hen kan lägga in och vattna växter åt dig.']],
   ['Beta 0.384', '12 nov', ['Support är lätt att hitta: en hjälpknapp längst upp på Start, Samling och Profil, och under Hjälp mig. Där kan du mejla oss, rapportera fel och läsa svar på vanliga frågor.']],
   ['Beta 0.383', '12 nov', ['Ny knapp Hjälp mig på Start: fråga andra odlare, se rundturen igen eller skicka appen till en anhörig som kan hjälpa dig.']],
@@ -14477,7 +14478,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.385';
+const APP_VERSION = 'Beta 0.386';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -14638,6 +14639,20 @@ async function famJoin() {
   const { error } = await sb.rpc('join_household', { p_code: c });
   S.famMsg = !error ? 'Du är nu med i hushållet.' : /BAD_CODE/.test(error.message || '') ? 'Koden finns inte. Kontrollera att du skrev rätt.' : /ALREADY_MEMBER/.test(error.message || '') ? 'Du är redan med i ett hushåll.' : 'Kunde inte gå med just nu.';
   S.fam = null; await loadFam(); if (!error) await refreshFamData();
+}
+// Inbjudan via länk: koden sparas tills man är inloggad, och man får alltid frågan innan man går med.
+async function famInviteCheck() {
+  const code = store.get('famPending', ''); if (!code || !S.user || DEMO || !sb || S.modal || S.tool || window.__famAsking) return;
+  window.__famAsking = true;
+  try {
+    store.set('famPending', '');
+    await loadFam();
+    if (S.fam && !S.fam.none && !S.fam.err) { toast('Du är redan med i en Familj, så inbjudan användes inte.'); return; }
+    if (!confirm('Du har fått en inbjudan till en Familj i Roothood. Om du går med delar du växter och hem med de andra i Familjen. Vill du gå med?')) return;
+    const { error } = await sb.rpc('join_household', { p_code: code });
+    toast(!error ? 'Du är nu med i Familjen.' : /BAD_CODE/.test(error.message || '') ? 'Inbjudan gick inte att använda. Be om en ny.' : 'Kunde inte gå med just nu.');
+    if (!error) { S.fam = null; await loadFam(); await refreshFamData(); }
+  } finally { window.__famAsking = false; }
 }
 async function famLeave() {
   if (!confirm('Lämna hushållet? Dina växter och ditt konto ligger kvar.')) return;
@@ -15112,6 +15127,7 @@ async function init() {
   S.loading = false;
   let restoreY = null;
   try { restoreY = restoreView(); } catch (e) { console.warn('Roothood:', e); }
+  { const fc = (new URLSearchParams(location.search).get('fam') || '').trim(); if (/^[A-Za-z0-9-]{4,24}$/.test(fc)) { try { store.set('famPending', fc); history.replaceState(null, '', location.pathname + location.hash); } catch (e) { console.warn('Roothood:', e); } } }
   const startTab = new URLSearchParams(location.search).get('tab');
   if (startTab === 'mine') { S.tab = 'mine'; try { history.replaceState(null, '', location.pathname); } catch (e) { console.warn('Roothood:', e); } }
   const startTool = new URLSearchParams(location.search).get('tool');
@@ -15213,6 +15229,7 @@ function tourPlace() {
 }
 // Startar av sig själv en gång för varje inloggat konto, när inget annat ligger ivägen
 setInterval(() => {
+  try { famInviteCheck(); } catch (e) {}
   try {
     if (S.user && !DEMO && !document.hidden && !store.get(simpleKey(), false) && !S.modal && !S.tool && !TOURS && Date.now() - (window.__t0 || (window.__t0 = Date.now())) > 5000) return simpleAskWhenFree();
     if (TOURS || !S.user || DEMO || document.hidden) return; if (!store.get(simpleKey(), false)) return; if (store.get(tourKey(), false)) return;
