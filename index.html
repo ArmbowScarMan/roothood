@@ -7715,7 +7715,7 @@ function applyView(h) {
   else if (a[0] === 't' && a[1] === 'explore') S.tool = 'explore';
   else if (a[0] === 't' && (a[1] === 'msgs' || a[1] === 'notif') && S.user) { setTimeout(() => a[1] === 'msgs' ? openMsgs() : openNotif(), 0); }
   else if (a[0] === 'c') {
-    S.tab = 'comm'; S.ctab = ['q', 'forum', 'swap', 'detect', 'friends', 'show', 'near'].includes(a[1]) ? a[1] : 'q';
+    S.tab = 'comm'; S.ctab = ['q', 'forum', 'swap', 'detect', 'friends', 'show', 'near'].includes(a[1]) ? a[1] : 'q'; if (S.ctab === 'near') { S.ctab = 'swap'; S.lnear = true; }
     for (let i = 2; i < a.length; i++) { if (a[i] === 'f') S.forum = a[++i]; else if (a[i] === 'p') S.post = +a[++i]; else if (a[i] === 'new' && S.user) { if (S.ctab === 'detect') S.newCase = true; else S.newL = true; } }
     loadFeed();
   } else if (['home', 'mine', 'me'].includes(a[0])) S.tab = a[0];
@@ -10407,7 +10407,7 @@ function ago(t) {
 function needLogin() { if (!S.user) { openModal('login'); return true; } return false; }
 const isForum = () => S.ctab === 'forum';
 const isSwap = () => S.ctab === 'swap';
-const isNear = () => S.ctab === 'near';
+const isNear = () => false;
 const isShow = () => S.ctab === 'show';
 const isDetect = () => S.ctab === 'detect';
 const curList = () => (isForum() ? S.threads : (isSwap() || isNear()) ? S.listings : isDetect() ? S.cases : S.feed) || [];
@@ -10428,11 +10428,11 @@ async function commRun(fn, ok) {
 }
 function helpCommV() { const sec = (t, items) => `<h3 style="margin:16px 0 6px;font-size:16px">${t}</h3><ul style="margin:0;padding-left:18px;font-size:15px;line-height:1.5">${items.map(x => `<li>${x}</li>`).join('')}</ul>`;
   return `<div class="mh"><h2>Så använder du Gemenskap</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div><div style="max-height:62vh;overflow:auto;padding-right:4px">
-  ${sec('Flikarna', ['Frågor: ställ frågor om växter och få svar från andra. Tryck på + Ställ en fråga överst.', 'Visa upp: bilder på växter som andra har visat upp.', 'Byt & ge bort: annonser för växter du vill ge bort, byta eller önska.', 'Händer nära dig: annonser från andra i din ort. Lägg in din ort i Profil så visas de nära dig.', 'Detektiver: hjälp varandra att räkna ut vilka okända växter det är.', 'Forum: diskussioner om odling och växtvård.', 'Mina vänner: dina vänner och meddelanden till dem.'])}
+  ${sec('Flikarna', ['Frågor: ställ frågor om växter och få svar från andra. Tryck på + Ställ en fråga överst.', 'Visa upp: bilder på växter som andra har visat upp.', 'Byt & ge bort: annonser för växter du vill ge bort, byta eller önska. Tryck på Nära mig för att bara se annonser i din ort eller odlingszon (lägg in din ort i Profil).', 'Forum: diskussioner om odling och växtvård. Visas när det finns några trådar.', 'Visa upp och Forum göms tills det finns några inlägg, så Gemenskap inte känns tomt. Okända växter kan du få hjälp med via Examensmössan.', 'Mina vänner: dina vänner och meddelanden till dem.'])}
   ${sec('Knapparna uppe till höger', ['Examensmössan: fråga en expert.', '?: den här guiden.', 'Förstoringsglaset: hitta användare.', 'Klockan: notiser.'])}
   ${sec('Tips', ['Skriv aldrig adress eller telefonnummer i en annons eller ett svar. Bestäm hellre en plats att ses på.', 'Svaren syns för alla.'])}
   </div><div class="cta" style="padding:12px 0 0"><button class="btn" onclick="closeModal()">Stäng</button></div>`; }
-function setCtab(t) { if (t === 'detect') return openDetect(); S.ctab = t; if (stadUI()) { try { store.set('ctabLast', t); } catch (e) {} } S.cmore = false; if (t === 'near') S.lcity = (S.prof && S.prof.city) || ''; S.newCase = false; S.newL = false; S.post = null; S.forum = null; S.del = null; S.feedErr = null; if (t === 'friends') { S.friends = null; S.inbox = null; render(); return; } render(); loadFeed(); }
+function setCtab(t) { if (t === 'detect') return openDetect(); if (t === 'near') { t = 'swap'; S.lnear = true; } S.ctab = t; if (stadUI()) { try { store.set('ctabLast', t); } catch (e) {} } S.cmore = false; if (t === 'near') S.lcity = (S.prof && S.prof.city) || ''; S.newCase = false; S.newL = false; S.post = null; S.forum = null; S.del = null; S.feedErr = null; if (t === 'friends') { S.friends = null; S.inbox = null; render(); return; } render(); loadFeed(); }
 function openPost(id) { S.post = id; S.adraft = ''; S.del = null; render(); $('#main').scrollTop = 0; }
 function openForum(id) { S.forum = id; S.post = null; S.newThread = false; render(); $('#main').scrollTop = 0; }
 const QMARK = '\n\n— Om växten —\n';
@@ -10549,7 +10549,7 @@ function moreBtn(k, id, mine) {
 }
 document.addEventListener('click', e => { if (S.more && !(e.target.closest && e.target.closest('.morew'))) { S.more = null; S.del = null; keepMain(); } });
 
-const CTABS = [['friends', 'Mina vänner'], ['q', 'Frågor'], ['show', 'Visa upp'], ['swap', 'Byt & ge bort'], ['near', 'Händer nära dig'], ['forum', 'Forum']];
+const CTABS = [['friends', 'Mina vänner'], ['q', 'Frågor'], ['show', 'Visa upp'], ['swap', 'Byt & ge bort'], ['forum', 'Forum']];
 const CTAB_HELP = { q: 'Ställ frågor om växter och få svar från andra odlare.', show: 'Bilder på växter som andra har visat upp.', swap: 'Ge bort, byt eller önska växter i din ort.', near: 'Annonser från andra i din ort.', detect: 'Hjälp varandra att räkna ut vilka okända växter det är.', forum: 'Diskussioner om odling och växtvård.', friends: 'Dina vänner och meddelanden till dem.' };
 // Städad: flikarna Händer nära dig och Forum tas bort (forumtrådarna ligger kvar i databasen).
 const CTABS_STAD_HIDE = ['near', 'forum'];
@@ -10587,7 +10587,18 @@ function ctabFade(bar) { if (bar) bar.classList.toggle('more', bar.scrollLeft + 
     const ind = document.querySelector('.stadtabs .ctabind'), m = ind && /translateX\(([-\d.]+)px\)/.exec(ind.style.transform || ''); if (m) ctabLastM.c = { l: +m[1], w: ind.offsetWidth };
     setCtab(L[j]); }, { passive: true });
 })();
-function ctabsFor() { return document.documentElement.getAttribute('data-ui') === 'stad' ? CTABS.filter(([k]) => !CTABS_STAD_HIDE.includes(k)) : CTABS; }
+// Flikar med färre än TAB_MIN inlägg göms tills det finns några, så Gemenskap inte ser tomt ut. Vald flik göms aldrig.
+const TAB_MIN = 3;
+function tabThin(k) {
+  if (k === 'forum') return Array.isArray(S.threads) && S.threads.length < TAB_MIN;
+  if (k === 'show') return Array.isArray(S.feed) && S.feed.filter(p => p.photo_url).length < TAB_MIN;
+  return false;
+}
+function loadTabCounts() {
+  if (S.tcDone || S.tcBusy || !S.user) return; S.tcBusy = true;
+  Promise.all([api.feed('thread').then(l => { S.threads = l; }).catch(() => {}), api.feed('question').then(l => { if (!S.feed) S.feed = l; }).catch(() => {})]).then(() => { S.tcDone = true; S.tcBusy = false; if (S.tab === 'comm') keepMain(); });
+}
+function ctabsFor() { loadTabCounts(); return (document.documentElement.getAttribute('data-ui') === 'stad' ? CTABS.filter(([k]) => !CTABS_STAD_HIDE.includes(k)) : CTABS).filter(([k]) => S.ctab === k || !tabThin(k)); }
 function segBar() {
   if (document.documentElement.getAttribute('data-ui') === 'stad' && CTABS_STAD_HIDE.includes(S.ctab)) S.ctab = 'q';
   if (stadUI()) {
@@ -10819,7 +10830,7 @@ function swapV() {
   if (S.lcity === null) S.lcity = (S.prof && S.prof.city) || '';
   const st = listState(S.listings, '');
   const c = S.lcity.trim().toLowerCase();
-  const zonOn = S.ctab === 'near' && S.lscope === 'zon';
+  const zonOn = !!S.lnear && S.lscope === 'zon';
   const list = (S.listings || []).filter(p => (S.lf === 'Alla' || p.category === S.lf) && (zonOn ? zoneMatchCity(p.city) : (!c || String(p.city || '').toLowerCase().includes(c))))
     .sort((a, b) => (a.taken - b.taken) || b.created_at.localeCompare(a.created_at));
   const body = st && (S.feedErr || !S.listings) ? st
@@ -10827,7 +10838,8 @@ function swapV() {
     : list.map(p => `<button class="lcard ${p.taken ? 'taken' : ''}" onclick="openPost(${p.id})">${lThumb(p)}<span class="grow">${ltPill(p)}${p.taken ? ' <span class="pill">Bortlovad</span>' : ''}<b>${esc(p.title || '')}</b><span class="mut">${p.city ? esc(p.city) + ' · ' : ''}${ulink(p.user_id, p.author)} · ${ago(p.created_at)}</span>${p.answers.length ? `<span class="mut" style="display:block">${p.answers.length} svar</span>` : ''}</span></button>`).join('');
   return `${topbar('Gemenskap')}${segBar()}
   ${document.documentElement.getAttribute('data-ui') === 'stad' ? cityRowL() : ''}
-  <div class="lfil"><div class="chips2">${['Alla'].concat(LTYPES.map(x => x[0])).map(t => `<button class="${S.lf === t ? 'on' : ''}" onclick="S.lf='${t}';render()">${t}</button>`).join('')}</div></div>
+  <div class="lfil"><div class="chips2">${['Alla'].concat(LTYPES.map(x => x[0])).map(t => `<button class="${S.lf === t ? 'on' : ''}" onclick="S.lf='${t}';render()">${t}</button>`).join('')}<button class="${S.lnear ? 'on' : ''}" aria-pressed="${!!S.lnear}" onclick="S.lnear=!S.lnear;render()">Nära mig</button></div></div>
+  ${S.lnear && !S.post && !S.newL ? nearScopeHtml() : ''}
   ${document.documentElement.getAttribute('data-ui') === 'stad' ? '' : cityRowL()}
   <div class="addbar" style="padding:14px 18px 4px"><button class="btn wide" onclick="startListing()">+ Ny annons</button></div>
   <div class="pad" style="padding-top:8px">${body}</div>`;
@@ -11888,6 +11900,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.378', '12 nov', ['Gemenskap har färre flikar. Händer nära dig är nu ett filter, Nära mig, under Byt & ge bort, och Visa upp och Forum göms tills det finns några inlägg.']],
   ['Beta 0.377', '12 nov', ['Ny rundtur som visar de vanligaste funktionerna steg för steg: söka växter, Samling och vattning, Gemenskap, Snabbfråga, Solbana, rabattplanering, 3D-vyn och Profil. Den startar en gång för alla och finns alltid under Inställningar → Visa rundturen'], ],
   ['Beta 0.376', '12 nov', ['Skuggfoto och Skuggor med djup är pausade och visas som under konstruktion (testas just nu bara av utvecklaren). Kameran med solbanan fungerar som vanligt. De kommer tillbaka senare'], ],
   ['Beta 0.375', '12 nov', ['Dela trädgårdsplan: under Inställningar kan du dela din plan med vänner i appen. De ser rum, tomt, rabatter och träd, men kan bara titta'], ],
@@ -14327,7 +14340,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.377';
+const APP_VERSION = 'Beta 0.378';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
