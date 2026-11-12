@@ -11884,6 +11884,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.367', '12 nov', ['Skuggfoto: ny karta ovanifrån där du drar den gula punkten dit du stod. Kartan visar husen, träden, skuggorna, solens håll och åt vilket håll kameran pekade. Fäst mot närmaste husvägg om du stod intill ett hus. GPS:ens osäkerhet syns som en streckad ring'], ],
   ['Beta 0.366', '12 nov', ['Skuggfoto: passa in skuggorna mot fotot med nya reglage för Lutning, Rotation och Synfält, eller slå på Dra i bilden och dra husens konturer på plats. Tryck på solen i fotot så kalibreras riktning och lutning efter den'], ],
   ['Beta 0.365', '12 nov', ['Skuggfoto: skuggorna har fått mjukare kanter, skarpa intill hindret och suddigare längre bort, som i verkligheten. Nya reglage: Skuggstyrka och Mjuka kanter, så att du kan passa skuggorna mot fotot'], ],
   ['Beta 0.364', '11 nov', ['Plantswipe: Ångra under kortet tar tillbaka de 5 senaste växterna du kastat i komposttunnan, ett i taget. Gäller även i Matcha'], ],
@@ -13025,10 +13026,10 @@ function sfCapture() {
   const k = Math.min(3, 1440 / W), cw = Math.round(W * k), ch = Math.round(H * k), img = document.createElement('canvas'); img.width = cw; img.height = ch;
   const sc = Math.max(cw / v.videoWidth, ch / v.videoHeight), dw = v.videoWidth * sc, dh = v.videoHeight * sc; img.getContext('2d').drawImage(v, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
   const g = AR.geo || (() => { const l = sunLoc(); return { lat: l.lat, lon: l.lon, src: 'ort' }; })();
-  SF = { img, o: Object.assign({}, AR.o), off: arOffset(), hfov: AR.hfov, lat: g.lat, lon: g.lon, src: g.src, acc: g.acc || 0, osm: AR.geo ? AR.osm : null, ds: sunDay(), t: S.sunT ?? sunNowMin(), adj: 0, pitch: 0, roll: 0, lines: false, str: 1, soft: 1.2, drag: false, pickSun: false };
+  SF = { img, o: Object.assign({}, AR.o), off: arOffset(), hfov: AR.hfov, lat: g.lat, lon: g.lon, src: g.src, acc: g.acc || 0, osm: AR.geo ? AR.osm : null, ds: sunDay(), t: S.sunT ?? sunNowMin(), pos: { e: 0, n: 0 }, mapR: 50, adj: 0, pitch: 0, roll: 0, lines: false, str: 1, soft: 1.2, drag: false, pickSun: false };
   arClose(); sfShow(); if (!SF.osm) sfLoadOsm();
 }
-async function sfLoadOsm() { if (!SF) return; SF.osm = null; SF.st = 'Hämtar byggnader och träd från kartan…'; sfInfo(); const d = await osmLoad(SF.lat, SF.lon); if (!SF) return; SF.osm = d; SF.st = d ? '' : 'Kunde inte hämta kartan just nu.'; sfRender(); }
+async function sfLoadOsm() { if (!SF) return; SF.osm = null; SF.pos = { e: 0, n: 0 }; SF.st = 'Hämtar byggnader och träd från kartan…'; sfInfo(); const d = await osmLoad(SF.lat, SF.lon); if (!SF) return; SF.osm = d; SF.st = d ? '' : 'Kunde inte hämta kartan just nu.'; sfRender(); }
 function sfShow() {
   const el = document.createElement('div'); el.id = 'sfv'; el.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0b1410;color:#fff;font-family:system-ui,sans-serif;overflow-y:auto';
   const inp = 'height:40px;border-radius:10px;border:0;padding:0 10px;background:rgba(255,255,255,.92);color:#16261D;font-size:15px';
@@ -13041,6 +13042,10 @@ function sfShow() {
       <div style="font-size:14px;margin-bottom:6px">Var fotot togs (GPS-koordinater)</div>
       <div style="display:flex;gap:8px"><input id="sflat" inputmode="decimal" aria-label="Latitud" placeholder="Latitud" value="${SF.lat.toFixed(5)}" style="${inp};flex:1;min-width:0"><input id="sflon" inputmode="decimal" aria-label="Longitud" placeholder="Longitud" value="${SF.lon.toFixed(5)}" style="${inp};flex:1;min-width:0"></div>
       <div style="display:flex;gap:8px;margin:8px 0 14px"><button id="sfgo" style="flex:1;height:40px;border-radius:12px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Använd koordinaterna</button><button id="sfme" style="flex:1;height:40px;border-radius:12px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Min position</button></div>
+      <div style="font-size:14px;margin:2px 0 6px">Var stod du? Dra den gula punkten på kartan. Den streckade ringen är GPS:ens osäkerhet.</div>
+      <canvas id="sfmap" style="display:block;width:100%;height:260px;border-radius:14px;background:#12201a;touch-action:none"></canvas>
+      <div style="display:flex;gap:8px;margin:8px 0 6px"><button id="sfmo" style="flex:1;height:40px;border-radius:12px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Zooma ut</button><button id="sfmi" style="flex:1;height:40px;border-radius:12px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Zooma in</button></div>
+      <div style="display:flex;gap:8px;margin:0 0 14px"><button id="sfsnap" style="flex:2;height:40px;border-radius:12px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Fäst mot närmaste husvägg</button><button id="sfmr" style="flex:1;height:40px;border-radius:12px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Nollställ</button></div>
       <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px"><span style="min-width:108px">Justera riktning</span><input id="sfadj" type="range" min="-60" max="60" step="1" value="0" style="flex:1;accent-color:#FFC83D" aria-label="Vrid skuggorna i grader"><span id="sfadjv" style="min-width:40px;text-align:right">0°</span></label>
       <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px"><span style="min-width:108px">Lutning</span><input id="sfpit" type="range" min="-30" max="30" step="0.5" value="0" style="flex:1;accent-color:#FFC83D" aria-label="Luta kameran upp eller ner i grader"><span id="sfpitv" style="min-width:40px;text-align:right">0°</span></label>
       <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px"><span style="min-width:108px">Rotation</span><input id="sfrol" type="range" min="-15" max="15" step="0.5" value="0" style="flex:1;accent-color:#FFC83D" aria-label="Vrid bilden i grader"><span id="sfrolv" style="min-width:40px;text-align:right">0°</span></label>
@@ -13065,6 +13070,15 @@ function sfShow() {
   $s('sffov').oninput = e => { SF.hfov = +e.target.value; sfSync(); sfRender(true); };
   $s('sfdrag').onchange = e => { SF.drag = e.target.checked; $s('sfc').style.touchAction = SF.drag ? 'none' : ''; if (SF.drag) { SF.lines = true; $s('sfln').checked = true; } sfRender(); };
   $s('sfsun').onclick = () => { SF.pickSun = true; SF.lines = true; $s('sfln').checked = true; toast('Ställ in datum och tid för när fotot togs. Tryck sedan på solen i bilden'); sfRender(); };
+  const mp = $s('sfmap'); let md = false;
+  const mpt = e => { const r = mp.getBoundingClientRect(), sc = Math.min(r.width, r.height) / 2 / (SF.mapR || 50), pe = (e.clientX - r.left - r.width / 2) / sc, pn = -(e.clientY - r.top - r.height / 2) / sc, d = Math.hypot(pe, pn), k = d > 150 ? 150 / d : 1; SF.pos = { e: pe * k, n: pn * k }; sfRender(true); };
+  mp.onpointerdown = e => { md = true; try { mp.setPointerCapture(e.pointerId); } catch (x) {} mpt(e); };
+  mp.onpointermove = e => { if (md && SF) mpt(e); };
+  mp.onpointerup = mp.onpointercancel = () => { md = false; };
+  $s('sfmo').onclick = () => { SF.mapR = Math.min(200, (SF.mapR || 50) * 2); sfRender(); };
+  $s('sfmi').onclick = () => { SF.mapR = Math.max(12, (SF.mapR || 50) / 2); sfRender(); };
+  $s('sfmr').onclick = () => { SF.pos = { e: 0, n: 0 }; sfRender(); };
+  $s('sfsnap').onclick = () => { if (!sfSnap()) toast('Hittade ingen husvägg inom 40 m från punkten'); else sfRender(); };
   const cvs = $s('sfc'); let dg = null;
   cvs.onpointerdown = e => { if (!SF.drag || SF.pickSun) return; const k = cvs.width / cvs.clientWidth; dg = { x: e.clientX, y: e.clientY, adj: SF.adj, pit: SF.pitch, k }; try { cvs.setPointerCapture(e.pointerId); } catch (x) {} };
   cvs.onpointermove = e => { if (!dg || !SF) return; const f = (cvs.width / 2) / Math.tan(SF.hfov * Math.PI / 360), toDeg = 180 / Math.PI;
@@ -13101,6 +13115,35 @@ function sfCalSun(tx, ty) {
     adj += (ex * d - b * ey) / det; pit += (a * ey - c * ex) / det; adj = Math.max(-60, Math.min(60, adj)); pit = Math.max(-30, Math.min(30, pit)); }
   SF.adj = adj; SF.pitch = pit; const p2 = sfSunPx(sun.az, sun.alt, W, H);
   toast(p2 && Math.hypot(tx - p2[0], ty - p2[1]) < 6 ? 'Kalibrerat mot solen' : 'Det gick inte att passa in mot solen. Prova Rotation eller Synfält.');
+}
+// Kameran pekar mot den här kompassriktningen (grader) med nuvarande inställningar
+function sfCamAz() { const M = arMat(SF.o.a, SF.o.b, SF.o.g); return ((Math.atan2(-M[2], -M[5]) * 180 / Math.PI + SF.off + SF.adj) % 360 + 360) % 360; }
+// Flyttar punkten till närmaste husvägg om den ligger inom 40 m
+function sfSnap() {
+  if (!SF || !SF.osm) return false; const p = SF.pos || { e: 0, n: 0 }; let best = null;
+  SF.osm.b.forEach(b => b.pts.forEach((a, i) => { const q = b.pts[(i + 1) % b.pts.length], dx = q[0] - a[0], dy = q[1] - a[1], t = Math.max(0, Math.min(1, ((p.e - a[0]) * dx + (p.n - a[1]) * dy) / (dx * dx + dy * dy || 1))), x = a[0] + dx * t, y = a[1] + dy * t, d = Math.hypot(x - p.e, y - p.n); if (!best || d < best.d) best = { d, e: x, n: y }; }));
+  if (!best || best.d > 40) return false; SF.pos = { e: best.e, n: best.n }; return true;
+}
+function sfPosTxt() { const d = SF && SF.pos ? Math.hypot(SF.pos.e, SF.pos.n) : 0; return d >= 0.5 ? `Du står ${String(Math.round(d)).replace('.', ',')} m från GPS-punkten. ` : ''; }
+// Kartan ovanifrån: hus, träd, skuggor, var du står och åt vilket håll kameran pekar
+function sfMap() {
+  const cv = SF && SF.el && SF.el.querySelector('#sfmap'); if (!cv) return; const w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1); if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+  const R = SF.mapR || 50, sc = Math.min(w, h) / 2 / R, cx = w / 2, cy = h / 2, X = e => cx + e * sc, Y = n => cy - n * sc, p = SF.pos || { e: 0, n: 0 };
+  c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 1; c.fillStyle = 'rgba(255,255,255,.5)'; c.font = '11px system-ui'; const step = R > 120 ? 50 : R > 45 ? 25 : R > 20 ? 10 : 5;
+  for (let r = step; r <= R * 1.5; r += step) { c.beginPath(); c.arc(cx, cy, r * sc, 0, 7); c.stroke(); if (r * sc < Math.min(w, h) / 2 - 8) c.fillText(r + ' m', cx + 3, cy - r * sc + 11); }
+  const sun = SUN(sunAt(SF.ds, SF.t), SF.lat, SF.lon), ar = sun.az * Math.PI / 180, vx = -Math.sin(ar), vy = -Math.cos(ar), up = sun.alt > 0.5, Lk = up ? 1 / Math.tan(sun.alt * Math.PI / 180) : 0, B = SF.osm ? SF.osm.b : [];
+  if (SF.src === 'gps' && SF.acc) { c.save(); c.setLineDash([5, 4]); c.strokeStyle = 'rgba(120,190,255,.8)'; c.beginPath(); c.arc(cx, cy, SF.acc * sc, 0, 7); c.stroke(); c.restore(); }
+  if (up) { c.fillStyle = 'rgba(8,14,40,.45)'; B.forEach(b => { const L = Math.min(250, Lk * b.h), ox = vx * L, oy = vy * L; b.pts.forEach((a, i) => { const q = b.pts[(i + 1) % b.pts.length]; c.beginPath(); c.moveTo(X(a[0]), Y(a[1])); c.lineTo(X(q[0]), Y(q[1])); c.lineTo(X(q[0] + ox), Y(q[1] + oy)); c.lineTo(X(a[0] + ox), Y(a[1] + oy)); c.closePath(); c.fill(); }); }); }
+  c.fillStyle = 'rgba(235,235,235,.85)'; c.strokeStyle = 'rgba(255,255,255,.9)'; B.forEach(b => { c.beginPath(); b.pts.forEach((a, i) => i ? c.lineTo(X(a[0]), Y(a[1])) : c.moveTo(X(a[0]), Y(a[1]))); c.closePath(); c.fill(); c.stroke(); });
+  c.fillStyle = 'rgba(90,170,90,.85)'; (SF.osm ? SF.osm.t : []).forEach(t => { c.beginPath(); c.arc(X(t.e), Y(t.n), Math.max(2, t.r * sc), 0, 7); c.fill(); });
+  const ca = sfCamAz() * Math.PI / 180, half = SF.hfov / 2 * Math.PI / 180, len = Math.min(w, h) * 0.42, mx = X(p.e), my = Y(p.n);
+  c.fillStyle = 'rgba(255,200,61,.28)'; c.beginPath(); c.moveTo(mx, my); c.arc(mx, my, len, ca - Math.PI / 2 - half, ca - Math.PI / 2 + half); c.closePath(); c.fill();
+  c.fillStyle = '#FFC83D'; c.strokeStyle = '#16261D'; c.lineWidth = 2; c.beginPath(); c.arc(mx, my, 8, 0, 7); c.fill(); c.stroke();
+  if (up) { const sx = cx + Math.sin(ar) * (Math.min(w, h) / 2 - 14), sy = cy - Math.cos(ar) * (Math.min(w, h) / 2 - 14); c.fillStyle = '#FFD84D'; c.beginPath(); c.arc(sx, sy, 8, 0, 7); c.fill(); c.strokeStyle = '#F08A24'; c.lineWidth = 1.5; c.stroke(); }
+  c.fillStyle = 'rgba(255,255,255,.7)'; c.fillText('N', w - 16, 14);
+  if (!SF.osm) { c.fillStyle = 'rgba(255,255,255,.7)'; c.fillText('Väntar på kartan…', 10, h - 10); }
 }
 function sfClose() { if (SF && SF.el) SF.el.remove(); SF = null; }
 function sfInfo(txt) { if (!SF || !SF.el) return; const el = SF.el.querySelector('#sfi'); if (txt != null) SF.info = txt; el.innerHTML = (SF.st ? SF.st + ' ' : '') + (SF.info || ''); }
@@ -13160,6 +13203,7 @@ function shadowPaint(c, W, H, cam, prisms, trees, sun, opt) {
 function sfRender(fast) {
   if (!SF || !SF.el) return;
   clearTimeout(SF.ft); if (fast) SF.ft = setTimeout(() => sfRender(), 220);
+  sfMap();
   const cv = SF.el.querySelector('#sfc'), img = SF.img, W = img.width, H = img.height; if (cv.width !== W) { cv.width = W; cv.height = H; }
   const c = cv.getContext('2d'); c.globalCompositeOperation = 'source-over'; c.filter = 'none'; c.drawImage(img, 0, 0);
   SF.el.querySelector('#sftl').textContent = hm(SF.t);
@@ -13168,9 +13212,9 @@ function sfRender(fast) {
   if (sun.alt > 0.5 && (SF.lines || SF.pickSun)) { const q = sfSunPx(sun.az, sun.alt, W, H); if (q && q[0] > -60 && q[0] < W + 60 && q[1] > -60 && q[1] < H + 60) { c.save(); c.strokeStyle = '#FFC83D'; c.lineWidth = Math.max(2, W / 360); c.beginPath(); c.arc(q[0], q[1], Math.max(14, W / 45), 0, 7); c.moveTo(q[0] - Math.max(22, W / 28), q[1]); c.lineTo(q[0] + Math.max(22, W / 28), q[1]); c.moveTo(q[0], q[1] - Math.max(22, W / 28)); c.lineTo(q[0], q[1] + Math.max(22, W / 28)); c.stroke(); c.restore(); } }
   if (sun.alt <= 0.5) { sfInfo(`Kl ${hm(SF.t)} den ${dstr} är solen under horisonten, så inga skuggor syns.`); return; }
   if (!SF.osm) { sfInfo(`Kl ${hm(SF.t)} den ${dstr} står solen i ${sunWord(sun.az)}, ${Math.round(sun.alt)}° över horisonten.`); return; }
-  const prisms = SF.osm.b.map(b => ({ pts: b.pts, h: b.h })), trees = SF.osm.t.map(t => ({ e: t.e, n: t.n, h: t.h, r: t.r }));
-  shadowPaint(c, W, H, { M: arMat(SF.o.a, SF.o.b, SF.o.g), off: SF.off + SF.adj, hfov: SF.hfov, pitch: SF.pitch, roll: SF.roll, ownR: SF.src === 'gps' ? Math.max(3, Math.min(25, SF.acc || 10)) : 3 }, prisms, trees, sun, { blur: Math.max(1, Math.round(W / 600)), samples: fast ? 1 : 11, soft: SF.soft ?? 1.2, str: SF.str ?? 1, lines: SF.lines, lineW: Math.max(1.5, W / 400) });
-  sfInfo(`Kl <b>${hm(SF.t)}</b> den ${dstr} står solen i ${sunWord(sun.az)}, ${Math.round(sun.alt)}° över horisonten. ${nB ? `Skuggor från ${nB} ${nB === 1 ? 'byggnad' : 'byggnader'} och ${nT} träd på kartan.` : 'Kartan har inga byggnader inom 150 m från positionen. Kontrollera koordinaterna eller tryck Min position.'}`);
+  const pe = SF.pos ? SF.pos.e : 0, pn = SF.pos ? SF.pos.n : 0, prisms = SF.osm.b.map(b => ({ pts: b.pts.map(([e, n]) => [e - pe, n - pn]), h: b.h })), trees = SF.osm.t.map(t => ({ e: t.e - pe, n: t.n - pn, h: t.h, r: t.r }));
+  shadowPaint(c, W, H, { M: arMat(SF.o.a, SF.o.b, SF.o.g), off: SF.off + SF.adj, hfov: SF.hfov, pitch: SF.pitch, roll: SF.roll, ownR: SF.src === 'gps' && !(SF.pos && (SF.pos.e || SF.pos.n)) ? Math.max(3, Math.min(25, SF.acc || 10)) : 3 }, prisms, trees, sun, { blur: Math.max(1, Math.round(W / 600)), samples: fast ? 1 : 11, soft: SF.soft ?? 1.2, str: SF.str ?? 1, lines: SF.lines, lineW: Math.max(1.5, W / 400) });
+  sfInfo(`Kl <b>${hm(SF.t)}</b> den ${dstr} står solen i ${sunWord(sun.az)}, ${Math.round(sun.alt)}° över horisonten. ${sfPosTxt()}${nB ? `Skuggor från ${nB} ${nB === 1 ? 'byggnad' : 'byggnader'} och ${nT} träd på kartan.` : 'Kartan har inga byggnader inom 150 m från positionen. Kontrollera koordinaterna eller tryck Min position.'}`);
 }
 async function sfSave() {
   if (!SF) return; const cv = SF.el.querySelector('#sfc'), name = 'skuggfoto-' + SF.ds + '-' + hm(SF.t).replace(':', '') + '.jpg';
@@ -14107,7 +14151,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.366';
+const APP_VERSION = 'Beta 0.367';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
