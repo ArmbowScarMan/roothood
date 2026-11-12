@@ -1,0 +1,45 @@
+-- 096: dela trädgårdsplanen med vänner i appen (bara läsning för den som tar emot).
+-- Kör hela filen i Supabase SQL-editorn. Går att köra om utan skada.
+
+create table if not exists plan_shares (
+  owner uuid not null references auth.users(id) on delete cascade,
+  shared_with uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (owner, shared_with),
+  check (owner <> shared_with)
+);
+alter table plan_shares enable row level security;
+
+-- Ägaren ser och ändrar sina egna delningar, men bara till personer som är vänner.
+drop policy if exists plan_shares_owner_select on plan_shares;
+create policy plan_shares_owner_select on plan_shares for select using (owner = auth.uid());
+drop policy if exists plan_shares_owner_insert on plan_shares;
+create policy plan_shares_owner_insert on plan_shares for insert
+  with check (owner = auth.uid() and exists (select 1 from my_friends() f where f.id = shared_with));
+drop policy if exists plan_shares_owner_delete on plan_shares;
+create policy plan_shares_owner_delete on plan_shares for delete using (owner = auth.uid());
+-- Mottagaren ser att något delas och kan lämna delningen.
+drop policy if exists plan_shares_recv_select on plan_shares;
+create policy plan_shares_recv_select on plan_shares for select using (shared_with = auth.uid());
+drop policy if exists plan_shares_recv_delete on plan_shares;
+create policy plan_shares_recv_delete on plan_shares for delete using (shared_with = auth.uid());
+
+-- Vilka jag delar min plan med (namn följer med).
+create or replace function my_plan_shares()
+returns table(shared_with uuid, display_name text)
+language sql security definer set search_path = public as $$
+  select s.shared_with, p.display_name from plan_shares s left join profiles p on p.id = s.shared_with
+  where s.owner = auth.uid() order by p.display_name;
+$$;
+
+-- Planer som delas med mig. Bara rum och plan, utan kartposition, så att hemmets plats inte avslöjas.
+create or replace function shared_plans_for_me()
+returns table(owner uuid, display_name text, rooms jsonb, plan jsonb, updated_at timestamptz)
+language sql security definer set search_path = public as $$
+  select s.owner, p.display_name, coalesce(h.rooms->'rooms', '[]'::jsonb),
+         coalesce(h.rooms->'plan', '{}'::jsonb) - 'map', h.updated_at
+  from plan_shares s join homes h on h.user_id = s.owner left join profiles p on p.id = s.owner
+  where s.shared_with = auth.uid() order by h.updated_at desc;
+$$;
+revoke all on function my_plan_shares() from public; grant execute on function my_plan_shares() to authenticated;
+revoke all on function shared_plans_for_me() from public; grant execute on function shared_plans_for_me() to authenticated;
