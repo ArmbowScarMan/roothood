@@ -11884,6 +11884,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.366', '12 nov', ['Skuggfoto: passa in skuggorna mot fotot med nya reglage för Lutning, Rotation och Synfält, eller slå på Dra i bilden och dra husens konturer på plats. Tryck på solen i fotot så kalibreras riktning och lutning efter den'], ],
   ['Beta 0.365', '12 nov', ['Skuggfoto: skuggorna har fått mjukare kanter, skarpa intill hindret och suddigare längre bort, som i verkligheten. Nya reglage: Skuggstyrka och Mjuka kanter, så att du kan passa skuggorna mot fotot'], ],
   ['Beta 0.364', '11 nov', ['Plantswipe: Ångra under kortet tar tillbaka de 5 senaste växterna du kastat i komposttunnan, ett i taget. Gäller även i Matcha'], ],
   ['Beta 0.363', '11 nov', ['Plantswipe: fliken Högerswipe heter nu Villhöver och visar samma lista som Villhöver under Min samling. Svep höger eller tryck 💚 för att lägga en växt i Villhöver. Det du sparat i Högerswipe flyttas dit automatiskt', 'Min samling: Önskelistan heter nu Villhöver', 'Plantswipe: knappen med ✕ är nu en kompost, och 💚 har ersatt hjärtat för att lägga i Villhöver'], ],
@@ -13024,7 +13025,7 @@ function sfCapture() {
   const k = Math.min(3, 1440 / W), cw = Math.round(W * k), ch = Math.round(H * k), img = document.createElement('canvas'); img.width = cw; img.height = ch;
   const sc = Math.max(cw / v.videoWidth, ch / v.videoHeight), dw = v.videoWidth * sc, dh = v.videoHeight * sc; img.getContext('2d').drawImage(v, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
   const g = AR.geo || (() => { const l = sunLoc(); return { lat: l.lat, lon: l.lon, src: 'ort' }; })();
-  SF = { img, o: Object.assign({}, AR.o), off: arOffset(), hfov: AR.hfov, lat: g.lat, lon: g.lon, src: g.src, acc: g.acc || 0, osm: AR.geo ? AR.osm : null, ds: sunDay(), t: S.sunT ?? sunNowMin(), adj: 0, lines: false, str: 1, soft: 1.2 };
+  SF = { img, o: Object.assign({}, AR.o), off: arOffset(), hfov: AR.hfov, lat: g.lat, lon: g.lon, src: g.src, acc: g.acc || 0, osm: AR.geo ? AR.osm : null, ds: sunDay(), t: S.sunT ?? sunNowMin(), adj: 0, pitch: 0, roll: 0, lines: false, str: 1, soft: 1.2, drag: false, pickSun: false };
   arClose(); sfShow(); if (!SF.osm) sfLoadOsm();
 }
 async function sfLoadOsm() { if (!SF) return; SF.osm = null; SF.st = 'Hämtar byggnader och träd från kartan…'; sfInfo(); const d = await osmLoad(SF.lat, SF.lon); if (!SF) return; SF.osm = d; SF.st = d ? '' : 'Kunde inte hämta kartan just nu.'; sfRender(); }
@@ -13040,9 +13041,14 @@ function sfShow() {
       <div style="font-size:14px;margin-bottom:6px">Var fotot togs (GPS-koordinater)</div>
       <div style="display:flex;gap:8px"><input id="sflat" inputmode="decimal" aria-label="Latitud" placeholder="Latitud" value="${SF.lat.toFixed(5)}" style="${inp};flex:1;min-width:0"><input id="sflon" inputmode="decimal" aria-label="Longitud" placeholder="Longitud" value="${SF.lon.toFixed(5)}" style="${inp};flex:1;min-width:0"></div>
       <div style="display:flex;gap:8px;margin:8px 0 14px"><button id="sfgo" style="flex:1;height:40px;border-radius:12px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Använd koordinaterna</button><button id="sfme" style="flex:1;height:40px;border-radius:12px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Min position</button></div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px">Justera riktning <input id="sfadj" type="range" min="-30" max="30" step="1" value="0" style="flex:1;accent-color:#FFC83D" aria-label="Vrid skuggorna i grader"><span id="sfadjv" style="min-width:40px;text-align:right">0°</span></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px">Skuggstyrka <input id="sfstr" type="range" min="40" max="140" step="5" value="100" style="flex:1;accent-color:#FFC83D" aria-label="Hur mörka skuggorna är"><span id="sfstrv" style="min-width:40px;text-align:right">100 %</span></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px">Mjuka kanter <input id="sfsoft" type="range" min="0" max="3" step="0.1" value="1.2" style="flex:1;accent-color:#FFC83D" aria-label="Hur mjuka skuggornas kanter är"></label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px"><span style="min-width:108px">Justera riktning</span><input id="sfadj" type="range" min="-60" max="60" step="1" value="0" style="flex:1;accent-color:#FFC83D" aria-label="Vrid skuggorna i grader"><span id="sfadjv" style="min-width:40px;text-align:right">0°</span></label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px"><span style="min-width:108px">Lutning</span><input id="sfpit" type="range" min="-30" max="30" step="0.5" value="0" style="flex:1;accent-color:#FFC83D" aria-label="Luta kameran upp eller ner i grader"><span id="sfpitv" style="min-width:40px;text-align:right">0°</span></label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px"><span style="min-width:108px">Rotation</span><input id="sfrol" type="range" min="-15" max="15" step="0.5" value="0" style="flex:1;accent-color:#FFC83D" aria-label="Vrid bilden i grader"><span id="sfrolv" style="min-width:40px;text-align:right">0°</span></label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:10px"><span style="min-width:108px">Synfält</span><input id="sffov" type="range" min="40" max="110" step="1" value="${Math.round(SF.hfov)}" style="flex:1;accent-color:#FFC83D" aria-label="Kamerans synfält i grader"><span id="sffovv" style="min-width:40px;text-align:right">${Math.round(SF.hfov)}°</span></label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:8px"><input id="sfdrag" type="checkbox" style="flex:none;width:22px;height:22px;margin:0;accent-color:#FFC83D"> Dra i bilden för att passa in husen (stänger av scroll i bilden)</label>
+      <button id="sfsun" style="width:100%;height:40px;border-radius:12px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:14px;margin-bottom:12px">Rikta in mot solen: tryck på solen i fotot</button>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px"><span style="min-width:108px">Skuggstyrka</span><input id="sfstr" type="range" min="40" max="140" step="5" value="100" style="flex:1;accent-color:#FFC83D" aria-label="Hur mörka skuggorna är"><span id="sfstrv" style="min-width:40px;text-align:right">100 %</span></label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px"><span style="min-width:108px">Mjuka kanter</span><input id="sfsoft" type="range" min="0" max="3" step="0.1" value="1.2" style="flex:1;accent-color:#FFC83D" aria-label="Hur mjuka skuggornas kanter är"><span id="sfsoftv" style="min-width:40px;text-align:right">1,2°</span></label>
       <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:14px"><input id="sfln" type="checkbox" style="flex:none;width:22px;height:22px;margin:0;accent-color:#FFC83D"> Visa husens konturer, så att du kan passa in dem mot fotot</label>
       <div style="display:flex;gap:8px"><button id="sfsave" style="flex:2;height:48px;border-radius:14px;border:0;background:#FFC83D;color:#16261D;font-weight:700;font-size:16px">Spara bilden</button><button id="sfnew" style="flex:1;height:48px;border-radius:14px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:15px">Nytt foto</button></div>
       <p style="margin:12px 0 0;font-size:12.5px;opacity:.75">Skuggorna räknas ut från byggnader och träd som finns på kartan (OpenStreetMap). Höjderna är ofta uppskattade, och sådant som inte finns på kartan, t.ex. de flesta träd och häckar, kastar ingen skugga i bilden.</p>
@@ -13050,16 +13056,51 @@ function sfShow() {
   document.body.appendChild(el); SF.el = el;
   const $s = id => el.querySelector('#' + id);
   $s('sfx').onclick = sfClose; $s('sfnew').onclick = () => { sfClose(); arOpen('photo'); };
-  $s('sft').oninput = e => { SF.t = +e.target.value; sfRender(); };
+  $s('sft').oninput = e => { SF.t = +e.target.value; sfRender(true); };
   $s('sfd').onchange = e => { if (e.target.value) { SF.ds = e.target.value; sfRender(); } };
-  $s('sfadj').oninput = e => { SF.adj = +e.target.value; $s('sfadjv').textContent = e.target.value + '°'; sfRender(); };
+  $s('sfadj').oninput = e => { SF.adj = +e.target.value; $s('sfadjv').textContent = e.target.value + '°'; sfRender(true); };
   $s('sfln').onchange = e => { SF.lines = e.target.checked; sfRender(); };
-  $s('sfstr').oninput = e => { SF.str = +e.target.value / 100; $s('sfstrv').textContent = e.target.value + ' %'; sfRender(); };
-  $s('sfsoft').oninput = e => { SF.soft = +e.target.value; sfRender(); };
+  $s('sfpit').oninput = e => { SF.pitch = +e.target.value; sfSync(); sfRender(true); };
+  $s('sfrol').oninput = e => { SF.roll = +e.target.value; sfSync(); sfRender(true); };
+  $s('sffov').oninput = e => { SF.hfov = +e.target.value; sfSync(); sfRender(true); };
+  $s('sfdrag').onchange = e => { SF.drag = e.target.checked; $s('sfc').style.touchAction = SF.drag ? 'none' : ''; if (SF.drag) { SF.lines = true; $s('sfln').checked = true; } sfRender(); };
+  $s('sfsun').onclick = () => { SF.pickSun = true; SF.lines = true; $s('sfln').checked = true; toast('Ställ in datum och tid för när fotot togs. Tryck sedan på solen i bilden'); sfRender(); };
+  const cvs = $s('sfc'); let dg = null;
+  cvs.onpointerdown = e => { if (!SF.drag || SF.pickSun) return; const k = cvs.width / cvs.clientWidth; dg = { x: e.clientX, y: e.clientY, adj: SF.adj, pit: SF.pitch, k }; try { cvs.setPointerCapture(e.pointerId); } catch (x) {} };
+  cvs.onpointermove = e => { if (!dg || !SF) return; const f = (cvs.width / 2) / Math.tan(SF.hfov * Math.PI / 360), toDeg = 180 / Math.PI;
+    SF.adj = Math.max(-60, Math.min(60, dg.adj - (e.clientX - dg.x) * dg.k / f * toDeg)); SF.pitch = Math.max(-30, Math.min(30, dg.pit + (e.clientY - dg.y) * dg.k / f * toDeg)); sfSync(); sfRender(true); };
+  cvs.onpointerup = cvs.onpointercancel = () => { dg = null; };
+  cvs.onclick = e => { if (!SF || !SF.pickSun) return; const r = cvs.getBoundingClientRect(), k = cvs.width / r.width; SF.pickSun = false; sfCalSun((e.clientX - r.left) * k, (e.clientY - r.top) * k); sfSync(); sfRender(); };
+  $s('sfstr').oninput = e => { SF.str = +e.target.value / 100; $s('sfstrv').textContent = e.target.value + ' %'; sfRender(true); };
+  $s('sfsoft').oninput = e => { SF.soft = +e.target.value; $s('sfsoftv').textContent = String(SF.soft).replace('.', ',') + '°'; sfRender(true); };
   $s('sfgo').onclick = () => { const la = parseFloat($s('sflat').value.replace(',', '.')), lo = parseFloat($s('sflon').value.replace(',', '.')); if (!(Math.abs(la) <= 90 && Math.abs(lo) <= 180)) return toast('Skriv latitud och longitud, t.ex. 65.3172 och 21.4794'); SF.lat = la; SF.lon = lo; SF.src = 'manual'; sfLoadOsm(); };
   $s('sfme').onclick = () => { if (!navigator.geolocation) return toast('Mobilen kan inte ge din position'); toast('Hämtar din position…'); navigator.geolocation.getCurrentPosition(q => { if (!SF) return; SF.lat = q.coords.latitude; SF.lon = q.coords.longitude; SF.src = 'gps'; SF.acc = q.coords.accuracy || 0; $s('sflat').value = SF.lat.toFixed(5); $s('sflon').value = SF.lon.toFixed(5); sfLoadOsm(); }, () => toast('Fick inte din position'), { enableHighAccuracy: true, timeout: 15000 }); };
   $s('sfsave').onclick = sfSave;
   sfRender();
+}
+// Uppdaterar reglagen efter att adj, lutning, rotation eller synfält ändrats på annat sätt (dra, solen)
+function sfSync() {
+  if (!SF || !SF.el) return; const $s = id => SF.el.querySelector('#' + id), set = (id, v, t) => { const a = $s(id), b = $s(id + 'v'); if (a) a.value = v; if (b) b.textContent = t; };
+  set('sfadj', SF.adj, Math.round(SF.adj) + '°'); set('sfpit', SF.pitch, (Math.round(SF.pitch * 10) / 10) + '°'); set('sfrol', SF.roll, (Math.round(SF.roll * 10) / 10) + '°'); set('sffov', SF.hfov, Math.round(SF.hfov) + '°');
+}
+// Var solen (az, alt) hamnar i bilden, i bildpunkter. null om den är bakom kameran.
+function sfSunPx(az, alt, W, H) {
+  const d = shRot(arToDev(arMat(SF.o.a, SF.o.b, SF.o.g), az - (SF.off + SF.adj), alt), SF.pitch, SF.roll), f = (W / 2) / Math.tan(SF.hfov * Math.PI / 360);
+  return d.z >= -0.01 ? null : [W / 2 + d.x / -d.z * f, H / 2 - d.y / -d.z * f];
+}
+// Du trycker på solen i fotot. Riktning och lutning justeras tills solens beräknade plats hamnar där du tryckte.
+function sfCalSun(tx, ty) {
+  const W = SF.img.width, H = SF.img.height, sun = SUN(sunAt(SF.ds, SF.t), SF.lat, SF.lon);
+  if (sun.alt <= 0.5) return toast('Solen är under horisonten vid den tiden. Ställ in rätt tid först.');
+  let adj = SF.adj, pit = SF.pitch, ok = false;
+  for (let it = 0; it < 14; it++) {
+    SF.adj = adj; SF.pitch = pit; const p = sfSunPx(sun.az, sun.alt, W, H); if (!p) break;
+    const ex = tx - p[0], ey = ty - p[1]; if (Math.hypot(ex, ey) < 0.5) { ok = true; break; }
+    SF.adj = adj + 0.5; const pa = sfSunPx(sun.az, sun.alt, W, H); SF.adj = adj; SF.pitch = pit + 0.5; const pp = sfSunPx(sun.az, sun.alt, W, H); SF.pitch = pit;
+    if (!pa || !pp) break; const a = (pa[0] - p[0]) / 0.5, b = (pp[0] - p[0]) / 0.5, c = (pa[1] - p[1]) / 0.5, d = (pp[1] - p[1]) / 0.5, det = a * d - b * c; if (Math.abs(det) < 1e-6) break;
+    adj += (ex * d - b * ey) / det; pit += (a * ey - c * ex) / det; adj = Math.max(-60, Math.min(60, adj)); pit = Math.max(-30, Math.min(30, pit)); }
+  SF.adj = adj; SF.pitch = pit; const p2 = sfSunPx(sun.az, sun.alt, W, H);
+  toast(p2 && Math.hypot(tx - p2[0], ty - p2[1]) < 6 ? 'Kalibrerat mot solen' : 'Det gick inte att passa in mot solen. Prova Rotation eller Synfält.');
 }
 function sfClose() { if (SF && SF.el) SF.el.remove(); SF = null; }
 function sfInfo(txt) { if (!SF || !SF.el) return; const el = SF.el.querySelector('#sfi'); if (txt != null) SF.info = txt; el.innerHTML = (SF.st ? SF.st + ' ' : '') + (SF.info || ''); }
@@ -13070,9 +13111,16 @@ function sfClip(P) { const out = [], n = P.length, zc = -0.05; for (let i = 0; i
 // over = mörk halvgenomskinlig yta (över kameran), annars multipliceras färgen med fotot.
 const SHC = {};
 function shCanvas(k, W, H) { const c = SHC[k] || (SHC[k] = document.createElement('canvas')); if (c.width !== W || c.height !== H) { c.width = W; c.height = H; } const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.filter = 'none'; g.clearRect(0, 0, W, H); return c; }
+// Små korrigeringar av kamerans lutning (pitch) och rotation (roll), i grader, på en punkt i kamerans rum (x höger, y upp, z bakåt).
+function shRot(d, pitch, roll) {
+  let { x, y, z } = d; const p = (pitch || 0) * Math.PI / 180, r = (roll || 0) * Math.PI / 180;
+  if (p) { const cp = Math.cos(p), sp = Math.sin(p), y2 = y * cp + z * sp; z = -y * sp + z * cp; y = y2; }
+  if (r) { const cr = Math.cos(r), sr = Math.sin(r), x2 = x * cr - y * sr; y = x * sr + y * cr; x = x2; }
+  return { x, y, z };
+}
 function shadowPaint(c, W, H, cam, prisms, trees, sun, opt) {
   const M = cam.M, off = cam.off, f = (W / 2) / Math.tan(cam.hfov * Math.PI / 360), eye = 1.6;
-  const dev = (e, n, u) => { const hz = Math.hypot(e, n), dist = Math.hypot(hz, u - eye) || 1e-6, az = Math.atan2(e, n) * 180 / Math.PI, alt = Math.atan2(u - eye, hz) * 180 / Math.PI, d = arToDev(M, az - off, alt); return { x: d.x * dist, y: d.y * dist, z: d.z * dist }; };
+  const dev = (e, n, u) => { const hz = Math.hypot(e, n), dist = Math.hypot(hz, u - eye) || 1e-6, az = Math.atan2(e, n) * 180 / Math.PI, alt = Math.atan2(u - eye, hz) * 180 / Math.PI, d = shRot(arToDev(M, az - off, alt), cam.pitch, cam.roll); return { x: d.x * dist, y: d.y * dist, z: d.z * dist }; };
   const path = (ctx, pts3) => { const Q = sfClip(pts3.map(([e, n, u]) => dev(e, n, u))); if (Q.length < 3) return false; Q.forEach((q, i) => { const x = W / 2 + q.x / -q.z * f, y = H / 2 - q.y / -q.z * f; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath(); return true; };
   const ar = sun.az * Math.PI / 180, sx = Math.sin(ar), sy = Math.cos(ar), k = 1 / Math.tan(Math.max(0.5, sun.alt) * Math.PI / 180), sh = h => { const L = Math.min(250, k * h); return [-sx * L, -sy * L]; };
   // Mjuka kanter: solen ritas som flera punkter runt sin mitt. Skuggan blir skarp intill hindret och mjukare längre bort.
@@ -13109,17 +13157,19 @@ function shadowPaint(c, W, H, cam, prisms, trees, sun, opt) {
   if (opt.lines) { c.save(); c.strokeStyle = opt.lineCol || 'rgba(255,230,120,.9)'; c.lineWidth = opt.lineW || 1.2; faces.forEach(fc => { if (!fc.front) return; c.beginPath(); if (path(c, fc.q)) c.stroke(); }); c.restore(); }
   return faces.length;
 }
-function sfRender() {
+function sfRender(fast) {
   if (!SF || !SF.el) return;
+  clearTimeout(SF.ft); if (fast) SF.ft = setTimeout(() => sfRender(), 220);
   const cv = SF.el.querySelector('#sfc'), img = SF.img, W = img.width, H = img.height; if (cv.width !== W) { cv.width = W; cv.height = H; }
   const c = cv.getContext('2d'); c.globalCompositeOperation = 'source-over'; c.filter = 'none'; c.drawImage(img, 0, 0);
   SF.el.querySelector('#sftl').textContent = hm(SF.t);
   const sun = SUN(sunAt(SF.ds, SF.t), SF.lat, SF.lon), dstr = new Date(SF.ds + 'T12:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' });
   const nB = SF.osm ? SF.osm.b.length : 0, nT = SF.osm ? SF.osm.t.length : 0;
+  if (sun.alt > 0.5 && (SF.lines || SF.pickSun)) { const q = sfSunPx(sun.az, sun.alt, W, H); if (q && q[0] > -60 && q[0] < W + 60 && q[1] > -60 && q[1] < H + 60) { c.save(); c.strokeStyle = '#FFC83D'; c.lineWidth = Math.max(2, W / 360); c.beginPath(); c.arc(q[0], q[1], Math.max(14, W / 45), 0, 7); c.moveTo(q[0] - Math.max(22, W / 28), q[1]); c.lineTo(q[0] + Math.max(22, W / 28), q[1]); c.moveTo(q[0], q[1] - Math.max(22, W / 28)); c.lineTo(q[0], q[1] + Math.max(22, W / 28)); c.stroke(); c.restore(); } }
   if (sun.alt <= 0.5) { sfInfo(`Kl ${hm(SF.t)} den ${dstr} är solen under horisonten, så inga skuggor syns.`); return; }
   if (!SF.osm) { sfInfo(`Kl ${hm(SF.t)} den ${dstr} står solen i ${sunWord(sun.az)}, ${Math.round(sun.alt)}° över horisonten.`); return; }
   const prisms = SF.osm.b.map(b => ({ pts: b.pts, h: b.h })), trees = SF.osm.t.map(t => ({ e: t.e, n: t.n, h: t.h, r: t.r }));
-  shadowPaint(c, W, H, { M: arMat(SF.o.a, SF.o.b, SF.o.g), off: SF.off + SF.adj, hfov: SF.hfov, ownR: SF.src === 'gps' ? Math.max(3, Math.min(25, SF.acc || 10)) : 3 }, prisms, trees, sun, { blur: Math.max(1, Math.round(W / 600)), samples: 11, soft: SF.soft ?? 1.2, str: SF.str ?? 1, lines: SF.lines, lineW: Math.max(1.5, W / 400) });
+  shadowPaint(c, W, H, { M: arMat(SF.o.a, SF.o.b, SF.o.g), off: SF.off + SF.adj, hfov: SF.hfov, pitch: SF.pitch, roll: SF.roll, ownR: SF.src === 'gps' ? Math.max(3, Math.min(25, SF.acc || 10)) : 3 }, prisms, trees, sun, { blur: Math.max(1, Math.round(W / 600)), samples: fast ? 1 : 11, soft: SF.soft ?? 1.2, str: SF.str ?? 1, lines: SF.lines, lineW: Math.max(1.5, W / 400) });
   sfInfo(`Kl <b>${hm(SF.t)}</b> den ${dstr} står solen i ${sunWord(sun.az)}, ${Math.round(sun.alt)}° över horisonten. ${nB ? `Skuggor från ${nB} ${nB === 1 ? 'byggnad' : 'byggnader'} och ${nT} träd på kartan.` : 'Kartan har inga byggnader inom 150 m från positionen. Kontrollera koordinaterna eller tryck Min position.'}`);
 }
 async function sfSave() {
@@ -14057,7 +14107,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.365';
+const APP_VERSION = 'Beta 0.366';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
