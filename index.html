@@ -11884,6 +11884,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.368', '12 nov', ['Skuggor: trädens verkliga höjd hämtas nu från Skogsstyrelsens laserskanning (1 m rutor) i stället för kartans uppskattade träd. Om tjänsten inte svarar används kartans träd', 'Skuggfoto: tryck på ett hus i kartan och skriv in dess riktiga höjd. Höjden sparas på telefonen och gäller i Skuggfoto, kameraläget och Skuggor med djup'], ],
   ['Beta 0.367', '12 nov', ['Skuggfoto: ny karta ovanifrån där du drar den gula punkten dit du stod. Kartan visar husen, träden, skuggorna, solens håll och åt vilket håll kameran pekade. Fäst mot närmaste husvägg om du stod intill ett hus. GPS:ens osäkerhet syns som en streckad ring'], ],
   ['Beta 0.366', '12 nov', ['Skuggfoto: passa in skuggorna mot fotot med nya reglage för Lutning, Rotation och Synfält, eller slå på Dra i bilden och dra husens konturer på plats. Tryck på solen i fotot så kalibreras riktning och lutning efter den'], ],
   ['Beta 0.365', '12 nov', ['Skuggfoto: skuggorna har fått mjukare kanter, skarpa intill hindret och suddigare längre bort, som i verkligheten. Nya reglage: Skuggstyrka och Mjuka kanter, så att du kan passa skuggorna mot fotot'], ],
@@ -12848,22 +12849,54 @@ function osmParse(j, lat, lon) {
   });
   return { b, t };
 }
+// WGS84 (grader) till SWEREF 99 TM (EPSG:3006), för att fråga Skogsstyrelsens trädhöjdsraster
+function swerefFromLL(lat, lon) {
+  const a = 6378137, f = 1 / 298.257222101, e2 = f * (2 - f), n = f / (2 - f), ah = a / (1 + n) * (1 + n * n / 4 + n ** 4 / 64), R = Math.PI / 180;
+  const A = e2, B = (5 * e2 ** 2 - e2 ** 3) / 6, C = (104 * e2 ** 3 - 45 * e2 ** 4) / 120, D = 1237 * e2 ** 4 / 1260;
+  const b1 = n / 2 - 2 * n ** 2 / 3 + 5 * n ** 3 / 16 + 41 * n ** 4 / 180, b2 = 13 * n ** 2 / 48 - 3 * n ** 3 / 5 + 557 * n ** 4 / 1440, b3 = 61 * n ** 3 / 240 - 103 * n ** 4 / 140, b4 = 49561 * n ** 4 / 161280;
+  const ph = lat * R, sp = Math.sin(ph), cp = Math.cos(ph), phs = ph - sp * cp * (A + B * sp ** 2 + C * sp ** 4 + D * sp ** 6), dl = (lon - 15) * R;
+  const xi = Math.atan(Math.tan(phs) / Math.cos(dl)), et = Math.atanh(Math.cos(phs) * Math.sin(dl)), k0 = 0.9996;
+  const N = k0 * ah * (xi + [b1, b2, b3, b4].reduce((t, bj, j) => t + bj * Math.sin(2 * (j + 1) * xi) * Math.cosh(2 * (j + 1) * et), 0));
+  const E = 500000 + k0 * ah * (et + [b1, b2, b3, b4].reduce((t, bj, j) => t + bj * Math.cos(2 * (j + 1) * xi) * Math.sinh(2 * (j + 1) * et), 0));
+  return { x: E, y: N };
+}
+// Trädkronornas verkliga höjd från Skogsstyrelsens trädhöjdsraster (laserskanning, 1 m rutor, decimeter). Ett prov var 3:e meter, 70 m runt punkten.
+// Ger null om tjänsten inte svarar. Då används kartans träd.
+async function osmTrees(lat, lon) {
+  try {
+    const kl = 111320, kx = kl * Math.cos(lat * Math.PI / 180), pts = [];
+    for (let e = -70; e <= 70; e += 3) for (let n = -70; n <= 70; n += 3) if (Math.hypot(e, n) <= 70) pts.push([e, n]);
+    const ll = pts.map(([e, n]) => swerefFromLL(lat + n / kl, lon + e / kx)), url = 'https://geodata.skogsstyrelsen.se/arcgis/rest/services/Samverkan/Tradhojd_3_2/ImageServer/getSamples', chunks = [];
+    for (let i = 0; i < ll.length; i += 500) chunks.push(i);
+    const res = await Promise.all(chunks.map(async i => { const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 12000);
+      try { const body = new URLSearchParams({ f: 'json', geometryType: 'esriGeometryMultipoint', geometry: JSON.stringify({ points: ll.slice(i, i + 500).map(p => [p.x, p.y]), spatialReference: { wkid: 3006 } }), returnFirstValueOnly: 'true', interpolation: 'RSP_NearestNeighbor' });
+        const r = await fetch(url, { method: 'POST', body, signal: ctl.signal }); if (!r.ok) throw new Error('HTTP ' + r.status); const j = await r.json(); if (!j || !Array.isArray(j.samples)) throw new Error('svar'); return { i, s: j.samples }; } finally { clearTimeout(tm); } }));
+    const t = []; let any = false;
+    res.forEach(({ i, s }) => s.forEach((m, k) => { const p = pts[i + (m.locationId != null && !isNaN(+m.locationId) ? +m.locationId : k)], v = parseFloat(m.value); if (!p || isNaN(v)) return; any = true; if (v >= 15) t.push({ e: p[0], n: p[1], h: Math.min(45, v / 10), r: 2.1 }); }));
+    return any ? t : null;
+  } catch (e) { return null; }
+}
+// Byggnadshöjder som du själv har skrivit in sparas på telefonen och gäller överallt (Skuggfoto, kameran, djupläget)
+function osmBKey(b, lat, lon) { const kl = 111320, kx = kl * Math.cos(lat * Math.PI / 180); let e = 0, n = 0; b.pts.forEach(p => { e += p[0]; n += p[1]; }); e /= b.pts.length; n /= b.pts.length; return (lat + n / kl).toFixed(5) + ',' + (lon + e / kx).toFixed(5); }
+function osmApplyHeights(d, lat, lon) { const ov = store.get('bh', {}) || {}; d.b.forEach(b => { b.k = osmBKey(b, lat, lon); if (b.h0 == null) b.h0 = b.h; b.h = ov[b.k] > 0 ? ov[b.k] : b.h0; }); }
 async function osmLoad(lat, lon) {
   const key = lat.toFixed(4) + ',' + lon.toFixed(4), c = store.get('arOsm', null);
-  if (c && c.key === key && Date.now() - c.t < 7 * 864e5) return c.d;
+  if (c && c.key === key && Date.now() - c.t < 7 * 864e5) { osmApplyHeights(c.d, lat, lon); return c.d; }
   const q = `[out:json][timeout:15];(way["building"](around:150,${lat},${lon});relation["building"](around:150,${lat},${lon});node["natural"="tree"](around:80,${lat},${lon}););out geom tags;`;
+  const trP = osmTrees(lat, lon);
   // Flera servrar samtidigt: den som svarar först vinner, de andra avbryts
   const ctls = [], one = async u => { const ctl = new AbortController(); ctls.push(ctl); const tm = setTimeout(() => ctl.abort(), 20000);
     try { const r = await fetch(u, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, signal: ctl.signal }); if (!r.ok) throw new Error('HTTP ' + r.status); const j = await r.json(); if (!j || !Array.isArray(j.elements)) throw new Error('svar'); return j; } finally { clearTimeout(tm); } };
   try { const j = await Promise.any(['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'].map(one));
-    ctls.forEach(c => { try { c.abort(); } catch (e) {} }); const d = osmParse(j, lat, lon); try { store.set('arOsm', { key, t: Date.now(), d }); } catch (e) {} return d; }
+    ctls.forEach(c => { try { c.abort(); } catch (e) {} }); const d = osmParse(j, lat, lon), tr = await trP; if (tr) { d.t = tr; d.laser = true; }
+    try { store.set('arOsm', { key, t: tr ? Date.now() : Date.now() - 7 * 864e5 + 36e5, d }); } catch (e) {} osmApplyHeights(d, lat, lon); return d; }
   catch (e) { return null; }
 }
 // Var du står: telefonens position i första hand, annars kartpunkten för ditt hem.
 function arGeoLoad() {
   if (!AR) return; AR.osmSt = 'Hämtar din position…'; arShStatus();
   const go = async (lat, lon, src, acc) => { if (!AR) return; AR.geo = { lat, lon, src, acc: acc || 0 }; AR.osmSt = 'Hämtar byggnader och träd från kartan…'; arShStatus(); const d = await osmLoad(lat, lon); if (!AR) return; AR.osm = d; AR.shP = null;
-    AR.osmSt = d ? `Från kartan: ${d.b.length} ${d.b.length === 1 ? 'byggnad' : 'byggnader'} och ${d.t.length} träd${src === 'home' ? ' runt ditt hem' : ''}.` : 'Kunde inte hämta kartan just nu. Markera hinder med kameran i stället.'; arShStatus(); };
+    AR.osmSt = d ? `Från kartan: ${d.b.length} ${d.b.length === 1 ? 'byggnad' : 'byggnader'} och ${d.laser ? 'trädkronor från laserskanning' : d.t.length + ' träd'}${src === 'home' ? ' runt ditt hem' : ''}.` : 'Kunde inte hämta kartan just nu. Markera hinder med kameran i stället.'; arShStatus(); };
   const home = () => { const m = S.hplan && S.hplan.map; if (m && okn(m.lat, m.lon)) go(m.lat, m.lon, 'home'); else { AR.osmSt = 'Utan din position kan byggnader inte hämtas från kartan. Markera hinder med kameran.'; arShStatus(); } };
   if (!navigator.geolocation) return home();
   navigator.geolocation.getCurrentPosition(p => go(p.coords.latitude, p.coords.longitude, 'gps', p.coords.accuracy), home, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
@@ -12933,7 +12966,7 @@ function xrCalibrate() { if (!XR || !XR.cam) return; const l = xrLL(), now = SUN
   XR.yaw = ((now.az - XR.cam.xrAz) % 360 + 360) % 360; XR.adj = 0; const a = XR.root.querySelector('#xradj'); if (a) { a.value = 0; XR.root.querySelector('#xradjv').textContent = '0°'; } XR.cal = true; XR.dirtyO = true; toast('Kalibrerat mot solen'); }
 function xrGeo() {
   if (!XR) return; XR.st = 'Hämtar din position…';
-  const go = async (lat, lon, acc) => { if (!XR) return; XR.geo = { lat, lon, acc: acc || 0 }; XR.st = 'Hämtar byggnader och träd från kartan…'; const d = await osmLoad(lat, lon); if (!XR) return; XR.osm = d; XR.dirtyO = true; XR.st = d ? `Från kartan: ${d.b.length} ${d.b.length === 1 ? 'byggnad' : 'byggnader'} och ${d.t.length} träd.` : 'Kunde inte hämta kartan just nu.'; };
+  const go = async (lat, lon, acc) => { if (!XR) return; XR.geo = { lat, lon, acc: acc || 0 }; XR.st = 'Hämtar byggnader och träd från kartan…'; const d = await osmLoad(lat, lon); if (!XR) return; XR.osm = d; XR.dirtyO = true; XR.st = d ? `Från kartan: ${d.b.length} ${d.b.length === 1 ? 'byggnad' : 'byggnader'} och ${d.laser ? 'trädkronor från laserskanning' : d.t.length + ' träd'}.` : 'Kunde inte hämta kartan just nu.'; };
   if (!navigator.geolocation) { XR.st = ''; return; }
   navigator.geolocation.getCurrentPosition(p => go(p.coords.latitude, p.coords.longitude, p.coords.accuracy), () => { if (XR) XR.st = 'Utan din position hämtas inga byggnader från kartan.'; }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
 }
@@ -13029,7 +13062,7 @@ function sfCapture() {
   SF = { img, o: Object.assign({}, AR.o), off: arOffset(), hfov: AR.hfov, lat: g.lat, lon: g.lon, src: g.src, acc: g.acc || 0, osm: AR.geo ? AR.osm : null, ds: sunDay(), t: S.sunT ?? sunNowMin(), pos: { e: 0, n: 0 }, mapR: 50, adj: 0, pitch: 0, roll: 0, lines: false, str: 1, soft: 1.2, drag: false, pickSun: false };
   arClose(); sfShow(); if (!SF.osm) sfLoadOsm();
 }
-async function sfLoadOsm() { if (!SF) return; SF.osm = null; SF.pos = { e: 0, n: 0 }; SF.st = 'Hämtar byggnader och träd från kartan…'; sfInfo(); const d = await osmLoad(SF.lat, SF.lon); if (!SF) return; SF.osm = d; SF.st = d ? '' : 'Kunde inte hämta kartan just nu.'; sfRender(); }
+async function sfLoadOsm() { if (!SF) return; SF.osm = null; SF.sel = null; SF.pos = { e: 0, n: 0 }; SF.st = 'Hämtar byggnader och träd från kartan…'; sfInfo(); const d = await osmLoad(SF.lat, SF.lon); if (!SF) return; SF.osm = d; SF.st = d ? '' : 'Kunde inte hämta kartan just nu.'; sfRender(); }
 function sfShow() {
   const el = document.createElement('div'); el.id = 'sfv'; el.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0b1410;color:#fff;font-family:system-ui,sans-serif;overflow-y:auto';
   const inp = 'height:40px;border-radius:10px;border:0;padding:0 10px;background:rgba(255,255,255,.92);color:#16261D;font-size:15px';
@@ -13045,6 +13078,7 @@ function sfShow() {
       <div style="font-size:14px;margin:2px 0 6px">Var stod du? Dra den gula punkten på kartan. Den streckade ringen är GPS:ens osäkerhet.</div>
       <canvas id="sfmap" style="display:block;width:100%;height:260px;border-radius:14px;background:#12201a;touch-action:none"></canvas>
       <div style="display:flex;gap:8px;margin:8px 0 6px"><button id="sfmo" style="flex:1;height:40px;border-radius:12px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Zooma ut</button><button id="sfmi" style="flex:1;height:40px;border-radius:12px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Zooma in</button></div>
+      <div id="sfbh" style="display:none;margin:0 0 14px;font-size:14px"></div>
       <div style="display:flex;gap:8px;margin:0 0 14px"><button id="sfsnap" style="flex:2;height:40px;border-radius:12px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Fäst mot närmaste husvägg</button><button id="sfmr" style="flex:1;height:40px;border-radius:12px;border:0;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Nollställ</button></div>
       <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px"><span style="min-width:108px">Justera riktning</span><input id="sfadj" type="range" min="-60" max="60" step="1" value="0" style="flex:1;accent-color:#FFC83D" aria-label="Vrid skuggorna i grader"><span id="sfadjv" style="min-width:40px;text-align:right">0°</span></label>
       <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px"><span style="min-width:108px">Lutning</span><input id="sfpit" type="range" min="-30" max="30" step="0.5" value="0" style="flex:1;accent-color:#FFC83D" aria-label="Luta kameran upp eller ner i grader"><span id="sfpitv" style="min-width:40px;text-align:right">0°</span></label>
@@ -13072,7 +13106,11 @@ function sfShow() {
   $s('sfsun').onclick = () => { SF.pickSun = true; SF.lines = true; $s('sfln').checked = true; toast('Ställ in datum och tid för när fotot togs. Tryck sedan på solen i bilden'); sfRender(); };
   const mp = $s('sfmap'); let md = false;
   const mpt = e => { const r = mp.getBoundingClientRect(), sc = Math.min(r.width, r.height) / 2 / (SF.mapR || 50), pe = (e.clientX - r.left - r.width / 2) / sc, pn = -(e.clientY - r.top - r.height / 2) / sc, d = Math.hypot(pe, pn), k = d > 150 ? 150 / d : 1; SF.pos = { e: pe * k, n: pn * k }; sfRender(true); };
-  mp.onpointerdown = e => { md = true; try { mp.setPointerCapture(e.pointerId); } catch (x) {} mpt(e); };
+  mp.onpointerdown = e => { const r = mp.getBoundingClientRect(), sc = Math.min(r.width, r.height) / 2 / (SF.mapR || 50), px = e.clientX - r.left, py = e.clientY - r.top, pe = (px - r.width / 2) / sc, pn = -(py - r.height / 2) / sc, p = SF.pos || { e: 0, n: 0 };
+    const nearMarker = Math.hypot(px - (r.width / 2 + p.e * sc), py - (r.height / 2 - p.n * sc)) < 26, bi = SF.osm ? SF.osm.b.findIndex(b => inPoly(pe, pn, b.pts)) : -1;
+    if (!nearMarker && bi >= 0) { SF.sel = bi; sfBhPanel(); sfRender(); return; }
+    if (SF.sel != null) { SF.sel = null; sfBhPanel(); }
+    md = true; try { mp.setPointerCapture(e.pointerId); } catch (x) {} mpt(e); };
   mp.onpointermove = e => { if (md && SF) mpt(e); };
   mp.onpointerup = mp.onpointercancel = () => { md = false; };
   $s('sfmo').onclick = () => { SF.mapR = Math.min(200, (SF.mapR || 50) * 2); sfRender(); };
@@ -13124,6 +13162,17 @@ function sfSnap() {
   SF.osm.b.forEach(b => b.pts.forEach((a, i) => { const q = b.pts[(i + 1) % b.pts.length], dx = q[0] - a[0], dy = q[1] - a[1], t = Math.max(0, Math.min(1, ((p.e - a[0]) * dx + (p.n - a[1]) * dy) / (dx * dx + dy * dy || 1))), x = a[0] + dx * t, y = a[1] + dy * t, d = Math.hypot(x - p.e, y - p.n); if (!best || d < best.d) best = { d, e: x, n: y }; }));
   if (!best || best.d > 40) return false; SF.pos = { e: best.e, n: best.n }; return true;
 }
+// Panel för att skriva in en byggnads riktiga höjd. Sparas på telefonen och gäller sedan överallt.
+function sfBhPanel() {
+  const el = SF && SF.el && SF.el.querySelector('#sfbh'); if (!el) return; const b = SF.osm && SF.sel != null ? SF.osm.b[SF.sel] : null;
+  if (!b) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const fm = v => String(Math.round(v * 10) / 10).replace('.', ',');
+  el.style.display = 'block';
+  el.innerHTML = `<div style="margin-bottom:6px">Vald byggnad: <b>${fm(b.h)} m</b> hög (${b.h === b.h0 ? 'uppskattad från kartan' : 'din höjd'}). Skriv in den riktiga höjden om du vet den:</div><div style="display:flex;gap:8px"><input id="sfbhv" inputmode="decimal" value="${fm(b.h)}" aria-label="Byggnadens höjd i meter" style="flex:1;min-width:0;height:40px;border-radius:10px;border:0;padding:0 10px;background:rgba(255,255,255,.92);color:#16261D;font-size:15px"><button id="sfbhs" style="height:40px;border-radius:12px;border:0;padding:0 14px;background:#FFC83D;color:#16261D;font-size:14px;font-weight:700">Spara</button><button id="sfbhr" style="height:40px;border-radius:12px;border:0;padding:0 12px;background:rgba(255,255,255,.92);color:#16261D;font-size:14px">Återställ</button></div>`;
+  const ov = () => store.get('bh', {}) || {};
+  el.querySelector('#sfbhs').onclick = () => { const v = parseFloat(el.querySelector('#sfbhv').value.replace(',', '.')); if (!(v >= 1 && v <= 100)) return toast('Skriv höjden i meter, mellan 1 och 100'); b.h = v; if (b.k) { const o = ov(); o[b.k] = v; store.set('bh', o); } sfBhPanel(); sfRender(); };
+  el.querySelector('#sfbhr').onclick = () => { b.h = b.h0 != null ? b.h0 : b.h; if (b.k) { const o = ov(); delete o[b.k]; store.set('bh', o); } sfBhPanel(); sfRender(); };
+}
 function sfPosTxt() { const d = SF && SF.pos ? Math.hypot(SF.pos.e, SF.pos.n) : 0; return d >= 0.5 ? `Du står ${String(Math.round(d)).replace('.', ',')} m från GPS-punkten. ` : ''; }
 // Kartan ovanifrån: hus, träd, skuggor, var du står och åt vilket håll kameran pekar
 function sfMap() {
@@ -13137,6 +13186,8 @@ function sfMap() {
   if (SF.src === 'gps' && SF.acc) { c.save(); c.setLineDash([5, 4]); c.strokeStyle = 'rgba(120,190,255,.8)'; c.beginPath(); c.arc(cx, cy, SF.acc * sc, 0, 7); c.stroke(); c.restore(); }
   if (up) { c.fillStyle = 'rgba(8,14,40,.45)'; B.forEach(b => { const L = Math.min(250, Lk * b.h), ox = vx * L, oy = vy * L; b.pts.forEach((a, i) => { const q = b.pts[(i + 1) % b.pts.length]; c.beginPath(); c.moveTo(X(a[0]), Y(a[1])); c.lineTo(X(q[0]), Y(q[1])); c.lineTo(X(q[0] + ox), Y(q[1] + oy)); c.lineTo(X(a[0] + ox), Y(a[1] + oy)); c.closePath(); c.fill(); }); }); }
   c.fillStyle = 'rgba(235,235,235,.85)'; c.strokeStyle = 'rgba(255,255,255,.9)'; B.forEach(b => { c.beginPath(); b.pts.forEach((a, i) => i ? c.lineTo(X(a[0]), Y(a[1])) : c.moveTo(X(a[0]), Y(a[1]))); c.closePath(); c.fill(); c.stroke(); });
+  c.font = '600 11px system-ui'; c.textAlign = 'center'; B.forEach((b, i) => { if (b.pts.length < 3) return; const ex = b.pts.reduce((t, a) => t + a[0], 0) / b.pts.length, ey = b.pts.reduce((t, a) => t + a[1], 0) / b.pts.length; c.fillStyle = b.h === b.h0 ? 'rgba(20,30,25,.8)' : '#B35A00'; c.fillText(String(Math.round(b.h * 10) / 10).replace('.', ','), X(ex), Y(ey) + 4); }); c.textAlign = 'start';
+  if (SF.sel != null && B[SF.sel]) { c.strokeStyle = '#F08A24'; c.lineWidth = 3; c.beginPath(); B[SF.sel].pts.forEach((a, i) => i ? c.lineTo(X(a[0]), Y(a[1])) : c.moveTo(X(a[0]), Y(a[1]))); c.closePath(); c.stroke(); }
   c.fillStyle = 'rgba(90,170,90,.85)'; (SF.osm ? SF.osm.t : []).forEach(t => { c.beginPath(); c.arc(X(t.e), Y(t.n), Math.max(2, t.r * sc), 0, 7); c.fill(); });
   const ca = sfCamAz() * Math.PI / 180, half = SF.hfov / 2 * Math.PI / 180, len = Math.min(w, h) * 0.42, mx = X(p.e), my = Y(p.n);
   c.fillStyle = 'rgba(255,200,61,.28)'; c.beginPath(); c.moveTo(mx, my); c.arc(mx, my, len, ca - Math.PI / 2 - half, ca - Math.PI / 2 + half); c.closePath(); c.fill();
@@ -13214,7 +13265,7 @@ function sfRender(fast) {
   if (!SF.osm) { sfInfo(`Kl ${hm(SF.t)} den ${dstr} står solen i ${sunWord(sun.az)}, ${Math.round(sun.alt)}° över horisonten.`); return; }
   const pe = SF.pos ? SF.pos.e : 0, pn = SF.pos ? SF.pos.n : 0, prisms = SF.osm.b.map(b => ({ pts: b.pts.map(([e, n]) => [e - pe, n - pn]), h: b.h })), trees = SF.osm.t.map(t => ({ e: t.e - pe, n: t.n - pn, h: t.h, r: t.r }));
   shadowPaint(c, W, H, { M: arMat(SF.o.a, SF.o.b, SF.o.g), off: SF.off + SF.adj, hfov: SF.hfov, pitch: SF.pitch, roll: SF.roll, ownR: SF.src === 'gps' && !(SF.pos && (SF.pos.e || SF.pos.n)) ? Math.max(3, Math.min(25, SF.acc || 10)) : 3 }, prisms, trees, sun, { blur: Math.max(1, Math.round(W / 600)), samples: fast ? 1 : 11, soft: SF.soft ?? 1.2, str: SF.str ?? 1, lines: SF.lines, lineW: Math.max(1.5, W / 400) });
-  sfInfo(`Kl <b>${hm(SF.t)}</b> den ${dstr} står solen i ${sunWord(sun.az)}, ${Math.round(sun.alt)}° över horisonten. ${sfPosTxt()}${nB ? `Skuggor från ${nB} ${nB === 1 ? 'byggnad' : 'byggnader'} och ${nT} träd på kartan.` : 'Kartan har inga byggnader inom 150 m från positionen. Kontrollera koordinaterna eller tryck Min position.'}`);
+  sfInfo(`Kl <b>${hm(SF.t)}</b> den ${dstr} står solen i ${sunWord(sun.az)}, ${Math.round(sun.alt)}° över horisonten. ${sfPosTxt()}${nB ? `Skuggor från ${nB} ${nB === 1 ? 'byggnad' : 'byggnader'} ${SF.osm.laser ? 'och trädkronor från laserskanning (Skogsstyrelsen).' : 'och ' + nT + ' träd på kartan.'}` : 'Kartan har inga byggnader inom 150 m från positionen. Kontrollera koordinaterna eller tryck Min position.'}`);
 }
 async function sfSave() {
   if (!SF) return; const cv = SF.el.querySelector('#sfc'), name = 'skuggfoto-' + SF.ds + '-' + hm(SF.t).replace(':', '') + '.jpg';
@@ -14151,7 +14202,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.367';
+const APP_VERSION = 'Beta 0.368';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
