@@ -122,7 +122,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .btn{border:0;background:var(--pri);color:var(--onpri);box-shadow:0 6px 16px rgba(31,77,58,.18);font:inherit;font-weight:700;border-radius:999px;padding:13px 20px;cursor:pointer}
 .btn:active,.circ:active,.heart:active,.pillbtn:active,.wbtn:active{transform:scale(.95)}
 .btn.wide{width:100%}
-.btn.sm{padding:9px 16px;font-size:14px}
+.btn.sm{padding:9px 16px;font-size:14px;min-height:40px}
+html[data-simple] .btn.sm,#tourcard .btn.sm{min-height:46px}html[data-simple] #tourcard p{font-size:16.5px !important}html[data-simple] #tourcard .btn.sm{font-size:16px}
 .btn.line{background:none;color:var(--pri);box-shadow:inset 0 0 0 2px var(--pri)}
 .btn:disabled{opacity:.6}
 .btn[disabled]{background:var(--soft);color:var(--mut);box-shadow:none;cursor:default}
@@ -12030,6 +12031,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.388', '12 nov', ['Större tryckytor på små knappar, och rundturen följer din textstorlek.']],
   ['Beta 0.387', '12 nov', ['Rundturen går att minimera till en liten knapp längst ner och öppna igen när du vill.']],
   ['Beta 0.386', '12 nov', ['Inbjudan till Familj fungerar nu med en länk. Den som får länken skapar konto, trycker på länken och får frågan om hen vill gå med.']],
   ['Beta 0.385', '12 nov', ['Be någon hjälpa mig bjuder nu in en anhörig i din Familj med en kod, så hen kan lägga in och vattna växter åt dig.']],
@@ -14479,7 +14481,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.387';
+const APP_VERSION = 'Beta 0.388';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -15208,7 +15210,7 @@ function tourDraw() {
   const last = TOURS.i === TOUR.length - 1, first = TOURS.i === 0;
   if (TOURS.min) { o.innerHTML = `<div id="tourhl" style="position:fixed;display:none"></div><button id="tourcard" onclick="tourMin(false)" aria-label="Visa rundturen igen" style="position:fixed;pointer-events:auto;display:flex;align-items:center;gap:10px;background:var(--pri);color:var(--onpri);border:0;border-radius:999px;padding:14px 18px;font:inherit;font-weight:800;font-size:16px;box-shadow:0 8px 28px rgba(0,0,0,.35);cursor:pointer;box-sizing:border-box;min-height:52px"><span style="flex:1;text-align:left">Rundtur, steg ${TOURS.i + 1} av ${TOUR.length}</span><span>Visa ▲</span></button>`; tourPlace(); return; }
   o.innerHTML = `<div id="tourhl" style="position:fixed;border-radius:18px;box-shadow:0 0 0 9999px rgba(8,20,10,.55),0 0 0 3px var(--acc,#FFC83D) inset;pointer-events:none;transition:all .2s;display:none"></div>
-  <div id="tourcard" role="dialog" aria-label="Rundtur" style="position:fixed;pointer-events:auto;background:var(--surf);color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.35);box-sizing:border-box">
+  <div id="tourcard" role="dialog" aria-label="Rundtur" style="position:fixed;pointer-events:auto;background:var(--surf);color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.35);box-sizing:border-box"><div style="zoom:${store.get('textsize', 1) || 1}">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><b style="font-size:16px;flex:1">${esc(st.t)}</b><span class="mut" style="font-size:12.5px">${TOURS.i + 1} av ${TOUR.length}</span></div>
     ${tourPicHtml(st)}
     <p style="margin:0 0 12px;font-size:14.5px;line-height:1.45">${esc(st.b)}${st.pro && !S.pro ? ' Ingår i Roothood Pro.' : ''}</p>
@@ -15219,7 +15221,7 @@ function tourDraw() {
       <span style="flex:1"></span>
       ${st.pro && !S.pro ? `<button class="btn sm" onclick="openModal('pro')">Skaffa Pro, första 7 dagarna gratis</button>` : st.show ? `<button class="btn sm line" onclick="tourShow()">${esc(st.show[0])}</button>` : ''}
       ${st.tap ? `<button class="btn sm line" onclick="tourNext()">Hoppa över steget</button>` : `<button class="btn sm" onclick="tourNext()">${esc(st.nx || 'Nästa')}</button>`}
-    </div></div>`;
+    </div></div></div>`;
   tourPlace();
 }
 function tourMin(on) { if (!TOURS) return; TOURS.min = !!on; tourDraw(); }
