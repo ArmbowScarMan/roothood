@@ -498,6 +498,7 @@ details.tech p b{color:var(--ink)}
 .instc span:not(.tic){font-size:13px;color:var(--mut)}
 .logoimg{width:40px;height:40px;border-radius:12px;display:block;flex:none}
 .setcard{background:var(--surf);border-radius:22px;padding:16px;box-shadow:var(--sh)}
+.welcome .wrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;padding:9px 2px;font:inherit;color:var(--ink);border-top:1px solid var(--line)}.welcome .wrow.done{color:var(--mut);text-decoration:line-through}.helpq .lcard{margin-top:8px}
 .msSec.msMin>:not(.msH){display:none!important}
 .msH{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border:0;background:none;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .pdot{display:inline-block;width:12px;height:12px;min-width:12px;border-radius:50%;flex:0 0 12px;margin-right:12px;padding:0}.pdot.pd-online{background:#3CB371}.pdot.pd-idle{background:#E6B800}.pdot.pd-off{background:#9AA0A6}
@@ -10778,6 +10779,25 @@ function askQV() {
   <div class="ask" style="margin:0"><textarea id="nq" rows="3" maxlength="1000" placeholder="Skriv din fråga här" aria-label="Din fråga" oninput="S.draft=this.value">${esc(S.draft)}</textarea>
   ${qPlantV()}<div class="askrow"><select aria-label="Kategori" onchange="S.qcat=this.value">${['', ...QCATS].map(c => `<option value="${c}" ${c === S.qcat ? 'selected' : ''} ${c === '' ? 'disabled' : ''}>${c || 'Välj kategori'}</option>`).join('')}</select>${cPhotoBtn()}<button class="btn sm" onclick="askQ()">Publicera</button></div></div>`;
 }
+// Välkomstkort med tre små uppgifter. Försvinner när allt är gjort eller när man stänger det.
+function welcomeKey() { return 'welcomeGem_' + (S.user ? S.user.id : 'anon'); }
+function welcomeCardV() {
+  if (!S.user || !S.feed || S.feedErr) return '';
+  try { if (store.get(welcomeKey(), false)) return ''; } catch (e) {}
+  const me = myId(), hasPlant = !!(S.mine && S.mine.length), asked = S.feed.some(p => p.user_id === me), answered = S.feed.some(p => (p.answers || []).some(a => a.user_id === me));
+  if (hasPlant && asked && answered) return '';
+  const row = (ok, t, fn) => `<button class="wrow${ok ? ' done' : ''}" ${ok ? 'disabled' : `onclick="${fn}"`}><span class="wck">${ok ? ic('ph-check-circle-fill', 'var(--pri)', 20) : ic('ph-circle', 'currentColor', 20)}</span><span>${t}</span></button>`;
+  return `<div class="pad" style="padding-bottom:0"><div class="setcard welcome"><div style="display:flex;align-items:flex-start;gap:8px"><b class="grow" style="flex:1">${ic('ph-hand-waving', 'currentColor', 18)} Välkommen till Gemenskap</b><button class="x40" onclick="welcomeHide()" aria-label="Stäng">${ic('ph-x', 'currentColor', 18)}</button></div><p class="mut" style="margin:4px 0 8px;font-size:13.5px">Här hjälper odlare varandra. Börja med något litet:</p>
+  ${row(hasPlant, 'Lägg till en växt i din Samling', "go('mine')")}${row(asked, 'Ställ din första fråga', 'openAskQ()')}${row(answered, 'Svara på någon annans fråga', "S.qf='open';keepMain()")}</div></div>`;
+}
+function welcomeHide() { try { store.set(welcomeKey(), true); } catch (e) {} keepMain(); }
+// Obesvarade frågor om växter du själv har: en inbjudan att hjälpa till
+function helpCardV() {
+  if (!S.user || !S.mine || !S.mine.length || !S.feed || S.feedErr) return '';
+  const L = S.feed.filter(p => p.user_id !== S.user.id && !p.answers.length && !p.best_answer_id && aboutMine(p) && !(S.modGone || []).includes(p.id)).slice(0, 3);
+  if (!L.length) return '';
+  return `<div class="pad" style="padding-bottom:0"><div class="setcard helpq"><b>${ic('ph-hand-heart', 'currentColor', 18)} Du kan hjälpa till</b><p class="mut" style="margin:4px 0 8px;font-size:13.5px">Ingen har svarat på de här frågorna än, och de gäller växter du har.</p>${L.map(p => { const q = splitQ(qParts(p.body)[0])[0]; return `<button class="lcard" style="width:100%;text-align:left" onclick="openPost(${p.id})"><span class="grow"><b>${esc(q.length > 90 ? q.slice(0, 90) + '…' : q)}</b><span class="mut">Gäller din ${esc(aboutMine(p))} · ${ago(p.created_at)}</span></span></button>`; }).join('')}</div></div>`;
+}
 function comm() {
   if (S.ctab === 'friends') return friendsV();
   if (isDetect()) return detectV();
@@ -10794,13 +10814,13 @@ function comm() {
     const L = st ? [] : f === 'all' ? S.feed : f === 'mine' ? S.feed.filter(aboutMine) : S.feed.filter(p => qStat(p) === f);
     const me = S.user ? ((S.prof && S.prof.display_name) || (S.meCard && S.meCard.display_name) || S.user.name || '') : '';
     return `${topbar('Gemenskap')}${segBar()}
-  <div class="pad" style="padding-bottom:4px"><button class="composer" onclick="openAskQ()"><span class="cav">${S.user ? avSmall(me, S.meCard && S.meCard.avatar_url) : ic('ph-user', 'currentColor', 18)}</span><span>Vad undrar du över?</span></button></div>${chips}
+  <div class="pad" style="padding-bottom:4px"><button class="composer" onclick="openAskQ()"><span class="cav">${S.user ? avSmall(me, S.meCard && S.meCard.avatar_url) : ic('ph-user', 'currentColor', 18)}</span><span>Vad undrar du över?</span></button></div>${welcomeCardV()}${helpCardV()}${chips}
   <div class="pad qlist">${st || (L.length ? L.filter(p => !(S.modGone || []).includes(p.id)).map((p, i) => postCardS(p, hi && i === 0 && S.user && p.user_id === S.user.id)).join('') : `<p class="mut" style="text-align:center">${f === 'open' ? 'Alla frågor har fått svar. Snyggt jobbat!' : f === 'mine' ? 'Inga frågor om dina växter än.' : 'Inga lösta frågor än.'}</p>`)}</div>
   <button class="fabq" id="fabq" onclick="openAskQ()" aria-label="Ställ fråga">${ic('ph-plus', 'currentColor', 22)}<span>Ställ fråga</span></button>`;
   }
   return `${topbar('Gemenskap')}${segBar()}
   ${(S.ctab || 'q') === 'q' ? (document.documentElement.getAttribute('data-ui') === 'stad' ? `<div class="pad" style="padding-bottom:4px"><button class="composer" onclick="openAskQ()"><span class="cav">${ic('ph-user', 'currentColor', 18)}</span><span>Vad undrar du över?</span></button></div>` : `<div class="pad" style="padding-bottom:4px"><button class="btn wide" onclick="openAskQ()">+ Ställ en fråga</button></div>`) : ''}
-  ${!st ? (() => { const f = S.qf || 'all', cnt = k => S.feed.filter(p => qStat(p) === k).length;
+  ${(S.ctab || 'q') === 'q' ? welcomeCardV() + helpCardV() : ''}${!st ? (() => { const f = S.qf || 'all', cnt = k => S.feed.filter(p => qStat(p) === k).length;
     return `<div class="chips2 qfilt" role="tablist">${[['all', 'Alla', S.feed.length]].concat(S.user && S.mine.length ? [['mine', 'Mina växter', S.feed.filter(aboutMine).length]] : [], [['open', 'Obesvarade', cnt('open')], ['solved', 'Lösta', cnt('solved')]]).map(([k, n, c]) => `<button role="tab" aria-selected="${f === k}" class="${f === k ? 'on' : ''}" onclick="S.qf='${k}';keepMain()">${n} <small>${c}</small></button>`).join('')}</div>`; })() : ''}
   <div class="pad">${st || (() => { const f = S.qf || 'all', L = f === 'all' ? S.feed : f === 'mine' ? S.feed.filter(aboutMine) : S.feed.filter(p => qStat(p) === f); return L.length ? L.map(postCard).join('') : `<p class="mut" style="text-align:center">${f === 'open' ? 'Alla frågor har fått svar. Snyggt jobbat!' : f === 'mine' ? 'Inga frågor om dina växter än.' : 'Inga lösta frågor än.'}</p>`; })()}</div>`;
 }
@@ -10984,6 +11004,15 @@ function sendGuess(pid) {
   if (c && c.answers.some(a => a.user_id === myId() && a.body.toLowerCase() === v.toLowerCase())) return toast('Du har redan gissat på den.');
   commRun(() => api.answer(pid, v), 'Din gissning är skickad! Du får ' + CASE_PTS + ' p om den är rätt.');
 }
+// Samma gissning från flera personer visas som ett kort. Jag håller med lägger till din egen gissning med samma namn.
+function guessGroups(c) { const m = new Map(); (c.answers || []).forEach(a => { const k = String(a.body || '').trim().toLowerCase(); if (!m.has(k)) m.set(k, []); m.get(k).push(a); }); return [...m.values()]; }
+function agreeGuess(pid, aid) {
+  if (needLogin()) return;
+  const c = (S.cases || []).find(x => x.id === pid), a = c && c.answers.find(x => x.id === aid); if (!a) return;
+  if (c.user_id === myId()) return toast('Du kan inte gissa på ditt eget fall.');
+  if (c.answers.some(x => x.user_id === myId() && String(x.body).trim().toLowerCase() === String(a.body).trim().toLowerCase())) return toast('Du håller redan med.');
+  commRun(() => api.answer(pid, a.body), 'Du håller med. Rätt gissning ger ' + CASE_PTS + ' p.');
+}
 function markCorrect(pid, aid) { commRun(() => api.best(pid, aid), 'Fallet är löst! Detektiven får ' + CASE_PTS + ' p 🏆'); }
 function caseV() {
   const c = (S.cases || []).find(x => x.id === S.post);
@@ -10998,12 +11027,13 @@ function caseV() {
   ${!best && !mine ? `<div class="setcard" style="margin-top:12px"><b>Vad tror du att det är?</b>
     <div style="display:flex;gap:8px;margin-top:10px"><input id="gname" list="gplants" maxlength="80" placeholder="Skriv växtens namn" style="flex:1"><button class="btn sm cop" onclick="sendGuess(${c.id})">Gissa</button></div>
     <datalist id="gplants">${S.plants.map(p => `<option value="${esc(p.swedish_name)}">`).join('')}</datalist>
-    <p class="mut" style="font-size:12.5px;margin:8px 0 0">Rätt gissning ger ${CASE_PTS} p. Den som lagt upp fallet väljer vilket svar som är rätt.</p></div>` : ''}
+    <p class="mut" style="font-size:12.5px;margin:8px 0 0">Tror du samma som någon annan? Tryck Jag håller med på deras gissning. Rätt gissning ger ${CASE_PTS} p. Den som lagt upp fallet väljer vilket svar som är rätt.</p></div>` : ''}
   ${mine && !best && c.answers.length ? '<p class="lnote">Tryck på <b>Rätt!</b> vid den gissning som stämmer, så är fallet löst.</p>' : ''}
   <h3 style="margin:20px 0 10px">${c.answers.length ? c.answers.length + (c.answers.length === 1 ? ' gissning' : ' gissningar') : 'Inga gissningar än'}</h3>
-  ${c.answers.map(a => { const isBest = best && a.id === best.id, own = !!(S.user && a.user_id === myId());
-    return `<div class="post ${isBest ? 'bestc' : ''}">${whoP(a, ago(a.created_at), isBest ? '<span class="pill ok">Rätt svar</span>' : '')}<p style="margin:0;font-size:17px;font-weight:700">${esc(a.body)}</p>
-    <div class="prow">${mine && !isBest ? `<button class="btn sm cop" onclick="markCorrect(${c.id},${a.id})">Rätt!</button>` : ''}<span class="grow"></span>${moreBtn('a', a.id, own)}</div></div>`; }).join('')}
+  ${guessGroups(c).map(g => { const first = g[0], isBest = !!(best && g.some(x => x.id === best.id)), own = !!(S.user && first.user_id === myId()), meIn = !!(S.user && g.some(x => x.user_id === myId())), n = g.length;
+    return `<div class="post ${isBest ? 'bestc' : ''}">${whoP(first, ago(first.created_at), isBest ? '<span class="pill ok">Rätt svar</span>' : '')}<p style="margin:0;font-size:17px;font-weight:700">${esc(first.body)}</p>
+    ${n > 1 ? `<p class="mut" style="margin:6px 0 0;font-size:13.5px">${n} håller med: ${esc(g.map(x => x.author).slice(0, 4).join(', '))}${n > 4 ? ' m.fl.' : ''}</p>` : ''}
+    <div class="prow">${mine && !isBest ? `<button class="btn sm cop" onclick="markCorrect(${c.id},${first.id})">Rätt!</button>` : ''}${!mine && !best ? `<button class="like same ${meIn ? 'on' : ''}" ${meIn ? 'disabled' : ''} onclick="agreeGuess(${c.id},${first.id})">${ic(meIn ? 'ph-check-circle' : 'ph-thumbs-up', 'currentColor', 16)} ${meIn ? 'Du håller med' : 'Jag håller med'}</button>` : ''}<span class="grow"></span>${moreBtn('a', first.id, own)}</div></div>`; }).join('')}
   </div>`;
 }
 
@@ -11900,6 +11930,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.379', '12 nov', ['Välkomstkort i Gemenskap med tre små uppgifter. Du ser obesvarade frågor om dina växter överst. I Detektiver kan du trycka Jag håller med på någon annans gissning.']],
   ['Beta 0.378', '12 nov', ['Gemenskap har färre flikar. Händer nära dig är nu ett filter, Nära mig, under Byt & ge bort, och Visa upp och Forum göms tills det finns några inlägg.']],
   ['Beta 0.377', '12 nov', ['Ny rundtur som visar de vanligaste funktionerna steg för steg: söka växter, Samling och vattning, Gemenskap, Snabbfråga, Solbana, rabattplanering, 3D-vyn och Profil. Den startar en gång för alla och finns alltid under Inställningar → Visa rundturen'], ],
   ['Beta 0.376', '12 nov', ['Skuggfoto och Skuggor med djup är pausade och visas som under konstruktion (testas just nu bara av utvecklaren). Kameran med solbanan fungerar som vanligt. De kommer tillbaka senare'], ],
@@ -14340,7 +14371,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.378';
+const APP_VERSION = 'Beta 0.379';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
