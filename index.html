@@ -1187,7 +1187,7 @@ button.pw{cursor:pointer}
 .wxwarn{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .wxw{display:flex;gap:10px;align-items:flex-start;border-radius:16px;padding:10px 12px;background:rgba(59,141,176,.13)}
 .wxw .wwi{font-size:20px;line-height:1.2}.wxw div{display:flex;flex-direction:column}.wxw b{font-size:14px}.wxw div>span{font-size:13px;color:var(--mut);line-height:1.4}
-.wxw.w-frost,.wxw.w-freeze,.wxw.w-cold{background:rgba(91,143,214,.15)}.wxw.w-wind{background:rgba(140,133,122,.18)}.wxw.w-heat,.wxw.w-dry{background:rgba(194,100,63,.15)}.wxw.w-dryair{background:rgba(212,154,46,.17)}.wxw.w-snow{background:rgba(150,180,215,.18)}.wxw.w-rain{background:rgba(59,141,176,.15)}
+.wxw.w-smhi{background:rgba(212,154,46,.2)}.wxw.w-frost,.wxw.w-freeze,.wxw.w-cold{background:rgba(91,143,214,.15)}.wxw.w-wind{background:rgba(140,133,122,.18)}.wxw.w-heat,.wxw.w-dry{background:rgba(194,100,63,.15)}.wxw.w-dryair{background:rgba(212,154,46,.17)}.wxw.w-snow{background:rgba(150,180,215,.18)}.wxw.w-rain{background:rgba(59,141,176,.15)}
 .wxok{margin:12px 0 0;font-size:13.5px;color:var(--pri);font-weight:700}
 .wxsrc{margin:10px 0 0;font-size:11px;color:var(--mut)}
 
@@ -7972,7 +7972,7 @@ const DAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
 function wxPlace() { const M = S.hplan && S.hplan.map; if (M && M.lat != null) return { lat: M.lat, lon: M.lon, name: S.city || 'ditt hem' }; const g = store.get('wxGeo', null); if (g && g.q === (S.city || '').trim().toLowerCase() && g.lat != null) return g; return null; }
 async function loadWeather(force) {
   if (S.wxBusy) { S.wxAgain = true; return; } if (!force && S.wxFailAt && Date.now() - S.wxFailAt < 10 * 60e3) return; const c = store.get('wx', null), pl = wxPlace();
-  if (!force && c && c.d && c.d.sunshine_duration && c.cur && c.cur.cloud_cover != null && Date.now() - c.t < 30 * 60e3 && pl && Math.abs(c.lat - pl.lat) < 0.01 && Math.abs(c.lon - pl.lon) < 0.01) { S.wx = c; if (T3 && T3.scene) env3d(); if (!S.tool && !S.sel && S.tab === 'home') render(); return; }
+  if (!force && c && c.d && c.d.sunshine_duration && c.cur && c.cur.cloud_cover != null && Date.now() - c.t < 30 * 60e3 && pl && Math.abs(c.lat - pl.lat) < 0.01 && Math.abs(c.lon - pl.lon) < 0.01) { S.wx = c; loadSmhi(pl).then(() => { if (!S.tool && !S.sel && S.tab === 'home') render(); }); if (T3 && T3.scene) env3d(); if (!S.tool && !S.sel && S.tab === 'home') render(); return; }
   S.wxBusy = true;
   try {
     let place = pl;
@@ -7984,17 +7984,43 @@ async function loadWeather(force) {
     const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,cloud_cover&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,wind_gusts_10m_max,uv_index_max,sunshine_duration&wind_speed_unit=ms&timezone=Europe%2FStockholm&forecast_days=5`;
     const r = await fetch(u); if (!r.ok) throw new Error('wx ' + r.status); const j = await r.json();
     S.wx = { t: Date.now(), lat: place.lat, lon: place.lon, name: place.name, cur: j.current, d: j.daily };
+    await loadSmhi(place);
     // Regn och snö de senaste 7 dagarna och snödjupet nu, för att räkna ut om utomhusväxterna behöver vattnas
     try { const r2 = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&daily=precipitation_sum,rain_sum,snowfall_sum&current=snow_depth&timezone=Europe%2FStockholm&past_days=7&forecast_days=1`); if (r2.ok) { const j2 = await r2.json(), D2 = j2.daily || {}, n = (D2.time || []).length - 1, sum = a => Math.round((a || []).slice(0, n).reduce((x, v) => x + (v || 0), 0) * 10) / 10; S.wx.past = { prec: sum(D2.precipitation_sum), rain: sum(D2.rain_sum), snow: sum(D2.snowfall_sum), depth: j2.current && j2.current.snow_depth != null ? Math.round(j2.current.snow_depth * 100) : null }; } } catch (e) { }
     store.set('wx', S.wx); S.wxFailAt = 0; if (T3 && T3.scene) env3d();
   } catch (e) { S.wxFailAt = Date.now(); S.wx = Object.assign({}, store.get('wx', {}), { err: 1 }); }
   finally { S.wxBusy = false; if (S.wxAgain) { S.wxAgain = false; return loadWeather(true); } if (!S.tool && !S.sel && S.tab === 'home') render(); }
 }
+// SMHI:s officiella varningar (öppna data, CC BY 4.0, ingen nyckel). Bara för platser i Sverige, utomlands används enbart Open-Meteo.
+const SMHI_LVL = { RED: ['Röd varning', 0], ORANGE: ['Orange varning', 1], YELLOW: ['Gul varning', 2], MESSAGE: ['Meddelande', 3] };
+const smhiInSE = (lat, lon) => lat >= 55 && lat <= 69.2 && lon >= 10.5 && lon <= 24.5;
+function smhiRing(x, y, ring) { let ins = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) ins = !ins; } return ins; }
+function smhiHit(g, lon, lat) { if (!g || !g.coordinates) return false; const P = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : []; return P.some(p => p[0] && smhiRing(lon, lat, p[0]) && !p.slice(1).some(h => smhiRing(lon, lat, h))); }
+async function loadSmhi(place) {
+  if (!place || !smhiInSE(place.lat, place.lon)) { S.smhi = []; return; }
+  const c = store.get('smhiW', null);
+  if (c && Date.now() - c.t < 30 * 60e3 && Math.abs(c.lat - place.lat) < 0.05 && Math.abs(c.lon - place.lon) < 0.05) { S.smhi = c.list || []; return; }
+  try {
+    const r = await fetch('https://opendata-download-warnings.smhi.se/ibww/api/version/1/warning.json'); if (!r.ok) throw new Error('smhi ' + r.status);
+    const j = await r.json(), now = Date.now(), list = [];
+    (Array.isArray(j) ? j : []).forEach(w => (w.warningAreas || []).forEach(a => {
+      const g = a.area && (a.area.geometry || (a.area.features && a.area.features[0] && a.area.features[0].geometry));
+      if (!smhiHit(g, place.lon, place.lat)) return;
+      if (a.approximateEnd && new Date(a.approximateEnd).getTime() < now) return;
+      if (a.approximateStart && new Date(a.approximateStart).getTime() > now + 36 * 3600e3) return;
+      const ds = a.descriptions || [], inc = ds.find(x => x.title && x.title.code === 'INCIDENT') || ds[0], txt = inc && inc.text && inc.text.sv ? String(inc.text.sv).replace(/\s+/g, ' ').trim() : '';
+      list.push({ lvl: a.warningLevel && a.warningLevel.code, ev: (w.event && w.event.sv) || 'Varning', area: a.areaName && a.areaName.sv || '', txt: txt.length > 240 ? txt.slice(0, 237) + '...' : txt });
+    }));
+    list.sort((x, y) => ((SMHI_LVL[x.lvl] || [0, 9])[1]) - ((SMHI_LVL[y.lvl] || [0, 9])[1]));
+    S.smhi = list.slice(0, 3); store.set('smhiW', { t: now, lat: place.lat, lon: place.lon, list: S.smhi });
+  } catch (e) { console.warn('Roothood:', e); S.smhi = (c && c.list) || []; }
+}
 function wxLocBtn() { return `<button class="wxloc" onclick="${S.user ? 'openSettings()' : "openModal('login')"}" aria-label="Välj ort" title="Välj ort">${ic('ph-map-pin', 'currentColor', 18)}</button>`; }
 function wxHere() { if (!navigator.geolocation) return toast('Mobilen kan inte ge din position'); navigator.geolocation.getCurrentPosition(async pp => { const g = { q: (S.city || '').trim().toLowerCase(), lat: pp.coords.latitude, lon: pp.coords.longitude, name: S.city || 'din position' }; store.set('wxGeo', g); await loadWeather(true); }, () => toast('Fick inte din position. Välj ort under Inställningar.'), { timeout: 15000 }); }
 
 function wxWarnings(w) {
   const out = [], d = w.d, c = w.cur; if (!d || !c) return out;
+  (S.smhi || []).forEach(x => out.push(['smhi', x.lvl === 'MESSAGE' ? 'ℹ️' : '⚠️', esc(((SMHI_LVL[x.lvl] || ['Varning'])[0]) + ': ' + x.ev + (x.area ? ', ' + x.area : '')), esc(x.txt || 'Läs mer hos SMHI.') + ' <i>Källa: SMHI.</i>']));
   const outdoor = S.mine.filter(m => ['Trädgård', 'Köksträdgård'].includes(m.category) || (m.details && ['Ute i sol', 'Ute i skugga'].includes(m.details.light)) || (m.details && m.details.room && ((S.home || []).find(r => r.id === m.details.room) || {}).type === 'Balkong'));
   const day = i => i === 0 ? 'i natt' : i === 1 ? 'i morgon' : DAYS[new Date(String(d.time[i]).length === 10 ? d.time[i] + 'T12:00' : d.time[i]).getDay()] + 'dag';
   const fi = d.temperature_2m_min.findIndex((v, i) => i < 3 && v <= 0), cold = Math.min(...d.temperature_2m_min.slice(0, 3));
@@ -12305,6 +12331,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.401', '13 nov', ['Väder: SMHI:s officiella varningar (kyla, vind, skyfall, vattenbrist m.m.) visas för din ort i Sverige. Utomlands används Open-Meteo som förut']],
   ['Beta 0.400', '13 nov', ['Det går nu att ta bort växter som inte finns i växtbiblioteket (egna växter) från samlingen']],
   ['Beta 0.399', '13 nov', ['Nytt filter: Aroids (monstera, philodendron, anthurium, alocasia m.fl.)']],
   ['Beta 0.398', '13 nov', ['Växter vi saknar uppgifter om visar ? i stället för ljus och vatten']],
@@ -14919,7 +14946,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.400';
+const APP_VERSION = 'Beta 0.401';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
