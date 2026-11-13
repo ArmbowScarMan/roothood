@@ -9444,17 +9444,78 @@ function bedPrint() {
   setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 300);
 }
 // Rabatten sedd framifrån: växternas höjd och bredd i skala. Ungefärlig bild.
+// Rabatten framifrån i 3D: en stilla bild som ritas av three.js, och ett tryck öppnar en vy man kan snurra och zooma i.
+function bedFrontItems(a, it, len) {
+  const rect = a.pts, ds = bedDims(a.pts), dep = ds[1] || 1; let best = null;
+  rect.forEach((q, i) => { const n = rect[(i + 1) % rect.length], L = Math.hypot(n[0] - q[0], n[1] - q[1]); if (!best || L > best[0]) best = [L, q, n]; });
+  const [L0, p0, p1] = best, ux = (p1[0] - p0[0]) / L0, uy = (p1[1] - p0[1]) / L0, al = rect.map(q => (q[0] - p0[0]) * ux + (q[1] - p0[1]) * uy), pr = rect.map(q => -(q[0] - p0[0]) * uy + (q[1] - p0[1]) * ux);
+  const amin = Math.min(...al), pmid = (Math.min(...pr) + Math.max(...pr)) / 2, out = [];
+  it.forEach(([x, p]) => { const sp = (a.spots || []).filter(t => t.pid === p.id);
+    if (sp.length) sp.forEach(t => out.push([p, ((t.x - p0[0]) * ux + (t.y - p0[1]) * uy) - amin, -(t.x - p0[0]) * uy * 1 + (t.y - p0[1]) * ux - pmid, true]));
+    else { const n = Math.min(x.n, 12); for (let i = 0; i < n; i++) out.push([p, len * (i + 0.5) / n, 0, false]); } });
+  const maxH = Math.max(0.1, ...out.map(o => pSize(o[0])[0])) / 100;
+  out.forEach(o => { if (!o[3]) o[2] = (0.5 - pSize(o[0])[0] / 100 / maxH) * dep * 0.8; });
+  return { items: out.slice(0, 120), maxH, dep };
+}
+function bed3dBuild(THREE, a, it, len) {
+  const { items, maxH, dep } = bedFrontItems(a, it, len), sc = new THREE.Scene(), mats = {};
+  const M = (col, o) => mats[col + JSON.stringify(o || {})] || (mats[col + JSON.stringify(o || {})] = new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.85 }, o || {})));
+  sc.background = new THREE.Color(0xCFE3EC); sc.add(new THREE.HemisphereLight(0xffffff, 0x6B7A5A, 0.95)); const dl = new THREE.DirectionalLight(0xffffff, 1.1); dl.position.set(len * 0.4, maxH * 4 + 4, dep * 2 + 4); sc.add(dl);
+  const gr = new THREE.Mesh(new THREE.PlaneGeometry(len * 4 + 20, dep * 4 + 20), M('#7DA05A')); gr.rotation.x = -Math.PI / 2; sc.add(gr);
+  const soil = new THREE.Mesh(new THREE.BoxGeometry(len + 0.3, 0.12, dep + 0.3), M('#6B4A32')); soil.position.y = 0.06; sc.add(soil);
+  const sd = S.sunD, mm = S.mon3; S.sunD = null; S.mon3 = 7; // juli, så att växterna syns fullvuxna och gröna
+  try { items.forEach(([p, along, perp]) => { try { const g = plant3d(p, THREE, M, null, null, Math.round(along * 977 + perp * 131)); g.position.set(along - len / 2, 0.12, perp); sc.add(g); } catch (e) { console.warn('plant3d', e); } }); }
+  finally { S.sunD = sd; S.mon3 = mm; }
+  return { sc, maxH, len, dep };
+}
+function bed3dCam(THREE, B, aspect) {
+  const cam = new THREE.PerspectiveCamera(40, aspect, 0.05, 500), fv = 40 * Math.PI / 180, dh = (B.maxH * 1.3 + 0.4) / (2 * Math.tan(fv / 2)), dw = (B.len * 1.15 + 0.4) / (2 * Math.tan(fv / 2) * aspect);
+  return { cam, dist: Math.max(dh, dw, B.dep * 1.5) + B.dep / 2 };
+}
+const bedBF = {};
+async function bedFrontMount(id) {
+  const box = document.getElementById('bf3d'); if (!box || box.dataset.done) return;
+  const a = bedArea(id); if (!a) return; const it = bedItems(a), len = bedDims(a.pts)[0]; if (!it.length || !(len > 0)) return;
+  const key = id + ':' + JSON.stringify([a.pts, a.spots, a.bp]);
+  try {
+    if (!bedBF[key]) {
+      const THREE = (T3 && T3.THREE) || await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
+      const R = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); R.setPixelRatio(1); R.setSize(720, 360, false); R.outputColorSpace = THREE.SRGBColorSpace;
+      const B = bed3dBuild(THREE, a, it, len), { cam, dist } = bed3dCam(THREE, B, 2); cam.position.set(0, B.maxH * 0.45 + 0.35, dist); cam.lookAt(0, B.maxH * 0.4, 0); R.render(B.sc, cam);
+      bedBF[key] = R.domElement.toDataURL('image/jpeg', 0.88); R.dispose(); try { R.forceContextLoss(); } catch (e) { }
+    }
+    const b2 = document.getElementById('bf3d'); if (!b2) return;
+    b2.innerHTML = `<img src="${bedBF[key]}" alt="Rabatten sedd framifrån i 3D" style="width:100%;border-radius:12px;display:block;cursor:pointer"><span class="mut" style="font-size:13px">Tryck på bilden för att snurra och zooma i 3D.</span>`; b2.dataset.done = '1'; b2.onclick = () => bedOpen3d(id);
+  } catch (e) { console.warn('bed 3d', e); }
+}
+async function bedOpen3d(id) {
+  const a = bedArea(id); if (!a || document.getElementById('bf3dov')) return; const it = bedItems(a), len = bedDims(a.pts)[0]; if (!it.length || !(len > 0)) return;
+  const ov = document.createElement('div'); ov.id = 'bf3dov'; ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#CFE3EC;touch-action:none';
+  ov.innerHTML = '<canvas style="width:100%;height:100%;display:block"></canvas><div style="position:absolute;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 10px;display:flex;align-items:center;gap:10px;color:#14201a"><b style="flex:1;font-size:18px">Rabatten i 3D</b><button id="bf3x" style="border:0;border-radius:99px;padding:10px 18px;font-weight:800;background:#14201a;color:#fff;font-size:15px">Stäng</button></div><p style="position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);margin:0;text-align:center;color:#14201a;font-size:14px">Dra för att snurra. Nyp eller rulla för att zooma. Växterna visas fullvuxna i juli.</p>';
+  document.body.appendChild(ov);
+  let THREE; try { THREE = (T3 && T3.THREE) || await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js'); } catch (e) { ov.remove(); return toast('3D-vyn kunde inte laddas. Kolla nätverket.'); }
+  const cv = ov.querySelector('canvas'); let R; try { R = new THREE.WebGLRenderer({ canvas: cv, antialias: true }); } catch (e) { ov.remove(); return toast('Telefonen kan inte visa 3D här.'); }
+  R.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); R.outputColorSpace = THREE.SRGBColorSpace;
+  const B = bed3dBuild(THREE, a, it, len), { cam, dist } = bed3dCam(THREE, B, Math.max(0.3, ov.clientWidth / Math.max(1, ov.clientHeight))), st = { az: 0, el: 0.18, dist }, ptr = new Map(); let pd = 0;
+  const lim = () => { st.el = Math.max(0.03, Math.min(1.45, st.el)); st.dist = Math.max(0.6, Math.min(120, st.dist)); };
+  const size = () => { const W = ov.clientWidth, Hh = ov.clientHeight; R.setSize(W, Hh, false); cam.aspect = W / Hh; cam.updateProjectionMatrix(); };
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (ptr.size === 2) { const [p, q] = [...ptr.values()]; pd = Math.hypot(p.x - q.x, p.y - q.y); } });
+  cv.addEventListener('pointermove', e => { const p = ptr.get(e.pointerId); if (!p) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+    if (ptr.size === 1) { st.az -= dx * 0.008; st.el += dy * 0.008; } else if (ptr.size === 2) { const [u, v] = [...ptr.values()], nd = Math.hypot(u.x - v.x, u.y - v.y); if (pd) st.dist *= pd / nd; pd = nd; } lim(); });
+  const up = e => { ptr.delete(e.pointerId); pd = 0; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', e => { e.preventDefault(); st.dist *= e.deltaY > 0 ? 1.1 : 0.9; lim(); }, { passive: false });
+  let raf = 0; const stop = () => { cancelAnimationFrame(raf); window.removeEventListener('resize', size); try { R.dispose(); } catch (e) { } ov.remove(); };
+  ov.querySelector('#bf3x').onclick = stop; window.addEventListener('resize', size); size();
+  const ty = B.maxH * 0.4, loop = () => { if (!ov.isConnected) return stop(); cam.position.set(Math.sin(st.az) * Math.cos(st.el) * st.dist, ty + Math.sin(st.el) * st.dist, Math.cos(st.az) * Math.cos(st.el) * st.dist); cam.lookAt(0, ty, 0); R.render(B.sc, cam); raf = requestAnimationFrame(loop); };
+  loop();
+}
 function bedFrontV(a, it, len) {
   if (!it.length || !(len > 0)) return '';
   const W = 320, Hh = 130, g = Hh - 14, padx = 12, maxH = Math.max(...it.map(([x, p]) => pSize(p)[0])) / 100, sx = (W - 2 * padx) / Math.max(len, 0.5), sy = Math.min(sx, (g - 8) / Math.max(maxH, 0.1));
-  let best = null; a.pts.forEach((q, i) => { const n = a.pts[(i + 1) % a.pts.length], L = Math.hypot(n[0] - q[0], n[1] - q[1]); if (!best || L > best[0]) best = [L, q, n]; });
-  const [L0, p0, p1] = best, ux = (p1[0] - p0[0]) / L0, uy = (p1[1] - p0[1]) / L0, al = a.pts.map(q => (q[0] - p0[0]) * ux + (q[1] - p0[1]) * uy), amin = Math.min(...al);
-  const items = []; it.forEach(([x, p]) => { const sp = (a.spots || []).filter(t => t.pid === p.id);
-    if (sp.length) sp.forEach(t => items.push([p, ((t.x - p0[0]) * ux + (t.y - p0[1]) * uy) - amin])); else { const n = Math.min(x.n, 12); for (let i = 0; i < n; i++) items.push([p, len * (i + 0.5) / n]); } });
-  items.sort((u, v) => pSize(v[0])[0] - pSize(u[0])[0]);
-  const sh = items.slice(0, 80).map(([p, pos]) => { const [h, w] = pSize(p), cx = padx + pos * sx, rx = Math.max(3, w / 200 * sx), ry = Math.max(3, h / 200 * sy), hu = plantHue(p.id);
+  const { items } = bedFrontItems(a, it, len), sh = items.slice().sort((u, v) => pSize(v[0])[0] - pSize(u[0])[0]).slice(0, 80).map(([p, pos]) => { const [h, w] = pSize(p), cx = padx + pos * sx, rx = Math.max(3, w / 200 * sx), ry = Math.max(3, h / 200 * sy), hu = plantHue(p.id);
     return `<ellipse cx="${cx.toFixed(1)}" cy="${(g - ry).toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="hsla(${hu},55%,55%,.8)" stroke="hsl(${hu},50%,32%)" stroke-width="1"/>`; }).join('');
-  return `<h3 style="margin:16px 0 6px;font-size:16px">Så kan rabatten se ut framifrån</h3><svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Rabatten sedd framifrån" style="background:var(--bg);border-radius:12px"><rect x="0" y="${g}" width="${W}" height="${Hh - g}" fill="#8A6A4A" opacity=".5"/>${sh}</svg><p class="mut" style="margin:4px 0 0;font-size:13px">Ungefärlig bild. Höjd och bredd är växternas fullvuxna storlek. De högsta står bakom.</p>`;
+  setTimeout(() => bedFrontMount(a.id), 60);
+  return `<h3 style="margin:16px 0 6px;font-size:16px">Så kan rabatten se ut framifrån</h3><div id="bf3d"><svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Rabatten sedd framifrån" style="background:var(--bg);border-radius:12px"><rect x="0" y="${g}" width="${W}" height="${Hh - g}" fill="#8A6A4A" opacity=".5"/>${sh}</svg></div><p class="mut" style="margin:4px 0 0;font-size:13px">Ungefärlig bild. Höjd och bredd är växternas fullvuxna storlek. De högsta står bakom.</p>`;
 }
 // Ungefärlig blomningstid (månader) per släkte. Databasen har ingen blomningstid, så detta är en uppskattning.
 const BLOOM_G = { Galanthus: [2, 3], Crocus: [3, 4], Helleborus: [3, 5], Narcissus: [3, 5], Forsythia: [4, 5], Magnolia: [4, 5], Prunus: [4, 5], Bergenia: [4, 5], Tulipa: [4, 5], Primula: [4, 6], Vinca: [4, 6], Aquilegia: [5, 6], Syringa: [5, 6], Rhododendron: [5, 6], Paeonia: [5, 6], Malus: [5, 5], Allium: [5, 7], Iris: [5, 7], Papaver: [5, 7], Geranium: [6, 8], Delphinium: [6, 7], Lupinus: [6, 7], Digitalis: [6, 7], Heuchera: [6, 7], Alchemilla: [6, 8], Campanula: [6, 8], Hemerocallis: [6, 8], Lilium: [6, 8], Spiraea: [5, 8], Rosa: [6, 9], Clematis: [6, 9], Salvia: [6, 9], Nepeta: [6, 9], Achillea: [6, 9], Viola: [4, 9], Tagetes: [6, 10], Petunia: [6, 10], Lavandula: [7, 8], Hosta: [7, 8], Astilbe: [7, 8], Echinacea: [7, 9], Hydrangea: [7, 9], Phlox: [7, 9], Rudbeckia: [7, 10], Dahlia: [7, 10], Sedum: [8, 10], Aster: [8, 10] };
@@ -12242,6 +12303,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.397', '13 nov', ['Rabatten framifrån visas nu i 3D. Tryck på bilden för att snurra och zooma']],
   ['Beta 0.396', '13 nov', ['Vi kan nu svara på felrapporter och förslag. Svaret kommer som ett meddelande från Nyckelpigan, och du kan svara tillbaka, även med bild', 'Hittar identifieringen fel växt kan du söka i växtbiblioteket på namn', 'När du lägger till en växt väljer du om fotot ska delas i växtbiblioteket eller bara synas hos dig']],
   ['Beta 0.395', '13 nov', ['Rabatten: en tydlig knapp Råd och kalender högst upp i rabattrutan öppnar blomningskalendern, bilden framifrån och råden']],
   ['Beta 0.394', '12 nov', ['Skanna rummet (bara admin): knappen Visa rum i 3D visar rummet i en egen 3D-vy som du kan snurra och zooma i']],
@@ -14852,7 +14914,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.396';
+const APP_VERSION = 'Beta 0.397';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
