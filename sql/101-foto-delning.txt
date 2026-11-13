@@ -1,0 +1,22 @@
+-- Val per foto: delas i växtbiblioteket eller bara jag. Gamla rader (tomt värde) fungerar som förut (delas enligt profilen).
+alter table user_plants add column if not exists photo_shared boolean;
+
+create or replace function public.plant_photos(p_plant_id bigint)
+ returns table(url text, display_name text, user_id uuid)
+ language sql stable security definer set search_path to 'public'
+as $function$
+  select x.url, x.display_name, x.user_id from (
+    select ph.url, pr.display_name, up.user_id, up.created_at, ph.n
+    from user_plants up
+    join profiles pr on pr.id = up.user_id and pr.share_photos
+    cross join lateral unnest(up.photos) with ordinality as ph(url, n)
+    where up.plant_id = p_plant_id
+      and coalesce(up.photo_shared, true)
+      and up.user_id is distinct from auth.uid()
+      and ph.url like 'https://%'
+      and not exists (select 1 from reports r where r.photo_url = ph.url and r.reporter_id = auth.uid())
+      and (select count(distinct r.reporter_id) from reports r where r.photo_url = ph.url) < 3
+  ) x
+  order by x.created_at desc, x.n desc
+  limit 24;
+$function$;
