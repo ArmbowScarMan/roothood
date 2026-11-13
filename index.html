@@ -3162,7 +3162,7 @@ function qaddV() {
 function openMine(id) {
   const m = S.mine.find(x => x.id === id); if (!m) return;
   if (m.plant_id && S.plants.some(p => p.id === m.plant_id)) return openPlant(m.plant_id, id);
-  S.myv = id; openModal('myplant');
+  S.myv = id; S.delAsk = null; openModal('myplant');
 }
 function myplantV() {
   const m = S.mine.find(x => x.id === S.myv); if (!m) return '';
@@ -3177,7 +3177,7 @@ function myplantV() {
   ${detailsV(m, true)}
   ${diaryV(m, true)}
   <p class="mut" style="font-size:13px;margin:14px 0 0">Den här växten finns bara i din samling och har ingen egen sida i växtbiblioteket.</p>
-  ${m.interval ? `<div class="cta" style="padding:16px 0 0"><button class="btn" onclick="S.modal=null;water(${m.id})">Markera som vattnad</button></div>` : ''}`;
+  <div class="cta" style="padding:16px 0 0">${m.interval ? `<button class="btn" onclick="S.modal=null;water(${m.id})">Markera som vattnad</button>` : ''}${S.delAsk === m.id ? `<p class="mut" style="margin:4px 0 0;font-size:14px;text-align:center">Är du säker att du vill ta bort ${esc(m.name)}?</p><button class="btn danger" onclick="S.delAsk=null;S.del=${m.id};S.modal=null;removeMine(${m.id})">Ja, ta bort</button><button class="btn line" onclick="S.delAsk=null;render()">Avbryt</button>` : `<button class="btn danger" onclick="S.delAsk=${m.id};render()">Ta bort från samlingen</button>`}</div>`;
 }
 function addpPick(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.ap = { file: f, img: URL.createObjectURL(f) }; render(); }
 async function confirmAddp() {
@@ -12305,6 +12305,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.400', '13 nov', ['Det går nu att ta bort växter som inte finns i växtbiblioteket (egna växter) från samlingen']],
   ['Beta 0.399', '13 nov', ['Nytt filter: Aroids (monstera, philodendron, anthurium, alocasia m.fl.)']],
   ['Beta 0.398', '13 nov', ['Växter vi saknar uppgifter om visar ? i stället för ljus och vatten']],
   ['Beta 0.397', '13 nov', ['Rabatten framifrån visas nu i 3D. Tryck på bilden för att snurra och zooma']],
@@ -14918,7 +14919,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.399';
+const APP_VERSION = 'Beta 0.400';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
