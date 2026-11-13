@@ -8076,19 +8076,19 @@ const DB_SORT = [['az', 'A–Ö'], ['za', 'Ö–A'], ['bot', 'Botaniskt namn A�
 const DBM = ['fzones', 'fcolor', 'fwater', 'fhum', 'fheight'];
 const dbArr = k => S[k] || (S[k] = []);
 function dbTog(k, v) { const a = dbArr(k); S[k] = a.includes(v) ? a.filter(x => x !== v) : a.concat([v]); }
-function dbFilterN() { return (S.cat && S.cat !== 'Alla' && S.cat !== 'zon' ? 1 : 0) + (S.ptypes || []).length + (S.fzon || S.fzm || S.cat === 'zon' ? 1 : 0) + (S.fpet ? 1 : 0) + (S.feasy ? 1 : 0) + (S.flight ? 1 : 0) + DBM.reduce((n, k) => n + dbArr(k).length, 0); }
+function dbFilterN() { return (S.cat && S.cat !== 'Alla' && S.cat !== 'zon' ? 1 : 0) + (S.ptypes || []).length + (S.fzon || S.fzm || S.cat === 'zon' ? 1 : 0) + (S.fpet ? 1 : 0) + (S.feasy ? 1 : 0) + (S.faroid ? 1 : 0) + (S.flight ? 1 : 0) + DBM.reduce((n, k) => n + dbArr(k).length, 0); }
 function dbChips() { const L = [];
   if (S.cat && S.cat !== 'Alla' && S.cat !== 'zon') L.push([S.cat, "S.cat='Alla'"]);
   (S.ptypes || []).forEach(t => L.push([t, `S.ptypes=S.ptypes.filter(x=>x!==${jsArg(t)})`]));
   if (S.fzon || S.fzm || S.cat === 'zon') L.push([S.fzm ? 'Zon ' + store.get('zone', 0) + ', även med skydd' : 'Klarar zon ' + store.get('zone', 0), "S.fzon=false;S.fzm=false;if(S.cat==='zon')S.cat='Alla'"]);
-  if (S.flight) L.push([LIGHT[S.flight - 1], 'S.flight=0']); if (S.fpet) L.push(['Säker för husdjur', 'S.fpet=false']); if (S.feasy) L.push(['Lättskött', 'S.feasy=false']);
+  if (S.flight) L.push([LIGHT[S.flight - 1], 'S.flight=0']); if (S.faroid) L.push(['Aroids', 'S.faroid=false']); if (S.fpet) L.push(['Säker för husdjur', 'S.fpet=false']); if (S.feasy) L.push(['Lättskött', 'S.feasy=false']);
   const lab = (k, v) => k === 'fzones' ? 'Zon ' + v : k === 'fcolor' ? v[0].toUpperCase() + v.slice(1) : ((k === 'fwater' ? DS_WATER : k === 'fhum' ? DS_HUM : DS_HEIGHT).find(x => x[0] === v) || [, v])[1];
   DBM.forEach(k => dbArr(k).forEach(v => L.push([lab(k, v), `dbTog('${k}',${typeof v === 'number' ? v : jsArg(v)})`])));
   return L.length ? `<div class="chips2 sm">${L.map(([t, a]) => `<button class="on dbchip" onclick="${a};render()" aria-label="Ta bort filtret ${esc(t)}">${esc(t)} <span aria-hidden="true">×</span></button>`).join('')}<button class="link3" onclick="dbClear()">Rensa</button></div>` : ''; }
-function dbClear() { S.cat = 'Alla'; S.ptypes = []; S.fzon = false; S.fzm = false; S.fpet = false; S.feasy = false; S.flight = 0; DBM.forEach(k => S[k] = []); render(); }
+function dbClear() { S.cat = 'Alla'; S.ptypes = []; S.fzon = false; S.fzm = false; S.fpet = false; S.feasy = false; S.faroid = false; S.flight = 0; DBM.forEach(k => S[k] = []); render(); }
 function dbBase(ign) { const q = S.q.trim().toLowerCase(), z = store.get('zone', 0), zok = p => { const r = zoneOf(p); return r && r[1] >= z - (S.fzm ? 1 : 0); }, types = S.ptypes || [];
   return S.plants.filter(p => envCats().includes(p.category) && (ign === 'cat' || !S.cat || S.cat === 'Alla' || S.cat === 'zon' || p.category === S.cat) && (!(S.fzon || S.fzm || S.cat === 'zon') || !z || zok(p))
-    && (ign === 'type' || !types.length || types.includes(typeOf(p))) && (!S.fpet || p.pet_safe) && (!S.feasy || (p.water_level || 2) <= 1 || /lättsk/i.test(p.tips || ''))
+    && (ign === 'type' || !types.length || types.includes(typeOf(p))) && (!S.fpet || p.pet_safe) && (!S.faroid || p.family === 'Araceae') && (!S.feasy || (p.water_level || 2) <= 1 || /lättsk/i.test(p.tips || ''))
     && (!S.flight || p.light_level === S.flight)
     && (S.env === 'in' || !dbArr('fzones').length || (zoneOf(p) && S.fzones.some(k => k >= zoneOf(p)[0] && k <= zoneOf(p)[1]))) && (!dbArr('fcolor').length || (p.bloom_color || []).some(x => S.fcolor.includes(x)))
     && (!dbArr('fwater').length || S.fwater.includes(p.water_level)) && (!dbArr('fhum').length || dsHum(p.humidity).some(h => S.fhum.includes(h))) && (!dbArr('fheight').length || S.fheight.includes(dsHeightBand(p.height_cm)))
@@ -8100,6 +8100,7 @@ function dbfV() { const z = store.get('zone', 0), cats = envCats(), cc = c => db
   <label class="fl" style="margin-top:0">Var växer den?</label><div class="chips2">${[['all', 'Alla'], ['in', 'Inomhus'], ['out', 'Utomhus']].map(([k, t]) => chip((S.env || 'all') === k, t, `S.env='${k}';if(!envCats().includes(S.cat))S.cat='Alla'`)).join('')}</div>
   <label class="fl">Kategori</label><div class="chips2">${chip(!S.cat || S.cat === 'Alla' || S.cat === 'zon', 'Alla', "S.cat='Alla'")}${cats.map(c => chip(S.cat === c, c, `S.cat=${jsArg(c)}`, cc(c))).join('')}</div>
   ${types.length > 1 ? `<label class="fl">Typ <small class="mut">(välj flera)</small></label><div class="chips2">${types.map(g => chip((S.ptypes || []).includes(g), g, `S.ptypes=(S.ptypes||[]).includes(${jsArg(g)})?S.ptypes.filter(x=>x!==${jsArg(g)}):(S.ptypes||[]).concat(${jsArg(g)})`, tc[g])).join('')}</div>` : ''}
+  <label class="fl">Växtgrupp</label><div class="chips2">${chip(!!S.faroid, 'Aroids', 'S.faroid=!S.faroid', dbBase('aro').filter(p => p.family === 'Araceae').length)}</div>
   <label class="fl">Ljus</label><div class="chips2">${chip(!S.flight, 'Alla', 'S.flight=0')}${LIGHT.map((t, i) => chip(S.flight === i + 1, t, `S.flight=${i + 1}`)).join('')}</div>
   ${S.env !== 'in' ? `<label class="fl">Odlingszon <small class="mut">(välj flera)</small></label><div class="chips2">${[1, 2, 3, 4, 5, 6, 7, 8].map(k => mc('fzones', k, 'Zon ' + k + (k === z ? ' (min)' : ''))).join('')}</div>` : ''}
   <label class="fl">Blomfärg</label><div class="chips2">${DS_COLOR.map(v => mc('fcolor', v, v[0].toUpperCase() + v.slice(1))).join('')}</div>
@@ -12304,6 +12305,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.399', '13 nov', ['Nytt filter: Aroids (monstera, philodendron, anthurium, alocasia m.fl.)']],
   ['Beta 0.398', '13 nov', ['Växter vi saknar uppgifter om visar ? i stället för ljus och vatten']],
   ['Beta 0.397', '13 nov', ['Rabatten framifrån visas nu i 3D. Tryck på bilden för att snurra och zooma']],
   ['Beta 0.396', '13 nov', ['Vi kan nu svara på felrapporter och förslag. Svaret kommer som ett meddelande från Nyckelpigan, och du kan svara tillbaka, även med bild', 'Hittar identifieringen fel växt kan du söka i växtbiblioteket på namn', 'När du lägger till en växt väljer du om fotot ska delas i växtbiblioteket eller bara synas hos dig']],
@@ -14916,7 +14918,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.398';
+const APP_VERSION = 'Beta 0.399';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
