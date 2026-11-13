@@ -2794,6 +2794,11 @@ const sbApi = {
       all.push(...(data || []));
       if (!data || data.length < 1000) break;
     }
+    try {
+      const { data: fl } = await sb.from('plant_flags').select('id,flags');
+      const m = new Map((fl || []).map(r => [r.id, r.flags]));
+      all.forEach(p => { if (m.has(p.id)) p.nat_flags = m.get(p.id); });
+    } catch (e) { console.warn('Roothood:', e); }
     return all;
   },
   async user() {
@@ -10457,6 +10462,7 @@ function detail() {
   ${tile('Storlek', p.height_cm ? cmM(p.height_cm) + ' hög' : null, p.height_cm ? `Blir ungefär ${cmM(p.height_cm)} hög${p.width_cm ? ' och ' + cmM(p.width_cm) + ' bred' : ''}.${p.spacing_cm ? ` Plantera ${p.spacing_cm} cm mellan plantorna${p.row_cm ? ' och ' + p.row_cm + ' cm mellan raderna' : ''}.` : ''}${p.spreads ? ' Sprider sig, plantera gärna med rotspärr.' : ''}` : '', I.leaf, 'var(--pri2)')}
   ${tile('Husdjur', petWord(p), p.toxicity_text, I.paw, p.pet_safe ? 'var(--pri2)' : petWord(p) === 'Okänt' ? 'var(--mut)' : 'var(--acc)', petWord(p) === 'Giftig')}
   </div>
+  ${natFlagsV(p)}
   ${S.pets ? `<div class="pad" style="padding-top:10px">${plantPetNote(p)}</div>` : ''}
   ${tips.length ? `<div class="sec"><h2>Skötseltips</h2></div><div class="tips">${tips.map(t => `<div class="tipr"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>${t[0]}</b><span>${esc(t[1])}</span></div></div>`).join('')}</div>` : ''}
   ${similar.length ? `<div class="sec"><h2>Liknande växter</h2></div><div class="similar">${similar.map(s => `<button onclick="openPlant(${s.id})">${plantPh(s)}<span>${esc(s.swedish_name)}</span></button>`).join('')}</div>` : ''}
@@ -10686,6 +10692,16 @@ async function apAddDb(id) {
   S.ap = null; photoWarnCheck(); afterAdd();
 }
 function photoWarnCheck() { if (S.photoWarn) { S.photoWarn = false; toast('Växten sparades, men fotot kunde inte sparas.'); } }
+const RL_TXT = { rl_re: 'Nationellt utdöd (RE)', rl_cr: 'Akut hotad (CR)', rl_en: 'Starkt hotad (EN)', rl_vu: 'Sårbar (VU)', rl_nt: 'Nära hotad (NT)' };
+function natFlagsV(p) {
+  const f = p.nat_flags || [], out = [];
+  if (f.includes('fridlyst')) out.push(['🌿', 'Fridlyst art i Sverige', 'Plocka eller gräv inte upp den i naturen. Att odla den i trädgården är tillåtet.']);
+  const rl = f.find(x => RL_TXT[x]);
+  if (rl) out.push(['🔎', 'Rödlistad i Sverige: ' + RL_TXT[rl], 'Arten är hotad i vild natur. Köp plantor från handeln och ta inga från naturen.']);
+  if (f.includes('invasiv')) out.push(['⚠️', 'Räknas som invasiv i Sverige', 'Låt den inte sprida sig från trädgården och släng aldrig trädgårdsavfall i naturen.']);
+  if (!out.length) return '';
+  return `<div class="pad" style="padding-top:10px">${out.map(o => `<div style="margin-bottom:8px;border-radius:16px;padding:10px 12px;background:rgba(212,154,46,.2);font-size:14px;line-height:1.4"><b>${o[0]} ${o[1]}</b><br>${o[2]} <i>Källa: Artdatabanken.</i></div>`).join('')}</div>`;
+}
 const petWord = p => p.pet_safe ? 'Ofarlig' : /^Okänt|inte känd/i.test(p.toxicity_text || '') ? 'Okänt' : 'Giftig';
 function plantPh(p) { return p.photo_url ? `<div class="ph has-img" style="--h:0"><img src="${esc(p.photo_url)}" alt="" loading="lazy"></div>` : ph(p.latin_name, p.category, p.swedish_name); }
 // På växtsidan: fotograf och licens (krävs för bilder från Wikimedia Commons), och om bilden visar arten eller släktet
@@ -12331,6 +12347,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.402', '13 nov', ['Växtsidan visar nu om arten är fridlyst, rödlistad eller invasiv i Sverige (källa: Artdatabanken)']],
   ['Beta 0.401', '13 nov', ['Väder: SMHI:s officiella varningar (kyla, vind, skyfall, vattenbrist m.m.) visas för din ort i Sverige. Utomlands används Open-Meteo som förut']],
   ['Beta 0.400', '13 nov', ['Det går nu att ta bort växter som inte finns i växtbiblioteket (egna växter) från samlingen']],
   ['Beta 0.399', '13 nov', ['Nytt filter: Aroids (monstera, philodendron, anthurium, alocasia m.fl.)']],
@@ -14946,7 +14963,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.401';
+const APP_VERSION = 'Beta 0.402';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
