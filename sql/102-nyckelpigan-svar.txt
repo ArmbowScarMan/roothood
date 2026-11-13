@@ -1,0 +1,70 @@
+-- Nyckelpigan: svar på felrapporter och feedback, i båda riktningar, med bilder
+create table if not exists public.feedback_replies (
+  id bigint generated always as identity primary key,
+  feedback_id bigint not null references public.feedback(id) on delete cascade,
+  from_team boolean not null,
+  body text not null default '',
+  photo_url text,
+  created_at timestamptz not null default now(),
+  read_at timestamptz,
+  constraint fr_len check (char_length(body) <= 2000),
+  constraint fr_content check (char_length(trim(body)) > 0 or photo_url is not null)
+);
+create index if not exists fr_fb_idx on public.feedback_replies (feedback_id, created_at);
+alter table public.feedback_replies enable row level security;
+
+drop policy if exists fr_select on public.feedback_replies;
+create policy fr_select on public.feedback_replies for select to authenticated using (
+  public.my_role() in ('mod','admin')
+  or exists (select 1 from public.feedback f where f.id = feedback_id and f.user_id = auth.uid())
+);
+revoke all on public.feedback_replies from anon, authenticated;
+grant select on public.feedback_replies to authenticated;
+
+-- Skicka svar. Moderator/admin => från Nyckelpigan. Den som skrev rapporten => svar, men bara efter att teamet skrivit först.
+create or replace function public.feedback_reply(p_feedback_id bigint, p_body text, p_photo text default null)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_owner uuid; v_team boolean := public.my_role() in ('mod','admin');
+begin
+  if auth.uid() is null then raise exception 'NOT_LOGGED_IN'; end if;
+  select user_id into v_owner from feedback where id = p_feedback_id;
+  if not found then raise exception 'NO_SUCH_FEEDBACK'; end if;
+  if not v_team then
+    if v_owner is distinct from auth.uid() then raise exception 'NOT_ALLOWED'; end if;
+    if not exists (select 1 from feedback_replies where feedback_id = p_feedback_id and from_team) then raise exception 'NOT_ALLOWED'; end if;
+  end if;
+  if coalesce(trim(p_body), '') = '' and p_photo is null then raise exception 'EMPTY'; end if;
+  insert into feedback_replies (feedback_id, from_team, body, photo_url)
+  values (p_feedback_id, v_team, left(coalesce(p_body, ''), 2000), p_photo);
+end $$;
+
+-- Markera som läst: användaren läser teamets svar, teamet läser användarens svar
+create or replace function public.feedback_mark_read(p_feedback_id bigint)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_team boolean := public.my_role() in ('mod','admin');
+begin
+  if auth.uid() is null then return; end if;
+  if v_team then
+    update feedback_replies set read_at = now() where feedback_id = p_feedback_id and not from_team and read_at is null;
+  elsif exists (select 1 from feedback where id = p_feedback_id and user_id = auth.uid()) then
+    update feedback_replies set read_at = now() where feedback_id = p_feedback_id and from_team and read_at is null;
+  end if;
+end $$;
+
+revoke all on function public.feedback_reply(bigint, text, text) from public, anon;
+revoke all on function public.feedback_mark_read(bigint) from public, anon;
+grant execute on function public.feedback_reply(bigint, text, text) to authenticated;
+grant execute on function public.feedback_mark_read(bigint) to authenticated;
+
+-- Användarens egna trådar (bara rapporter där teamet svarat)
+create or replace function public.my_feedback_threads()
+returns table (feedback_id bigint, fb_body text, fb_photo text, fb_created timestamptz, reply_id bigint, from_team boolean, body text, photo_url text, created_at timestamptz, read_at timestamptz)
+language sql security definer set search_path = public stable as $$
+  select f.id, f.body, f.photo_url, f.created_at, r.id, r.from_team, r.body, r.photo_url, r.created_at, r.read_at
+  from feedback f join feedback_replies r on r.feedback_id = f.id
+  where f.user_id = auth.uid()
+    and exists (select 1 from feedback_replies t where t.feedback_id = f.id and t.from_team)
+  order by r.created_at;
+$$;
+revoke all on function public.my_feedback_threads() from public, anon;
+grant execute on function public.my_feedback_threads() to authenticated;

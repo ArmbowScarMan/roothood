@@ -2671,6 +2671,10 @@ const demoApi = {
   async listStaff() { return [{ id: 'demo', display_name: 'Du (admin)', role: 'admin' }, { id: 'u-maria', display_name: 'Maria', role: 'mod' }]; },
   async sendFb(f, photos) { const L = store.get('demoFb', []), urls = []; for (const ph of [].concat(photos || []).filter(Boolean)) urls.push(await fileShrink(ph, 900, true)); const url = urls.length ? urls.join(' ') : null; L.unshift(Object.assign({ id: Date.now(), user_id: 'demo', author: 'Du', status: 'new', created_at: new Date().toISOString(), photo_url: url }, f)); store.set('demoFb', L); },
   async modFb() { return store.get('demoFb', []); },
+  async fbReplies() { return store.get('demoFr', []); },
+  async fbReply(id, body, photo) { const L = store.get('demoFr', []), team = isMod(); L.push({ id: Date.now(), feedback_id: id, from_team: team, body: body || '', photo_url: photo || null, created_at: new Date().toISOString(), read_at: null }); store.set('demoFr', L); },
+  async fbRead(id) { const L = store.get('demoFr', []), team = isMod(); L.forEach(r => { if (r.feedback_id === id && r.from_team !== team && !r.read_at) r.read_at = new Date().toISOString(); }); store.set('demoFr', L); },
+  async fbMine() { const F = store.get('demoFb', []), R = store.get('demoFr', []); return F.filter(f => R.some(r => r.feedback_id === f.id && r.from_team)).map(f => ({ fb: f, replies: R.filter(r => r.feedback_id === f.id) })); },
   async modFbSet(id, st) { const L = store.get('demoFb', []); const x = L.find(y => y.id === id); if (x) x.status = st; store.set('demoFb', L); },
   async adminSetExpert(id, on, title) { const L = store.get('demoExperts', {}); L[id] = on ? (title || 'Växtexpert') : null; store.set('demoExperts', L); },
   async modUsage() { const F = ['ask', 'db', 'id', 'house', 'doc', 'care', 'comm-q', 'bed', 'experts', 'light', 'pets', 'sow']; return F.map((f, i) => ({ feature: f, users: Math.max(1, 14 - i), uses: Math.round(140 / (i + 1)) + 3 })); },
@@ -2866,19 +2870,19 @@ const sbApi = {
         : { id: r.id, plant_id: null, name: r.custom_name, latin: r.custom_latin, category: r.custom_category, interval: r.custom_water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: true }, ph_));
     });
   },
-  async addMine(p, photo) {
+  async addMine(p, photo, share) {
     const url = photo ? await uploadPhoto(photo) : null;
-    await insertUP(Object.assign({ plant_id: p.id }, url ? { photo_url: url, photos: [url] } : {}));
+    await insertUP(Object.assign({ plant_id: p.id }, url ? { photo_url: url, photos: [url], photo_shared: !!share } : {}));
   },
   async addCustom(f) {
     const url = f.photo ? await uploadPhoto(f.photo) : null;
     const row = plantRow(f);
-    if (url) row.photo_url = url;
+    if (url && f.share) row.photo_url = url;
     let r = await sb.from('plants').insert(row).select('id');
     if (r.error && /family|genus|species|cultivar/.test(r.error.message || '')) { ['family', 'genus', 'species', 'cultivar'].forEach(k => delete row[k]); r = await sb.from('plants').insert(row).select('id'); }
     if (r.error && /photo_url/.test(r.error.message || '')) { delete row.photo_url; r = await sb.from('plants').insert(row).select('id'); }
     if (r.error) throw r.error;
-    if (!f.dest || f.dest === 'mine') await insertUP(Object.assign({ plant_id: r.data[0].id }, url ? { photo_url: url, photos: [url] } : {}));
+    if (!f.dest || f.dest === 'mine') await insertUP(Object.assign({ plant_id: r.data[0].id }, url ? { photo_url: url, photos: [url], photo_shared: !!f.share } : {}));
     return r.data[0].id;
   },
   async water(id) { const { error } = await sb.from('user_plants').update({ last_watered: today() }).eq('id', id); if (error) throw error; },
@@ -3023,6 +3027,10 @@ const sbApi = {
   _modU(e) { return /mod_user|mod_users/.test(e.message || '') && /function|schema cache|does not exist/i.test(e.message || '') ? new Error('MODU_NOT_READY') : e; },
   _st(e) { return /mod_usage|usage_daily|does not exist/.test((e && e.message) || '') ? new Error('STATS_NOT_READY') : e; },
   async sendFb(f, photos) { photos = [].concat(photos || []).filter(Boolean); for (const ph of photos) if (!(await fileShrink(ph, 900))) throw new Error('En bild kunde inte läsas. Välj en annan bild, till exempel en JPG eller PNG.'); const urls = []; for (const ph of photos) urls.push(await uploadPhoto(ph)); const { error } = await sb.from('feedback').insert(Object.assign({ user_id: S.user.id, photo_url: urls.length ? urls.join(' ') : null }, f)); if (error) throw /feedback|does not exist/.test(error.message || '') ? new Error('FB_NOT_READY') : error; },
+  async fbReplies() { const { data, error } = await sb.from('feedback_replies').select('*').order('created_at', { ascending: true }).limit(2000); if (error) { if (/feedback_replies|does not exist/.test(error.message || '')) return []; throw error; } return data || []; },
+  async fbReply(id, body, photo) { const { error } = await sb.rpc('feedback_reply', { p_feedback_id: id, p_body: body || '', p_photo: photo || null }); if (error) throw /feedback_reply|does not exist/.test(error.message || '') ? new Error('FR_NOT_READY') : /NOT_ALLOWED/.test(error.message || '') ? new Error('FR_DENIED') : error; },
+  async fbRead(id) { await sb.rpc('feedback_mark_read', { p_feedback_id: id }); },
+  async fbMine() { const { data, error } = await sb.rpc('my_feedback_threads'); if (error || !data) return []; const M = new Map(); data.forEach(r => { let t = M.get(r.feedback_id); if (!t) { t = { fb: { id: r.feedback_id, body: r.fb_body, photo_url: r.fb_photo, created_at: r.fb_created }, replies: [] }; M.set(r.feedback_id, t); } t.replies.push({ id: r.reply_id, feedback_id: r.feedback_id, from_team: r.from_team, body: r.body, photo_url: r.photo_url, created_at: r.created_at, read_at: r.read_at }); }); return [...M.values()]; },
   async modFb() { const { data, error } = await sb.from('feedback').select('*').order('created_at', { ascending: false }).limit(200); if (error) throw /feedback|does not exist/.test(error.message || '') ? new Error('FB_NOT_READY') : error; const ids = [...new Set((data || []).map(x => x.user_id))], pr = ids.length ? await sb.rpc('profile_names', { p_ids: ids }) : { data: [] }; return (data || []).map(x => ({ ...x, author: ((pr.data || []).find(p => p.id === x.user_id) || {}).display_name || 'Okänd' })); },
   async modFbSet(id, st) { const { error } = await sb.from('feedback').update({ status: st }).eq('id', id); if (error) throw error; },
   async adminSetExpert(id, on, title) { const { error } = await sb.rpc('admin_set_expert', { p_user: id, p_on: on, p_title: title || null, p_bio: null }); if (error) throw /admin_set_expert|does not exist/.test(error.message || '') ? new Error('Expertval är inte påslaget än. Kör SQL-filen 053-experter-admin i Supabase.') : error; },
@@ -3174,7 +3182,7 @@ function addpPick(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.
 async function confirmAddp() {
   const p = S.plants.find(x => x.id === S.addp), photo = S.ap && S.ap.file;
   S.modal = null;
-  await run(() => api.addMine(p, photo), p.swedish_name + ' finns nu i din samling' + (photo ? ' med ditt foto' : ''));
+  await run(() => api.addMine(p, photo, !!(S.ap && S.ap.share)), p.swedish_name + ' finns nu i din samling' + (photo ? ' med ditt foto' : ''));
   S.ap = null; photoWarnCheck(); afterAdd();
 }
 const PRO_FREE = true; // allt öppet under testperioden och vid lansering
@@ -7215,6 +7223,7 @@ function addpV() {
   <div class="addpimg">${A && A.img ? `<div class="ph has-img"><img src="${A.img}" alt="Ditt foto"></div>` : plantPh(p)}</div>
   <label onclick="photoPick(event,this)" class="shot small" style="margin-top:12px"><span class="tic">${ic(CAM, 'currentColor', 24)}</span><span class="grow"><b>${A && A.img ? 'Byt foto' : 'Använd eget foto'}</b><span>Valfritt. Ditt foto visas för växten i din samling.</span></span><input type="file" accept="image/*" class="sr" onchange="addpPick(this)"></label>
   ${A && A.img ? '<button type="button" class="x" style="margin-top:8px" onclick="S.ap=null;render()">Använd databasens foto i stället</button>' : ''}
+  ${A && A.img ? photoShareV() : ''}
   ${p.water_interval_days ? remindCheck() : ''}
   <div class="cta" style="padding:16px 0 0"><button class="btn formbtn" onclick="confirmAddp()">Lägg till i min samling</button></div>`;
 }
@@ -7234,7 +7243,7 @@ function plantRow(f) {
 async function saveCustom(form) {
   const d = Object.fromEntries(new FormData(form));
   const t = k => (d[k] || '').trim() || null;
-  const f = { name: d.name.trim(), latin: (d.latin || '').trim(), cat: d.cat, interval: d.outdoor ? null : +d.interval, notes: (d.notes || '').trim(), light: +d.light, water: +d.water, pet: d.pet, photo: S.ap && S.ap.file,
+  const f = { name: d.name.trim(), latin: (d.latin || '').trim(), cat: d.cat, interval: d.outdoor ? null : +d.interval, notes: (d.notes || '').trim(), light: +d.light, water: +d.water, pet: d.pet, photo: S.ap && S.ap.file, share: !!(S.ap && S.ap.share),
     soil: t('soil'), temperature: t('temperature'), humidity: t('humidity'), toxtext: t('toxtext'), propagation: t('propagation'), problems: t('problems'), zone: t('zone'),
     family: t('family'), genus: t('genus'), species: t('species'), cultivar: d.cultivar ? cvQuote(d.cultivar).slice(1, -1) : null, dest: d.dest || 'mine' };
   if (f.cultivar) f.name = withCultivar(f.name, f.cultivar);
@@ -7252,7 +7261,7 @@ async function saveCustom(form) {
     else await run(async () => { await api.addCustom(f); S.plants = await api.plants(); }, f.name + ' är föreslagen till databasen. En moderator granskar den innan andra kan se den.');
     S.ap = null; render(); return;
   }
-  if (dup) await run(() => api.addMine(dup, f.photo), dup.swedish_name + ' fanns redan i databasen och finns nu i din samling');
+  if (dup) await run(() => api.addMine(dup, f.photo, f.share), dup.swedish_name + ' fanns redan i databasen och finns nu i din samling');
   else await run(async () => { await api.addCustom(f); S.plants = await api.plants(); }, f.name + ' finns nu i din samling och i databasen. Den granskas innan andra kan se den.');
   S.ap = null; photoWarnCheck(); afterAdd();
 }
@@ -8598,9 +8607,9 @@ function followBtn(p) {
   const on = (S.pfol || []).includes(key);
   return `<div class="pad" style="padding-top:10px"><button class="btn sm line" style="width:100%" onclick="togPlantFollow(${jsArg(key)})">${ic(on ? 'ph-bell-slash' : 'ph-bell', 'currentColor', 16)} ${on ? 'Sluta följa' : 'Följ'} ${esc(p.swedish_name)} i Gemenskap</button></div>`;
 }
-async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); S.notifErr = false; } catch (e) { S.notifs = S.notifs || []; S.notifErr = true; } try { S.notifs = (S.notifs || []).filter(n => n.t !== 'follow').concat(await followHits()); } catch (e) { console.warn('Roothood:', e); } if (isMod()) { try { S.modOpen = await api.modOpen(); } catch (e) { console.warn('Roothood:', e); } } try { S.inboxC = await api.inboxCounts(); } catch (e) { S.inboxC = null; }
+async function loadNotifs() { if (!S.user) return; try { S.notifs = await api.notifs(); S.notifErr = false; } catch (e) { S.notifs = S.notifs || []; S.notifErr = true; } try { S.notifs = (S.notifs || []).filter(n => n.t !== 'follow').concat(await followHits()); } catch (e) { console.warn('Roothood:', e); } if (isMod()) { try { S.modOpen = await api.modOpen(); S.frNew = (await api.fbReplies()).filter(r => !r.from_team && !r.read_at).length; } catch (e) { console.warn('Roothood:', e); } } try { S.inboxC = await api.inboxCounts(); } catch (e) { S.inboxC = null; }
   await loadInbox(); if (!S.tool && !S.modal) render(); }
-function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due + (isMod() ? (S.modOpen || 0) : 0) + ((S.inboxC && S.inboxC.fb) || 0) + ((S.inboxC && S.inboxC.xq) || 0); return `<button class="circ lab bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}<span class="cl">Notiser</span>${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
+function bellBtn() { const due = S.user ? S.mine.filter(m => left(m) === 0).length : 0, n = notifUnseen() + due + (isMod() ? (S.modOpen || 0) + (S.frNew || 0) : 0) + ((S.inboxC && S.inboxC.fb) || 0) + ((S.inboxC && S.inboxC.xq) || 0); return `<button class="circ lab bellb" onclick="openNotif()" aria-label="Notiser${n ? ', ' + n + ' nya' : ''}">${ic(I.bell, null, 22)}<span class="cl">Notiser</span>${n ? `<span class="dot">${n > 9 ? '9+' : n}</span>` : ''}</button>`; }
 let inboxAsked = false;
 function msgBtn() {
   if (!S.user) return '';
@@ -8619,7 +8628,10 @@ function goPost(kind, id, cat) { S.tool = null; S.sel = null; S.tab = 'comm'; S.
   if (window.visualViewport) { let vh = visualViewport.height; visualViewport.addEventListener('resize', () => { if (visualViewport.height > vh + 60) setTimeout(reset, 50); vh = visualViewport.height; }); }
 })();
 const msgUnread = () => (S.inbox || []).reduce((a, c) => a + (c.unread || 0), 0);
-async function loadInbox() { if (!S.user) return; try { S.inbox = await api.inbox(); S.msgErr = null; S.inboxErr = false; } catch (e) { S.inbox = S.inbox || []; S.inboxErr = e.message !== 'MSG_NOT_READY'; S.msgErr = e.message === 'MSG_NOT_READY' ? 'Meddelanden går inte att använda just nu.' : null; } }
+const NYCK = '__nyckel';
+async function nyckItems() { const T = await api.fbMine(), out = []; T.forEach(t => { const u = fbUrls(t.fb.photo_url); out.push({ id: 'f' + t.fb.id, fid: t.fb.id, mine: true, body: 'Din rapport: ' + String(t.fb.body || '').slice(0, 300), photo_url: u[0] || null, created_at: t.fb.created_at }); t.replies.forEach(r => out.push({ id: 'r' + r.id, fid: t.fb.id, mine: !r.from_team, body: r.body, photo_url: r.photo_url, created_at: r.created_at, read_at: r.read_at })); }); return out.sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at)); }
+async function nyckRow() { try { const it = await nyckItems(), rep = it.filter(x => String(x.id)[0] === 'r'); if (!rep.length) return null; const z = rep[rep.length - 1]; return { other: NYCK, name: 'Nyckelpigan', last_body: z.body, last_at: z.created_at, last_mine: z.mine, unread: rep.filter(x => !x.mine && !x.read_at).length }; } catch (e) { return null; } }
+async function loadInbox() { if (!S.user) return; try { S.inbox = await api.inbox(); { const n = await nyckRow(); if (n) { S.inbox = S.inbox.concat([n]).sort((a, b) => Date.parse(b.last_at) - Date.parse(a.last_at)); } } S.msgErr = null; S.inboxErr = false; } catch (e) { S.inbox = S.inbox || []; S.inboxErr = e.message !== 'MSG_NOT_READY'; S.msgErr = e.message === 'MSG_NOT_READY' ? 'Meddelanden går inte att använda just nu.' : null; } }
 function openMsgs() { if (!S.user) return openModal('login'); stopLight(); S.sel = null; S.modal = null; S.tool = 'msgs'; render(); $('#main').scrollTop = 0; if (S.friends == null) api.myFriends().then(l => { S.friends = l; if (S.tool === 'msgs') keepMain(); }).catch(() => { S.friends = []; }); loadInbox().then(() => { if (S.tool === 'msgs') keepMain(); }); }
 function msgsV() {
   const I = S.inbox, F = S.friends || [];
@@ -8635,15 +8647,15 @@ async function openChat(id, name, ad) {
 }
 async function loadChat(force) {
   const id = S.chatId; if (!id) return;
-  try { const m = await api.thread(id), n0 = (S.chatMsgs || []).length; S.chatMsgs = m; S.chatErr = null; api.markRead(id).then(loadInbox).then(() => { if (!S.tool) render(); }); if (S.tool === 'chat' && (force || m.length !== n0)) { render(); const mn = $('#main'); mn.scrollTop = mn.scrollHeight; } }
+  try { const m = id === NYCK ? await nyckItems() : await api.thread(id), n0 = (S.chatMsgs || []).length; S.chatMsgs = m; S.chatErr = null; (id === NYCK ? Promise.all([...new Set(m.map(x => x.fid))].map(f => api.fbRead(f))) : api.markRead(id)).then(loadInbox).then(() => { if (!S.tool) render(); }); if (S.tool === 'chat' && (force || m.length !== n0)) { render(); const mn = $('#main'); mn.scrollTop = mn.scrollHeight; } }
   catch (e) { S.chatMsgs = S.chatMsgs || []; S.chatErr = errMsg(e); if (S.tool === 'chat' && force) render(); }
 }
 async function sendChat() {
   const body = (S.dmDraft || '').trim(), ph = S.dph; if ((!body && !ph) || S.chatBusy) return; S.chatBusy = true;
   let ok = false;
   try { let url = null; if (ph) { url = await uploadPhoto(ph); if (!url) throw new Error('PHOTO_UPLOAD'); }
-    await api.sendMsg(S.chatId, body, S.chatAd ? S.chatAd.id : null, url); S.dmDraft = ''; S.dph = null; S.dphUrl = null; ok = true; }
-  catch (e) { toast(e.message === 'BLOCKED' ? 'Du kan inte skriva till den här personen.' : e.message === 'MSG_DENIED' ? 'Ni måste vara vänner för att skriva till varandra. Meddelanden går inte att använda just nu.' : e.message === 'PHOTO_UPLOAD' ? 'Bilden gick inte att ladda upp. Försök igen.' : /photo_url|messages_body_or_photo/.test(e.message || '') ? 'Bilder i meddelanden är inte påslagna än.' : errMsg(e)); }
+    if (S.chatId === NYCK) { const last = [...(S.chatMsgs || [])].reverse().find(x => String(x.id)[0] === 'r' && !x.mine) || [...(S.chatMsgs || [])].reverse().find(x => x.fid); if (!last) throw new Error('FR_DENIED'); await api.fbReply(last.fid, body, url); } else await api.sendMsg(S.chatId, body, S.chatAd ? S.chatAd.id : null, url); S.dmDraft = ''; S.dph = null; S.dphUrl = null; ok = true; }
+  catch (e) { toast(e.message === 'FR_DENIED' ? 'Det gick inte att skicka svaret.' : e.message === 'FR_NOT_READY' ? 'Svar är inte påslagna än.' : e.message === 'BLOCKED' ? 'Du kan inte skriva till den här personen.' : e.message === 'MSG_DENIED' ? 'Ni måste vara vänner för att skriva till varandra. Meddelanden går inte att använda just nu.' : e.message === 'PHOTO_UPLOAD' ? 'Bilden gick inte att ladda upp. Försök igen.' : /photo_url|messages_body_or_photo/.test(e.message || '') ? 'Bilder i meddelanden är inte påslagna än.' : errMsg(e)); }
   S.chatBusy = false;
   if (ok) await loadChat(true); else if (S.tool === 'chat') render();
 }
@@ -8667,7 +8679,7 @@ function emoToggle() { S.emoOpen = !S.emoOpen; render(); }
 function chatV() {
   const M = S.chatMsgs;
   return `<div class="chatpg">${topbar(esc(S.chatName || 'Meddelanden'), "openMsgs()")}${S.chatAd ? `<div class="pad" style="padding-bottom:0"><div class="setcard" style="padding:10px 12px;font-size:14px">Om annonsen: <b>${esc(S.chatAd.title || '')}</b></div></div>` : ''}
-  <div class="pad chatl">${S.chatErr ? `<p class="formmsg">${esc(S.chatErr)}</p>` : M == null ? '<p class="mut">Hämtar…</p>' : M.length ? M.map(m => `<div class="bub ${m.mine ? 'me' : ''}">${m.photo_url ? `<img class="bimg" src="${esc(m.photo_url)}" alt="Bild i meddelandet" loading="lazy" onclick="this.classList.toggle('big')">` : ''}${m.body ? `<span>${chatBody(m.body)}</span>` : ''}${m.photo_url && !m.mine ? `<button class="chatrep" onclick="openReport('photo', ${jsArg(m.photo_url)})">Rapportera bild</button>` : ''}<small>${ago(m.created_at)}</small></div>`).join('') : '<p class="mut" style="text-align:center;margin:24px 0">Skriv det första meddelandet.</p>'}</div>
+  <div class="pad chatl">${S.chatErr ? `<p class="formmsg">${esc(S.chatErr)}</p>` : M == null ? '<p class="mut">Hämtar…</p>' : M.length ? M.map(m => `<div class="bub ${m.mine ? 'me' : ''}">${m.photo_url ? `<img class="bimg" src="${esc(m.photo_url)}" alt="Bild i meddelandet" loading="lazy" onclick="this.classList.toggle('big')">` : ''}${m.body ? `<span>${chatBody(m.body)}</span>` : ''}${m.photo_url && !m.mine && S.chatId !== NYCK ? `<button class="chatrep" onclick="openReport('photo', ${jsArg(m.photo_url)})">Rapportera bild</button>` : ''}<small>${ago(m.created_at)}</small></div>`).join('') : '<p class="mut" style="text-align:center;margin:24px 0">Skriv det första meddelandet.</p>'}</div>
   ${emoPickerV()}
   <form class="chatf" onsubmit="event.preventDefault();sendChat()">${dmPhotoBtn()}<button type="button" class="circ" style="width:40px;height:40px;font-size:18px" onclick="emoToggle()" aria-label="Egna emojis">🌿</button><textarea id="dmt" rows="1" maxlength="1000" placeholder="Skriv ett meddelande" oninput="S.dmDraft=this.value">${esc(S.dmDraft || '')}</textarea><button class="btn sm" ${S.chatBusy ? 'disabled' : ''}>Skicka</button></form></div>`;
 }
@@ -8683,8 +8695,8 @@ async function loadMod() {
     else if (t === 'plants') S.modData = await api.modPlants();
     else if (t === 'team') { S.modData = await api.listStaff(); }
     else if (t === 'sentry') { S.modData = []; }
-    else if (t === 'fb' || t === 'err') { const all = await api.modFb(); S.modData = all.filter(f => (f.kind === 'bug') === (t === 'err')); }
-    else if (t === 'nyckl') { S.modData = await api.modFb(); }
+    else if (t === 'fb' || t === 'err') { const all = await api.modFb(); S.modFr = await api.fbReplies().catch(() => []); S.modData = all.filter(f => (f.kind === 'bug') === (t === 'err')); }
+    else if (t === 'nyckl') { S.modData = await api.modFb(); S.modFr = await api.fbReplies().catch(() => []); }
     else if (t === 'online') S.modData = await api.modPresence();
     else if (t === 'stats') { const P = msPer(); S.msUF = {}; S.msUD = {}; S.msUser = null; const [f, days] = await Promise.all(P.h ? [api.modUsageH(P.h), api.modUsageHours(P.h).then(r => msHourRows(r, P.h))] : [api.modUsage(P.d), api.modUsageDays(P.d)]); const notif = await api.modNotifStats(P.h || P.d * 24).catch(() => null), time = await api.modTime(P.h || P.d * 24).catch(() => null); S.modData = { f, days, notif, time, users: await (P.h ? api.modUsageUsersH(S.msFeat || '', P.h) : api.modUsageUsers(S.msFeat || '', P.d)) }; }
     else if (t === 'users') { S.modData = await api.modUsers(S.modUQ || '', 0); S.modUMore = S.modData.length >= (DEMO ? 1e9 : 100); S.modUN = await api.modUserCount().catch(() => null); }
@@ -8845,7 +8857,21 @@ function fbV() { const F = S.fbf || { kind: 'bug' };
 function modFbV(D, t) { const st = { new: 'Ny', seen: 'Sedd', fixed: 'Fixad', wontfix: 'Görs inte' }, kd = { bug: '🐞 Fel', idea: '💡 Förslag', other: 'Annat' };
   const sorted = [...(D || [])].sort(FB_SORTS[S.modFbSort || 'new'][1]);
   return `<div class="pad">${sorted.length ? modStatusGroups(sorted, st).map(([k, L]) => `<details class="mgrp" ${k === 'fixed' || k === 'wontfix' ? '' : 'open'}><summary>${st[k] || 'Övrigt'} <em class="tabn">${L.length}</em></summary>${L.map(f => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">${kd[f.kind] || ''} · ${esc(f.author || '')} · ${ago(f.created_at)} · ${esc(f.version || '')}</small><p style="white-space:pre-wrap;margin:6px 0">${esc(f.body)}</p>${fbUrls(f.photo_url).length ? `<div class="fbshots">${fbUrls(f.photo_url).map((u, i) => `<img class="fbshot" src="${esc(u)}" alt="Bifogad skärmbild ${i + 1}" onclick="this.classList.toggle('big')" onerror="fbBroken(this)">`).join('')}</div>` : ''}<p style="margin:4px 0;font-size:14px"><b>Sida:</b> ${esc(f.view || 'okänd')}</p><small class="mut" style="display:block;word-break:break-all">${esc((f.ua || '').slice(0, 120))}</small>
+    ${frThreadV(f)}
     <div class="chips2 sm" style="margin-top:8px">${Object.entries(st).map(([k, n]) => `<button class="${f.status === k ? 'on' : ''}" onclick="modFbSet(${f.id},'${k}')">${n}</button>`).join('')}</div></div>`).join('')}</details>`).join('') : `<p class="mut">${t === 'err' ? 'Inga felrapporter än.' : t === 'nyckl' ? 'Inget har kommit in via felknappen än.' : 'Inga förslag eller annan feedback än.'}</p>`}</div>`; }
+function frList(id) { return (S.modFr || []).filter(r => r.feedback_id === id); }
+function frThreadV(f) { const L = frList(f.id), d = (S.frDraft || {})[f.id] || '', ph = (S.frPh || {})[f.id], nw = L.filter(r => !r.from_team && !r.read_at).length;
+  return `<div class="frt" style="margin-top:10px;border-top:1px solid var(--line,#e5e5e5);padding-top:8px">${L.length ? `<div class="chatl" style="padding:0">${L.map(r => `<div class="bub ${r.from_team ? 'me' : ''}"><small><b>${r.from_team ? 'Nyckelpigan' : esc(f.author || 'Användaren')}</b></small>${r.photo_url ? `<img class="bimg" src="${esc(r.photo_url)}" alt="Bild" loading="lazy" onclick="this.classList.toggle('big')">` : ''}${r.body ? `<span style="white-space:pre-wrap">${esc(r.body)}</span>` : ''}<small>${ago(r.created_at)}${!r.from_team && !r.read_at ? ' · ny' : ''}</small></div>`).join('')}</div>` : ''}
+  ${nw ? `<button class="btn sm line" onclick="frRead(${f.id})">Markera svar som lästa (${nw})</button>` : ''}
+  <details ${L.length ? 'open' : ''}><summary class="mut" style="cursor:pointer;margin:6px 0">${L.length ? 'Svara som Nyckelpigan' : 'Svara användaren som Nyckelpigan'}</summary>
+  <div style="display:flex;gap:6px;align-items:flex-end"><textarea id="frt${f.id}" rows="2" maxlength="2000" style="flex:1" placeholder="Skriv svar. Det skickas från Nyckelpigan, inte från ditt namn." oninput="(S.frDraft=S.frDraft||{})[${f.id}]=this.value">${esc(d)}</textarea></div>
+  <div style="display:flex;gap:8px;align-items:center;margin-top:6px">${ph ? `<span class="dmph"><img src="${esc(ph.url)}" alt="Vald bild"><button type="button" onclick="frPhoto(${f.id},null)" aria-label="Ta bort bilden">×</button></span>` : `<label class="btn sm line" style="margin:0">Bifoga bild<input type="file" accept="image/*" class="sr" onchange="frPhoto(${f.id},this)"></label>`}<button class="btn sm" ${S.frBusy ? 'disabled' : ''} onclick="frSend(${f.id})">Skicka</button></div></details></div>`; }
+function frPhoto(id, inp) { S.frPh = S.frPh || {}; if (!inp) delete S.frPh[id]; else { const f = inp.files && inp.files[0]; if (!f) return; S.frPh[id] = { file: f, url: URL.createObjectURL(f) }; } keepMain(); }
+async function frRead(id) { try { await api.fbRead(id); frList(id).forEach(r => { if (!r.from_team) r.read_at = r.read_at || new Date().toISOString(); }); keepMain(); loadNotifs(); } catch (e) { toast(errMsg(e)); } }
+async function frSend(id) { const body = ((S.frDraft || {})[id] || '').trim(), ph = (S.frPh || {})[id]; if ((!body && !ph) || S.frBusy) return; S.frBusy = true;
+  try { let url = null; if (ph) { url = await uploadPhoto(ph.file); if (!url) throw new Error('PHOTO_UPLOAD'); } await api.fbReply(id, body, url); delete (S.frDraft || {})[id]; if (S.frPh) delete S.frPh[id]; await api.fbRead(id).catch(() => {}); S.modFr = await api.fbReplies().catch(() => S.modFr); toast('Svar skickat från Nyckelpigan'); }
+  catch (e) { toast(e.message === 'PHOTO_UPLOAD' ? 'Bilden gick inte att ladda upp. Försök igen.' : e.message === 'FR_NOT_READY' ? 'Svar är inte påslagna än. Kör SQL-filen 102 i Supabase.' : errMsg(e)); }
+  S.frBusy = false; keepMain(); }
 async function modFbSet(id, k) { try { await api.modFbSet(id, k); const x = (S.modData || []).find(y => y.id === id); if (x) x.status = k; keepMain(); } catch (e) { toast(errMsg(e)); } }
 function modUsersV(D) {
   const q = S.modUQ || '', n = S.modUN, roleTag = r => r === 'admin' ? '<span class="tag lime">Admin</span>' : r === 'mod' ? '<span class="tag lime">Moderator</span>' : '';
@@ -8996,6 +9022,7 @@ function notifV() {
   ${S.notifErr ? retryBox('loadNotifs().then(render)') : ''}
   ${sitN}${frq.length ? `<div class="sec"><h2>Vänförfrågningar</h2></div><div class="pad nlist">${frq.join('')}</div>` : ''}
   ${unreadChats.length ? `<div class="sec"><h2>Olästa meddelanden <span class="ncount">${msgUnread()}</span></h2></div><div class="pad nlist">${unreadChats.slice(0, 5).map(c => `<button class="nrow new" onclick="openChat(${jsArg(c.other)},${jsArg(c.name || '')})"><span class="nic">💬</span><span class="grow"><b>${esc(c.name || 'Någon')}</b><span>${esc((c.last_body || '').slice(0, 70) || '📷 Bild')}</span></span><small>${c.unread} ${c.unread === 1 ? 'ny' : 'nya'}</small></button>`).join('')}${unreadChats.length > 5 ? `<button class="viewall" onclick="openMsgs()">Visa alla ${unreadChats.length} samtal</button>` : ''}</div>` : ''}
+  ${isMod() && S.frNew ? `<div class="sec"><h2>Svar från användare</h2></div><div class="pad nlist"><button class="nrow new" onclick="openMod('err')"><span class="nic">🐞</span><span class="grow"><b>${S.frNew} ${S.frNew === 1 ? 'nytt svar' : 'nya svar'} till Nyckelpigan</b><span>Tryck för att läsa och svara</span></span></button></div>` : ''}
   ${isMod() && S.modOpen ? `<div class="sec"><h2>Moderering</h2></div><div class="pad nlist"><button class="nrow new" onclick="openMod('open')"><span class="nic">🛡️</span><span class="grow"><b>${S.modOpen} ${S.modOpen === 1 ? 'rapport väntar' : 'rapporter väntar'}</b><span>Tryck för att granska</span></span></button></div>` : ''}
   ${stadN ? '' : fbRow}
   ${(() => { const nw = act.filter((x, i) => isN(actL[i])), old = act.filter((x, i) => !isN(actL[i]));
@@ -10520,8 +10547,9 @@ function apBox() {
   let res = '';
   if (A.busy) res = '<p class="mut" style="margin:10px 0 0">Identifierar…</p>';
   else if (A.err) res = `<p class="formmsg" style="margin:10px 0 0">${esc(A.err)}</p>`;
-  else if (A.res) res = `${A.demo ? '<p class="formmsg ok" style="margin:10px 0 0">Exempelresultat: identifieringen är inte kopplad till Pl@ntNet än.</p>' : ''}<div class="flist" style="margin-top:10px">${A.res.map(apRow).join('')}</div><p class="mut" style="font-size:13px;margin:10px 0 0">Stämmer inget? Fyll i namnet själv nedan, så sparas växten med ditt foto.</p>`;
+  else if (A.res) res = `${A.demo ? '<p class="formmsg ok" style="margin:10px 0 0">Exempelresultat: identifieringen är inte kopplad till Pl@ntNet än.</p>' : ''}<div class="flist" style="margin-top:10px">${A.res.map(apRow).join('')}</div><div class="apsrch"><p style="font-weight:700;font-size:14.5px;margin:14px 0 6px">Hittar du inte rätt? Sök i växtbiblioteket</p><div class="search" style="margin:0"><input id="apq" type="search" placeholder="Sök på namn, t.ex. aprikos eller Prunus" value="${esc(A.q || '')}" oninput="apSearch(this.value)" aria-label="Sök växt i växtbiblioteket"></div><div id="apsr">${apSearchV(A.q)}</div></div><p class="mut" style="font-size:13px;margin:10px 0 0">Finns den inte där heller? Fyll i namnet själv nedan, så sparas växten med ditt foto.</p>`;
   return `<div class="apimg"><img src="${A.img}" alt="Ditt foto"><button type="button" class="x" onclick="apClear()">Ta bort foto</button></div>
+  ${photoShareV()}
   ${A.res || A.busy ? '' : `<button type="button" class="btn sm" style="margin-top:10px" onclick="apIdentify()">Identifiera växten${S.pro ? '' : ' (Pro)'}</button>`}${res}`;
 }
 function apRow(r, i) {
@@ -10529,6 +10557,19 @@ function apRow(r, i) {
   return `<div class="idr"><div class="grow"><b>${esc(r.common || r.latin)}</b><i>${esc(r.latin)}</i><small>${Math.round(r.score * 100)} % säker</small></div>
   ${p ? `<button type="button" class="btn sm" onclick="apAddDb(${p.id})">Lägg till ${esc(p.swedish_name)}</button>` : `<button type="button" class="btn sm line" onclick="apUse(${i})">Använd namnet</button>`}</div>`;
 }
+function apSearchV(q) {
+  q = (q || '').trim().toLowerCase(); if (q.length < 2) return '';
+  const hits = S.plants.filter(p => (p.swedish_name || '').toLowerCase().includes(q) || (p.latin_name || '').toLowerCase().includes(q)).sort((a, b) => ((a.swedish_name || '').toLowerCase().startsWith(q) ? 0 : 1) - ((b.swedish_name || '').toLowerCase().startsWith(q) ? 0 : 1)).slice(0, 8);
+  if (!hits.length) return '<p class="mut" style="font-size:13.5px;margin:8px 0 0">Ingen växt i biblioteket matchar. Prova ett annat namn eller det latinska namnet.</p>';
+  return `<div class="flist" style="margin-top:8px">${hits.map(p => `<div class="idr"><div class="grow"><b>${esc(p.swedish_name)}</b><i>${esc(p.latin_name || '')}</i></div><button type="button" class="btn sm" onclick="apAddDb(${p.id})">Lägg till</button></div>`).join('')}</div>`;
+}
+function apSearch(v) { if (S.ap) S.ap.q = v; const b = $('#apsr'); if (b) b.innerHTML = apSearchV(v); }
+// Val för fotot: delas i växtbiblioteket eller bara på min egen växt
+function photoShareV() {
+  const sh = !!(S.ap && S.ap.share);
+  return `<div class="pshare" style="margin:12px 0 0"><p style="font-weight:700;font-size:14.5px;margin:0 0 6px">Vem ska få se fotot?</p><div class="chips2 sm"><button type="button" class="${sh ? '' : 'on'}" onclick="photoShareSet(false)">Bara jag</button><button type="button" class="${sh ? 'on' : ''}" onclick="photoShareSet(true)">Alla i växtbiblioteket</button></div><p class="mut" style="font-size:13px;margin:6px 0 0">${sh ? 'Fotot kan visas för andra på växtens sida i växtbiblioteket. Du kan ta bort det senare.' : 'Fotot syns bara på din växt i din samling och på din profil, enligt dina inställningar för vem som ser dina växter.'}</p></div>`;
+}
+function photoShareSet(v) { if (S.ap) S.ap.share = v; if (S.modal === 'addp') render(); else apUpdate(); }
 function apUpdate() { const b = $('#apbox'); if (b) b.innerHTML = apBox(); }
 function apPick(inp) {
   const f = inp.files && inp.files[0]; if (!f) return;
@@ -10552,7 +10593,7 @@ function apUse(i) {
 async function apAddDb(id) {
   const p = S.plants.find(x => x.id === id), photo = S.ap && S.ap.file;
   S.modal = null;
-  await run(() => api.addMine(p, photo), p.swedish_name + ' finns nu i din samling');
+  await run(() => api.addMine(p, photo, !!(S.ap && S.ap.share)), p.swedish_name + ' finns nu i din samling');
   S.ap = null; photoWarnCheck(); afterAdd();
 }
 function photoWarnCheck() { if (S.photoWarn) { S.photoWarn = false; toast('Växten sparades, men fotot kunde inte sparas.'); } }
@@ -10571,6 +10612,7 @@ async function insertUP(row) {
   if (!newRemind()) row.remind = false;
   let r = await sb.from('user_plants').insert(row);
   if (r.error && /remind/.test(r.error.message || '')) { delete row.remind; r = await sb.from('user_plants').insert(row); }
+  if (r.error && /photo_shared/.test(r.error.message || '')) { delete row.photo_shared; r = await sb.from('user_plants').insert(row); }
   if (r.error && /photos/.test(r.error.message || '')) { delete row.photos; r = await sb.from('user_plants').insert(row); }
   if (r.error) throw r.error;
 }
@@ -12200,6 +12242,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.396', '13 nov', ['Vi kan nu svara på felrapporter och förslag. Svaret kommer som ett meddelande från Nyckelpigan, och du kan svara tillbaka, även med bild', 'Hittar identifieringen fel växt kan du söka i växtbiblioteket på namn', 'När du lägger till en växt väljer du om fotot ska delas i växtbiblioteket eller bara synas hos dig']],
   ['Beta 0.395', '13 nov', ['Rabatten: en tydlig knapp Råd och kalender högst upp i rabattrutan öppnar blomningskalendern, bilden framifrån och råden']],
   ['Beta 0.394', '12 nov', ['Skanna rummet (bara admin): knappen Visa rum i 3D visar rummet i en egen 3D-vy som du kan snurra och zooma i']],
   ['Beta 0.393', '12 nov', ['Växter med växtlampa får inte längre en lampa ovanför sig i 3D. Lampor placerar du själv med lampverktyget', 'Zonkartan: bilden var felaktig (Älvsbyn låg fel) och är borttagen. I stället öppnas Svensk Trädgårds egen zonkarta på zonkartan.se']],
@@ -14809,7 +14852,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.395';
+const APP_VERSION = 'Beta 0.396';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
