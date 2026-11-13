@@ -9269,7 +9269,7 @@ function bedPanelV() {
   const sel = P.ssel != null && sp[P.ssel] ? sp[P.ssel] : null, sp2 = sel && plantById(sel.pid), nn = sel ? spotNear(a, P.ssel) : null;
   return `<div class="psel col bpanel">
     <div class="bname"><select class="bsel" onchange="bedSwitch(this.value)" aria-label="Byt rabatt">${bedsList().map(x => `<option value="${x.id}" ${x.id === a.id ? 'selected' : ''}>${esc(bedNameOf(x))}</option>`).join('')}</select><input type="text" value="${esc(bedNameOf(a))}" aria-label="Namn på rabatten" onchange="bedRename(this.value)"></div>
-    <div class="brow2"><div class="grow"><b>Rabatt ${fmtM(L)} × ${fmtM(D)}</b><span>${sp.length} ${sp.length === 1 ? 'växt' : 'växter'}${bad ? ` · <em class="bad">${bad} står för tätt</em>` : ''}</span></div>${bad ? `<button class="btn sm line" style="margin-top:8px" onclick="bedClearTight()">Ta bort de som står för tätt</button>` : ''}</div>
+    <div class="brow2"><div class="grow"><b>Rabatt ${fmtM(L)} × ${fmtM(D)}</b><span>${sp.length} ${sp.length === 1 ? 'växt' : 'växter'}${bad ? ` · <em class="bad">${bad} står för tätt</em>` : ''}</span></div><button class="btn sm" style="align-self:center;white-space:nowrap" onclick="openBed('${a.id}')">Råd och kalender</button>${bad ? `<button class="btn sm line" style="margin-top:8px" onclick="bedClearTight()">Ta bort de som står för tätt</button>` : ''}</div>
     ${bedSunV(a, sel)}
     <div class="btools"><button onclick="bedRot(15)">⟳ Vrid</button><button class="${P.bdimOpen ? 'on' : ''}" onclick="PL().bdimOpen=!PL().bdimOpen;render()">📏 Storlek</button><button onclick="PL().bnew=true;PL().ssel=null;render()">＋ Ny rabatt</button></div>
     ${P.bdimOpen ? (a.br ? dims(a.br.L, a.br.D, a.br.shape) : `<span class="mut" style="font-size:12.5px">Formen ändrar du med hörnen under Flytta.</span>`) + `<span class="mut" style="font-size:12.5px;display:block;margin-top:8px">Kant</span>${edgeChips(a.edge || 'sten', 'cur')}` : ''}
@@ -12200,6 +12200,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.395', '13 nov', ['Rabatten: en tydlig knapp Råd och kalender högst upp i rabattrutan öppnar blomningskalendern, bilden framifrån och råden']],
   ['Beta 0.394', '12 nov', ['Skanna rummet (bara admin): knappen Visa rum i 3D visar rummet i en egen 3D-vy som du kan snurra och zooma i']],
   ['Beta 0.393', '12 nov', ['Växter med växtlampa får inte längre en lampa ovanför sig i 3D. Lampor placerar du själv med lampverktyget', 'Zonkartan: bilden var felaktig (Älvsbyn låg fel) och är borttagen. I stället öppnas Svensk Trädgårds egen zonkarta på zonkartan.se']],
   ['Beta 0.392', '12 nov', ['Rabatten: appen visar nu när växterna blommar månad för månad och säger om något månad saknas', 'Rabatten: råd om höga och låga växter, marktäckare och för många sorter', 'Rabatten: en bild framifrån som visar hur hög och bred rabatten blir', 'Ny rabatt: börja från färdiga mallar', 'Ritningen: knappen Bild sparar eller delar ritningen som bild', 'Nya konton: tydligare första steg med val att ta foto av växten']],
@@ -14808,7 +14809,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.394';
+const APP_VERSION = 'Beta 0.395';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
