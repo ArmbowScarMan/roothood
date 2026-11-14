@@ -3145,7 +3145,7 @@ function addPlant(id, quick) {
 function openQAdd() { S.qaq = ''; openModal('qadd'); setTimeout(() => { const i = $('#qaq'); if (i) i.focus(); }, 60); }
 function qaHits() {
   const q = (S.qaq || '').trim().toLowerCase(); if (q.length < 2) return '<p class="mut" style="margin:14px 0 0;font-size:14px">Sök i växtbiblioteket först. Tryck på + så kommer du till kruka, jord och plats.</p>';
-  const nm = p => (p.swedish_name || '').toLowerCase(), lt = p => (p.latin_name || '').toLowerCase();
+  const nm = p => (p.swedish_name || '').toLowerCase(), lt = p => (p.latin_name || '').toLowerCase() + ' ' + (p.alt_names || []).join(' ').toLowerCase();
   const L = S.plants.filter(p => nm(p).includes(q) || lt(p).includes(q)).sort((a, b) => (nm(b).startsWith(q) - nm(a).startsWith(q)) || nm(a).localeCompare(nm(b), 'sv')).slice(0, 12);
   if (!L.length) return `<div class="empty" style="margin-top:12px"><p>Hittar ingen växt som heter så.</p><button class="btn sm" onclick="openModal('add',${jsArg(S.qaq)})">Lägg till den som egen växt</button></div>`;
   return L.map(p => { const n = S.mine.filter(m => m.plant_id === p.id).length; return `<div class="qrow"><span class="grow"><b>${esc(p.swedish_name)}</b>${p.latin_name ? `<span>${esc(p.latin_name)}</span>` : ''}</span><button class="${n ? 'have' : ''}" onclick="qaAdd(${p.id})">${n ? '✓ ' + n + ' · En till' : '+ Lägg till'}</button></div>`; }).join('');
@@ -8141,7 +8141,7 @@ function dbBase(ign) { const q = S.q.trim().toLowerCase(), z = store.get('zone',
     && (!S.flight || p.light_level === S.flight)
     && (S.env === 'in' || !dbArr('fzones').length || (zoneOf(p) && S.fzones.some(k => k >= zoneOf(p)[0] && k <= zoneOf(p)[1]))) && (!dbArr('fcolor').length || (p.bloom_color || []).some(x => S.fcolor.includes(x)))
     && (!dbArr('fwater').length || S.fwater.includes(p.water_level)) && (!dbArr('fhum').length || dsHum(p.humidity).some(h => S.fhum.includes(h))) && (!dbArr('fheight').length || S.fheight.includes(dsHeightBand(p.height_cm)))
-    && (!q || (p.swedish_name + ' ' + p.latin_name + ' ' + (p.family || '')).toLowerCase().includes(q))); }
+    && (!q || (p.swedish_name + ' ' + p.latin_name + ' ' + (p.family || '') + ' ' + (p.alt_names || []).join(' ')).toLowerCase().includes(q))); }
 function dbfV() { const z = store.get('zone', 0), cats = envCats(), cc = c => dbBase('cat').filter(p => p.category === c).length, tb = dbBase('type'), tc = {}; tb.forEach(p => { const g = typeOf(p); if (g) tc[g] = (tc[g] || 0) + 1; });
   const types = TYPE_ORDER.filter(g => tc[g]), chip = (on, t, a, n) => `<button class="${on ? 'on' : ''}" aria-pressed="${on}" onclick="${a};keepScroll()">${t}${n != null ? ` <small>${n}</small>` : ''}</button>`;
   const mc = (k, v, t) => chip(dbArr(k).includes(v), t, `dbTog('${k}',${typeof v === 'number' ? v : jsArg(v)})`);
@@ -9359,7 +9359,7 @@ function bedPanelV() {
 }
 function bpickV() {
   const q = (S.bpq || '').trim().toLowerCase(), cat = S.bpcat || 'Alla', cats = ['Alla', 'Trädgård', 'Köksträdgård'];
-  const list = S.plants.filter(p => (cat === 'Alla' ? OUTDOOR.includes(p.category) : p.category === cat) && (!q || (p.swedish_name || '').toLowerCase().includes(q) || (p.latin_name || '').toLowerCase().includes(q)));
+  const list = S.plants.filter(p => (cat === 'Alla' ? OUTDOOR.includes(p.category) : p.category === cat) && (!q || (p.swedish_name || '').toLowerCase().includes(q) || (p.latin_name || '').toLowerCase().includes(q) || (p.alt_names || []).join(' ').toLowerCase().includes(q)));
   const shown = list.slice(0, S.bpn || 40);
   return `<button class="close" onclick="closeModal()" aria-label="Stäng">×</button><h2>Välj växt</h2><p class="mut" style="margin:2px 0 10px;font-size:13.5px">Ur Växtbiblioteket. Avståndet är hur långt det ska vara mellan plantorna.</p>
   <div class="search" style="margin:0"><input id="bpq" type="search" placeholder="Sök, t.ex. pion, lavendel eller vinbär" value="${esc(S.bpq || '')}" oninput="S.bpq=this.value;S.bpn=40;bpRefresh()" aria-label="Sök växt"></div>
@@ -9368,7 +9368,7 @@ function bpickV() {
 }
 function bpListV(shown, total) { const LT = ['', 'Skugga', 'Halvskugga', 'Sol'];
   return `<div class="bplist">${shown.map(p => { const [h, w, cc] = pSize(p); return `<button onclick="bpPick(${p.id})">${plantPh(p)}<span class="grow"><b>${esc(p.swedish_name)}</b><i>${esc(p.latin_name || '')}</i><span class="bpm"><em>${cc} cm mellan plantorna</em>${p.row_cm ? `<em>rader ${p.row_cm} cm</em>` : ''}<em>↕ ${fmtCm(h)}</em><em>↔ ${fmtCm(w)}</em><em>${LT[lightClass(p)]}</em></span></span></button>`; }).join('')}</div>${total > shown.length ? `<button class="btn sm line wide" style="margin-top:8px" onclick="S.bpn=(S.bpn||40)+40;bpRefresh()">Visa fler (${total - shown.length} till)</button>` : ''}${total ? '' : '<p class="mut">Ingen växt hittades.</p>'}`; }
-function bpRefresh() { const q = (S.bpq || '').trim().toLowerCase(), cat = S.bpcat || 'Alla', list = S.plants.filter(p => (cat === 'Alla' ? OUTDOOR.includes(p.category) : p.category === cat) && (!q || (p.swedish_name || '').toLowerCase().includes(q) || (p.latin_name || '').toLowerCase().includes(q))); $('#bplist').innerHTML = bpListV(list.slice(0, S.bpn || 40), list.length); document.querySelectorAll('.modal .chips2.sm button').forEach(b => b.classList.toggle('on', b.textContent === cat)); }
+function bpRefresh() { const q = (S.bpq || '').trim().toLowerCase(), cat = S.bpcat || 'Alla', list = S.plants.filter(p => (cat === 'Alla' ? OUTDOOR.includes(p.category) : p.category === cat) && (!q || (p.swedish_name || '').toLowerCase().includes(q) || (p.latin_name || '').toLowerCase().includes(q) || (p.alt_names || []).join(' ').toLowerCase().includes(q))); $('#bplist').innerHTML = bpListV(list.slice(0, S.bpn || 40), list.length); document.querySelectorAll('.modal .chips2.sm button').forEach(b => b.classList.toggle('on', b.textContent === cat)); }
 function bpPick(id) { const P = PL(), p = plantById(id); P.bpick = id; P.ssel = null; S.modal = null; render(); planMsg(`Tryck i rabatten där ${esc(p.swedish_name.toLowerCase())} ska stå. Ringen visar ${pSize(p)[2]} cm mellan plantorna.`); }
 
 // ===== Rabattplanering =====
@@ -9586,7 +9586,7 @@ function bedV() {
   const a = bedArea(S.bedId); if (!a) return '';
   const it = bedItems(a), area = polyArea(a.pts), used = bedUsed(a), pct = area ? Math.round(used / area * 100) : 0, [len, dep] = bedDims(a.pts), tips = bedTips(a), lvIcon = { d: '⛔', w: '⚠️', u: 'ℹ️', s: '✅' };
   const q = (S.bq || '').trim().toLowerCase();
-  const hits = q.length > 1 ? S.plants.filter(p => ['Trädgård', 'Köksträdgård'].includes(p.category) && ((p.swedish_name || '').toLowerCase().includes(q) || (p.latin_name || '').toLowerCase().includes(q)) && !(a.bp || []).some(x => x.pid === p.id)).slice(0, 8) : [];
+  const hits = q.length > 1 ? S.plants.filter(p => ['Trädgård', 'Köksträdgård'].includes(p.category) && ((p.swedish_name || '').toLowerCase().includes(q) || (p.latin_name || '').toLowerCase().includes(q) || (p.alt_names || []).join(' ').toLowerCase().includes(q)) && !(a.bp || []).some(x => x.pid === p.id)).slice(0, 8) : [];
   return `<button class="close" onclick="closeModal()" aria-label="Stäng">×</button><h2>Planera ${a.t === 'veg' ? 'odlingslandet' : 'rabatten'}</h2>
   <p class="mut" style="margin:2px 0 10px">${String(area).replace('.', ',')} m² · ungefär ${fmtM(len)} lång och ${fmtM(dep)} djup</p>
   <div class="search" style="margin:0"><input id="bq" type="search" placeholder="Lägg till växt, t.ex. pion eller tomat" value="${esc(S.bq || '')}" oninput="S.bq=this.value;bedRefresh()" aria-label="Sök växt"></div>
@@ -9668,7 +9668,7 @@ function bedHelpV() {
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn sm line" onclick="S.bh=null;render()">Börja om</button><button class="btn sm" onclick="S.modal='bed';render()">Tillbaka till rabatten</button></div>`;
 }
 function bedHitsV(hits) { return hits.length ? `<div class="bhits">${hits.map(p => { const [h, w, cc] = pSize(p); return `<button onclick="bedAdd(${p.id})"><b>${esc(p.swedish_name)}</b><span>${h >= 100 ? fmtM(h / 100) : h + ' cm'} · ${cc} cm mellan</span></button>`; }).join('')}</div>` : ''; }
-function bedRefresh() { const a = bedArea(S.bedId), q = (S.bq || '').trim().toLowerCase(); const hits = q.length > 1 ? S.plants.filter(p => ['Trädgård', 'Köksträdgård'].includes(p.category) && ((p.swedish_name || '').toLowerCase().includes(q) || (p.latin_name || '').toLowerCase().includes(q)) && !(a.bp || []).some(x => x.pid === p.id)).slice(0, 8) : []; $('#bhits').innerHTML = bedHitsV(hits); }
+function bedRefresh() { const a = bedArea(S.bedId), q = (S.bq || '').trim().toLowerCase(); const hits = q.length > 1 ? S.plants.filter(p => ['Trädgård', 'Köksträdgård'].includes(p.category) && ((p.swedish_name || '').toLowerCase().includes(q) || (p.latin_name || '').toLowerCase().includes(q) || (p.alt_names || []).join(' ').toLowerCase().includes(q)) && !(a.bp || []).some(x => x.pid === p.id)).slice(0, 8) : []; $('#bhits').innerHTML = bedHitsV(hits); }
 
 // ===== Odlare att följa (influencers) =====
 // yt: YouTube-sökning på kanalnamnet; ig: Instagram-konto; web: hemsida; pod: poddnamn
@@ -10462,7 +10462,7 @@ function detail() {
   ${copies.length > 1 ? `<div class="pad" style="margin:10px 0"><small class="mut">Du har ${copies.length} av den här. Välj vilken du ändrar:</small><div class="chips2 sm" style="margin-top:6px">${copies.map((c, i) => `<button class="${c.id === my.id ? 'on' : ''}" onclick="S.myCur=${c.id};keepMain()">Nr ${i + 1}${c.details && c.details.nick ? ' · ' + esc(c.details.nick) : ''}</button>`).join('')}</div></div>` : ''}
   ${my ? galleryV(my) : ''}
   <div class="sheet2">
-  <div class="dname"><h1>${esc(p.swedish_name)}</h1>${my && my.name !== p.swedish_name ? `<span class="myname">Din: ${nameHtml(my)}</span>` : ''}<i>${esc(p.latin_name)}</i>${p.family || p.genus ? `<span class="taxline">${[p.family && 'Familj ' + p.family, p.genus && 'Släkte ' + p.genus, p.cultivar && "Sort '" + p.cultivar + "'"].filter(Boolean).map(esc).join(' · ')}</span>` : ''}<i style="display:none"></i><div class="tags">${status}<span class="tag lime">${esc(p.category)}</span>${zoneTag(p)}${p.status === 'pending' ? '<span class="tag">Väntar på granskning</span>' : ''}</div></div>
+  <div class="dname"><h1>${esc(p.swedish_name)}</h1>${my && my.name !== p.swedish_name ? `<span class="myname">Din: ${nameHtml(my)}</span>` : ''}<i>${esc(p.latin_name)}</i>${(p.alt_names || []).length ? `<span class="taxline">Även kallad: ${p.alt_names.map(esc).join(', ')}</span>` : ''}${p.family || p.genus ? `<span class="taxline">${[p.family && 'Familj ' + p.family, p.genus && 'Släkte ' + p.genus, p.cultivar && "Sort '" + p.cultivar + "'"].filter(Boolean).map(esc).join(' · ')}</span>` : ''}<i style="display:none"></i><div class="tags">${status}<span class="tag lime">${esc(p.category)}</span>${zoneTag(p)}${p.status === 'pending' ? '<span class="tag">Väntar på granskning</span>' : ''}</div></div>
   ${waterHowV(p, my)}
   ${my && d === 0 ? `<div class="snooze">Är jorden fortfarande blöt? Skjut upp, så påminner vi dig om 2 dagar.<br><button onclick="snooze(${my.id})">Skjut upp 2 dagar</button></div>` : ''}
   ${my ? sensorCard(my) : ''}
@@ -10672,7 +10672,7 @@ function apRow(r, i) {
 }
 function apSearchV(q) {
   q = (q || '').trim().toLowerCase(); if (q.length < 2) return '';
-  const hits = S.plants.filter(p => (p.swedish_name || '').toLowerCase().includes(q) || (p.latin_name || '').toLowerCase().includes(q)).sort((a, b) => ((a.swedish_name || '').toLowerCase().startsWith(q) ? 0 : 1) - ((b.swedish_name || '').toLowerCase().startsWith(q) ? 0 : 1)).slice(0, 8);
+  const hits = S.plants.filter(p => (p.swedish_name || '').toLowerCase().includes(q) || (p.latin_name || '').toLowerCase().includes(q) || (p.alt_names || []).join(' ').toLowerCase().includes(q)).sort((a, b) => ((a.swedish_name || '').toLowerCase().startsWith(q) ? 0 : 1) - ((b.swedish_name || '').toLowerCase().startsWith(q) ? 0 : 1)).slice(0, 8);
   if (!hits.length) return '<p class="mut" style="font-size:13.5px;margin:8px 0 0">Ingen växt i biblioteket matchar. Prova ett annat namn eller det latinska namnet.</p>';
   return `<div class="flist" style="margin-top:8px">${hits.map(p => `<div class="idr"><div class="grow"><b>${esc(p.swedish_name)}</b><i>${esc(p.latin_name || '')}</i></div><button type="button" class="btn sm" onclick="apAddDb(${p.id})">Lägg till</button></div>`).join('')}</div>`;
 }
@@ -12365,6 +12365,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.405', '14 nov', ['Växter kan nu ha flera svenska namn: Dyntaxas namn och vardagsnamnet. Båda går att söka på, och växtsidan visar "Även kallad"']],
   ['Beta 0.404', '14 nov', ['Växtgrupp i filtret har fler val: ormbunkar, köttätande, suckulenter, palmer, gräs, barrträd, rosor, rhododendron, klematis, hostor, begonior, pelargoner och marantaväxter']],
   ['Beta 0.403', '13 nov', ['62 växter utan bild har fått ett foto från iNaturalist, bara med fri licens och med fotografens namn under bilden']],
   ['Beta 0.402', '13 nov', ['Växtsidan visar nu om arten är fridlyst, rödlistad eller invasiv i Sverige (källa: Artdatabanken)']],
@@ -14983,7 +14984,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.404';
+const APP_VERSION = 'Beta 0.405';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
