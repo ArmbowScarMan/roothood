@@ -8069,12 +8069,29 @@ function wxRainV(w) { const d = w.d, p = w.past; if (!d || !d.precipitation_sum)
     : tot >= 20 ? 'Det har kommit och kommer gott om regn. Du behöver inte vattna i marken.' : tot >= 10 ? 'Lite regn. Vattna nyplanterat och krukor ute, rabatterna klarar sig.' : 'Torrt. Vattna ordentligt en gång i veckan, cirka 10–20 liter per kvadratmeter, hellre sällan och mycket än ofta och lite.';
   const dc = v => String(v).replace('.', ',');
   return `<div class="wxrain"><div><small>Senaste veckan</small><b>${p ? dc(p.rain) + ' mm regn' : '–'}</b>${p && p.snow ? `<span>${dc(p.snow)} cm snö</span>` : ''}</div><div><small>Närmaste 3 dagar</small><b>${dc(next3)} mm</b>${snow3 ? `<span>varav ${dc(snow3)} cm snö</span>` : ''}</div>${p && p.depth != null && p.depth > 0 ? `<div><small>Snödjup nu</small><b>${p.depth} cm</b></div>` : ''}</div>${outN || grow ? `<p class="wxrtip">${ic('ph-drop', 'currentColor', 14)} ${tip}</p>` : ''}`; }
+let FROSTD;
+const MON_SV = ['jan', 'feb', 'mars', 'apr', 'maj', 'juni', 'juli', 'aug', 'sep', 'okt', 'nov', 'dec'];
+function doyTxt(n) { const d = new Date(Date.UTC(2025, 0, n)); return d.getUTCDate() + ' ' + MON_SV[d.getUTCMonth()]; }
+function frostNear(lat, lon) {
+  let best = null; (FROSTD || []).forEach(f => { const kx = 111.32 * Math.cos(lat * Math.PI / 180), d = Math.hypot((f.lon - lon) * kx, (f.lat - lat) * 111.32); if (!best || d < best.d) best = { f, d }; }); return best;
+}
+function frostV(w) {
+  if (FROSTD === undefined) { FROSTD = null; if (!DEMO && sb) sb.from('station_frost').select('name,lat,lon,years,y_from,y_to,spring_doy,spring_n,autumn_doy,autumn_n').gt('years', 0).then(r => { FROSTD = r.data || null; if (FROSTD) keepMain(); }, e => { console.warn('Roothood:', e); }); return ''; }
+  if (!FROSTD || !w || w.lat == null) return '';
+  const b = frostNear(+w.lat, +w.lon); if (!b || b.d > 80) return '';
+  const f = b.f, y = f.years;
+  const sp = f.spring_doy && f.spring_n >= y * 0.6 ? `<span>❄️ Sista vårfrosten: runt <b>${doyTxt(f.spring_doy)}</b></span>` : '';
+  const au = f.autumn_doy && f.autumn_n >= y * 0.6 ? `<span>❄️ Första höstfrosten: runt <b>${doyTxt(f.autumn_doy)}</b></span>` : '';
+  if (!sp && !au) return '';
+  return sp + au + `<small>Median ${f.y_from}–${f.y_to} (${y} år), luft under 0 °C på 2 m. Station: ${esc(f.name)}, ${Math.round(b.d)} km bort. Marknära frost kan komma tidigare. Källa: SMHI.</small>`;
+}
 function wxExtraV(w) {
   const bits = [], s = w.past && w.past.soil;
   if (s != null) bits.push(`<span>🌱 Jord på 6 cm: <b>${String(s).replace('.', ',')} °C</b></span>`);
   const pl = Object.entries(w.pollen || {}).filter(([, v]) => v != null && v >= 1).map(([k, v]) => `${k} ${Math.round(v)}`);
   if (pl.length) bits.push(`<span>🌼 Pollen (korn/m³): <b>${esc(pl.join(', '))}</b></span>`);
-  return bits.length ? `<div class="wxx">${bits.join('')}<small>Jordtemperatur och pollen: Open-Meteo (modell)</small></div>` : '';
+  const fr = frostV(w);
+  return bits.length || fr ? `<div class="wxx">${bits.join('')}${bits.length ? '<small>Jordtemperatur och pollen: Open-Meteo (modell)</small>' : ''}${fr}</div>` : '';
 }
 function weatherV(sz) {
   sz = sz || 'm';
@@ -12428,7 +12445,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
-  ['Beta 0.404', '14 nov', ['Växtgrupp i filtret har fler val: ormbunkar, köttätande, suckulenter, palmer, gräs, barrträd, rosor, rhododendron, klematis, hostor, begonior, pelargoner och marantaväxter', 'Växter kan nu ha flera svenska namn: Dyntaxas namn och vardagsnamnet. Båda går att söka på, och växtsidan visar "Även kallad"', 'Märken för fridlyst, rödlistad och invasiv på växtkort, nytt filter "Status i Sverige", varning när du sätter ut en invasiv art, och alternativa namn syns i söklistan', 'Växtsidan har ett stycke "Om arten" med en kort beskrivning från svenska Wikipedia (med källa)', 'Växtsidan visar när arten har rapporterats i Sverige, månad för månad (GBIF)', 'Växtsidan visar var arten naturligt växer (ursprung, från Kew)', 'Väderkortet visar jordtemperaturen och pollen (i Europa, när det finns pollen i luften)']],
+  ['Beta 0.404', '14 nov', ['Växtgrupp i filtret har fler val: ormbunkar, köttätande, suckulenter, palmer, gräs, barrträd, rosor, rhododendron, klematis, hostor, begonior, pelargoner och marantaväxter', 'Växter kan nu ha flera svenska namn: Dyntaxas namn och vardagsnamnet. Båda går att söka på, och växtsidan visar "Även kallad"', 'Märken för fridlyst, rödlistad och invasiv på växtkort, nytt filter "Status i Sverige", varning när du sätter ut en invasiv art, och alternativa namn syns i söklistan', 'Växtsidan har ett stycke "Om arten" med en kort beskrivning från svenska Wikipedia (med källa)', 'Växtsidan visar när arten har rapporterats i Sverige, månad för månad (GBIF)', 'Växtsidan visar var arten naturligt växer (ursprung, från Kew)', 'Väderkortet visar vanligaste datum för sista vårfrost och första höstfrost på din plats (SMHI, medianen för 30 år)', 'Väderkortet visar jordtemperaturen och pollen (i Europa, när det finns pollen i luften)']],
   ['Beta 0.403', '13 nov', ['62 växter utan bild har fått ett foto från iNaturalist, bara med fri licens och med fotografens namn under bilden']],
   ['Beta 0.402', '13 nov', ['Växtsidan visar nu om arten är fridlyst, rödlistad eller invasiv i Sverige (källa: Artdatabanken)']],
   ['Beta 0.401', '13 nov', ['Väder: SMHI:s officiella varningar (kyla, vind, skyfall, vattenbrist m.m.) visas för din ort i Sverige. Utomlands används Open-Meteo som förut']],
