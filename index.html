@@ -7881,7 +7881,8 @@ function trackView() {
     if (curHash === null) { history.replaceState({ d: 0, st: navTake(), y: 0 }, '', h); curHash = h; saveView(); trackUse(h); hs = history.state; }
     // En ruta har stängts med knappen i appen: gå tillbaka en post så att historiken stämmer
     if (!S.modal && hs.m) {
-      if (h === curHash) { backPending = true; history.back(); return; }
+      // Vänta ett ögonblick: öppnas en ny ruta eller vy direkt efter (t.ex. en växt från en lista i en ruta) ska historiken inte backa och stänga den igen
+      if (h === curHash) { setTimeout(() => { const s2 = history.state || {}; if (!S.modal && s2.m && viewHash() === curHash) { backPending = true; history.back(); } }, 0); return; }
       history.replaceState({ d: hs.d || 0, st: navTake(), y: 0 }, '', h); curHash = h; navY = 0; saveView(); trackUse(h); return;
     }
     // Ny vy: spara var man var i den gamla posten och lägg till exakt en ny post
