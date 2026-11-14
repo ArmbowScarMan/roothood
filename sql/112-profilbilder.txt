@@ -1,0 +1,10 @@
+-- 112: Profilbilder för en lista med användare, så att appen kan visa dem överallt (frågor, svar, notiser, meddelanden, vänner).
+-- Profilbilden är redan synlig för alla i sökningen och på profilen (find_users, user_card). Blockerade får ingen bild.
+create or replace function public.profile_avatars(p_ids uuid[])
+returns table(id uuid, avatar_url text) language sql stable security definer set search_path = public as $$
+  select p.id, p.avatar_url from profiles p
+  where p.id = any(p_ids[1:200])
+    and not exists (select 1 from blocks b where (b.blocker = auth.uid() and b.blocked = p.id) or (b.blocker = p.id and b.blocked = auth.uid()));
+$$;
+revoke all on function public.profile_avatars(uuid[]) from public, anon;
+grant execute on function public.profile_avatars(uuid[]) to authenticated;
