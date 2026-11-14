@@ -7820,7 +7820,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'mf' ? mfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -10604,6 +10604,46 @@ function waterS(id, b) { b.classList.add('go'); b.disabled = true; const r = b.c
     setTimeout(() => { if (custom) { f.style.transition = 'none'; f.style.transform = ''; r.classList.remove('swl', 'swr'); try { (new Function(custom))(); } catch (e) { console.warn('Roothood:', e); } } else if (d > 0) water(id); else snooze(id); }, 250); }, { passive: true });
 })();
 function setMview(v) { S.mview = v; try { store.set('mineView', v); } catch (e) {} render(); }
+// ===== Filter i Min samling =====
+const mfS = () => (S.mf = S.mf || { q: '', cat: [], grp: [], light: 0, due: false, tox: false, own: false, rem: false });
+function mfHit(m) {
+  const f = mfS(), p = plantOf(m);
+  if (f.q) { const q = f.q.trim().toLowerCase(); const hay = [m.name, m.latin, p && p.swedish_name, p && p.latin_name, ...((p && p.alt_names) || [])].filter(Boolean).join(' ').toLowerCase(); if (!hay.includes(q)) return false; }
+  if (f.cat.length && !f.cat.includes((p && p.category) || m.category)) return false;
+  if (f.grp.length && !(p && VGRP.some(g => f.grp.includes(g[0]) && g[2](p)))) return false;
+  if (f.light && !(p && p.light_level === f.light)) return false;
+  if (f.due && left(m) !== 0) return false;
+  if (f.tox && !(p && p.pet_safe === false)) return false;
+  if (f.own && !m.custom) return false;
+  if (f.rem && left(m) !== null) return false;
+  return true;
+}
+function mfN() { const f = mfS(); return f.cat.length + f.grp.length + (f.light ? 1 : 0) + (f.due ? 1 : 0) + (f.tox ? 1 : 0) + (f.own ? 1 : 0) + (f.rem ? 1 : 0); }
+function mfClear() { S.mf = { q: '', cat: [], grp: [], light: 0, due: false, tox: false, own: false, rem: false }; render(); }
+function mfQ(v) { mfS().q = v; const y = $('#main') ? $('#main').scrollTop : 0; render(); const el = $('#mfq'); if (el) { el.focus(); try { el.setSelectionRange(v.length, v.length); } catch (e) { console.warn('Roothood:', e); } } if ($('#main')) $('#main').scrollTop = y; }
+function mfTog(k, v) { const f = mfS(); f[k] = f[k].includes(v) ? f[k].filter(x => x !== v) : f[k].concat(v); keepScroll(); }
+function mfBarV() {
+  const f = mfS(), n = mfN();
+  const L = [];
+  f.cat.forEach(c => L.push([c, `mfTog('cat',${jsArg(c)})`])); f.grp.forEach(g => { const v = VGRP.find(x => x[0] === g); if (v) L.push([v[1], `mfTog('grp','${g}')`]); });
+  if (f.light) L.push([LIGHT[f.light - 1], 'S.mf.light=0;render()']); if (f.due) L.push(['Vattna idag', 'S.mf.due=false;render()']); if (f.tox) L.push(['Giftiga för husdjur', 'S.mf.tox=false;render()']); if (f.own) L.push(['Egna växter', 'S.mf.own=false;render()']); if (f.rem) L.push(['Utan påminnelse', 'S.mf.rem=false;render()']);
+  return `<div class="searchrow dbsr"><div class="search">${ic(I.search, null, 20)}<input id="mfq" type="search" placeholder="Sök i din samling" value="${esc(f.q)}" oninput="mfQ(this.value)" aria-label="Sök i din samling"></div>
+    <button class="dbfb ${n ? 'on' : ''}" onclick="openModal('mf')" aria-label="Filtrera${n ? ', ' + n + ' valda' : ''}">${ic('ph-sliders-horizontal', 'currentColor', 20)}${n ? `<em>${n}</em>` : ''}</button></div>
+  ${L.length ? `<div class="roomchips">${L.map(([t, a]) => `<button class="on" onclick="${a}" aria-label="Ta bort filtret ${esc(t)}">${esc(t)} ✕</button>`).join('')}<button onclick="mfClear()">Rensa</button></div>` : ''}`;
+}
+function mfV() {
+  const f = mfS(), base = S.mine, cnt = fn => base.filter(fn).length;
+  const chip = (on, t, a, n) => !on && n === 0 ? '' : `<button class="${on ? 'on' : ''}" aria-pressed="${on}" onclick="${a};keepScroll()">${t}${n != null ? ` <small>${n}</small>` : ''}</button>`;
+  const cats = [...new Set(base.map(m => (plantOf(m) || {}).category || m.category).filter(Boolean))];
+  const grps = VGRP.map(v => ({ v, n: cnt(m => { const p = plantOf(m); return p && v[2](p); }) })).filter(o => o.n || f.grp.includes(o.v[0]));
+  const shownN = base.filter(mfHit).length;
+  return `<div class="mh"><h2>Filtrera din samling</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <label class="fl" style="margin-top:0">Visa bara</label><div class="chips2">${chip(f.due, 'Vattna idag', 'S.mf.due=!S.mf.due', cnt(m => left(m) === 0))}${chip(f.rem, 'Utan påminnelse', 'S.mf.rem=!S.mf.rem', cnt(m => left(m) === null))}${chip(f.tox, 'Giftiga för husdjur', 'S.mf.tox=!S.mf.tox', cnt(m => { const p = plantOf(m); return p && p.pet_safe === false; }))}${chip(f.own, 'Egna växter', 'S.mf.own=!S.mf.own', cnt(m => m.custom))}</div>
+  ${cats.length > 1 ? `<label class="fl">Kategori <small class="mut">(välj flera)</small></label><div class="chips2">${cats.map(c => chip(f.cat.includes(c), esc(c), `mfTog('cat',${jsArg(c)})`, cnt(m => ((plantOf(m) || {}).category || m.category) === c))).join('')}</div>` : ''}
+  ${grps.length ? `<label class="fl">Växtgrupp <small class="mut">(välj flera)</small></label><div class="chips2">${grps.map(o => chip(f.grp.includes(o.v[0]), o.v[1], `mfTog('grp','${o.v[0]}')`, o.n)).join('')}</div>` : ''}
+  <label class="fl">Ljus</label><div class="chips2">${chip(!f.light, 'Alla', 'S.mf.light=0')}${LIGHT.map((t, i) => chip(f.light === i + 1, t, `S.mf.light=${i + 1}`, cnt(m => (plantOf(m) || {}).light_level === i + 1))).join('')}</div>
+  <div style="display:flex;gap:10px;margin-top:18px"><button class="btn wide" onclick="closeModal()">Visa ${shownN} ${shownN === 1 ? 'växt' : 'växter'}</button><button class="btn sm line" onclick="S.mf=null;mfS();keepScroll()">Rensa</button></div>`;
+}
 function mineV() {
   if (S.mtab === 'fav') return favV();
   if (S.mtab === 'wish') return wishV();
@@ -10613,7 +10653,7 @@ function mineV() {
   if (S.mroom && S.mroom !== '-' && !rooms.some(r => r.id === S.mroom)) S.mroom = null;
   const stadM = document.documentElement.getAttribute('data-ui') === 'stad';
   // Städad: "N behöver vatten idag" är en knapp som filtrerar listan till de växterna
-  const shown = (S.mroom ? S.mine.filter(m => S.mroom === '-' ? !roomOf(m) : (m.details || {}).room === S.mroom) : S.mine).filter(m => !(S.mdue && stadM) || left(m) === 0);
+  const shown = (S.mroom ? S.mine.filter(m => S.mroom === '-' ? !roomOf(m) : (m.details || {}).room === S.mroom) : S.mine).filter(m => !(S.mdue && stadM) || left(m) === 0).filter(mfHit);
   const view = S.mview || store.get('mineView', 'compact'), det = view === 'detail';
   const rows = shown.map(m => {
     if (stadM) return mrowS(m);
@@ -10633,8 +10673,9 @@ function mineV() {
   ${S.mine.length && S.push === 'off' && !store.get('pushNudgeHidden', false) ? `<div class="instc pushnudge"><span class="tic">${ic(BELL, 'currentColor', 22)}</span><div><b>Få påminnelser i mobilen</b><span>En notis när något behöver vattnas, på tiden du väljer.</span></div><button class="btn sm" onclick="enablePush()">Slå på</button><button class="x" aria-label="Dölj" onclick="store.set('pushNudgeHidden', true); render()">✕</button></div>` : ''}
   ${stadM ? '' : `<div class="sec"><h2>Dina växter</h2><span style="display:flex;gap:8px"><button class="btn sm line" onclick="addCustomStart()">+ Egen växt</button></span></div>`}
   ${S.pro && rooms.length && S.mine.length ? `<div class="roomchips">${[[null, 'Alla']].concat(rooms.map(r => [r.id, r.name]), [['-', 'Utan rum']]).filter(([id]) => id === null || S.mroom === id || S.mine.some(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id)).map(([id, n]) => `<button class="${S.mroom === id ? 'on' : ''}" onclick="S.mroom=${id ? `'${id}'` : 'null'};render()">${esc(n)}<small>${id === null ? S.mine.length : S.mine.filter(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id).length}</small></button>`).join('')}</div>` : ''}
+  ${S.mine.length > 3 ? mfBarV() : ''}
   ${stadM ? '' : `<div class="seg2 mview" role="tablist" aria-label="Visa som">${[['compact', 'Kompakt'], ['detail', 'Detaljerad']].map(([k, t]) => `<button class="${view === k ? 'on' : ''}" role="tab" aria-selected="${view === k}" onclick="setMview('${k}')">${t}</button>`).join('')}</div>`}
-  <div class="list" style="padding-top:0">${S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p><b>Du har inga växter här än.</b><br>Lägg till en växt så får du påminnelser om när den ska vattnas.</p><button class="btn" onclick="openQAdd()">Lägg till din första växt</button></div>`}</div>`;
+  <div class="list" style="padding-top:0">${!rows && S.mine.length && mfN() ? `<div class="empty"><p>Inga växter matchar filtret.</p><button class="btn sm line" onclick="mfClear()">Rensa filtret</button></div>` : S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p><b>Du har inga växter här än.</b><br>Lägg till en växt så får du påminnelser om när den ska vattnas.</p><button class="btn" onclick="openQAdd()">Lägg till din första växt</button></div>`}</div>`;
 }
 // ===== Badges (punkt 12). Beräknas lokalt från samlingen och loggen. Sparas per konto på telefonen tills tabellen user_badges finns. =====
 const BADGES = { vattare: { n: 'Vattenkannans mästare', e: '🪷', d: 'Vattna 10 gånger' }, aroid: { n: 'Aroid-entusiasten', e: '🍃', d: 'Ha 5 eller fler aroider i samlingen' }, beta: { n: 'Beta-testare', e: '🌱', d: 'Skapa konto under betatestperioden' } };
