@@ -1,5 +1,6 @@
 // Roothood: artbestämning via Pl@ntNet. Nyckeln ligger i Supabase-hemligheter (PLANTNET_KEY), inte i appen.
 // Bara inloggade användare får anropa funktionen. Upp till 5 bilder per fråga, med en del (blad, blomma ...) per bild.
+// Gräns per användare och dag (UTC), så att en enskild användare inte tar hela Pl@ntNets gratiskvot (500 per dag). Ändra med hemligheten IDENTIFY_DAILY_MAX.
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
 const CORS = {
@@ -7,6 +8,7 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+const DAILY_MAX = parseInt(Deno.env.get("IDENTIFY_DAILY_MAX") || "20");
 const ORGANS = new Set(["auto", "leaf", "flower", "fruit", "bark"]);
 
 Deno.serve(async (req) => {
@@ -25,6 +27,10 @@ Deno.serve(async (req) => {
   const { data: u } = await sb.auth.getUser();
   if (!u || !u.user) return json({ error: "Logga in för att identifiera växter" }, 401);
 
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const { data: used } = await admin.rpc("identify_count", { p_user: u.user.id });
+  if (typeof used === "number" && used >= DAILY_MAX) return json({ error: "Dagens gräns är nådd" }, 429);
+
   const inc = await req.formData();
   const images = inc.getAll("images").slice(0, 5);
   if (!images.length) return json({ error: "Ingen bild" }, 400);
@@ -38,6 +44,7 @@ Deno.serve(async (req) => {
 
   const url = `https://my-api.plantnet.org/v2/identify/all?api-key=${encodeURIComponent(key)}&lang=sv&nb-results=5&include-related-images=true`;
   const r = await fetch(url, { method: "POST", body: out });
+  if (r.ok) await admin.rpc("identify_add", { p_user: u.user.id });
   return new Response(await r.text(), {
     status: r.status,
     headers: { ...CORS, "Content-Type": r.headers.get("content-type") || "application/json" },
