@@ -3193,6 +3193,10 @@ async function confirmAddp() {
   await run(() => api.addMine(p, photo, !!(S.ap && S.ap.share)), p.swedish_name + ' finns nu i din samling' + invNote(p) + (photo ? ' med ditt foto' : ''));
   S.ap = null; photoWarnCheck(); afterAdd();
 }
+// Webbläsarens egna förslag (tidigare inskrivna värden) ska inte dyka upp ovanför tangentbordet. Inloggningsfälten får behålla sina.
+(() => { const fix = root => { (root.querySelectorAll ? root.querySelectorAll('input,textarea') : []).forEach(el => { if (el.hasAttribute('autocomplete')) return; const t = (el.getAttribute('type') || 'text').toLowerCase(); if (['email', 'password', 'tel'].includes(t) || /mail|pass|login/i.test(el.id + ' ' + (el.name || ''))) return; el.setAttribute('autocomplete', 'off'); }); };
+  try { new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) { if (/^(INPUT|TEXTAREA)$/.test(n.tagName)) fix(n.parentNode || n); else fix(n); } }))).observe(document.documentElement, { childList: true, subtree: true }); } catch (e) { console.warn('Roothood:', e); }
+  document.addEventListener('DOMContentLoaded', () => fix(document)); })();
 const PRO_FREE = true; // allt öppet under testperioden och vid lansering
 let PAY_TEST = false; // true för kontot som testar betalflödet (kolumnen pay_test i profiles)
 let BETA_TESTER = false; // true för konton som skapats under betatestperioden (kolumnen beta_tester i profiles)
@@ -3377,7 +3381,7 @@ function pdetV() {
   return `<div class="mh"><h2>${nameHtml(m)}</h2><button class="close" onclick="closeDetails()" aria-label="Stäng">×</button></div>
   <div class="pdform">
   ${S.pdNew ? `<p class="mut" style="margin:0 0 10px;font-size:14px">${esc(m.name)} finns nu i din samling. Berätta lite om den, så blir råden bättre. Du kan hoppa över och fylla i senare.</p>` : ''}
-  <div class="two"><div><label class="fl" for="pdsort" style="margin-top:0">Sort</label><input id="pdsort" maxlength="60" list="sortlist" placeholder="t.ex. ${esc((sortSuggest(m)[0]) || 'Gyllene Kitajka')}" value="${esc(d.sort || '')}" oninput="S.pd.sort=this.value;pdPrev()"><datalist id="sortlist">${sortSuggest(m).map(x => `<option value="${esc(x)}">`).join('')}</datalist></div>
+  <div class="two"><div><label class="fl" for="pdsort" style="margin-top:0">Sort</label><input id="pdsort" maxlength="60" autocomplete="off" placeholder="t.ex. ${esc((sortSuggest(m)[0]) || 'Gyllene Kitajka')}" value="${esc(d.sort || '')}" oninput="S.pd.sort=this.value;pdPrev()">${(() => { const L = sortSuggest(m).slice(0, 8); return L.length ? `<div class="chips2 sm" style="margin-top:6px">${L.map(x => `<button type="button" onclick="S.pd.sort=${jsArg(x)};$('#pdsort').value=S.pd.sort;pdPrev()">${esc(x)}</button>`).join('')}</div>` : ''; })()}</div>
   <div><label class="fl" for="pdnick" style="margin-top:0">Svenskt namn</label><input id="pdnick" maxlength="60" placeholder="${esc(m.baseName || m.name)}" value="${esc(d.nick || '')}" oninput="S.pd.nick=this.value;pdPrev()"></div></div>
   <div class="pdprev" id="pdprev">${pdPrevHtml(m, d)}</div>
   <label class="fl">Samplanterade i samma kruka</label><div class="cnt"><button class="btn sm line" onclick="pdCount(-1)" aria-label="Färre">−</button><b>${+d.count > 1 ? d.count : 1}</b><button class="btn sm line" onclick="pdCount(1)" aria-label="Fler">+</button><small class="mut">${+d.count > 1 ? 'Visas som en växtprofil med antal' : 'Bara en växt i krukan'}</small></div>
@@ -6070,35 +6074,51 @@ function mapTiles() {
 }
 function mapPanelV() {
   const M = (S.hplan && S.hplan.map) || {};
-  if (M.lat == null) return `<div class="mapp"><b>Karta under ritningen</b><span class="mut" style="font-size:13px">Sök på din adress så visas ditt hus från ovan.</span>
-    <form class="mrow2" onsubmit="event.preventDefault();mapSearch(this.q.value)"><input id="mapq" name="q" placeholder="Gatuadress och ort" value="${esc(S.mapQ || '')}" autocomplete="off" oninput="mapSuggest(this.value)" enterkeyhint="search"><button class="btn sm">Sök</button></form><div id="mapsug" class="mapsug"></div>
+  if (M.lat == null) return `<div class="mapp"><b>Karta under ritningen</b><span class="mut" style="font-size:13px">Skriv din exakta adress, så hamnar huset på den platsen. Du kan också skriva koordinater, till exempel 65.3172, 21.4794.</span>
+    <form class="mrow2" onsubmit="event.preventDefault();mapSearch(this.q.value)"><input id="mapq" name="q" placeholder="Gatuadress och ort, eller koordinater" value="${esc(S.mapQ || '')}" autocomplete="off" oninput="mapSuggest(this.value)" enterkeyhint="search"><button class="btn sm">Sök</button></form><div id="mapsug" class="mapsug"></div>
     <button class="btn sm line" onclick="mapHere()">📍 Använd min position</button></div>`;
   return `<div class="mapp"><div class="mrow2"><div class="wk2">${[['sat', 'Satellit'], ['map', 'Karta'], ['topo', 'Höjdkurvor'], ['hill', 'Terräng']].map(([k, n]) => `<button class="${(M.layer || 'sat') === k ? 'on' : ''}" onclick="mapSet('layer','${k}')">${n}</button>`).join('')}</div><button class="btn sm line" onclick="mapSet('on',${!M.on})">${M.on ? 'Dölj' : 'Visa'}</button></div>
     <div class="mrow2"><button class="btn sm line" onclick="elevAutoFetch()">⛰️ Hämta markhöjd från nätet</button><small class="mut">${S.hplan && S.hplan.elevAuto ? 'Hämtad' + (S.hplan.elevAuto.src ? ' (' + esc(S.hplan.elevAuto.src) + ')' : '') : 'Ej hämtad'}${(() => { const C = contours(); return C && C.step ? ' · höjdlinjer var ' + String(C.step).replace('.', ',') + ' m' : ''; })()}</small></div>
     <label class="msl"><span>Synlighet</span><input type="range" min="20" max="100" value="${Math.round((M.op || 0.85) * 100)}" oninput="S.hplan.map.op=this.value/100;renderPlan()" onchange="saveHomeSoon()"></label>
     <label class="msl"><span>Vrid ritningen</span><input type="range" min="0" max="359.5" step="0.5" value="${northDeg()}" oninput="setNorth(+this.value,true)" onchange="setNorth(+this.value)"></label>
     <div class="mrow2 degrow"><span class="msl" style="width:78px">Exakt vinkel</span><button class="degb" onclick="setNorth(northDeg() - 0.5)" aria-label="Vrid 0,5 grader åt vänster">−</button><input id="degin" type="text" inputmode="decimal" value="${String(Math.round(northDeg() * 10) / 10).replace('.', ',')}" aria-label="Vinkel i grader" onkeydown="if(event.key==='Enter')this.blur()" onchange="const v=parseFloat(this.value.replace(',','.'));if(!isNaN(v))setNorth(v);else render()"><span class="deg">°</span><button class="degb" onclick="setNorth(northDeg() + 0.5)" aria-label="Vrid 0,5 grader åt höger">+</button></div>
-    <div class="mrow2"><span class="mut" style="font-size:11.5px;flex:1">${TILES[M.layer || 'sat'][2]}</span><button class="link3" onclick="mapClear()">Byt adress</button><button class="btn sm" onclick="planMapToggle()">Klar</button></div></div>`;
+    <div class="mrow2"><span class="mut" style="font-size:11.5px;flex:1">${TILES[M.layer || 'sat'][2]}</span><button class="link3" onclick="mapClear()">Byt adress</button><button class="btn sm" onclick="planMapToggle()">Klar</button></div>
+    <div class="mrow2" style="flex-wrap:wrap"><span style="font-size:12.5px;flex:1;min-width:180px">📍 ${M.addr ? esc(M.addr) + '<br>' : ''}<span class="mut">${(+M.lat).toFixed(6)}, ${(+M.lon).toFixed(6)}</span></span><button class="btn sm line" onclick="mapCoordEdit()">Ändra koordinater</button></div>
+    ${S.mapCoordEd ? `<form class="mrow2" onsubmit="event.preventDefault();mapCoordSave(this.c.value)"><input name="c" id="mapc" inputmode="decimal" autocomplete="off" value="${(+M.lat).toFixed(6)}, ${(+M.lon).toFixed(6)}" aria-label="Koordinater, latitud och longitud"><button class="btn sm">Spara</button></form><small class="mut" style="display:block;margin:-4px 0 6px">Latitud, longitud i decimalgrader (WGS 84), som i Google Maps. Huset flyttas så att mitten hamnar på punkten.</small>` : ''}</div>`;
 }
 function setNorth(v, live) { v = Math.round((((v % 360) + 360) % 360) * 10) / 10; S.hplan = S.hplan || {}; S.hplan.north = v; const di = $('#degin'); if (di && live) di.value = String(v).replace('.', ','); const c = $('.pnorth span'); if (c) c.style.transform = `rotate(${v + viewRot()}deg)`; if (live) return renderPlan(); pushUndo(); planRooms().forEach(syncDirs); saveHomeSoon(); render(); }
 function mapSet(k, v) { S.hplan.map[k] = v; saveHomeSoon(); render(); }
 function mapClear() { pushUndo(); S.hplan.map = { on: true }; saveHomeSoon(); render(); }
 function mapCenter() { const rs = planRooms(); if (!rs.length) { const P = PL(), b = $('#planbox'); return [(b.clientWidth / 2 - P.ox) / P.z, (b.clientHeight / 2 - P.oy) / P.z]; } const pts = [].concat(...rs.map(roomPoly)); return [(Math.min(...pts.map(q => q[0])) + Math.max(...pts.map(q => q[0]))) / 2, (Math.min(...pts.map(q => q[1])) + Math.max(...pts.map(q => q[1]))) / 2]; }
-function mapPut(lat, lon) { pushUndo(); S.hplan = S.hplan || {}; const [cx, cy] = mapCenter(); S.hplan.map = Object.assign({ layer: 'sat', op: 0.85 }, S.hplan.map || {}, { lat, lon, on: true, ox: cx, oy: cy }); const P = PL(); if (!planRooms().length) { const b = $('#planbox'); P.z = 30; P.ox = b.clientWidth / 2 - cx * 30; P.oy = b.clientHeight / 2 - cy * 30; } saveHomeSoon(); render(); toast('Dra i kartan så att huset hamnar rätt'); }
+// Koordinater i decimalgrader: "65.3172, 21.4794", "65,3172 21,4794", "65.3172N 21.4794E". Byter plats om man skrivit longitud först (Sverige).
+function parseCoords(q) {
+  let t = String(q || '').trim().replace(/[°′″]/g, ' ').replace(/\s*([NnSsEeÖöWwVv])\b/g, ' ').trim(); if (!t) return null;
+  let parts;
+  if (/^-?\d+(\.\d+)?\s*[,;]\s*-?\d+(\.\d+)?$/.test(t)) parts = t.split(/\s*[,;]\s*/);
+  else parts = t.split(/[\s;]+/).map(x => x.replace(',', '.'));
+  if (parts.length !== 2 || !parts.every(x => /^-?\d+(\.\d+)?$/.test(x))) return null;
+  let [a, b] = parts.map(Number); if (!(Math.abs(a) <= 90 && Math.abs(b) <= 180)) return null;
+  if (a >= 10 && a <= 25 && b >= 54 && b <= 70) [a, b] = [b, a];
+  return { lat: a, lon: b };
+}
+function mapCoordEdit() { S.mapCoordEd = !S.mapCoordEd; render(); if (S.mapCoordEd) setTimeout(() => { const el = $('#mapc'); if (el) el.focus(); }, 50); }
+function mapCoordSave(v) { const c = parseCoords(v); if (!c) return toast('Skriv latitud och longitud, till exempel 65.3172, 21.4794'); S.mapCoordEd = false; S.hplan.map.addr = ''; mapPut(c.lat, c.lon, ''); }
+function mapPut(lat, lon, addr) { pushUndo(); S.hplan = S.hplan || {}; const [cx, cy] = mapCenter(); S.hplan.map = Object.assign({ layer: 'sat', op: 0.85 }, S.hplan.map || {}, { lat, lon, on: true, ox: cx, oy: cy }, addr != null ? { addr } : {}); const P = PL(); if (!planRooms().length) { const b = $('#planbox'); P.z = 30; P.ox = b.clientWidth / 2 - cx * 30; P.oy = b.clientHeight / 2 - cy * 30; } saveHomeSoon(); render(); toast('Huset står nu på platsen. Dra i kartan om det behöver flyttas lite'); }
 let mapSugT = null;
 // Förslag medan man skriver adress eller ort (Sverige). Listan uppdateras utan att hela vyn ritas om, så att skrivfältet behåller fokus.
-function mapSuggest(v) { clearTimeout(mapSugT); S.mapQ = v; const q = (v || '').trim(), box = $('#mapsug'); if (!box) return; if (q.length < 2) { box.innerHTML = ''; return; }
+function mapSuggest(v) { clearTimeout(mapSugT); S.mapQ = v; const q = (v || '').trim(), box = $('#mapsug'); if (!box) return; if (q.length < 2) { box.innerHTML = ''; return; } if (parseCoords(q) || /^-?\d+([.,]\d*)?[\s,;]*-?\d*([.,]\d*)?$/.test(q)) { box.innerHTML = parseCoords(q) ? `<button type="button" class="mapsugi" onclick="mapSearch(${jsArg(q)})">Använd koordinaterna ${esc(q)}</button>` : ''; return; }
   mapSugT = setTimeout(async () => { try { const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=se&addressdetails=1&accept-language=sv&q=' + encodeURIComponent(q)); const a = await r.json(); const cur = $('#mapq'), b = $('#mapsug');
       if (!b || !cur || cur.value.trim() !== q) return; S.mapSug = a; b.innerHTML = a.length ? a.map((x, i) => `<button type="button" class="mapsugi" onclick="mapPick(${i})">${esc(x.display_name)}</button>`).join('') : '<span class="mut" style="font-size:13px;padding:10px 12px;display:block">Inga förslag</span>'; }
     catch (e) { box.innerHTML = ''; } }, 350); }
-function mapPick(i) { const x = (S.mapSug || [])[i]; if (!x) return; S.mapSug = null; S.mapQ = x.display_name; mapPut(+x.lat, +x.lon); }
+function mapPick(i) { const x = (S.mapSug || [])[i]; if (!x) return; S.mapSug = null; S.mapQ = x.display_name; mapPut(+x.lat, +x.lon, x.display_name); }
 async function mapSearch(q) {
   q = (q || '').trim(); S.mapQ = q; if (!q) return;
+  const c = parseCoords(q); if (c) return mapPut(c.lat, c.lon, '');
   try { const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=se&accept-language=sv&q=' + encodeURIComponent(q)); const a = await r.json();
-    if (!a.length) return toast('Hittade inte adressen. Prova med gata, nummer och ort.'); mapPut(+a[0].lat, +a[0].lon); }
+    if (!a.length) return toast('Hittade inte adressen. Prova med gata, nummer och ort, eller skriv koordinater.'); mapPut(+a[0].lat, +a[0].lon, a[0].display_name); }
   catch (e) { toast('Kunde inte söka just nu. Kontrollera internet.'); }
 }
-function mapHere() { if (!navigator.geolocation) return toast('Mobilen kan inte ge din position'); navigator.geolocation.getCurrentPosition(p => mapPut(p.coords.latitude, p.coords.longitude), () => toast('Fick inte din position. Tillåt plats i Chrome eller sök på adressen.'), { enableHighAccuracy: true, timeout: 15000 }); }
+function mapHere() { if (!navigator.geolocation) return toast('Mobilen kan inte ge din position'); navigator.geolocation.getCurrentPosition(p => mapPut(p.coords.latitude, p.coords.longitude, 'Min position'), () => toast('Fick inte din position. Tillåt plats i Chrome eller sök på adressen.'), { enableHighAccuracy: true, timeout: 15000 }); }
 const UK = [['elev', 'Markhöjd', 'pt', '⛰️'], ['lot', 'Tomt', 'poly', '📐'], ['lawn', 'Gräsmatta', 'poly', '🌿'], ['bed', 'Rabatt', 'poly', '🌷'], ['veg', 'Odlingsland', 'poly', '🥕'], ['path', 'Gång', 'poly', '🪨'], ['patio', 'Altan', 'poly', '🪵'], ['pond', 'Damm', 'poly', '💧'], ['hedge', 'Häck', 'line', '🌳'], ['tree', 'Lövträd', 'pt', '🌳'], ['fruit', 'Fruktträd', 'pt', '🍎'], ['conifer', 'Barrträd', 'pt', '🌲'], ['bush', 'Buske', 'pt', '🌱'], ['ghouse', 'Växthus', 'rect', '🏡'], ['rbed', 'Odlingslåda', 'rect', '🥬'], ['shed', 'Förråd', 'rect', '🛖'], ['compost', 'Kompost', 'rect', '♻️']];
 const UK_M = Object.fromEntries(UK.map(u => [u[0], u]));
 const AREA_ST = { lot: ['rgba(120,170,90,.08)', '#5E9E48', '7 5'], lawn: ['rgba(110,175,80,.40)', '#5E9E48'], bed: ['rgba(150,100,60,.40)', '#8A5A34'], veg: ['rgba(125,90,50,.48)', '#6B4A2A'], path: ['rgba(175,168,152,.65)', '#8C857A'], patio: ['rgba(196,154,108,.6)', '#9A6E44'], pond: ['rgba(80,150,205,.55)', '#3B8DB0'] };
@@ -7820,7 +7840,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'mf' ? mfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -7980,7 +8000,12 @@ const WX = { 0: ['Klart', '☀️'], 1: ['Mest klart', '🌤️'], 2: ['Halvklar
 const WXI = { '☀': 'ph-sun', '🌤': 'ph-cloud-sun', '⛅': 'ph-cloud-sun', '☁': 'ph-cloud', '🌫': 'ph-cloud-fog', '🌦': 'ph-cloud-rain', '🌧': 'ph-cloud-rain', '🌨': 'ph-cloud-snow', '🧊': 'ph-snowflake', '❄': 'ph-snowflake', '🥶': 'ph-snowflake', '🌡': 'ph-thermometer', '💨': 'ph-wind', '💧': 'ph-drop', '🔥': 'ph-fire', '⛈': 'ph-cloud-lightning' };
 const wxIco = (e, s) => ic(WXI[String(e || '').replace(/\uFE0F/g, '')] || 'ph-warning', 'currentColor', s || 20);
 const DAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
-function wxPlace() { const M = S.hplan && S.hplan.map; if (M && M.lat != null) return { lat: M.lat, lon: M.lon, name: S.city || 'ditt hem' }; const g = store.get('wxGeo', null); if (g && g.q === (S.city || '').trim().toLowerCase() && g.lat != null) return g; return null; }
+function wxPlace() {
+  // Kartans plats för Mitt hem används bara om den ligger nära orten i profilen (inom 50 km). Annars gäller orten, så att vädret, frosten och varningarna inte hamnar på fel plats.
+  const M = S.hplan && S.hplan.map, city = (S.city || '').trim(), g0 = store.get('wxGeo', null), g = g0 && g0.q === city.toLowerCase() && g0.lat != null ? g0 : null;
+  if (M && M.lat != null) { const near = g && Math.hypot((+M.lon - g.lon) * 111.32 * Math.cos(g.lat * Math.PI / 180), (+M.lat - g.lat) * 111.32) < 50; if (!city || near) return { lat: +M.lat, lon: +M.lon, name: city || 'ditt hem' }; }
+  return g;
+}
 async function loadWeather(force) {
   if (S.wxBusy) { S.wxAgain = true; return; } if (!force && S.wxFailAt && Date.now() - S.wxFailAt < 10 * 60e3) return; const c = store.get('wx', null), pl = wxPlace();
   if (!force && c && c.v === 2 && c.d && c.d.sunshine_duration && c.cur && c.cur.cloud_cover != null && Date.now() - c.t < 30 * 60e3 && pl && Math.abs(c.lat - pl.lat) < 0.01 && Math.abs(c.lon - pl.lon) < 0.01) { S.wx = c; loadSmhi(pl).then(() => { if (!S.tool && !S.sel && S.tab === 'home') render(); }); if (T3 && T3.scene) env3d(); if (!S.tool && !S.sel && S.tab === 'home') render(); return; }
@@ -10604,6 +10629,46 @@ function waterS(id, b) { b.classList.add('go'); b.disabled = true; const r = b.c
     setTimeout(() => { if (custom) { f.style.transition = 'none'; f.style.transform = ''; r.classList.remove('swl', 'swr'); try { (new Function(custom))(); } catch (e) { console.warn('Roothood:', e); } } else if (d > 0) water(id); else snooze(id); }, 250); }, { passive: true });
 })();
 function setMview(v) { S.mview = v; try { store.set('mineView', v); } catch (e) {} render(); }
+// ===== Filter i Min samling =====
+const mfS = () => (S.mf = S.mf || { q: '', cat: [], grp: [], light: 0, due: false, tox: false, own: false, rem: false });
+function mfHit(m) {
+  const f = mfS(), p = plantOf(m);
+  if (f.q) { const q = f.q.trim().toLowerCase(); const hay = [m.name, m.latin, p && p.swedish_name, p && p.latin_name, ...((p && p.alt_names) || [])].filter(Boolean).join(' ').toLowerCase(); if (!hay.includes(q)) return false; }
+  if (f.cat.length && !f.cat.includes((p && p.category) || m.category)) return false;
+  if (f.grp.length && !(p && VGRP.some(g => f.grp.includes(g[0]) && g[2](p)))) return false;
+  if (f.light && !(p && p.light_level === f.light)) return false;
+  if (f.due && left(m) !== 0) return false;
+  if (f.tox && !(p && p.pet_safe === false)) return false;
+  if (f.own && !m.custom) return false;
+  if (f.rem && left(m) !== null) return false;
+  return true;
+}
+function mfN() { const f = mfS(); return f.cat.length + f.grp.length + (f.light ? 1 : 0) + (f.due ? 1 : 0) + (f.tox ? 1 : 0) + (f.own ? 1 : 0) + (f.rem ? 1 : 0); }
+function mfClear() { S.mf = { q: '', cat: [], grp: [], light: 0, due: false, tox: false, own: false, rem: false }; render(); }
+function mfQ(v) { mfS().q = v; const y = $('#main') ? $('#main').scrollTop : 0; render(); const el = $('#mfq'); if (el) { el.focus(); try { el.setSelectionRange(v.length, v.length); } catch (e) { console.warn('Roothood:', e); } } if ($('#main')) $('#main').scrollTop = y; }
+function mfTog(k, v) { const f = mfS(); f[k] = f[k].includes(v) ? f[k].filter(x => x !== v) : f[k].concat(v); keepScroll(); }
+function mfBarV() {
+  const f = mfS(), n = mfN();
+  const L = [];
+  f.cat.forEach(c => L.push([c, `mfTog('cat',${jsArg(c)})`])); f.grp.forEach(g => { const v = VGRP.find(x => x[0] === g); if (v) L.push([v[1], `mfTog('grp','${g}')`]); });
+  if (f.light) L.push([LIGHT[f.light - 1], 'S.mf.light=0;render()']); if (f.due) L.push(['Vattna idag', 'S.mf.due=false;render()']); if (f.tox) L.push(['Giftiga för husdjur', 'S.mf.tox=false;render()']); if (f.own) L.push(['Egna växter', 'S.mf.own=false;render()']); if (f.rem) L.push(['Utan påminnelse', 'S.mf.rem=false;render()']);
+  return `<div class="searchrow dbsr"><div class="search">${ic(I.search, null, 20)}<input id="mfq" type="search" placeholder="Sök i din samling" value="${esc(f.q)}" oninput="mfQ(this.value)" aria-label="Sök i din samling"></div>
+    <button class="dbfb ${n ? 'on' : ''}" onclick="openModal('mf')" aria-label="Filtrera${n ? ', ' + n + ' valda' : ''}">${ic('ph-sliders-horizontal', 'currentColor', 20)}${n ? `<em>${n}</em>` : ''}</button></div>
+  ${L.length ? `<div class="roomchips">${L.map(([t, a]) => `<button class="on" onclick="${a}" aria-label="Ta bort filtret ${esc(t)}">${esc(t)} ✕</button>`).join('')}<button onclick="mfClear()">Rensa</button></div>` : ''}`;
+}
+function mfV() {
+  const f = mfS(), base = S.mine, cnt = fn => base.filter(fn).length;
+  const chip = (on, t, a, n) => !on && n === 0 ? '' : `<button class="${on ? 'on' : ''}" aria-pressed="${on}" onclick="${a};keepScroll()">${t}${n != null ? ` <small>${n}</small>` : ''}</button>`;
+  const cats = [...new Set(base.map(m => (plantOf(m) || {}).category || m.category).filter(Boolean))];
+  const grps = VGRP.map(v => ({ v, n: cnt(m => { const p = plantOf(m); return p && v[2](p); }) })).filter(o => o.n || f.grp.includes(o.v[0]));
+  const shownN = base.filter(mfHit).length;
+  return `<div class="mh"><h2>Filtrera din samling</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <label class="fl" style="margin-top:0">Visa bara</label><div class="chips2">${chip(f.due, 'Vattna idag', 'S.mf.due=!S.mf.due', cnt(m => left(m) === 0))}${chip(f.rem, 'Utan påminnelse', 'S.mf.rem=!S.mf.rem', cnt(m => left(m) === null))}${chip(f.tox, 'Giftiga för husdjur', 'S.mf.tox=!S.mf.tox', cnt(m => { const p = plantOf(m); return p && p.pet_safe === false; }))}${chip(f.own, 'Egna växter', 'S.mf.own=!S.mf.own', cnt(m => m.custom))}</div>
+  ${cats.length > 1 ? `<label class="fl">Kategori <small class="mut">(välj flera)</small></label><div class="chips2">${cats.map(c => chip(f.cat.includes(c), esc(c), `mfTog('cat',${jsArg(c)})`, cnt(m => ((plantOf(m) || {}).category || m.category) === c))).join('')}</div>` : ''}
+  ${grps.length ? `<label class="fl">Växtgrupp <small class="mut">(välj flera)</small></label><div class="chips2">${grps.map(o => chip(f.grp.includes(o.v[0]), o.v[1], `mfTog('grp','${o.v[0]}')`, o.n)).join('')}</div>` : ''}
+  <label class="fl">Ljus</label><div class="chips2">${chip(!f.light, 'Alla', 'S.mf.light=0')}${LIGHT.map((t, i) => chip(f.light === i + 1, t, `S.mf.light=${i + 1}`, cnt(m => (plantOf(m) || {}).light_level === i + 1))).join('')}</div>
+  <div style="display:flex;gap:10px;margin-top:18px"><button class="btn wide" onclick="closeModal()">Visa ${shownN} ${shownN === 1 ? 'växt' : 'växter'}</button><button class="btn sm line" onclick="S.mf=null;mfS();keepScroll()">Rensa</button></div>`;
+}
 function mineV() {
   if (S.mtab === 'fav') return favV();
   if (S.mtab === 'wish') return wishV();
@@ -10613,7 +10678,7 @@ function mineV() {
   if (S.mroom && S.mroom !== '-' && !rooms.some(r => r.id === S.mroom)) S.mroom = null;
   const stadM = document.documentElement.getAttribute('data-ui') === 'stad';
   // Städad: "N behöver vatten idag" är en knapp som filtrerar listan till de växterna
-  const shown = (S.mroom ? S.mine.filter(m => S.mroom === '-' ? !roomOf(m) : (m.details || {}).room === S.mroom) : S.mine).filter(m => !(S.mdue && stadM) || left(m) === 0);
+  const shown = (S.mroom ? S.mine.filter(m => S.mroom === '-' ? !roomOf(m) : (m.details || {}).room === S.mroom) : S.mine).filter(m => !(S.mdue && stadM) || left(m) === 0).filter(mfHit);
   const view = S.mview || store.get('mineView', 'compact'), det = view === 'detail';
   const rows = shown.map(m => {
     if (stadM) return mrowS(m);
@@ -10633,8 +10698,9 @@ function mineV() {
   ${S.mine.length && S.push === 'off' && !store.get('pushNudgeHidden', false) ? `<div class="instc pushnudge"><span class="tic">${ic(BELL, 'currentColor', 22)}</span><div><b>Få påminnelser i mobilen</b><span>En notis när något behöver vattnas, på tiden du väljer.</span></div><button class="btn sm" onclick="enablePush()">Slå på</button><button class="x" aria-label="Dölj" onclick="store.set('pushNudgeHidden', true); render()">✕</button></div>` : ''}
   ${stadM ? '' : `<div class="sec"><h2>Dina växter</h2><span style="display:flex;gap:8px"><button class="btn sm line" onclick="addCustomStart()">+ Egen växt</button></span></div>`}
   ${S.pro && rooms.length && S.mine.length ? `<div class="roomchips">${[[null, 'Alla']].concat(rooms.map(r => [r.id, r.name]), [['-', 'Utan rum']]).filter(([id]) => id === null || S.mroom === id || S.mine.some(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id)).map(([id, n]) => `<button class="${S.mroom === id ? 'on' : ''}" onclick="S.mroom=${id ? `'${id}'` : 'null'};render()">${esc(n)}<small>${id === null ? S.mine.length : S.mine.filter(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id).length}</small></button>`).join('')}</div>` : ''}
+  ${S.mine.length > 3 ? mfBarV() : ''}
   ${stadM ? '' : `<div class="seg2 mview" role="tablist" aria-label="Visa som">${[['compact', 'Kompakt'], ['detail', 'Detaljerad']].map(([k, t]) => `<button class="${view === k ? 'on' : ''}" role="tab" aria-selected="${view === k}" onclick="setMview('${k}')">${t}</button>`).join('')}</div>`}
-  <div class="list" style="padding-top:0">${S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p><b>Du har inga växter här än.</b><br>Lägg till en växt så får du påminnelser om när den ska vattnas.</p><button class="btn" onclick="openQAdd()">Lägg till din första växt</button></div>`}</div>`;
+  <div class="list" style="padding-top:0">${!rows && S.mine.length && mfN() ? `<div class="empty"><p>Inga växter matchar filtret.</p><button class="btn sm line" onclick="mfClear()">Rensa filtret</button></div>` : S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p><b>Du har inga växter här än.</b><br>Lägg till en växt så får du påminnelser om när den ska vattnas.</p><button class="btn" onclick="openQAdd()">Lägg till din första växt</button></div>`}</div>`;
 }
 // ===== Badges (punkt 12). Beräknas lokalt från samlingen och loggen. Sparas per konto på telefonen tills tabellen user_badges finns. =====
 const BADGES = { vattare: { n: 'Vattenkannans mästare', e: '🪷', d: 'Vattna 10 gånger' }, aroid: { n: 'Aroid-entusiasten', e: '🍃', d: 'Ha 5 eller fler aroider i samlingen' }, beta: { n: 'Beta-testare', e: '🌱', d: 'Skapa konto under betatestperioden' } };
@@ -11568,6 +11634,9 @@ async function sendCase() {
   } catch (e) { toast(e.message === 'DETECT_NOT_READY' ? 'Artbestämning går inte att använda just nu.' : errMsg(e)); }
   S.busy = false; render();
 }
+function gSug(v) { const el = $('#gsug'); if (!el) return; const q = (v || '').trim().toLowerCase(); if (q.length < 2) { el.innerHTML = ''; return; }
+  const L = S.plants.filter(p => (p.swedish_name || '').toLowerCase().startsWith(q) || (p.latin_name || '').toLowerCase().startsWith(q)).slice(0, 6);
+  el.innerHTML = L.map(p => `<button type="button" onclick="$('#gname').value=${jsArg(p.swedish_name)};$('#gsug').innerHTML=''">${esc(p.swedish_name)}</button>`).join(''); }
 function sendGuess(pid) {
   if (needLogin()) return;
   const v = (($('#gname') || {}).value || '').trim();
@@ -11597,8 +11666,8 @@ function caseV() {
   ${best ? `<p class="mut" style="margin:8px 0 0">Löst av <b>${ulink(best.user_id, best.author)}</b>, som fick ${CASE_PTS} p.</p>${bp ? `<button class="btn sm" style="margin-top:10px" onclick="S.tab='home';openPlant(${bp.id})">Se skötselråd för ${esc(bp.swedish_name)}</button>` : ''}` : ''}
   <div class="prow"><span class="grow"></span>${moreBtn('p', c.id, mine)}</div></div></div>
   ${!best && !mine ? `<div class="setcard" style="margin-top:12px"><b>Vad tror du att det är?</b>
-    <div style="display:flex;gap:8px;margin-top:10px"><input id="gname" list="gplants" maxlength="80" placeholder="Skriv växtens namn" style="flex:1"><button class="btn sm cop" onclick="sendGuess(${c.id})">Gissa</button></div>
-    <datalist id="gplants">${S.plants.map(p => `<option value="${esc(p.swedish_name)}">`).join('')}</datalist>
+    <div style="display:flex;gap:8px;margin-top:10px"><input id="gname" autocomplete="off" oninput="gSug(this.value)" maxlength="80" placeholder="Skriv växtens namn" style="flex:1"><button class="btn sm cop" onclick="sendGuess(${c.id})">Gissa</button></div>
+    <div id="gsug" class="chips2 sm" style="margin-top:6px"></div>
     <p class="mut" style="font-size:12.5px;margin:8px 0 0">Tror du samma som någon annan? Tryck Jag håller med på deras gissning. Rätt gissning ger ${CASE_PTS} p. Den som lagt upp fallet väljer vilket svar som är rätt.</p></div>` : ''}
   ${mine && !best && c.answers.length ? '<p class="lnote">Tryck på <b>Rätt!</b> vid den gissning som stämmer, så är fallet löst.</p>' : ''}
   <h3 style="margin:20px 0 10px">${c.answers.length ? c.answers.length + (c.answers.length === 1 ? ' gissning' : ' gissningar') : 'Inga gissningar än'}</h3>
@@ -12530,6 +12599,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.407', '14 nov', ['Min samling har en sökruta och ett filter: vattna idag, utan påminnelse, giftiga för husdjur, egna växter, kategori, växtgrupp och ljus', 'Mitt hem: skriv din exakta adress eller koordinater, så hamnar huset på rätt plats', 'Vädret, frosten och varningarna gäller din ort även om kartan i Mitt hem ligger någon annanstans', 'Profilbilder syns på andras profiler', 'Telefonens egna förslag dyker inte längre upp ovanför tangentbordet']],
   ['Beta 0.406', '14 nov', ['Moderatorer ser alla uppgifter i föreslagna växter och kan rätta dem innan de godkänns', 'Ursprung visas också för växter med äldre vetenskapligt namn (Kew räknar namnet som synonym)', 'Tydligare meddelande när du inte är inloggad eller har nått dagens gräns för identifieringar', 'Fler svenska namn enligt Artdatabanken (gamla namn går fortfarande att söka på), rättade familjer och stavningar', 'Hundratals växter och sorter har fått foton från Wikimedia Commons']],
   ['Beta 0.405', '14 nov', ['Rapportera fel i Support öppnar nu nyckelpigan som den ska', 'Växter, verktyg och inställningar som öppnas från en ruta (till exempel en lista) stängs inte längre direkt igen']],
   ['Beta 0.404', '14 nov', ['Växtgrupp i filtret har fler val: ormbunkar, köttätande, suckulenter, palmer, gräs, barrträd, rosor, rhododendron, klematis, hostor, begonior, pelargoner och marantaväxter', 'Växter kan nu ha flera svenska namn: Dyntaxas namn och vardagsnamnet. Båda går att söka på, och växtsidan visar "Även kallad"', 'Märken för fridlyst, rödlistad och invasiv på växtkort, nytt filter "Status i Sverige", varning när du sätter ut en invasiv art, och alternativa namn syns i söklistan', 'Växtsidan har ett stycke "Om arten" med en kort beskrivning från svenska Wikipedia (med källa)', 'Växtsidan visar när arten har rapporterats i Sverige, månad för månad (GBIF)', 'Växtsidan visar var arten naturligt växer (ursprung, från Kew)', 'Väderkortet visar vanligaste datum för sista vårfrost och första höstfrost på din plats (SMHI, medianen för 30 år)', 'Väderkortet visar hur många soltimmar månaden brukar ha på din plats (SMHI, medelvärde 30 år)', 'Väderkortet kan visa vilka växter som setts nära dig de senaste veckorna (iNaturalist, bara fria foton) och hur ofta arten rapporterats nära dig (GBIF)', 'Väderkortet visar jordtemperaturen och pollenprognosen från Pollenrapporten (Naturhistoriska riksmuseet)']],
@@ -15150,7 +15220,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.406';
+const APP_VERSION = 'Beta 0.407';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
