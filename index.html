@@ -10497,6 +10497,7 @@ function detail() {
   ${tips.length ? `<div class="sec"><h2>Skötseltips</h2></div><div class="tips">${tips.map(t => `<div class="tipr"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>${t[0]}</b><span>${esc(t[1])}</span></div></div>`).join('')}</div>` : ''}
   ${wikiV(p)}
   ${obsV(p)}
+  ${originV(p)}
   ${similar.length ? `<div class="sec"><h2>Liknande växter</h2></div><div class="similar">${similar.map(s => `<button onclick="openPlant(${s.id})">${plantPh(s)}<span>${esc(s.swedish_name)}</span></button>`).join('')}</div>` : ''}
   ${my ? `<div class="pad" style="padding-top:14px"><button class="setrow" onclick="openDoc(${my.id})"><span class="tic doc">${ic(DOCI, 'currentColor', 20)}</span><span class="grow"><b>Något som inte ser friskt ut?</b><span>Fråga Växtdoktorn om skador och ohyra</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>` : ''}
   ${othersV(p)}
@@ -10742,6 +10743,17 @@ async function wikiLoad(k) {
   WIKI[k] = d;
   const cur = S.sel ? plantById(S.sel) : null;
   if (d && cur && wikiKey(cur) === k) keepMain();
+}
+let ORIGIN;
+function originV(p) {
+  const k = (p.latin_name || '').trim(); if (!/^[A-Z][a-z]+ [a-z-]+$/.test(k)) return '';
+  if (ORIGIN === undefined) { ORIGIN = null; fetch('data/origin.json').then(r => r.ok ? r.json() : null).then(d => { ORIGIN = d; if (d) { const cur = S.sel ? plantById(S.sel) : null; if (cur && d.p[(cur.latin_name || '').trim()]) keepMain(); } }).catch(e => { console.warn('Roothood:', e); }); return ''; }
+  const ids = ORIGIN && ORIGIN.p[k]; if (!ids || !ids.length) return '';
+  const rs = ids.map(i => ORIGIN.r[i - 1]).filter(Boolean); if (!rs.length) return '';
+  let nm = rs.map(r => r[0]);
+  if (rs.length > 5) { const cnt = {}; rs.forEach(r => { cnt[r[1]] = (cnt[r[1]] || 0) + 1; }); const big = Object.keys(cnt).filter(c => cnt[c] >= 2); nm = big.length ? big : Object.keys(cnt); }
+  const txt = nm.length > 1 ? nm.slice(0, -1).join(', ') + ' och ' + nm[nm.length - 1] : nm[0];
+  return `<div class="sec"><h2>Ursprung</h2></div><div class="pad" style="padding-top:0"><p class="wikitxt">Växer naturligt i: ${esc(txt)}${rs.length > 5 ? ' (flera regioner)' : ''}.</p><small class="mut">Gäller arten, inte sorten. Källa: WCVP, Royal Botanic Gardens, Kew (CC BY 3.0).</small></div>`;
 }
 const OBS = {};
 async function obsLoad(k) {
@@ -12416,7 +12428,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
-  ['Beta 0.404', '14 nov', ['Växtgrupp i filtret har fler val: ormbunkar, köttätande, suckulenter, palmer, gräs, barrträd, rosor, rhododendron, klematis, hostor, begonior, pelargoner och marantaväxter', 'Växter kan nu ha flera svenska namn: Dyntaxas namn och vardagsnamnet. Båda går att söka på, och växtsidan visar "Även kallad"', 'Märken för fridlyst, rödlistad och invasiv på växtkort, nytt filter "Status i Sverige", varning när du sätter ut en invasiv art, och alternativa namn syns i söklistan', 'Växtsidan har ett stycke "Om arten" med en kort beskrivning från svenska Wikipedia (med källa)', 'Växtsidan visar när arten har rapporterats i Sverige, månad för månad (GBIF)', 'Väderkortet visar jordtemperaturen och pollen (i Europa, när det finns pollen i luften)']],
+  ['Beta 0.404', '14 nov', ['Växtgrupp i filtret har fler val: ormbunkar, köttätande, suckulenter, palmer, gräs, barrträd, rosor, rhododendron, klematis, hostor, begonior, pelargoner och marantaväxter', 'Växter kan nu ha flera svenska namn: Dyntaxas namn och vardagsnamnet. Båda går att söka på, och växtsidan visar "Även kallad"', 'Märken för fridlyst, rödlistad och invasiv på växtkort, nytt filter "Status i Sverige", varning när du sätter ut en invasiv art, och alternativa namn syns i söklistan', 'Växtsidan har ett stycke "Om arten" med en kort beskrivning från svenska Wikipedia (med källa)', 'Växtsidan visar när arten har rapporterats i Sverige, månad för månad (GBIF)', 'Växtsidan visar var arten naturligt växer (ursprung, från Kew)', 'Väderkortet visar jordtemperaturen och pollen (i Europa, när det finns pollen i luften)']],
   ['Beta 0.403', '13 nov', ['62 växter utan bild har fått ett foto från iNaturalist, bara med fri licens och med fotografens namn under bilden']],
   ['Beta 0.402', '13 nov', ['Växtsidan visar nu om arten är fridlyst, rödlistad eller invasiv i Sverige (källa: Artdatabanken)']],
   ['Beta 0.401', '13 nov', ['Väder: SMHI:s officiella varningar (kyla, vind, skyfall, vattenbrist m.m.) visas för din ort i Sverige. Utomlands används Open-Meteo som förut']],
