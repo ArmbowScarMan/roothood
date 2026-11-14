@@ -3005,6 +3005,7 @@ const sbApi = {
   async myPlantFollows() { const { data, error } = await sb.from('plant_follows').select('species').eq('user_id', S.user.id); if (error) throw error; return (data || []).map(x => x.species); },
   async followPlant(sp, on) { const r = on ? await sb.from('plant_follows').upsert({ user_id: S.user.id, species: sp }) : await sb.from('plant_follows').delete().eq('user_id', S.user.id).eq('species', sp); if (r.error) throw r.error; },
   async modPlants() { const { data, error } = await sb.rpc('mod_plants_queue'); if (error) throw /mod_plants/.test(error.message || '') ? new Error('MOD_NOT_READY') : error; return data || []; },
+  async modPlantUpdate(id, patch) { const { error } = await sb.rpc('mod_plant_update', { p_id: id, p_patch: patch }); if (error) throw /mod_plant_update/.test(error.message || '') ? new Error('Granskningen behöver SQL 108 i Supabase.') : /NOT_PENDING/.test(error.message || '') ? new Error('Växten är redan granskad.') : error; },
   async modPlantDecide(id, ok) { const { error } = await sb.rpc('mod_plant_decide', { p_id: id, p_approve: ok }); if (error) throw error; },
   async modBest() { const { data, error } = await sb.rpc('mod_best_queue'); if (error) throw /mod_best/.test(error.message || '') ? new Error('MOD_NOT_READY') : error; return (data || []).map(r => ({ post_id: r.post_id, question: r.question, answer_id: r.answer_id, answer_text: r.answer_text, answer_author: r.answer_author, asked_by: r.asked_by, asked_at: r.asked_at })); },
   async modBestCount() { const { data, error } = await sb.rpc('mod_best_count'); return error ? 0 : (data || 0); },
@@ -9084,7 +9085,7 @@ function modV() {
   } else if (t === 'best') {
     body = D.length ? `<div class="pad">${D.map(r => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">Fråga av ${esc(r.asked_by || 'okänd')} · ${ago(r.asked_at)}</small><p style="margin:8px 0 4px">”${esc((r.question || '').slice(0, 200))}”</p><small class="mut">Föreslaget bästa svar av ${esc(r.answer_author || 'okänd')}</small><p style="margin:6px 0 0;white-space:pre-line">${esc(r.answer_text || '')}</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="modBestAct(${r.post_id},true)">Godkänn</button><button class="btn sm line" onclick="modBestAct(${r.post_id},false)">Avslå</button></div></div>`).join('')}</div>` : '<p class="mut" style="margin:16px 18px">Inga svar väntar på godkännande.</p>';
   } else if (t === 'plants') {
-    body = D.length ? `<div class="pad">${D.map(p => `<div class="card modc" style="padding:14px;margin-bottom:12px"><b>${esc(p.swedish_name || 'Okänd växt')}</b><small class="mut" style="display:block">${esc(p.latin_name || '')}${p.category ? ' · ' + esc(p.category) : ''}</small>${p.toxicity_text ? `<p style="margin:8px 0 0;font-size:14px">${esc(p.toxicity_text)}</p>` : ''}${p.tips ? `<p class="mut" style="margin:6px 0 0;font-size:13px;white-space:pre-line">${esc(p.tips)}</p>` : ''}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="modPlantAct(${+p.id},true)">Godkänn</button><button class="btn sm line" onclick="modPlantAct(${+p.id},false)">Avvisa</button></div></div>`).join('')}</div>` : '<p class="mut" style="margin:16px 18px">Inga växter väntar på granskning.</p>';
+    body = D.length ? `<div class="pad"><p class="mut" style="margin:0 0 12px;font-size:13px">Användarnas förslag. Rätta det som är fel innan du godkänner. Det som inte går att kontrollera kan du tömma, då visas "Uppgift saknas".</p>${D.map(modPlantCardV).join('')}</div>` : '<p class="mut" style="margin:16px 18px">Inga växter väntar på granskning.</p>';
   } else if (t === 'online') {
     body = modOnlineV(D);
   } else if (t === 'stats') {
@@ -10815,7 +10816,7 @@ function originV(p) {
   let nm = rs.map(r => r[0]);
   if (rs.length > 5) { const cnt = {}; rs.forEach(r => { cnt[r[1]] = (cnt[r[1]] || 0) + 1; }); const big = Object.keys(cnt).filter(c => cnt[c] >= 2); nm = big.length ? big : Object.keys(cnt); }
   const txt = nm.length > 1 ? nm.slice(0, -1).join(', ') + ' och ' + nm[nm.length - 1] : nm[0];
-  return `<div class="sec"><h2>Ursprung</h2></div><div class="pad" style="padding-top:0"><p class="wikitxt">Växer naturligt i: ${esc(txt)}${rs.length > 5 ? ' (flera regioner)' : ''}.</p><small class="mut">Gäller arten, inte sorten. Källa: WCVP, Royal Botanic Gardens, Kew (CC BY 3.0).</small></div>`;
+  return `<div class="sec"><h2>Ursprung</h2></div><div class="pad" style="padding-top:0"><p class="wikitxt">Växer naturligt i: ${esc(txt)}${rs.length > 5 ? ' (flera regioner)' : ''}.</p><small class="mut">Gäller arten, inte sorten.${ORIGIN.a && ORIGIN.a[k] ? ' Kew räknar namnet som synonym till <i>' + esc(ORIGIN.a[k]) + '</i>.' : ''} Källa: WCVP, Royal Botanic Gardens, Kew (CC BY 3.0).</small></div>`;
 }
 const OBS = {};
 async function obsLoad(k) {
@@ -11041,6 +11042,32 @@ function toggleLike(pid) {
   commRun(async () => { try { await api.like(pid, on); } catch (e) { p.likers = prev; render(); throw e; } });
 }
 function markBest(pid, aid) { commRun(() => api.best(pid, aid), 'Skickat till en moderator för godkännande'); }
+const MOD_PF = [['swedish_name', 'Svenskt namn'], ['latin_name', 'Vetenskapligt namn'], ['family', 'Familj'], ['genus', 'Släkte'], ['species', 'Art'], ['cultivar', 'Sort'], ['soil', 'Jord'], ['temperature', 'Temperatur'], ['humidity', 'Luftfuktighet'], ['toxicity_text', 'Giftighet'], ['propagation', 'Förökning'], ['common_problems', 'Vanliga problem'], ['hardiness_zone', 'Härdighetszon'], ['tips', 'Tips']];
+function modPlantCardV(p) {
+  const id = +p.id, ed = S.modEdit === id;
+  const opt = (arr, v) => `<option value="">Uppgift saknas</option>` + arr.map((x, i) => `<option value="${i + 1}" ${+v === i + 1 ? 'selected' : ''}>${x}</option>`).join('');
+  if (ed) return `<div class="card modc" style="padding:14px;margin-bottom:12px"><b>Rätta förslaget</b>
+    ${MOD_PF.map(([k, l]) => `<label class="fl" for="mpe_${k}">${l}</label>${k === 'tips' || k === 'common_problems' ? `<textarea id="mpe_${k}" rows="2" maxlength="400">${esc(p[k] || '')}</textarea>` : `<input id="mpe_${k}" maxlength="160" value="${esc(p[k] || '')}">`}`).join('')}
+    <label class="fl" for="mpe_category">Kategori</label><select id="mpe_category">${CATS.map(c => `<option ${c === p.category ? 'selected' : ''}>${c}</option>`).join('')}</select>
+    <div class="row2"><div><label class="fl" for="mpe_light_level">Ljus</label><select id="mpe_light_level">${opt(LIGHT, p.light_level)}</select></div><div><label class="fl" for="mpe_water_level">Vatten</label><select id="mpe_water_level">${opt(WATER, p.water_level)}</select></div></div>
+    <label class="fl" for="mpe_water_interval_days">Vattna var … dag (tomt = vid torka)</label><input id="mpe_water_interval_days" type="number" min="1" max="90" value="${p.water_interval_days || ''}">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="modPlantSave(${id},true)">Spara och godkänn</button><button class="btn sm line" onclick="modPlantSave(${id},false)">Spara</button><button class="btn sm line" onclick="S.modEdit=null;render()">Avbryt</button></div></div>`;
+  const row = (l, v) => v ? `<div style="font-size:13.5px;margin-top:4px"><span class="mut">${l}:</span> ${esc(String(v))}</div>` : '';
+  return `<div class="card modc" style="padding:14px;margin-bottom:12px">${p.photo_url ? `<img src="${esc(p.photo_url)}" alt="" loading="lazy" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:10px">` : ''}<b>${esc(p.swedish_name || 'Okänd växt')}</b><small class="mut" style="display:block">${esc(p.latin_name || '')}${p.category ? ' · ' + esc(p.category) : ''}</small>
+    ${row('Ljus', p.light_level ? LIGHT[p.light_level - 1] : '')}${row('Vatten', p.water_level ? WATER[p.water_level - 1] : '')}${row('Vattna', p.water_text)}
+    ${MOD_PF.slice(2).map(([k, l]) => row(l, p[k])).join('')}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="modPlantAct(${id},true)">Godkänn</button><button class="btn sm line" onclick="S.modEdit=${id};render()">Rätta</button><button class="btn sm line" onclick="modPlantAct(${id},false)">Avvisa</button></div></div>`;
+}
+async function modPlantSave(id, approve) {
+  const v = k => { const el = $('#mpe_' + k); return el ? el.value.trim() : ''; };
+  const patch = {}; MOD_PF.forEach(([k]) => { patch[k] = v(k); });
+  if (!patch.swedish_name) return toast('Namnet behövs');
+  patch.category = v('category'); patch.light_level = v('light_level'); patch.water_level = v('water_level'); patch.water_interval_days = v('water_interval_days');
+  patch.light_text = patch.light_level ? LIGHT[+patch.light_level - 1] : '';
+  const iv = +patch.water_interval_days; patch.water_text = iv > 0 ? `Ungefär var ${iv}${ord(iv)} dag` : 'Vattna vid torka';
+  try { await api.modPlantUpdate(id, patch); if (approve) await api.modPlantDecide(id, true); S.modEdit = null; toast(approve ? 'Rättad och godkänd. Växten syns för alla' : 'Rättelsen är sparad'); } catch (e) { return toast(errMsg(e)); }
+  loadMod();
+}
 async function modPlantAct(id, ok) { try { await api.modPlantDecide(id, ok); toast(ok ? 'Växten är godkänd och syns för alla' : 'Växten är avvisad'); } catch (e) { toast(errMsg(e)); } loadMod(); }
 async function modBestAct(pid, ok) { try { await api.modBestDecide(pid, ok); toast(ok ? 'Godkänt som bästa svar' : 'Avslaget'); } catch (e) { toast(errMsg(e)); } loadMod(); }
 function delPost(id) {
@@ -12503,6 +12530,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.406', '14 nov', ['Moderatorer ser alla uppgifter i föreslagna växter och kan rätta dem innan de godkänns', 'Ursprung visas också för växter med äldre vetenskapligt namn (Kew räknar namnet som synonym)', 'Tydligare meddelande när du inte är inloggad eller har nått dagens gräns för identifieringar', 'Fler svenska namn enligt Artdatabanken (gamla namn går fortfarande att söka på), rättade familjer och stavningar', 'Hundratals växter och sorter har fått foton från Wikimedia Commons']],
   ['Beta 0.405', '14 nov', ['Rapportera fel i Support öppnar nu nyckelpigan som den ska', 'Växter, verktyg och inställningar som öppnas från en ruta (till exempel en lista) stängs inte längre direkt igen']],
   ['Beta 0.404', '14 nov', ['Växtgrupp i filtret har fler val: ormbunkar, köttätande, suckulenter, palmer, gräs, barrträd, rosor, rhododendron, klematis, hostor, begonior, pelargoner och marantaväxter', 'Växter kan nu ha flera svenska namn: Dyntaxas namn och vardagsnamnet. Båda går att söka på, och växtsidan visar "Även kallad"', 'Märken för fridlyst, rödlistad och invasiv på växtkort, nytt filter "Status i Sverige", varning när du sätter ut en invasiv art, och alternativa namn syns i söklistan', 'Växtsidan har ett stycke "Om arten" med en kort beskrivning från svenska Wikipedia (med källa)', 'Växtsidan visar när arten har rapporterats i Sverige, månad för månad (GBIF)', 'Växtsidan visar var arten naturligt växer (ursprung, från Kew)', 'Väderkortet visar vanligaste datum för sista vårfrost och första höstfrost på din plats (SMHI, medianen för 30 år)', 'Väderkortet visar hur många soltimmar månaden brukar ha på din plats (SMHI, medelvärde 30 år)', 'Väderkortet kan visa vilka växter som setts nära dig de senaste veckorna (iNaturalist, bara fria foton) och hur ofta arten rapporterats nära dig (GBIF)', 'Väderkortet visar jordtemperaturen och pollenprognosen från Pollenrapporten (Naturhistoriska riksmuseet)']],
   ['Beta 0.403', '13 nov', ['62 växter utan bild har fått ett foto från iNaturalist, bara med fri licens och med fotografens namn under bilden']],
@@ -14860,9 +14888,9 @@ async function plantnetIdentify(file, organ) {
   if (r.status === 400 && files.length > 1) { r = await send([files[0]], [organs[0]]); single = true; }
   if (r.status === 400 && organs[0] !== 'auto') r = await send([files[0]], ['auto']);
   if (r.status === 404) throw new Error('Ingen växt hittades. Prova en skarpare bild, nära ett blad eller en blomma.');
-  if (r.status === 401) throw new Error('Pl@ntNet känner inte igen nyckeln (fel 401). Kontrollera att hela nyckeln är rätt.');
+  if (r.status === 401) { let t = ''; try { t = await r.text(); } catch (e) { console.warn('Roothood:', e); } throw new Error(/Logga in/.test(t) ? 'Logga in för att identifiera växter.' : 'Pl@ntNet känner inte igen nyckeln (fel 401).'); }
   if (r.status === 403) throw new Error('Pl@ntNet godkänner inte den här adressen (fel 403). Kontrollera "Expose my API key" och godkända domäner.');
-  if (r.status === 429) throw new Error('Dagens gräns för identifieringar är nådd. Försök igen i morgon.');
+  if (r.status === 429) { let j = {}; try { j = await r.json(); } catch (e) { console.warn('Roothood:', e); } throw new Error(j.pro_hint ? `Du har använt dagens ${j.limit || 3} identifieringar. Med Roothood Pro kan du identifiera hur många du vill. Annars kan du försöka igen i morgon.` : 'Dagens gräns för identifieringar är nådd. Försök igen i morgon.'); }
   if (!r.ok) throw new Error('Identifieringen misslyckades (fel ' + r.status + '). Försök igen.');
   const j = await r.json();
   const res = (j.results || []).slice(0, 5).map(x => ({ latin: x.species.scientificNameWithoutAuthor, genus: x.species.genus && x.species.genus.scientificNameWithoutAuthor, family: x.species.family && x.species.family.scientificNameWithoutAuthor, common: (x.species.commonNames || [])[0], score: x.score,
@@ -15122,7 +15150,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.405';
+const APP_VERSION = 'Beta 0.406';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];

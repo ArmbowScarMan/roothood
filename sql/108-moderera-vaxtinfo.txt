@@ -1,0 +1,36 @@
+-- 108: Moderatorer kan rätta uppgifterna i en föreslagen växt innan den godkänns.
+-- Bara väntande växter (status pending) och bara de fält som användaren kan fylla i.
+
+create or replace function public.mod_plant_update(p_id bigint, p_patch jsonb)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare t text := nullif(trim(coalesce(p_patch->>'swedish_name','')), '');
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  if t is null then raise exception 'NAME_REQUIRED'; end if;
+  update public.plants set
+    swedish_name = t,
+    latin_name = coalesce(nullif(trim(p_patch->>'latin_name'), ''), ''),
+    category = coalesce(nullif(p_patch->>'category', ''), category),
+    light_level = nullif(p_patch->>'light_level', '')::smallint,
+    water_level = nullif(p_patch->>'water_level', '')::smallint,
+    water_interval_days = nullif(p_patch->>'water_interval_days', '')::smallint,
+    light_text = nullif(trim(p_patch->>'light_text'), ''),
+    water_text = nullif(trim(p_patch->>'water_text'), ''),
+    soil = nullif(trim(p_patch->>'soil'), ''),
+    temperature = nullif(trim(p_patch->>'temperature'), ''),
+    humidity = nullif(trim(p_patch->>'humidity'), ''),
+    toxicity_text = nullif(trim(p_patch->>'toxicity_text'), ''),
+    propagation = nullif(trim(p_patch->>'propagation'), ''),
+    common_problems = nullif(trim(p_patch->>'common_problems'), ''),
+    tips = nullif(trim(p_patch->>'tips'), ''),
+    hardiness_zone = nullif(trim(p_patch->>'hardiness_zone'), ''),
+    family = nullif(trim(p_patch->>'family'), ''),
+    genus = nullif(trim(p_patch->>'genus'), ''),
+    species = nullif(trim(p_patch->>'species'), ''),
+    cultivar = nullif(trim(p_patch->>'cultivar'), '')
+  where id = p_id and status = 'pending';
+  if not found then raise exception 'NOT_PENDING'; end if;
+end $$;
+revoke all on function public.mod_plant_update(bigint, jsonb) from public;
+grant execute on function public.mod_plant_update(bigint, jsonb) to authenticated;
