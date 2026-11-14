@@ -10815,7 +10815,7 @@ function originV(p) {
   let nm = rs.map(r => r[0]);
   if (rs.length > 5) { const cnt = {}; rs.forEach(r => { cnt[r[1]] = (cnt[r[1]] || 0) + 1; }); const big = Object.keys(cnt).filter(c => cnt[c] >= 2); nm = big.length ? big : Object.keys(cnt); }
   const txt = nm.length > 1 ? nm.slice(0, -1).join(', ') + ' och ' + nm[nm.length - 1] : nm[0];
-  return `<div class="sec"><h2>Ursprung</h2></div><div class="pad" style="padding-top:0"><p class="wikitxt">Växer naturligt i: ${esc(txt)}${rs.length > 5 ? ' (flera regioner)' : ''}.</p><small class="mut">Gäller arten, inte sorten. Källa: WCVP, Royal Botanic Gardens, Kew (CC BY 3.0).</small></div>`;
+  return `<div class="sec"><h2>Ursprung</h2></div><div class="pad" style="padding-top:0"><p class="wikitxt">Växer naturligt i: ${esc(txt)}${rs.length > 5 ? ' (flera regioner)' : ''}.</p><small class="mut">Gäller arten, inte sorten.${ORIGIN.a && ORIGIN.a[k] ? ' Kew räknar namnet som synonym till <i>' + esc(ORIGIN.a[k]) + '</i>.' : ''} Källa: WCVP, Royal Botanic Gardens, Kew (CC BY 3.0).</small></div>`;
 }
 const OBS = {};
 async function obsLoad(k) {
@@ -14860,9 +14860,9 @@ async function plantnetIdentify(file, organ) {
   if (r.status === 400 && files.length > 1) { r = await send([files[0]], [organs[0]]); single = true; }
   if (r.status === 400 && organs[0] !== 'auto') r = await send([files[0]], ['auto']);
   if (r.status === 404) throw new Error('Ingen växt hittades. Prova en skarpare bild, nära ett blad eller en blomma.');
-  if (r.status === 401) throw new Error('Pl@ntNet känner inte igen nyckeln (fel 401). Kontrollera att hela nyckeln är rätt.');
+  if (r.status === 401) { let t = ''; try { t = await r.text(); } catch (e) { console.warn('Roothood:', e); } throw new Error(/Logga in/.test(t) ? 'Logga in för att identifiera växter.' : 'Pl@ntNet känner inte igen nyckeln (fel 401).'); }
   if (r.status === 403) throw new Error('Pl@ntNet godkänner inte den här adressen (fel 403). Kontrollera "Expose my API key" och godkända domäner.');
-  if (r.status === 429) throw new Error('Dagens gräns för identifieringar är nådd. Försök igen i morgon.');
+  if (r.status === 429) { let j = {}; try { j = await r.json(); } catch (e) { console.warn('Roothood:', e); } throw new Error(j.pro_hint ? `Du har använt dagens ${j.limit || 3} identifieringar. Med Roothood Pro kan du identifiera hur många du vill. Annars kan du försöka igen i morgon.` : 'Dagens gräns för identifieringar är nådd. Försök igen i morgon.'); }
   if (!r.ok) throw new Error('Identifieringen misslyckades (fel ' + r.status + '). Försök igen.');
   const j = await r.json();
   const res = (j.results || []).slice(0, 5).map(x => ({ latin: x.species.scientificNameWithoutAuthor, genus: x.species.genus && x.species.genus.scientificNameWithoutAuthor, family: x.species.family && x.species.family.scientificNameWithoutAuthor, common: (x.species.commonNames || [])[0], score: x.score,
