@@ -203,6 +203,7 @@ html[data-simple] .btn.sm,#tourcard .btn.sm{min-height:46px}html[data-simple] #t
 .like.on{background:var(--acc);color:#fff}
 .ask{background:var(--surf);border-radius:24px;padding:14px;margin:12px 18px 6px;box-shadow:var(--sh)}
 .ask textarea{border:0;background:var(--bg);resize:none;border-radius:16px}
+.ask .qtit{width:100%;border:0;background:var(--bg);border-radius:16px;padding:12px 14px;font:inherit;font-size:17px;font-weight:700;color:var(--ink);margin-bottom:8px}
 .askrow{display:flex;gap:10px;margin-top:10px}
 .askrow select{flex:1;padding:9px 12px;background:var(--bg);border:0;border-radius:999px}
 .prow{display:flex;gap:14px;align-items:center;margin-top:12px}
@@ -2146,6 +2147,9 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
 :root[data-ui=stad] .x40{width:40px;height:40px;border:0;background:none;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;border-radius:50%}
 :root[data-ui=stad] .ask2 textarea{width:100%;min-height:96px;resize:none;border:1px solid var(--line);border-radius:14px;background:transparent;padding:12px 14px;font:inherit;font-size:16px;color:var(--ink);box-shadow:none}
 :root[data-ui=stad] .ask2 textarea:focus{outline:none;border-color:var(--pri)}
+:root[data-ui=stad] .ask2 .qtit{width:100%;border:1px solid var(--line);border-radius:14px;background:transparent;padding:12px 14px;font:inherit;font-size:17px;font-weight:700;color:var(--ink);margin-bottom:8px;box-shadow:none}
+:root[data-ui=stad] .ask2 .qtit:focus{outline:none;border-color:var(--pri)}
+:root[data-ui=stad] .modal:has(#nqt:focus){min-height:92vh}
 :root[data-ui=stad] .qlbl{margin:16px 0 8px;font-size:13px;color:var(--mut)}
 :root[data-ui=stad] .qpcs{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding:4px 2px}
 :root[data-ui=stad] .qpcs::-webkit-scrollbar{display:none}
@@ -2965,7 +2969,7 @@ const sbApi = {
       answers: a.data.filter(x => x.post_id === p.id).map(x => ({ ...x, author: name(x.user_id), author_pro: isPro(x.user_id), author_badge: bOf(x.user_id) })),
       likers: l.data.filter(x => x.post_id === p.id).map(x => x.user_id) }));
   },
-  async ask(cat, body, photo) { const url = photo ? await uploadPhoto(photo) : null, row = { user_id: S.user.id, category: cat, body }; if (url) row.photo_url = url; const { error } = await sb.from('posts').insert(row); if (error) throw error; },
+  async ask(cat, body, photo, title) { const url = photo ? await uploadPhoto(photo) : null, row = { user_id: S.user.id, category: cat, body }; if (title) row.title = title; if (url) row.photo_url = url; const { error } = await sb.from('posts').insert(row); if (error) throw error; },
   async newThread(cat, title, body, photo) { const url = photo ? await uploadPhoto(photo) : null, row = { user_id: S.user.id, kind: 'thread', category: cat, title, body }; if (url) row.photo_url = url; const { error } = await sb.from('posts').insert(row); if (error) throw error; },
   async newListing(type, title, body, city, photo) {
     const url = photo ? await uploadPhoto(photo) : null;
@@ -3130,7 +3134,7 @@ function sheetAnim() { if (!S.modal) { sheetOpen = null; return; } if (sheetOpen
 // Stänger direkt som förut. En kopia av panelen glider ut och tas sedan bort, så att inget annat behöver vänta.
 function closeModal() { if (S.modal === 'zonepick' && !store.get('zone', 0)) return; if (S.modal === 'namepick' && !S.namesOk) return;
   // Städad (129): stänger man Ställ en fråga med text i fältet frågar appen först
-  if (S.modal === 'askq' && stadUI() && ((S.draft || '').trim() || S.cph) && !S.askDiscard) { S.askDiscard = true; return keepScroll(); }
+  if (S.modal === 'askq' && stadUI() && ((S.draft || '').trim() || (S.qtitle || '').trim() || S.cph) && !S.askDiscard) { S.askDiscard = true; return keepScroll(); }
   S.askDiscard = false; const o = $('#ov .ov');
   if (o && o.animate) { const g = o.cloneNode(true); g.removeAttribute('onclick'); g.style.pointerEvents = 'none'; g.setAttribute('aria-hidden', 'true'); $('#ov').after(g); const gm = g.querySelector('.modal');
     g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'forwards' });
@@ -3652,7 +3656,7 @@ const GLOSS = {
 };
 function glossD(terms, label) { return `<details class="faq gloss"><summary>${esc(label || 'Vad betyder orden?')}</summary>${(terms || Object.keys(GLOSS)).filter(t => GLOSS[t]).map(t => `<p><b>${esc(t)}:</b> ${esc(GLOSS[t])}</p>`).join('')}</details>`; }
 const SUPPORT_FAQ = [
-  ['Hur lägger jag till en växt?', 'Gå till Start och tryck Sök växter. Sök på namnet och tryck Lägg till i min samling.'],
+  ['Hur lägger jag till en växt?', 'Gå till Start och tryck Växtbiblioteket. Sök på namnet och tryck Lägg till i min samling.'],
   ['Jag får inga påminnelser', 'Öppna Inställningar och slå på notiser och välj vilken tid du vill ha dem. Tillåt också notiser för Roothood i telefonens inställningar.'],
   ['Hur gör jag appen enklare?', 'Öppna Inställningar, välj Vy och tryck Enkel. Där kan du också göra texten större.'],
   ['Hur raderar jag mitt konto?', 'Öppna Inställningar och välj Konto. Där kan du radera kontot och allt som hör till det.'],
@@ -3693,7 +3697,7 @@ function firstGoalV() {
   ${b('ph-chats-circle', 'Fråga om en växt', 'Få svar direkt eller fråga andra odlare.', 'openAsk()')}</div>`;
 }
 function simpleTilesV() {
-  return `<div class="simpletiles"><button onclick="S.mtab='mine';go('mine')">${ic('ph-plant', 'currentColor', 34)}Min samling</button><button onclick="openAsk()">${ic('ph-sparkle', 'currentColor', 34)}Fråga om en växt</button><button onclick="openDb()">${ic('ph-magnifying-glass', 'currentColor', 34)}Sök växter</button><button onclick="go('comm');setCtab('q')">${ic('ph-chats-circle', 'currentColor', 34)}Fråga andra</button></div>`;
+  return `<div class="simpletiles"><button onclick="S.mtab='mine';go('mine')">${ic('ph-plant', 'currentColor', 34)}Min samling</button><button onclick="openAsk()">${ic('ph-sparkle', 'currentColor', 34)}Fråga om en växt</button><button onclick="openDb()">${ic('ph-magnifying-glass', 'currentColor', 34)}Växtbiblioteket</button><button onclick="go('comm');setCtab('q')">${ic('ph-chats-circle', 'currentColor', 34)}Fråga andra</button></div>`;
 }
 // Namn: man anger förnamn och efternamn. Andra ser bara förnamn och efternamnets första bokstav, t.ex. Jim O.
 function pubName(f, l) { const cap = x => { x = (x || '').trim().replace(/\s+/g, ' '); return x.charAt(0).toLocaleUpperCase('sv') + x.slice(1); }; f = cap(f); l = cap(l); return l ? (f + ' ' + l.charAt(0)).trim() : f; }
@@ -7855,7 +7859,7 @@ function render() {
 }
 // ===== Kom ihåg var man var (och tillbaka-knappen) =====
 let curHash = null, scrollT = null;
-const TOOL_LABEL = { sunpath: 'Solbana', house: 'Ritning', people: 'Vänner', mod: 'Moderering', explore: 'Utforska', experts: 'Experter', user: 'Användarprofil', settings: 'Inställningar', notif: 'Notiser', msgs: 'Meddelanden', chat: 'Chatt', news: 'Nyheter', nearby: 'Händer nära dig', pets: 'Djur', season: 'Säsong', learn: 'Lär dig', inspo: 'Inspiration', ask: 'Snabbfråga', db: 'Växtdatabas', sow: 'Så och skörd', smart: 'Smarta förslag', perma: 'Perma', compass: 'Kompass' };
+const TOOL_LABEL = { sunpath: 'Solbana', house: 'Ritning', people: 'Vänner', mod: 'Moderering', explore: 'Utforska', experts: 'Experter', user: 'Användarprofil', settings: 'Inställningar', notif: 'Notiser', msgs: 'Meddelanden', chat: 'Chatt', news: 'Nyheter', nearby: 'Händer nära dig', pets: 'Djur', season: 'Säsong', learn: 'Lär dig', inspo: 'Inspiration', ask: 'Snabbfråga', db: 'Växtbiblioteket', sow: 'Så och skörd', smart: 'Smarta förslag', perma: 'Perma', compass: 'Kompass' };
 const TAB_LABEL = { home: 'Start', mine: 'Min samling', comm: 'Gemenskap', me: 'Profil' };
 function viewName() { // läsbar text om var användaren var, t.ex. "Ritning · Rum: Kök (#t/house/kok)"
   const hash = viewHash();
@@ -10186,7 +10190,7 @@ const CHATI = 'ph-chats-circle', PEOPLEI = 'ph-users';
 const EXPI = 'ph-compass', SWAPI = 'ph-arrows-left-right', BELLI = I.bell, BEDI = 'ph-flower';
 // [nyckel, namn, ikon, färgklass, handling, pro]
 const QUICK = () => [
-  ['ask', 'Snabbfråga', 'ph-sparkle', 'xp', 'openAsk()'], ['db', 'Sök växter', I.search, 'db', 'openDb()'], ['id', 'Identifiera', CAM, '', "openTool('id')", 1], ['doc', 'Växtdoktorn', DOCI, 'doc', 'openDoc()', 1],  ['house', 'Mitt hem', DOORI, 'house', 'openHouse()', 1], ['bed', 'Planera rabatt', BEDI, 'db', "openBedPlan()", 1], ['light', 'Ljusmätare', I.sun, 'sun', "openTool('light')", 1], ['nearby', 'Trädgårdar nära dig', 'ph-map-pin', 'inspo', 'openNearby()', 1], ['compass', 'Kompass', 'ph-compass', 'sun', 'openCompass()'], ['sunpath', 'Solbana', 'ph-sun-horizon', 'sun', 'openSunPath()'], ['elev', 'Marknivå', 'ph-mountains', 'sun', 'openElev()'], ['sit', 'Växtpassning', 'ph-hand-heart', 'house', 'openSit()'], ['rain', 'Regnvatten', 'ph-cloud-rain', 'xp', 'openRain()'], ['pets', 'Mina djur', I.paw, 'pets', 'openPets()', 1], ['smart', 'Smarta hemmet', HOMEI, 'smart', 'openSmart()', 1],
+  ['ask', 'Snabbfråga', 'ph-sparkle', 'xp', 'openAsk()'], ['db', 'Växtbiblioteket', I.search, 'db', 'openDb()'], ['id', 'Identifiera', CAM, '', "openTool('id')", 1], ['doc', 'Växtdoktorn', DOCI, 'doc', 'openDoc()', 1],  ['house', 'Mitt hem', DOORI, 'house', 'openHouse()', 1], ['bed', 'Planera rabatt', BEDI, 'db', "openBedPlan()", 1], ['light', 'Ljusmätare', I.sun, 'sun', "openTool('light')", 1], ['nearby', 'Trädgårdar nära dig', 'ph-map-pin', 'inspo', 'openNearby()', 1], ['compass', 'Kompass', 'ph-compass', 'sun', 'openCompass()'], ['sunpath', 'Solbana', 'ph-sun-horizon', 'sun', 'openSunPath()'], ['elev', 'Marknivå', 'ph-mountains', 'sun', 'openElev()'], ['sit', 'Växtpassning', 'ph-hand-heart', 'house', 'openSit()'], ['rain', 'Regnvatten', 'ph-cloud-rain', 'xp', 'openRain()'], ['pets', 'Mina djur', I.paw, 'pets', 'openPets()', 1], ['smart', 'Smarta hemmet', HOMEI, 'smart', 'openSmart()', 1],
   ['comm', 'Frågor', CHATI, 'db', "go('comm');setCtab('q')"], ['forum', 'Forum', CHATI, 'xp', "go('comm');setCtab('forum')"], ['swap', 'Byt & ge bort', SWAPI, 'inspo', "go('comm');setCtab('swap')"], ['detect', 'Växtdetektiver', I.search, 'sun', 'openDetect()', 1],
   ['people', 'Hitta vänner', PEOPLEI, 'xp', 'openPeople()'], ['inspo', 'Odlare att följa', INSPI, 'inspo', 'openInspo()', 1], ['season', 'Säsongstips', I.leaf, 'sun', 'openSeason()', 1], ['sow', 'Såkalender', SOWI, 'db', 'openSow()', 1], ['perma', 'Permakultur', I.leaf, 'inspo', 'openPerma()', 1], ['jord', 'Jord och substrat', 'ph-shovel', 'db', "openLearn('jord')", 1], ['hydro', 'Hydroponi', 'ph-drop', 'xp', "openLearn('hydro')", 1], ['naring', 'Gödsel och näring', 'ph-flask', 'sun', "openLearn('naring')", 1], ['ljuslara', 'Ljus', I.sun, 'sun', "openLearn('ljus')", 1], ['rosor', 'Rosor', 'ph-flower', 'inspo', "openLearn('rosor')", 1],
   ['mine', 'Min samling', I.plant || I.leaf, 'db', "S.mtab='mine';go('mine')"], ['care', 'Växtjournalen', CALI, 'sun', 'openCare()'], ['notif', 'Notiser', BELLI, 'house', 'openNotif()'], ['cfg', 'Anpassa Hem', PEN, 'smart', "go('home');openHomeCfg()"],
@@ -10196,7 +10200,7 @@ const favs = () => { const f = store.get('favQuick', null); if (Array.isArray(f)
 
 const SEEDLING = '<path d="M12 21v-9"/><path d="M12 12c0-4 3-6.5 7.5-6.5 0 4.5-3 6.5-7.5 6.5z"/><path d="M12 14.5c0-3.5-2.5-5.5-6.5-5.5 0 3.5 2.5 5.5 6.5 5.5z"/><path d="M7 21h10"/>';
 const WATER_CAN = '<path d="M3 10h12v7a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M15 13l5-7"/><path d="M7 10V7a3 3 0 0 1 6 0"/><path d="M19.5 4.5l1.5-1.5"/><path d="M6 21.5v.5M10 21.5v.5"/>';
-const QPH = { sit: ['ph-hand-heart', 'Växtpassning'], elev: ['ph-mountains', 'Marknivå'], rain: ['ph-cloud-rain', 'Regnvatten'], sunpath: ['ph-sun-horizon', 'Solbana'], jord: ['ph-shovel', 'Jord och substrat'], hydro: ['ph-drop', 'Hydroponi'], naring: ['ph-flask', 'Gödsel och näring'], ljuslara: ['ph-sun', 'Ljus'], rosor: ['ph-flower', 'Rosor'], ask: ['ph-sparkle', 'Snabbfråga'], bed: ['ph-flower-tulip', 'Planera rabatt'], db: ['ph-magnifying-glass', 'Sök växter'], id: ['ph-camera', 'Identifiera'], care: ['ph-notebook', 'Växtjournalen'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-seal-check', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Mina djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: [SEEDLING, 'Såkalender'], perma: ['ph-recycle', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Vad är det för växt?'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
+const QPH = { sit: ['ph-hand-heart', 'Växtpassning'], elev: ['ph-mountains', 'Marknivå'], rain: ['ph-cloud-rain', 'Regnvatten'], sunpath: ['ph-sun-horizon', 'Solbana'], jord: ['ph-shovel', 'Jord och substrat'], hydro: ['ph-drop', 'Hydroponi'], naring: ['ph-flask', 'Gödsel och näring'], ljuslara: ['ph-sun', 'Ljus'], rosor: ['ph-flower', 'Rosor'], ask: ['ph-sparkle', 'Snabbfråga'], bed: ['ph-flower-tulip', 'Planera rabatt'], db: ['ph-magnifying-glass', 'Växtbiblioteket'], id: ['ph-camera', 'Identifiera'], care: ['ph-notebook', 'Växtjournalen'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-seal-check', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Mina djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: [SEEDLING, 'Såkalender'], perma: ['ph-recycle', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Vad är det för växt?'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
 // Mina växter på Hem: kort med bild, de som behöver vatten först
 function mineStrip(sz) { const n = { s: 4, m: 8, l: 14 }[sz || 'm'], L = S.mine.slice().sort((a, b) => { const x = left(a), y = left(b); return (x === null ? 99 : x) - (y === null ? 99 : y); }).slice(0, n);
   // Städad (109): karusell med kort på ca 42 % bredd, alltid riktigt foto eller initial med "Lägg till foto", status som pill och "Visa alla ›"
@@ -11075,13 +11079,13 @@ function qPlantV() {
 }
 function askQ() {
   if (needLogin()) return;
-  const v = S.draft.trim();
-  if (v.length < 5) return toast('Skriv minst 5 tecken.');
+  const v = (S.draft || '').trim(), t = (S.qtitle || '').trim();
+  if (t.length < 3) return toast('Skriv en rubrik på minst 3 tecken.');
   if (!S.qcat) return toast('Välj en kategori först.');
   const m = S.mine.find(x => x.id === S.qplant), info = m ? QMARK + plantBrief(m) : '';
   const body = info ? v.slice(0, 1000 - info.length) + info : v;
-  const cat = S.qcat; S.draft = ''; S.qplant = null; const ph = S.cph; S.cph = null; S.cphUrl = null; S.qcat = ''; S.modal = null; S.askDiscard = false; S.qHi = Date.now();
-  commRun(() => api.ask(cat, body, ph), 'Din fråga är publicerad');
+  const cat = S.qcat; S.draft = ''; S.qtitle = ''; S.qplant = null; const ph = S.cph; S.cph = null; S.cphUrl = null; S.qcat = ''; S.modal = null; S.askDiscard = false; S.qHi = Date.now();
+  commRun(() => api.ask(cat, body, ph, t.slice(0, 120)), 'Din fråga är publicerad');
 }
 function startThread() { if (needLogin()) return; S.newThread = true; render(); const f = $('#tt'); if (f) f.focus(); }
 function sendThread() {
@@ -11275,6 +11279,8 @@ function answersV(p, allowBest) {
 }
 
 // --- Frågor ---
+// Rubrik och fråga: nya frågor har en egen rubrik (title), äldre delas på första meningen
+function qHR(p, q) { const t = (p.title || '').trim(); return t ? [t, String(q || '').trim()] : splitQ(q); }
 function splitQ(t) {
   t = String(t || '').trim(); const m = /^(.{12,90}?[?.!])\s+(.+)$/s.exec(t);
   if (m) return [m[1], m[2]];
@@ -11297,7 +11303,7 @@ const qStat = p => p.best_answer_id ? 'solved' : !(p.answers || []).length ? 'op
 function qPill(p) { const st = qStat(p); return st === 'solved' ? `<span class="qst solved">${ic('ph-check-circle', 'currentColor', 14)} Löst</span>` : st === 'open' ? '<span class="qst open">Obesvarad</span>' : ''; }
 // Städad (117): frågekort. Avatar 36 px, namn och tid på samma rad, rubrik, brödtext max 3 rader, bild max 4:3 och samma fotrad på alla kort.
 function postCardS(p, hi) {
-  const [q, info] = qParts(p.body), [h, r] = splitQ(q), st = qStat(p), n = p.likers.length, on = !!(S.user && p.likers.includes(S.user.id)), mine = !!(S.user && p.user_id === S.user.id);
+  const [q, info] = qParts(p.body), [h, r] = qHR(p, q), st = qStat(p), n = p.likers.length, on = !!(S.user && p.likers.includes(S.user.id)), mine = !!(S.user && p.user_id === S.user.id);
   const b = p.author_badge || (DEMO && p.author_pro ? ['ph-hand-heart', 'Hjälpt 10'] : null), link = p.user_id && p.user_id !== myId() && !String(p.user_id).startsWith('seed');
   const same = mine ? `<span class="qsame ro">${ic('ph-hand', 'currentColor', 16)} Samma problem · ${n}</span>` : `<button class="qsame${on ? ' on' : ''}" aria-pressed="${on}" onclick="event.stopPropagation();toggleLike(${p.id})">${ic(on ? 'ph-hand-fill' : 'ph-hand', 'currentColor', 16)} Samma problem · ${n}</button>`;
   return `<div class="qcard${hi ? ' qnew' : ''}" role="button" tabindex="0" onclick="openPost(${p.id})" onkeydown="if(event.key==='Enter')openPost(${p.id})">
@@ -11310,7 +11316,7 @@ function postCardS(p, hi) {
 function postCard(p) {
   const best = p.answers.find(a => a.id === p.best_answer_id);
   return `<div class="post">${whoP(p, ago(p.created_at), qPill(p))}
-  ${(() => { const [q, info] = qParts(p.body), [h, r] = splitQ(q); return `<button class="plink qhead" onclick="openPost(${p.id})"><b>${esc(h)}</b>${r ? `<span>${esc(r)}</span>` : ''}</button>${info ? `<span class="qchip">${ic('ph-plant', 'currentColor', 13)} ${esc(info.split('\n')[0])}</span>` : ''}${!info && aboutMine(p) ? `<span class="qchip mine" title="Frågan nämner en växt som du också har">${ic('ph-plant', 'currentColor', 13)} Du har också: ${esc(aboutMine(p))}</span>` : ''}`; })()}${postImg(p)}
+  ${(() => { const [q, info] = qParts(p.body), [h, r] = qHR(p, q); return `<button class="plink qhead" onclick="openPost(${p.id})"><b>${esc(h)}</b>${r ? `<span>${esc(r)}</span>` : ''}</button>${info ? `<span class="qchip">${ic('ph-plant', 'currentColor', 13)} ${esc(info.split('\n')[0])}</span>` : ''}${!info && aboutMine(p) ? `<span class="qchip mine" title="Frågan nämner en växt som du också har">${ic('ph-plant', 'currentColor', 13)} Du har också: ${esc(aboutMine(p))}</span>` : ''}`; })()}${postImg(p)}
   ${best ? `<div class="ans"><b>Bästa svar</b>${esc(best.body)}</div>` : ''}
   <div class="prow">${likeBtn(p, 1)}<button class="link2" onclick="openPost(${p.id})">${p.answers.length ? p.answers.length + ' svar' : 'Svara'}</button>${isMod() ? modTrash(p.id) : ''}</div></div>`;
 }
@@ -11394,27 +11400,28 @@ function nearV() {
   if (S.post || S.newL || (S.prof && S.prof.city)) return h;
   return h.replace('<div class="pad" style="padding-top:8px">', '<div class="pad" style="padding-top:8px"><p class="mut">Lägg till din ort i Profil så visas annonser nära dig.</p>');
 }
-function openAskQ() { if (needLogin()) return; openModal('askq'); setTimeout(() => { const i = $('#nq'); if (i) i.focus(); }, 60); }
+function openAskQ() { if (needLogin()) return; openModal('askq'); setTimeout(() => { const i = $((S.qtitle || '').trim() || !(S.draft || '').trim() ? '#nqt' : '#nq'); if (i) i.focus(); }, 60); }
 // Städad (127–129): fönstret Ställ en fråga utan kort i kort. Växter som kort, kategori som chips, bildruta och Publicera fast längst ner.
 function askGrow(t) { if (!t) return; t.style.height = 'auto'; t.style.height = Math.max(t.scrollHeight, 96) + 'px'; }
-function askPubState() { const b = $('#qpubb'); if (b) b.disabled = (S.draft || '').trim().length < 5; }
-function askClose() { if ((S.draft || '').trim() || S.cph) { S.askDiscard = true; return keepScroll(); } closeModal(); }
+function askPubState() { const b = $('#qpubb'); if (b) b.disabled = (S.qtitle || '').trim().length < 3; }
+function askClose() { if ((S.draft || '').trim() || (S.qtitle || '').trim() || S.cph) { S.askDiscard = true; return keepScroll(); } closeModal(); }
 function qPlantPickS(id) { S.qplant = id; const m = S.mine.find(x => x.id === id); if (m) { if (S.log[m.id] === undefined) loadLog(m.id); const c = m.category || (plantOf(m) || {}).category; if (QCATS.includes(c)) S.qcat = c; } S.qPop = 'p' + (id || 0); keepScroll(); }
 function askQVStad() {
   const v = S.draft || '', M = S.user ? S.mine : [], pop = S.qPop; S.qPop = null;
   const pc = (id, inner, label, on) => `<button type="button" class="qpc${on ? ' on' : ''}${on && pop === 'p' + (id || 0) ? ' pop' : ''}" aria-pressed="${on}" onclick="qPlantPickS(${id == null ? 'null' : id})"><span class="qpi">${inner}${on ? `<i class="qok">${ic(I.check, 'currentColor', 12)}</i>` : ''}</span><span class="qpn">${esc(label)}</span></button>`;
   return `<div class="ask2"><div class="mh2"><h2>Ställ en fråga</h2><button class="x40" onclick="askClose()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
-  <textarea id="nq" rows="3" maxlength="1000" placeholder="T.ex. Varför får min monstera gula blad?" aria-label="Din fråga" oninput="S.draft=this.value;askGrow(this);askPubState()">${esc(v)}</textarea>
+  <input id="nqt" class="qtit" maxlength="120" autocomplete="off" placeholder="Rubrik, t.ex. Gula blad på monstera" aria-label="Rubrik" value="${esc(S.qtitle || '')}" oninput="S.qtitle=this.value;askPubState()">
+  <textarea id="nq" rows="3" maxlength="1000" placeholder="Skriv din fråga. Berätta gärna hur växten står och vad du har provat." aria-label="Din fråga" oninput="S.draft=this.value;askGrow(this);askPubState()">${esc(v)}</textarea>
   ${M.length ? `<p class="qlbl">Gäller det en av dina växter?</p><div class="qpcs">${pc(null, ic('ph-prohibit', 'currentColor', 22), 'Ingen', !S.qplant)}${M.map(m => pc(m.id, myPh(m), m.name, S.qplant === m.id)).join('')}</div>` : ''}
   <p class="qlbl">Kategori</p><div class="chips2 qcats">${QCATS.map(c => `<button type="button" class="${S.qcat === c ? 'on' : ''}${S.qcat === c && pop === 'c' + c ? ' pop' : ''}" aria-pressed="${S.qcat === c}" onclick="S.qcat='${c}';S.qPop='c${c}';keepScroll()">${c}</button>`).join('')}</div>
   <p class="qlbl">Bild</p><div class="qimgs">${S.cph ? `<span class="qth"><img src="${esc(S.cphUrl)}" alt="Vald bild"><button type="button" onclick="S.cph=null;S.cphUrl=null;keepScroll()" aria-label="Ta bort bilden">×</button></span>` : `<label onclick="photoPick(event,this)" class="qadd">${ic('ph-plus', 'currentColor', 18)}<span>Bild</span><input type="file" accept="image/*" class="sr" onchange="cPhoto(this)"></label>`}</div>
-  <div class="qpub"><button class="btn wide" id="qpubb" ${v.trim().length >= 5 ? '' : 'disabled'} onclick="askQ()">Publicera</button></div>
-  ${S.askDiscard ? `<div class="qdisc" role="alertdialog" aria-label="Släng utkastet?"><b>Släng utkastet?</b><div class="qdb"><button class="btn sm line" onclick="S.askDiscard=false;keepScroll()">Fortsätt skriva</button><button class="btn sm danger" onclick="S.askDiscard=false;S.draft='';S.cph=null;S.cphUrl=null;S.qplant=null;S.qcat='';closeModal()">Släng</button></div></div>` : ''}</div>`;
+  <div class="qpub"><button class="btn wide" id="qpubb" ${(S.qtitle || '').trim().length >= 3 ? '' : 'disabled'} onclick="askQ()">Publicera</button></div>
+  ${S.askDiscard ? `<div class="qdisc" role="alertdialog" aria-label="Släng utkastet?"><b>Släng utkastet?</b><div class="qdb"><button class="btn sm line" onclick="S.askDiscard=false;keepScroll()">Fortsätt skriva</button><button class="btn sm danger" onclick="S.askDiscard=false;S.draft='';S.qtitle='';S.cph=null;S.cphUrl=null;S.qplant=null;S.qcat='';closeModal()">Släng</button></div></div>` : ''}</div>`;
 }
 function askQV() {
   if (stadUI()) return askQVStad();
   return `<div class="mh"><h2>Ställ en fråga</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
-  <div class="ask" style="margin:0"><textarea id="nq" rows="3" maxlength="1000" placeholder="Skriv din fråga här" aria-label="Din fråga" oninput="S.draft=this.value">${esc(S.draft)}</textarea>
+  <div class="ask" style="margin:0"><input id="nqt" class="qtit" maxlength="120" autocomplete="off" placeholder="Rubrik / ämne" aria-label="Rubrik" value="${esc(S.qtitle || '')}" oninput="S.qtitle=this.value"><textarea id="nq" rows="3" maxlength="1000" placeholder="Skriv din fråga här" aria-label="Din fråga" oninput="S.draft=this.value">${esc(S.draft)}</textarea>
   ${qPlantV()}<div class="askrow"><select aria-label="Kategori" onchange="S.qcat=this.value">${['', ...QCATS].map(c => `<option value="${c}" ${c === S.qcat ? 'selected' : ''} ${c === '' ? 'disabled' : ''}>${c || 'Välj kategori'}</option>`).join('')}</select>${cPhotoBtn()}<button class="btn sm" onclick="askQ()">Publicera</button></div></div>`;
 }
 // Välkomstkort med tre små uppgifter. Försvinner när allt är gjort eller när man stänger det.
@@ -11434,7 +11441,7 @@ function helpCardV() {
   if (!S.user || !S.mine || !S.mine.length || !S.feed || S.feedErr) return '';
   const L = S.feed.filter(p => p.user_id !== S.user.id && !p.answers.length && !p.best_answer_id && aboutMine(p) && !(S.modGone || []).includes(p.id)).slice(0, 3);
   if (!L.length) return '';
-  return `<div class="pad" style="padding-bottom:0"><div class="setcard helpq"><b>${ic('ph-hand-heart', 'currentColor', 18)} Du kan hjälpa till</b><p class="mut" style="margin:4px 0 8px;font-size:13.5px">Ingen har svarat på de här frågorna än, och de gäller växter du har.</p>${L.map(p => { const q = splitQ(qParts(p.body)[0])[0]; return `<button class="lcard" style="width:100%;text-align:left" onclick="openPost(${p.id})"><span class="grow"><b>${esc(q.length > 90 ? q.slice(0, 90) + '…' : q)}</b><span class="mut">Gäller din ${esc(aboutMine(p))} · ${ago(p.created_at)}</span></span></button>`; }).join('')}</div></div>`;
+  return `<div class="pad" style="padding-bottom:0"><div class="setcard helpq"><b>${ic('ph-hand-heart', 'currentColor', 18)} Du kan hjälpa till</b><p class="mut" style="margin:4px 0 8px;font-size:13.5px">Ingen har svarat på de här frågorna än, och de gäller växter du har.</p>${L.map(p => { const q = qHR(p, qParts(p.body)[0])[0]; return `<button class="lcard" style="width:100%;text-align:left" onclick="openPost(${p.id})"><span class="grow"><b>${esc(q.length > 90 ? q.slice(0, 90) + '…' : q)}</b><span class="mut">Gäller din ${esc(aboutMine(p))} · ${ago(p.created_at)}</span></span></button>`; }).join('')}</div></div>`;
 }
 function comm() {
   if (S.ctab === 'friends') return friendsV();
@@ -11467,7 +11474,7 @@ function postV() {
   if (!p) { S.post = null; return comm(); }
   const mine = !!(S.user && p.user_id === S.user.id);
   return `${topbar('Fråga', 'S.post=null;S.del=null;render()')}<div class="pad">
-  <div class="post" style="margin-top:10px">${whoP(p, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>${qPill(p)}`)}${(() => { const [q, info] = qParts(p.body), [h, r] = splitQ(q); return `<div class="qhead full"><b>${esc(h)}</b>${r ? `<span>${esc(r)}</span>` : ''}</div>${info ? `<div class="qplant"><b>${ic('ph-plant', 'currentColor', 15)} Om växten</b><span>${esc(info)}</span></div>` : ''}`; })()}${postImg(p)}
+  <div class="post" style="margin-top:10px">${whoP(p, ago(p.created_at), `<span class="pill">${esc(p.category)}</span>${qPill(p)}`)}${(() => { const [q, info] = qParts(p.body), [h, r] = qHR(p, q); return `<div class="qhead full"><b>${esc(h)}</b>${r ? `<span>${esc(r)}</span>` : ''}</div>${info ? `<div class="qplant"><b>${ic('ph-plant', 'currentColor', 15)} Om växten</b><span>${esc(info)}</span></div>` : ''}`; })()}${postImg(p)}
   <div class="prow">${likeBtn(p, 1)}<span class="grow"></span>${moreBtn('p', p.id, mine)}</div></div>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
   ${answersV(p, true)}${replyBox(p.id, 'Skriv ett svar')}</div>`;
@@ -15740,6 +15747,7 @@ const NOTIF_KINDS = [
   ['msg', 'Nytt meddelande', 'När någon skickar dig ett meddelande'],
   ['friend', 'Vänförfrågningar', 'När någon vill bli din vän, eller accepterar din förfrågan'],
   ['follow', 'Frågor om arter du följer', 'När någon ställer en fråga om en växtart du följer'],
+  ['answer', 'Svar i Gemenskap', 'När någon svarar på din fråga eller ditt svar'],
 ];
 const notifPrefOn = k => { const p = (S.prof && S.prof.notif_prefs) || {}; return p[k] !== false; };
 async function notifPrefSet(k, v) {
@@ -15915,7 +15923,7 @@ const TOUR = [
   { pic: 'bed', pro: 'bed', t: 'Planera rabatter (Pro)', b: 'Rita en rabatt eller ett odlingsland, välj växter och se hur många som får plats. Appen varnar när det blir för tätt, ger råd om avstånd, ljus och jord och placerar de högsta växterna längst bak.', show: ['Visa Planera rabatt', () => openBedPlan()] },
   { pic: '3d', pro: '3d', t: 'Se allt i 3D (Pro)', b: 'I Mitt hem kan du se huset och trädgården i 3D, med växterna på rätt höjd. Växla mellan årstider och se hur skuggorna faller över dagen.', show: ['Öppna Mitt hem i 3D', () => { openHouse(); if (S.tool === 'house') { S.hview = '3d'; render(); } }] },
   { pic: 'me', t: 'Din profil', b: 'Tryck på Profil. Här lägger du in ort och odlingszon, väljer notiser och hittar Inställningar, där du också kan dela din trädgårdsplan med vänner.', tap: 'nav button[data-t="me"]', tab: 'me', hint: 'Tryck på Profil' },
-  { pic: 'done', t: 'Nu kan du börja 🌿', b: 'Lägg till din första växt via Sök växter på Start. Vill du gå igenom rundturen igen hittar du den under Inställningar.', nx: 'Klart' }
+  { pic: 'done', t: 'Nu kan du börja 🌿', b: 'Lägg till din första växt via Växtbiblioteket på Start. Vill du gå igenom rundturen igen hittar du den under Inställningar.', nx: 'Klart' }
 ];
 const tpw = inner => () => `<svg viewBox="0 0 300 120" width="100%" aria-hidden="true" style="display:block;margin:0 0 10px;border-radius:12px"><rect width="300" height="120" rx="12" fill="#EFE9DB"/>${inner}</svg>`;
 const tpCard = (x, y, w, h, fill = '#fff') => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="${fill}" stroke="#D8D0BD"/>`;
