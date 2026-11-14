@@ -60,9 +60,10 @@ h3{font-size:16px;font-weight:700}
 .top h1{font-size:19px;font-weight:800;text-align:center}
 .circ{width:44px;height:44px;border-radius:50%;border:0;background:var(--surf);color:var(--ink);display:grid;place-items:center;cursor:pointer;box-shadow:var(--sh);position:relative;padding:0}
 .circ.flat{box-shadow:none;background:none;cursor:default}
-.circ.lab{width:auto;min-width:48px;height:auto;min-height:48px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:4px 6px}
-.circ.lab .cl{font-size:11px;font-weight:700;line-height:1.1;white-space:nowrap}
-.circ.lab .dot{top:2px;right:2px}
+/* Toppknapparna visar bara ikonen (texten finns kvar för skärmläsare), så att sidans rubrik får plats */
+.circ.lab{min-width:44px;min-height:44px;width:44px;height:44px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.circ.lab .cl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.circ.lab .dot{top:-2px;right:-2px}
 .xgrp{margin:0 18px}.xgrp .xlist{margin-top:6px}
 .toolone{margin:0;padding:0 20px 10px;font-size:15px;line-height:1.4;color:var(--mut)}
 .logo{width:40px;height:40px;border-radius:13px;background:var(--pri);display:grid;place-items:center}
@@ -226,7 +227,7 @@ html[data-simple] .btn.sm,#tourcard .btn.sm{min-height:46px}html[data-simple] #t
 .qst.open{border:1px solid var(--line);color:var(--mut)}
 .qfilt{margin:12px 18px 0}
 .qfilt small{opacity:.7;font-weight:700;margin-left:2px}
-.like.same{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700}
+.like.same{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:700;padding:6px 12px;min-height:36px;white-space:nowrap}
 .like.same b{background:var(--soft);color:var(--pri);border-radius:999px;padding:1px 8px;font-size:12px}
 .replies{margin:-4px 0 12px 18px;padding-left:12px;border-left:2px solid var(--line)}
 .post.reply{padding:12px 14px;margin-bottom:8px;border-radius:18px}
@@ -516,6 +517,7 @@ details.tech p b{color:var(--ink)}
 .instc span:not(.tic){font-size:13px;color:var(--mut)}
 .logoimg{width:40px;height:40px;border-radius:12px;display:block;flex:none}
 .setcard{background:var(--surf);border-radius:22px;padding:16px;box-shadow:var(--sh)}
+.welcome .wrow>span:last-child{flex:1;text-align:left;margin:0}
 .welcome .wrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;padding:9px 2px;font:inherit;color:var(--ink);border-top:1px solid var(--line)}.welcome .wrow.done{color:var(--mut);text-decoration:line-through}.helpq .lcard{margin-top:8px}
 .msSec.msMin>:not(.msH){display:none!important}
 .msH{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border:0;background:none;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
@@ -1140,6 +1142,8 @@ button.pw{cursor:pointer}
 @keyframes lsp{0%,100%{transform:translateY(0) rotate(0);opacity:.4}50%{transform:translateY(-10px) rotate(45deg);opacity:1}}
 .todoc{margin:0 18px;background:var(--surf);border-radius:20px;padding:6px 14px;box-shadow:var(--sh)}
 .todoc.empty{display:flex;gap:10px;align-items:center;padding:12px 16px;margin-top:12px}
+.sowl{min-height:32px;display:inline-flex;align-items:center;gap:4px;font-size:13.5px;margin-left:6px}
+.todoc.empty b{font-size:14.5px;font-weight:700}.todoc.empty .grow{flex:1;text-align:left}.todoc.empty .link3{min-height:36px;display:inline-flex;align-items:center;gap:5px;font-size:14px;white-space:nowrap}
 .todor{display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
 .todor:first-child{border-top:0}
 .tchk{flex:none;width:26px;height:26px;border-radius:8px;border:2px solid var(--pri);background:none;cursor:pointer}
@@ -1660,10 +1664,11 @@ body.hadv nav{display:none}
 .home2 .wxi{font-size:30px}
 .home2 .wxt{font-size:26px !important}
 .home2 .wxfoot{margin-top:8px}
+.wxside{display:flex;flex-direction:column;align-items:flex-end;gap:0;align-self:flex-start;text-align:right}.wxside small{font-size:12.5px;color:var(--mut);line-height:1.2}.wxside .link3{min-height:32px;padding:0;font-size:14px}
 .home2 .wxrow{margin-top:10px}
 .home2 .qhome{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0 18px}
-.home2 .qc,.home2 .qc.big{grid-row:auto;flex-direction:column;align-items:center;justify-content:flex-start;gap:7px;padding:12px 4px 10px;border-radius:18px;font-size:12px;font-weight:700;text-align:center;line-height:1.2;min-height:92px}
-.home2 .qc>i.ph,.home2 .qc.big>i.ph{width:42px;height:42px;border-radius:14px;font-size:22px}
+.home2 .qc,.home2 .qc.big{grid-row:auto;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 4px 9px;border-radius:18px;font-size:12px;font-weight:700;text-align:center;line-height:1.2;min-height:92px}
+.home2 .qc>i.ph,.home2 .qc.big>i.ph{width:50px;height:50px;border-radius:16px;font-size:33px}
 .home2 .qc span{overflow-wrap:normal;hyphens:manual;max-width:100%}
 button,.btn,.qc{hyphens:manual}
 .qc{min-width:0}
@@ -7171,10 +7176,9 @@ function todoV() {
   if (!S.user) return '';
   if (stadUI()) return todoStad();
   const l = todoItems();
-  const sowBtn = `<div style="margin:10px 18px 0"><button class="btn sm line" onclick="openSow()">Öppna Såkalendern</button></div>`;
-  if (!l.length) return `<div class="todoc empty"><span>✅</span><b>Inget att göra just nu</b></div>${sowBtn}${sitterTasksHtml()}`;
-  return `<div class="sec cap2"><h2>Att göra</h2><span class="mut" style="font-size:13px">${l.length} ${l.length === 1 ? 'sak' : 'saker'}</span></div>
-  <div class="todoc">${l.slice(0, 8).map(x => `<div class="todor"><button class="tchk" aria-label="Klart" ${x.act ? `onclick="${x.act}"` : 'disabled'}></button><button class="ttxt" onclick="${x.open}">${esc(x.txt)}</button></div>`).join('')}${l.length > 8 ? `<small class="mut">och ${l.length - 8} till</small>` : ''}</div>${sowBtn}${sitterTasksHtml()}`;
+  if (!l.length) return `<div class="todoc empty">${ic(I.check, 'var(--pri)', 18)}<b class="grow">Inget att göra just nu</b><button class="link3" onclick="openSow()">${ic(SEEDLING, 'currentColor', 16)} Såkalendern</button></div>${sitterTasksHtml()}`;
+  return `<div class="sec cap2"><h2>Att göra</h2><span class="mut" style="font-size:13px;margin-left:auto">${l.length} ${l.length === 1 ? 'sak' : 'saker'} ·</span><button class="link3 sowl" onclick="openSow()">${ic(SEEDLING, 'currentColor', 15)} Såkalendern</button></div>
+  <div class="todoc">${l.slice(0, 8).map(x => `<div class="todor"><button class="tchk" aria-label="Klart" ${x.act ? `onclick="${x.act}"` : 'disabled'}></button><button class="ttxt" onclick="${x.open}">${esc(x.txt)}</button></div>`).join('')}${l.length > 8 ? `<small class="mut">och ${l.length - 8} till</small>` : ''}</div>${sitterTasksHtml()}`;
 }
 function homeAlerts(sz) {
   if (!S.user) return '';
@@ -8188,12 +8192,12 @@ function weatherV(sz) {
   if (sz === 's') return `<div class="wxc wxs"><div class="wxtop"><span class="wxi">${wxIco(wx[1], 34)}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]}</span></div>${warn.length ? `<span class="wxbadge">${wxIco(warn[0][1], 14)} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span>` : '<span class="wxbadge ok">Inga varningar</span>'}</div></div>`;
   const showDays = sz === 'l' || S.wxAll;
   return `<div class="wxc">
-    <div class="wxtop"><span class="wxi">${wxIco(wx[1], 34)}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]} · ${c.relative_humidity_2m} % luftfukt</span></div>${S.wxAll && sz !== 'l' ? `<button class="link3" style="align-self:flex-start" onclick="S.wxAll=false;render()">Dölj dagar</button>` : ''}</div>
+    <div class="wxtop"><span class="wxi">${wxIco(wx[1], 34)}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]} · ${c.relative_humidity_2m} % luftfukt</span></div>${sz !== 'l' ? `<div class="wxside"><small>${esc(w.name || S.city || '')}</small><button class="link3" onclick="S.wxAll=!S.wxAll;render()">${S.wxAll ? 'Dölj dagar' : '5 dagar'}</button></div>` : ''}</div>
     ${showDays ? `<div class="wxdays">${d.time.slice(0, 5).map((t, i) => `<div><small>${i === 0 ? 'Idag' : DAYS[new Date(String(t).length === 10 ? t + 'T12:00' : t).getDay()]}</small><span>${(WX[d.weather_code[i]] || ['', '·'])[1]}</span><b>${Math.round(d.temperature_2m_max[i])}°</b><small>${Math.round(d.temperature_2m_min[i])}°</small></div>`).join('')}</div>` : ''}
     ${showDays ? wxRainV(w) : ''}
     ${showDays ? wxExtraV(w) : ''}
     ${warn.length ? `<button class="wxrow" onclick="S.wxOpen=!S.wxOpen;render()" aria-expanded="${!!S.wxOpen}"><span>${wxIco(warn[0][1], 14)} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span><span>${S.wxOpen ? 'Dölj' : 'Visa'}</span></button>${S.wxOpen ? `<div class="wxwarn">${warn.map(x => `<div class="wxw w-${x[0]}"><span class="wwi">${x[1]}</span><div><b>${x[2]}</b><span>${x[3]}</span></div></div>`).join('')}</div>` : ''}` : `<p class="wxok">Inga vädervarningar just nu.</p>`}
-    <div class="wxfoot"><span class="wxsrc">${S.wxAll || S.wxOpen ? `Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString(LOC(), { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}` : esc(w.name || S.city || '')}</span>${S.wxAll && sz !== 'l' ? '' : `<button class="link3" onclick="S.wxAll=!S.wxAll;render()">${S.wxAll ? 'Dölj dagar' : '5 dagar'}</button>`}</div></div>`;
+    ${S.wxAll || S.wxOpen || sz === 'l' ? `<div class="wxfoot"><span class="wxsrc">${S.wxAll || S.wxOpen ? `Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString(LOC(), { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}` : esc(w.name || S.city || '')}</span></div>` : ''}</div>`;
 }
 function openDb(focus) { stopLight(); S.sel = null; S.modal = null; S.tool = 'db'; render(); $('#main').scrollTop = 0; if (!S.popMap) loadPop(); if (focus) setTimeout(() => { const i = $('.search input'); if (i) i.focus(); }, 50); }
 function dbV() {
@@ -9858,23 +9862,26 @@ function avFlower(name) { const L = String(name || '').trim().charAt(0).toUpperC
 const AV = {}, AVQ = new Set(); let avBusy = false;
 // Knapptext delas aldrig mitt i ett ord. Är ett ord för långt för knappen krymps texten lite tills det får plats.
 function fitBtnText() {
+  // Snabb: bara textrader utan egna barn i knappar, först mäts allt, sedan ändras storleken en gång (ingen loop som ritar om sidan)
   document.querySelectorAll('[data-fs]').forEach(e => { e.style.fontSize = ''; e.style.overflowWrap = ''; delete e.dataset.fs; });
-  document.querySelectorAll('#main button, #ov button, #main .qc, nav button').forEach(btn => {
-    const els = [btn, ...btn.querySelectorAll('span,b')].filter(e => !e.firstElementChild || e === btn);
-    els.forEach(el => {
-      const t = el.textContent || ''; if (!/\S{9,}/.test(t)) return;
-      if (el.dataset.fs) { el.style.fontSize = ''; el.style.overflowWrap = ''; }
-      const cs = getComputedStyle(el); if (cs.whiteSpace === 'nowrap' || cs.display === 'inline' || !el.clientWidth) return;
-      if (el.scrollWidth <= el.clientWidth + 1) return;
-      const base = parseFloat(cs.fontSize); let fs = base; el.dataset.fs = base;
-      while (el.scrollWidth > el.clientWidth + 1 && fs > base * 0.6) { fs -= 0.5; el.style.fontSize = fs + 'px'; }
-      if (el.scrollWidth > el.clientWidth + 1) el.style.overflowWrap = 'anywhere';
-    });
+  const cand = [];
+  for (const el of document.querySelectorAll('#main .qc span, #main button span, #main button b, #ov button span, #ov button b, nav button span')) {
+    if (cand.length >= 120) break;
+    if (el.firstElementChild || !/\S{9,}/.test(el.textContent || '') || el.closest('.grid, .card, .plist, .bplist')) continue;
+    cand.push(el);
+  }
+  const todo = [];
+  cand.forEach(el => {
+    if (!el.clientWidth || el.scrollWidth <= el.clientWidth + 1) return;
+    const cs = getComputedStyle(el); if (cs.whiteSpace === 'nowrap' || cs.display === 'inline') return;
+    const base = parseFloat(cs.fontSize), fs = Math.max(base * 0.6, Math.floor(base * (el.clientWidth - 1) / el.scrollWidth * 2) / 2);
+    todo.push([el, base, fs, fs <= base * 0.6]);
   });
+  todo.forEach(([el, base, fs, tight]) => { el.dataset.fs = base; el.style.fontSize = fs + 'px'; if (tight) el.style.overflowWrap = 'anywhere'; });
   // Knappar i samma rutnät får samma textstorlek, så att raden ser jämn ut
   document.querySelectorAll('.qgrid, .qhome').forEach(g => {
     const L = [...g.querySelectorAll('.qc > span')]; const f = L.map(e => parseFloat(e.style.fontSize)).filter(Boolean);
-    if (!f.length) return; const m = Math.min(...f) + 'px'; L.forEach(e => { if (!e.dataset.fs) e.dataset.fs = parseFloat(getComputedStyle(e).fontSize); e.style.fontSize = m; });
+    if (!f.length) return; const m = Math.min(...f) + 'px'; L.forEach(e => { if (!e.dataset.fs) e.dataset.fs = 1; e.style.fontSize = m; });
   });
 }
 function avAttr(uid) { return uid && !(uid in AV) && /^[0-9a-f-]{36}$/i.test(String(uid)) ? ` data-avu="${esc(uid)}"` : ''; }
@@ -10585,6 +10592,9 @@ function shortTemp(t) { const m = /\d+\s*–\s*\d+\s*°C/.exec(t || ''); return 
 function tile(label, value, desc, icon, color, bad) {
   // Saknat värde: rutan finns kvar med ett grått streck, så att skötselrutorna alltid har samma form
   const na = value == null || value === '';
+  // Samma text två gånger (värdet och förklaringen) visas bara en gång
+  const nrm = t => String(t || '').toLowerCase().replace(/[\s.,]+/g, ' ').trim();
+  if (!na && desc && nrm(desc) === nrm(value)) desc = '';
   return `<div class="ti">${ic(icon, na ? 'var(--mut)' : color)}<small>${label}</small><b class="${na || value === 'Okänt' ? 'na' : bad ? 'bad' : ''}">${na ? '–' : esc(value)}</b>${na ? '<p>Inte känt ännu</p>' : desc ? `<p>${esc(desc)}</p>` : ''}</div>`;
 }
 const cmM = n => n >= 100 ? fmtM(n / 100) : n + ' cm';
@@ -10737,7 +10747,7 @@ function mineV() {
     const facts = [['Kruka', potTxt], ['Jord', fd.soil && fd.soil.length ? fd.soil.join(', ') : ''], ['Höjd', fd.h ? fd.h + ' cm' : ''], ['Plats', rmName || fd.light || fd.place || ''], ['Sol', mineSun(m)]].filter(([, v]) => v);
     const factsHtml = facts.length ? `<dl class="mfacts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : '';
     return `<div class="mrow${det ? ' det' : ''}"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${nameHtml(m)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${m.details && +m.details.count > 1 ? `<span class="mini">× ${+m.details.count} samplanterade i samma kruka</span>` : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${det ? factsHtml : ''}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
-      <div class="side"><label class="camb" onclick="photoPick(event,this)" aria-label="Ta foto på ${esc(m.name)}" title="Ta foto" style="display:inline-flex;width:36px;height:36px;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:var(--pri);background:var(--card2,transparent)">${ic(CAM, 'currentColor', 18)}<input type="file" accept="image/*" capture="environment" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad"><span class="wdrop" aria-hidden="true">💧</span></button>` : ''}${d ? `<small class="wnext">Vattna om ${d} d</small>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
+      <div class="side"><label class="camb" onclick="photoPick(event,this)" aria-label="Ta foto på ${esc(m.name)}" title="Ta foto" style="display:inline-flex;width:36px;height:36px;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:var(--pri);background:var(--card2,transparent)">${ic(CAM, 'currentColor', 18)}<input type="file" accept="image/*" capture="environment" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad"><span class="wdrop" aria-hidden="true">💧</span></button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
   }).join('');
   return `${topbar('Min samling')}${mtabBar()}
   ${S.mine.length && stadM ? `<p class="sumline"><span>${S.mine.length} ${S.mine.length === 1 ? 'växt' : 'växter'}</span> · ${due ? `<button class="sumdue" onclick="S.mdue=!S.mdue;S.mAnimDone=false;render()">${due} behöver vatten idag</button>` : '<span>Alla har vatten just nu</span>'}</p>` : ''}
@@ -11219,7 +11229,7 @@ function who(name, sub, pill, pro, uid) {
 function likeBtn(p, same) {
   const on = !!(S.user && p.likers.includes(S.user.id));
   if (same && S.user && p.user_id === S.user.id) { const n = p.likers.length; return n ? `<span class="samecnt">${ic('ph-hand', 'currentColor', 15)} ${n} ${n === 1 ? 'har' : 'har'} samma problem</span>` : ''; }
-  if (same) { const n = p.likers.length; return `<button class="like same ${on ? 'on' : ''}" onclick="toggleLike(${p.id})" aria-pressed="${on}">${ic(on ? 'ph-hand-fill' : 'ph-hand', 'currentColor', 16)} ${on ? 'Du har samma problem' : 'Jag har samma problem'}${n ? ` <b>${n}</b>` : ''}</button>`; }
+  if (same) { const n = p.likers.length; return `<button class="like same ${on ? 'on' : ''}" onclick="toggleLike(${p.id})" aria-pressed="${on}" aria-label="${on ? 'Du har samma problem' : 'Jag har samma problem'}${n ? ', ' + n + ' totalt' : ''}">${ic(on ? 'ph-hand-fill' : 'ph-hand', 'currentColor', 15)} Samma problem${n ? ` <b>${n}</b>` : ''}</button>`; }
   return `<button class="like ${on ? 'on' : ''}" onclick="toggleLike(${p.id})" aria-pressed="${on}" aria-label="Gilla">${ic(on ? 'ph-heart-fill' : 'ph-heart', 'currentColor', 16)} ${p.likers.length}</button>`;
 }
 // Moderatorer tar bort (döljer för alla) ett inlägg eller svar direkt från Gemenskap
@@ -12651,6 +12661,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.410', '14 nov', ['Växtbiblioteket fryser inte längre när det öppnas', 'Större ikoner på knapparna under Vad vill du göra?', 'Mindre tomrum: väderkortet visar ort och 5 dagar uppe till höger, Inget att göra just nu och Såkalendern på en rad, kortare knapp Samma problem på frågor', 'Toppknapparna visar bara ikonen, så att sidans rubrik får plats', 'Min samling och växtens sida visar inte samma text två gånger']],
   ['Beta 0.409', '14 nov', ['Profilbilder syns överallt: i frågor och svar, notiser, meddelanden, vänlistan och hos experterna', 'Knapptext delas aldrig mitt i ett ord. Långa ord krymps lite så att de får plats, och knapparna på Start har samma storlek']],
   ['Beta 0.408', '14 nov', ['Notis direkt när någon svarar på din fråga eller ditt svar i Gemenskap. Stäng av under Notifikationer', 'Ställ en fråga: skriv en rubrik och sedan frågan i en egen ruta', 'Inställningarna är enklare: alla delar är hopfällda från början och notiserna har en egen sida', 'Dölj dagar sitter högst upp på väderkortet', 'Sök växter heter nu Växtbiblioteket', 'Min samling visar växtens bild från Växtbiblioteket när du inte har ett eget foto']],
   ['Beta 0.407', '14 nov', ['Min samling har en sökruta och ett filter: vattna idag, utan påminnelse, giftiga för husdjur, egna växter, kategori, växtgrupp och ljus', 'Mitt hem: skriv din exakta adress eller koordinater, så hamnar huset på rätt plats', 'Vädret, frosten och varningarna gäller din ort även om kartan i Mitt hem ligger någon annanstans', 'Profilbilder syns på andras profiler', 'Telefonens egna förslag dyker inte längre upp ovanför tangentbordet']],
@@ -15274,7 +15285,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.409';
+const APP_VERSION = 'Beta 0.410';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
