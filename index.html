@@ -298,7 +298,7 @@ form label.check input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-co
 .taxbox{background:var(--surf);border-radius:18px;padding:14px 14px 2px;margin:0 0 14px;box-shadow:var(--sh)}
 .taxbox>b{display:block;font-size:14px;margin-bottom:10px}
 .taxline{display:block;color:var(--mut);font-size:13px;margin-top:4px}
-.nbs{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}.nb{font-style:normal;font-size:11px;font-weight:700;line-height:1;padding:3px 7px;border-radius:999px;background:rgba(212,154,46,.28)}.wikitxt{margin:0 0 6px;line-height:1.5}.altl{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+.nbs{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}.nb{font-style:normal;font-size:11px;font-weight:700;line-height:1;padding:3px 7px;border-radius:999px;background:rgba(212,154,46,.28)}.wikitxt{margin:0 0 6px;line-height:1.5}.wxx{display:flex;flex-direction:column;gap:3px;font-size:13px;padding:6px 2px}.wxx small{color:var(--mut);font-size:11px}.altl{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 .sameln{display:flex!important;gap:10px;align-items:center;font-weight:600!important;margin:-6px 0 14px!important;cursor:pointer}
 .sameln input{width:20px!important;height:20px;margin:0!important;flex:none;accent-color:var(--pri)}
 input.ro{opacity:.65}
@@ -7978,7 +7978,7 @@ const DAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
 function wxPlace() { const M = S.hplan && S.hplan.map; if (M && M.lat != null) return { lat: M.lat, lon: M.lon, name: S.city || 'ditt hem' }; const g = store.get('wxGeo', null); if (g && g.q === (S.city || '').trim().toLowerCase() && g.lat != null) return g; return null; }
 async function loadWeather(force) {
   if (S.wxBusy) { S.wxAgain = true; return; } if (!force && S.wxFailAt && Date.now() - S.wxFailAt < 10 * 60e3) return; const c = store.get('wx', null), pl = wxPlace();
-  if (!force && c && c.d && c.d.sunshine_duration && c.cur && c.cur.cloud_cover != null && Date.now() - c.t < 30 * 60e3 && pl && Math.abs(c.lat - pl.lat) < 0.01 && Math.abs(c.lon - pl.lon) < 0.01) { S.wx = c; loadSmhi(pl).then(() => { if (!S.tool && !S.sel && S.tab === 'home') render(); }); if (T3 && T3.scene) env3d(); if (!S.tool && !S.sel && S.tab === 'home') render(); return; }
+  if (!force && c && c.v === 2 && c.d && c.d.sunshine_duration && c.cur && c.cur.cloud_cover != null && Date.now() - c.t < 30 * 60e3 && pl && Math.abs(c.lat - pl.lat) < 0.01 && Math.abs(c.lon - pl.lon) < 0.01) { S.wx = c; loadSmhi(pl).then(() => { if (!S.tool && !S.sel && S.tab === 'home') render(); }); if (T3 && T3.scene) env3d(); if (!S.tool && !S.sel && S.tab === 'home') render(); return; }
   S.wxBusy = true;
   try {
     let place = pl;
@@ -7989,10 +7989,12 @@ async function loadWeather(force) {
     if (!place) { S.wx = { none: true }; return; }
     const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,cloud_cover&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,wind_gusts_10m_max,uv_index_max,sunshine_duration&wind_speed_unit=ms&timezone=Europe%2FStockholm&forecast_days=5`;
     const r = await fetch(u); if (!r.ok) throw new Error('wx ' + r.status); const j = await r.json();
-    S.wx = { t: Date.now(), lat: place.lat, lon: place.lon, name: place.name, cur: j.current, d: j.daily };
+    S.wx = { v: 2, t: Date.now(), lat: place.lat, lon: place.lon, name: place.name, cur: j.current, d: j.daily };
     await loadSmhi(place);
     // Regn och snö de senaste 7 dagarna och snödjupet nu, för att räkna ut om utomhusväxterna behöver vattnas
-    try { const r2 = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&daily=precipitation_sum,rain_sum,snowfall_sum&current=snow_depth&timezone=Europe%2FStockholm&past_days=7&forecast_days=1`); if (r2.ok) { const j2 = await r2.json(), D2 = j2.daily || {}, n = (D2.time || []).length - 1, sum = a => Math.round((a || []).slice(0, n).reduce((x, v) => x + (v || 0), 0) * 10) / 10; S.wx.past = { prec: sum(D2.precipitation_sum), rain: sum(D2.rain_sum), snow: sum(D2.snowfall_sum), depth: j2.current && j2.current.snow_depth != null ? Math.round(j2.current.snow_depth * 100) : null }; } } catch (e) { }
+    try { const r2 = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&daily=precipitation_sum,rain_sum,snowfall_sum&current=snow_depth,soil_temperature_6cm&timezone=Europe%2FStockholm&past_days=7&forecast_days=1`); if (r2.ok) { const j2 = await r2.json(), D2 = j2.daily || {}, n = (D2.time || []).length - 1, sum = a => Math.round((a || []).slice(0, n).reduce((x, v) => x + (v || 0), 0) * 10) / 10; S.wx.past = { prec: sum(D2.precipitation_sum), rain: sum(D2.rain_sum), snow: sum(D2.snowfall_sum), depth: j2.current && j2.current.snow_depth != null ? Math.round(j2.current.snow_depth * 100) : null, soil: j2.current && j2.current.soil_temperature_6cm != null ? Math.round(j2.current.soil_temperature_6cm * 10) / 10 : null }; } } catch (e) { }
+    // Pollenprognos (CAMS via Open-Meteo, bara Europa). Tyst om det saknas.
+    try { if (place.lat > 34 && place.lat < 72 && place.lon > -25 && place.lon < 45) { const r3 = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${place.lat}&longitude=${place.lon}&current=birch_pollen,alder_pollen,grass_pollen,mugwort_pollen,ragweed_pollen&timezone=Europe%2FStockholm`); if (r3.ok) { const c3 = (await r3.json()).current || {}; S.wx.pollen = { 'Björk': c3.birch_pollen, 'Al': c3.alder_pollen, 'Gräs': c3.grass_pollen, 'Gråbo': c3.mugwort_pollen, 'Ambrosia': c3.ragweed_pollen }; } } } catch (e) { console.warn('Roothood:', e); }
     store.set('wx', S.wx); S.wxFailAt = 0; if (T3 && T3.scene) env3d();
   } catch (e) { S.wxFailAt = Date.now(); S.wx = Object.assign({}, store.get('wx', {}), { err: 1 }); }
   finally { S.wxBusy = false; if (S.wxAgain) { S.wxAgain = false; return loadWeather(true); } if (!S.tool && !S.sel && S.tab === 'home') render(); }
@@ -8067,6 +8069,13 @@ function wxRainV(w) { const d = w.d, p = w.past; if (!d || !d.precipitation_sum)
     : tot >= 20 ? 'Det har kommit och kommer gott om regn. Du behöver inte vattna i marken.' : tot >= 10 ? 'Lite regn. Vattna nyplanterat och krukor ute, rabatterna klarar sig.' : 'Torrt. Vattna ordentligt en gång i veckan, cirka 10–20 liter per kvadratmeter, hellre sällan och mycket än ofta och lite.';
   const dc = v => String(v).replace('.', ',');
   return `<div class="wxrain"><div><small>Senaste veckan</small><b>${p ? dc(p.rain) + ' mm regn' : '–'}</b>${p && p.snow ? `<span>${dc(p.snow)} cm snö</span>` : ''}</div><div><small>Närmaste 3 dagar</small><b>${dc(next3)} mm</b>${snow3 ? `<span>varav ${dc(snow3)} cm snö</span>` : ''}</div>${p && p.depth != null && p.depth > 0 ? `<div><small>Snödjup nu</small><b>${p.depth} cm</b></div>` : ''}</div>${outN || grow ? `<p class="wxrtip">${ic('ph-drop', 'currentColor', 14)} ${tip}</p>` : ''}`; }
+function wxExtraV(w) {
+  const bits = [], s = w.past && w.past.soil;
+  if (s != null) bits.push(`<span>🌱 Jord på 6 cm: <b>${String(s).replace('.', ',')} °C</b></span>`);
+  const pl = Object.entries(w.pollen || {}).filter(([, v]) => v != null && v >= 1).map(([k, v]) => `${k} ${Math.round(v)}`);
+  if (pl.length) bits.push(`<span>🌼 Pollen (korn/m³): <b>${esc(pl.join(', '))}</b></span>`);
+  return bits.length ? `<div class="wxx">${bits.join('')}<small>Jordtemperatur och pollen: Open-Meteo (modell)</small></div>` : '';
+}
 function weatherV(sz) {
   sz = sz || 'm';
   const w = S.wx;
@@ -8086,6 +8095,7 @@ function weatherV(sz) {
     <div class="wxtop"><span class="wxi">${wxIco(wx[1], 34)}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]} · ${c.relative_humidity_2m} % luftfukt</span></div></div>
     ${showDays ? `<div class="wxdays">${d.time.slice(0, 5).map((t, i) => `<div><small>${i === 0 ? 'Idag' : DAYS[new Date(String(t).length === 10 ? t + 'T12:00' : t).getDay()]}</small><span>${(WX[d.weather_code[i]] || ['', '·'])[1]}</span><b>${Math.round(d.temperature_2m_max[i])}°</b><small>${Math.round(d.temperature_2m_min[i])}°</small></div>`).join('')}</div>` : ''}
     ${showDays ? wxRainV(w) : ''}
+    ${showDays ? wxExtraV(w) : ''}
     ${warn.length ? `<button class="wxrow" onclick="S.wxOpen=!S.wxOpen;render()" aria-expanded="${!!S.wxOpen}"><span>${wxIco(warn[0][1], 14)} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span><span>${S.wxOpen ? 'Dölj' : 'Visa'}</span></button>${S.wxOpen ? `<div class="wxwarn">${warn.map(x => `<div class="wxw w-${x[0]}"><span class="wwi">${x[1]}</span><div><b>${x[2]}</b><span>${x[3]}</span></div></div>`).join('')}</div>` : ''}` : `<p class="wxok">Inga vädervarningar just nu.</p>`}
     <div class="wxfoot"><span class="wxsrc">${S.wxAll || S.wxOpen ? `Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString(LOC(), { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}` : esc(w.name || S.city || '')}</span><button class="link3" onclick="S.wxAll=!S.wxAll;render()">${S.wxAll ? 'Dölj dagar' : '5 dagar'}</button></div></div>`;
 }
@@ -12389,7 +12399,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
-  ['Beta 0.404', '14 nov', ['Växtgrupp i filtret har fler val: ormbunkar, köttätande, suckulenter, palmer, gräs, barrträd, rosor, rhododendron, klematis, hostor, begonior, pelargoner och marantaväxter', 'Växter kan nu ha flera svenska namn: Dyntaxas namn och vardagsnamnet. Båda går att söka på, och växtsidan visar "Även kallad"', 'Märken för fridlyst, rödlistad och invasiv på växtkort, nytt filter "Status i Sverige", varning när du sätter ut en invasiv art, och alternativa namn syns i söklistan', 'Växtsidan har ett stycke "Om arten" med en kort beskrivning från svenska Wikipedia (med källa)']],
+  ['Beta 0.404', '14 nov', ['Växtgrupp i filtret har fler val: ormbunkar, köttätande, suckulenter, palmer, gräs, barrträd, rosor, rhododendron, klematis, hostor, begonior, pelargoner och marantaväxter', 'Växter kan nu ha flera svenska namn: Dyntaxas namn och vardagsnamnet. Båda går att söka på, och växtsidan visar "Även kallad"', 'Märken för fridlyst, rödlistad och invasiv på växtkort, nytt filter "Status i Sverige", varning när du sätter ut en invasiv art, och alternativa namn syns i söklistan', 'Växtsidan har ett stycke "Om arten" med en kort beskrivning från svenska Wikipedia (med källa)', 'Väderkortet visar jordtemperaturen och pollen (i Europa, när det finns pollen i luften)']],
   ['Beta 0.403', '13 nov', ['62 växter utan bild har fått ett foto från iNaturalist, bara med fri licens och med fotografens namn under bilden']],
   ['Beta 0.402', '13 nov', ['Växtsidan visar nu om arten är fridlyst, rödlistad eller invasiv i Sverige (källa: Artdatabanken)']],
   ['Beta 0.401', '13 nov', ['Väder: SMHI:s officiella varningar (kyla, vind, skyfall, vattenbrist m.m.) visas för din ort i Sverige. Utomlands används Open-Meteo som förut']],
