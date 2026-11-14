@@ -7881,7 +7881,7 @@ function trackView() {
     if (curHash === null) { history.replaceState({ d: 0, st: navTake(), y: 0 }, '', h); curHash = h; saveView(); trackUse(h); hs = history.state; }
     // En ruta har stängts med knappen i appen: gå tillbaka en post så att historiken stämmer
     if (!S.modal && hs.m) {
-      if (h === curHash) { history.back(); return; }
+      if (h === curHash) { backPending = true; history.back(); return; }
       history.replaceState({ d: hs.d || 0, st: navTake(), y: 0 }, '', h); curHash = h; navY = 0; saveView(); trackUse(h); return;
     }
     // Ny vy: spara var man var i den gamla posten och lägg till exakt en ny post
@@ -7918,7 +7918,10 @@ function applyView(h) {
   else return false;
   return true;
 }
+let backPending = false;
 window.addEventListener('popstate', e => {
+  // En ruta stängdes och en ny öppnades direkt (t.ex. Support till Rapportera fel): historiken hann ikapp först nu. Behåll den nya rutan.
+  if (backPending) { backPending = false; if (S.modal) { try { const hs = e.state || {}; history.pushState({ d: (hs.d || 0) + 1, st: navTake(), y: navY, m: 1 }, '', location.hash || viewHash()); } catch (x) { console.warn('Roothood:', x); } return; } }
   // Bakåt med en ruta öppen stänger bara rutan
   // Odlingszonen måste väljas först: bakåt-knappen i webbläsaren får inte ta bort rutan eller ta användaren vidare
   if (S.modal === 'zonepick' && !store.get('zone', 0)) { history.pushState(history.state, '', location.href); return; }
