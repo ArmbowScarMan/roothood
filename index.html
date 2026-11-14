@@ -298,7 +298,7 @@ form label.check input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-co
 .taxbox{background:var(--surf);border-radius:18px;padding:14px 14px 2px;margin:0 0 14px;box-shadow:var(--sh)}
 .taxbox>b{display:block;font-size:14px;margin-bottom:10px}
 .taxline{display:block;color:var(--mut);font-size:13px;margin-top:4px}
-.nbs{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}.nb{font-style:normal;font-size:11px;font-weight:700;line-height:1;padding:3px 7px;border-radius:999px;background:rgba(212,154,46,.28)}.wikitxt{margin:0 0 6px;line-height:1.5}.wxx{display:flex;flex-direction:column;gap:3px;font-size:13px;padding:6px 2px}.wxx small{color:var(--mut);font-size:11px}.altl{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+.nbs{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}.nb{font-style:normal;font-size:11px;font-weight:700;line-height:1;padding:3px 7px;border-radius:999px;background:rgba(212,154,46,.28)}.wikitxt{margin:0 0 6px;line-height:1.5}.obs{display:flex;align-items:flex-end;gap:4px;height:70px;margin-bottom:6px}.obsb{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font-size:10px;color:var(--mut)}.obsb i{display:block;width:100%;background:var(--pri2);border-radius:4px 4px 0 0}.obsb span{margin-top:2px}.wxx{display:flex;flex-direction:column;gap:3px;font-size:13px;padding:6px 2px}.wxx small{color:var(--mut);font-size:11px}.altl{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 .sameln{display:flex!important;gap:10px;align-items:center;font-weight:600!important;margin:-6px 0 14px!important;cursor:pointer}
 .sameln input{width:20px!important;height:20px;margin:0!important;flex:none;accent-color:var(--pri)}
 input.ro{opacity:.65}
@@ -10496,6 +10496,7 @@ function detail() {
   ${S.pets ? `<div class="pad" style="padding-top:10px">${plantPetNote(p)}</div>` : ''}
   ${tips.length ? `<div class="sec"><h2>Skötseltips</h2></div><div class="tips">${tips.map(t => `<div class="tipr"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>${t[0]}</b><span>${esc(t[1])}</span></div></div>`).join('')}</div>` : ''}
   ${wikiV(p)}
+  ${obsV(p)}
   ${similar.length ? `<div class="sec"><h2>Liknande växter</h2></div><div class="similar">${similar.map(s => `<button onclick="openPlant(${s.id})">${plantPh(s)}<span>${esc(s.swedish_name)}</span></button>`).join('')}</div>` : ''}
   ${my ? `<div class="pad" style="padding-top:14px"><button class="setrow" onclick="openDoc(${my.id})"><span class="tic doc">${ic(DOCI, 'currentColor', 20)}</span><span class="grow"><b>Något som inte ser friskt ut?</b><span>Fråga Växtdoktorn om skador och ohyra</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>` : ''}
   ${othersV(p)}
@@ -10741,6 +10742,22 @@ async function wikiLoad(k) {
   WIKI[k] = d;
   const cur = S.sel ? plantById(S.sel) : null;
   if (d && cur && wikiKey(cur) === k) keepMain();
+}
+const OBS = {};
+async function obsLoad(k) {
+  let d = null;
+  if (!DEMO && sb) { try { const r = await sb.from('species_obs').select('n_se,months').eq('latin_name', k).maybeSingle(); d = r.data || null; } catch (e) { console.warn('Roothood:', e); } }
+  OBS[k] = d;
+  const cur = S.sel ? plantById(S.sel) : null;
+  if (d && cur && wikiKey(cur) === k) keepMain();
+}
+function obsV(p) {
+  const k = wikiKey(p); if (!k) return '';
+  if (!(k in OBS)) { OBS[k] = undefined; obsLoad(k); return ''; }
+  const o = OBS[k]; if (!o || !(o.n_se >= 20) || !Array.isArray(o.months) || o.months.length !== 12) return '';
+  const mx = Math.max(...o.months, 1), L = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'], N = ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
+  const bars = o.months.map((v, i) => `<div class="obsb" title="${N[i]}: ${v} observationer"><i style="height:${Math.max(2, Math.round(v / mx * 100))}%"></i><span>${L[i]}</span></div>`).join('');
+  return `<div class="sec"><h2>Observerad i Sverige</h2></div><div class="pad" style="padding-top:0"><div class="obs" role="img" aria-label="Rapporterade observationer per månad">${bars}</div><small class="mut">${String(o.n_se).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0')} rapporterade observationer i Sverige, per månad. Både vilda och odlade växter ingår, så det visar inte blomningstid. Källa: GBIF (Artdatabanken m.fl.).</small></div>`;
 }
 function wikiV(p) {
   const k = wikiKey(p); if (!k) return '';
@@ -12399,7 +12416,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
-  ['Beta 0.404', '14 nov', ['Växtgrupp i filtret har fler val: ormbunkar, köttätande, suckulenter, palmer, gräs, barrträd, rosor, rhododendron, klematis, hostor, begonior, pelargoner och marantaväxter', 'Växter kan nu ha flera svenska namn: Dyntaxas namn och vardagsnamnet. Båda går att söka på, och växtsidan visar "Även kallad"', 'Märken för fridlyst, rödlistad och invasiv på växtkort, nytt filter "Status i Sverige", varning när du sätter ut en invasiv art, och alternativa namn syns i söklistan', 'Växtsidan har ett stycke "Om arten" med en kort beskrivning från svenska Wikipedia (med källa)', 'Väderkortet visar jordtemperaturen och pollen (i Europa, när det finns pollen i luften)']],
+  ['Beta 0.404', '14 nov', ['Växtgrupp i filtret har fler val: ormbunkar, köttätande, suckulenter, palmer, gräs, barrträd, rosor, rhododendron, klematis, hostor, begonior, pelargoner och marantaväxter', 'Växter kan nu ha flera svenska namn: Dyntaxas namn och vardagsnamnet. Båda går att söka på, och växtsidan visar "Även kallad"', 'Märken för fridlyst, rödlistad och invasiv på växtkort, nytt filter "Status i Sverige", varning när du sätter ut en invasiv art, och alternativa namn syns i söklistan', 'Växtsidan har ett stycke "Om arten" med en kort beskrivning från svenska Wikipedia (med källa)', 'Växtsidan visar när arten har rapporterats i Sverige, månad för månad (GBIF)', 'Väderkortet visar jordtemperaturen och pollen (i Europa, när det finns pollen i luften)']],
   ['Beta 0.403', '13 nov', ['62 växter utan bild har fått ett foto från iNaturalist, bara med fri licens och med fotografens namn under bilden']],
   ['Beta 0.402', '13 nov', ['Växtsidan visar nu om arten är fridlyst, rödlistad eller invasiv i Sverige (källa: Artdatabanken)']],
   ['Beta 0.401', '13 nov', ['Väder: SMHI:s officiella varningar (kyla, vind, skyfall, vattenbrist m.m.) visas för din ort i Sverige. Utomlands används Open-Meteo som förut']],
