@@ -7984,7 +7984,12 @@ const WX = { 0: ['Klart', '☀️'], 1: ['Mest klart', '🌤️'], 2: ['Halvklar
 const WXI = { '☀': 'ph-sun', '🌤': 'ph-cloud-sun', '⛅': 'ph-cloud-sun', '☁': 'ph-cloud', '🌫': 'ph-cloud-fog', '🌦': 'ph-cloud-rain', '🌧': 'ph-cloud-rain', '🌨': 'ph-cloud-snow', '🧊': 'ph-snowflake', '❄': 'ph-snowflake', '🥶': 'ph-snowflake', '🌡': 'ph-thermometer', '💨': 'ph-wind', '💧': 'ph-drop', '🔥': 'ph-fire', '⛈': 'ph-cloud-lightning' };
 const wxIco = (e, s) => ic(WXI[String(e || '').replace(/\uFE0F/g, '')] || 'ph-warning', 'currentColor', s || 20);
 const DAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
-function wxPlace() { const M = S.hplan && S.hplan.map; if (M && M.lat != null) return { lat: M.lat, lon: M.lon, name: S.city || 'ditt hem' }; const g = store.get('wxGeo', null); if (g && g.q === (S.city || '').trim().toLowerCase() && g.lat != null) return g; return null; }
+function wxPlace() {
+  // Kartans plats för Mitt hem används bara om den ligger nära orten i profilen (inom 50 km). Annars gäller orten, så att vädret, frosten och varningarna inte hamnar på fel plats.
+  const M = S.hplan && S.hplan.map, city = (S.city || '').trim(), g0 = store.get('wxGeo', null), g = g0 && g0.q === city.toLowerCase() && g0.lat != null ? g0 : null;
+  if (M && M.lat != null) { const near = g && Math.hypot((+M.lon - g.lon) * 111.32 * Math.cos(g.lat * Math.PI / 180), (+M.lat - g.lat) * 111.32) < 50; if (!city || near) return { lat: +M.lat, lon: +M.lon, name: city || 'ditt hem' }; }
+  return g;
+}
 async function loadWeather(force) {
   if (S.wxBusy) { S.wxAgain = true; return; } if (!force && S.wxFailAt && Date.now() - S.wxFailAt < 10 * 60e3) return; const c = store.get('wx', null), pl = wxPlace();
   if (!force && c && c.v === 2 && c.d && c.d.sunshine_duration && c.cur && c.cur.cloud_cover != null && Date.now() - c.t < 30 * 60e3 && pl && Math.abs(c.lat - pl.lat) < 0.01 && Math.abs(c.lon - pl.lon) < 0.01) { S.wx = c; loadSmhi(pl).then(() => { if (!S.tool && !S.sel && S.tab === 'home') render(); }); if (T3 && T3.scene) env3d(); if (!S.tool && !S.sel && S.tab === 'home') render(); return; }
