@@ -6074,35 +6074,51 @@ function mapTiles() {
 }
 function mapPanelV() {
   const M = (S.hplan && S.hplan.map) || {};
-  if (M.lat == null) return `<div class="mapp"><b>Karta under ritningen</b><span class="mut" style="font-size:13px">Sök på din adress så visas ditt hus från ovan.</span>
-    <form class="mrow2" onsubmit="event.preventDefault();mapSearch(this.q.value)"><input id="mapq" name="q" placeholder="Gatuadress och ort" value="${esc(S.mapQ || '')}" autocomplete="off" oninput="mapSuggest(this.value)" enterkeyhint="search"><button class="btn sm">Sök</button></form><div id="mapsug" class="mapsug"></div>
+  if (M.lat == null) return `<div class="mapp"><b>Karta under ritningen</b><span class="mut" style="font-size:13px">Skriv din exakta adress, så hamnar huset på den platsen. Du kan också skriva koordinater, till exempel 65.3172, 21.4794.</span>
+    <form class="mrow2" onsubmit="event.preventDefault();mapSearch(this.q.value)"><input id="mapq" name="q" placeholder="Gatuadress och ort, eller koordinater" value="${esc(S.mapQ || '')}" autocomplete="off" oninput="mapSuggest(this.value)" enterkeyhint="search"><button class="btn sm">Sök</button></form><div id="mapsug" class="mapsug"></div>
     <button class="btn sm line" onclick="mapHere()">📍 Använd min position</button></div>`;
   return `<div class="mapp"><div class="mrow2"><div class="wk2">${[['sat', 'Satellit'], ['map', 'Karta'], ['topo', 'Höjdkurvor'], ['hill', 'Terräng']].map(([k, n]) => `<button class="${(M.layer || 'sat') === k ? 'on' : ''}" onclick="mapSet('layer','${k}')">${n}</button>`).join('')}</div><button class="btn sm line" onclick="mapSet('on',${!M.on})">${M.on ? 'Dölj' : 'Visa'}</button></div>
     <div class="mrow2"><button class="btn sm line" onclick="elevAutoFetch()">⛰️ Hämta markhöjd från nätet</button><small class="mut">${S.hplan && S.hplan.elevAuto ? 'Hämtad' + (S.hplan.elevAuto.src ? ' (' + esc(S.hplan.elevAuto.src) + ')' : '') : 'Ej hämtad'}${(() => { const C = contours(); return C && C.step ? ' · höjdlinjer var ' + String(C.step).replace('.', ',') + ' m' : ''; })()}</small></div>
     <label class="msl"><span>Synlighet</span><input type="range" min="20" max="100" value="${Math.round((M.op || 0.85) * 100)}" oninput="S.hplan.map.op=this.value/100;renderPlan()" onchange="saveHomeSoon()"></label>
     <label class="msl"><span>Vrid ritningen</span><input type="range" min="0" max="359.5" step="0.5" value="${northDeg()}" oninput="setNorth(+this.value,true)" onchange="setNorth(+this.value)"></label>
     <div class="mrow2 degrow"><span class="msl" style="width:78px">Exakt vinkel</span><button class="degb" onclick="setNorth(northDeg() - 0.5)" aria-label="Vrid 0,5 grader åt vänster">−</button><input id="degin" type="text" inputmode="decimal" value="${String(Math.round(northDeg() * 10) / 10).replace('.', ',')}" aria-label="Vinkel i grader" onkeydown="if(event.key==='Enter')this.blur()" onchange="const v=parseFloat(this.value.replace(',','.'));if(!isNaN(v))setNorth(v);else render()"><span class="deg">°</span><button class="degb" onclick="setNorth(northDeg() + 0.5)" aria-label="Vrid 0,5 grader åt höger">+</button></div>
-    <div class="mrow2"><span class="mut" style="font-size:11.5px;flex:1">${TILES[M.layer || 'sat'][2]}</span><button class="link3" onclick="mapClear()">Byt adress</button><button class="btn sm" onclick="planMapToggle()">Klar</button></div></div>`;
+    <div class="mrow2"><span class="mut" style="font-size:11.5px;flex:1">${TILES[M.layer || 'sat'][2]}</span><button class="link3" onclick="mapClear()">Byt adress</button><button class="btn sm" onclick="planMapToggle()">Klar</button></div>
+    <div class="mrow2" style="flex-wrap:wrap"><span style="font-size:12.5px;flex:1;min-width:180px">📍 ${M.addr ? esc(M.addr) + '<br>' : ''}<span class="mut">${(+M.lat).toFixed(6)}, ${(+M.lon).toFixed(6)}</span></span><button class="btn sm line" onclick="mapCoordEdit()">Ändra koordinater</button></div>
+    ${S.mapCoordEd ? `<form class="mrow2" onsubmit="event.preventDefault();mapCoordSave(this.c.value)"><input name="c" id="mapc" inputmode="decimal" autocomplete="off" value="${(+M.lat).toFixed(6)}, ${(+M.lon).toFixed(6)}" aria-label="Koordinater, latitud och longitud"><button class="btn sm">Spara</button></form><small class="mut" style="display:block;margin:-4px 0 6px">Latitud, longitud i decimalgrader (WGS 84), som i Google Maps. Huset flyttas så att mitten hamnar på punkten.</small>` : ''}</div>`;
 }
 function setNorth(v, live) { v = Math.round((((v % 360) + 360) % 360) * 10) / 10; S.hplan = S.hplan || {}; S.hplan.north = v; const di = $('#degin'); if (di && live) di.value = String(v).replace('.', ','); const c = $('.pnorth span'); if (c) c.style.transform = `rotate(${v + viewRot()}deg)`; if (live) return renderPlan(); pushUndo(); planRooms().forEach(syncDirs); saveHomeSoon(); render(); }
 function mapSet(k, v) { S.hplan.map[k] = v; saveHomeSoon(); render(); }
 function mapClear() { pushUndo(); S.hplan.map = { on: true }; saveHomeSoon(); render(); }
 function mapCenter() { const rs = planRooms(); if (!rs.length) { const P = PL(), b = $('#planbox'); return [(b.clientWidth / 2 - P.ox) / P.z, (b.clientHeight / 2 - P.oy) / P.z]; } const pts = [].concat(...rs.map(roomPoly)); return [(Math.min(...pts.map(q => q[0])) + Math.max(...pts.map(q => q[0]))) / 2, (Math.min(...pts.map(q => q[1])) + Math.max(...pts.map(q => q[1]))) / 2]; }
-function mapPut(lat, lon) { pushUndo(); S.hplan = S.hplan || {}; const [cx, cy] = mapCenter(); S.hplan.map = Object.assign({ layer: 'sat', op: 0.85 }, S.hplan.map || {}, { lat, lon, on: true, ox: cx, oy: cy }); const P = PL(); if (!planRooms().length) { const b = $('#planbox'); P.z = 30; P.ox = b.clientWidth / 2 - cx * 30; P.oy = b.clientHeight / 2 - cy * 30; } saveHomeSoon(); render(); toast('Dra i kartan så att huset hamnar rätt'); }
+// Koordinater i decimalgrader: "65.3172, 21.4794", "65,3172 21,4794", "65.3172N 21.4794E". Byter plats om man skrivit longitud först (Sverige).
+function parseCoords(q) {
+  let t = String(q || '').trim().replace(/[°′″]/g, ' ').replace(/\s*([NnSsEeÖöWwVv])\b/g, ' ').trim(); if (!t) return null;
+  let parts;
+  if (/^-?\d+(\.\d+)?\s*[,;]\s*-?\d+(\.\d+)?$/.test(t)) parts = t.split(/\s*[,;]\s*/);
+  else parts = t.split(/[\s;]+/).map(x => x.replace(',', '.'));
+  if (parts.length !== 2 || !parts.every(x => /^-?\d+(\.\d+)?$/.test(x))) return null;
+  let [a, b] = parts.map(Number); if (!(Math.abs(a) <= 90 && Math.abs(b) <= 180)) return null;
+  if (a >= 10 && a <= 25 && b >= 54 && b <= 70) [a, b] = [b, a];
+  return { lat: a, lon: b };
+}
+function mapCoordEdit() { S.mapCoordEd = !S.mapCoordEd; render(); if (S.mapCoordEd) setTimeout(() => { const el = $('#mapc'); if (el) el.focus(); }, 50); }
+function mapCoordSave(v) { const c = parseCoords(v); if (!c) return toast('Skriv latitud och longitud, till exempel 65.3172, 21.4794'); S.mapCoordEd = false; S.hplan.map.addr = ''; mapPut(c.lat, c.lon, ''); }
+function mapPut(lat, lon, addr) { pushUndo(); S.hplan = S.hplan || {}; const [cx, cy] = mapCenter(); S.hplan.map = Object.assign({ layer: 'sat', op: 0.85 }, S.hplan.map || {}, { lat, lon, on: true, ox: cx, oy: cy }, addr != null ? { addr } : {}); const P = PL(); if (!planRooms().length) { const b = $('#planbox'); P.z = 30; P.ox = b.clientWidth / 2 - cx * 30; P.oy = b.clientHeight / 2 - cy * 30; } saveHomeSoon(); render(); toast('Huset står nu på platsen. Dra i kartan om det behöver flyttas lite'); }
 let mapSugT = null;
 // Förslag medan man skriver adress eller ort (Sverige). Listan uppdateras utan att hela vyn ritas om, så att skrivfältet behåller fokus.
-function mapSuggest(v) { clearTimeout(mapSugT); S.mapQ = v; const q = (v || '').trim(), box = $('#mapsug'); if (!box) return; if (q.length < 2) { box.innerHTML = ''; return; }
+function mapSuggest(v) { clearTimeout(mapSugT); S.mapQ = v; const q = (v || '').trim(), box = $('#mapsug'); if (!box) return; if (q.length < 2) { box.innerHTML = ''; return; } if (parseCoords(q) || /^-?\d+([.,]\d*)?[\s,;]*-?\d*([.,]\d*)?$/.test(q)) { box.innerHTML = parseCoords(q) ? `<button type="button" class="mapsugi" onclick="mapSearch(${jsArg(q)})">Använd koordinaterna ${esc(q)}</button>` : ''; return; }
   mapSugT = setTimeout(async () => { try { const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=se&addressdetails=1&accept-language=sv&q=' + encodeURIComponent(q)); const a = await r.json(); const cur = $('#mapq'), b = $('#mapsug');
       if (!b || !cur || cur.value.trim() !== q) return; S.mapSug = a; b.innerHTML = a.length ? a.map((x, i) => `<button type="button" class="mapsugi" onclick="mapPick(${i})">${esc(x.display_name)}</button>`).join('') : '<span class="mut" style="font-size:13px;padding:10px 12px;display:block">Inga förslag</span>'; }
     catch (e) { box.innerHTML = ''; } }, 350); }
-function mapPick(i) { const x = (S.mapSug || [])[i]; if (!x) return; S.mapSug = null; S.mapQ = x.display_name; mapPut(+x.lat, +x.lon); }
+function mapPick(i) { const x = (S.mapSug || [])[i]; if (!x) return; S.mapSug = null; S.mapQ = x.display_name; mapPut(+x.lat, +x.lon, x.display_name); }
 async function mapSearch(q) {
   q = (q || '').trim(); S.mapQ = q; if (!q) return;
+  const c = parseCoords(q); if (c) return mapPut(c.lat, c.lon, '');
   try { const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=se&accept-language=sv&q=' + encodeURIComponent(q)); const a = await r.json();
-    if (!a.length) return toast('Hittade inte adressen. Prova med gata, nummer och ort.'); mapPut(+a[0].lat, +a[0].lon); }
+    if (!a.length) return toast('Hittade inte adressen. Prova med gata, nummer och ort, eller skriv koordinater.'); mapPut(+a[0].lat, +a[0].lon, a[0].display_name); }
   catch (e) { toast('Kunde inte söka just nu. Kontrollera internet.'); }
 }
-function mapHere() { if (!navigator.geolocation) return toast('Mobilen kan inte ge din position'); navigator.geolocation.getCurrentPosition(p => mapPut(p.coords.latitude, p.coords.longitude), () => toast('Fick inte din position. Tillåt plats i Chrome eller sök på adressen.'), { enableHighAccuracy: true, timeout: 15000 }); }
+function mapHere() { if (!navigator.geolocation) return toast('Mobilen kan inte ge din position'); navigator.geolocation.getCurrentPosition(p => mapPut(p.coords.latitude, p.coords.longitude, 'Min position'), () => toast('Fick inte din position. Tillåt plats i Chrome eller sök på adressen.'), { enableHighAccuracy: true, timeout: 15000 }); }
 const UK = [['elev', 'Markhöjd', 'pt', '⛰️'], ['lot', 'Tomt', 'poly', '📐'], ['lawn', 'Gräsmatta', 'poly', '🌿'], ['bed', 'Rabatt', 'poly', '🌷'], ['veg', 'Odlingsland', 'poly', '🥕'], ['path', 'Gång', 'poly', '🪨'], ['patio', 'Altan', 'poly', '🪵'], ['pond', 'Damm', 'poly', '💧'], ['hedge', 'Häck', 'line', '🌳'], ['tree', 'Lövträd', 'pt', '🌳'], ['fruit', 'Fruktträd', 'pt', '🍎'], ['conifer', 'Barrträd', 'pt', '🌲'], ['bush', 'Buske', 'pt', '🌱'], ['ghouse', 'Växthus', 'rect', '🏡'], ['rbed', 'Odlingslåda', 'rect', '🥬'], ['shed', 'Förråd', 'rect', '🛖'], ['compost', 'Kompost', 'rect', '♻️']];
 const UK_M = Object.fromEntries(UK.map(u => [u[0], u]));
 const AREA_ST = { lot: ['rgba(120,170,90,.08)', '#5E9E48', '7 5'], lawn: ['rgba(110,175,80,.40)', '#5E9E48'], bed: ['rgba(150,100,60,.40)', '#8A5A34'], veg: ['rgba(125,90,50,.48)', '#6B4A2A'], path: ['rgba(175,168,152,.65)', '#8C857A'], patio: ['rgba(196,154,108,.6)', '#9A6E44'], pond: ['rgba(80,150,205,.55)', '#3B8DB0'] };
