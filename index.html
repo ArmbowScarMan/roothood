@@ -10939,7 +10939,8 @@ function plantPhD(p) { const cred = p.photo_url && (p.photo_credit || p.photo_no
 // Felaktig bild på en växt: skickas till felrapporterna, och moderatorer kan ta bort bilden för alla.
 // Bilden kan vara växtens egen (photo_url) eller hämtad från Wikipedia eller Wikimedia Commons (IMG).
 function reportPlantPhoto(pid) { if (needLogin()) return; const p = S.plants.find(x => x.id === pid), url = p && (p.photo_url || (IMG[p.latin_name] || {}).src); if (!url) return toast('Bilden har inte laddats än. Försök igen om en stund.'); S.rep = { kind: 'photo', id: url, pid: null }; openModal('report'); }
-function myPh(m) { return m.photo ? `<div class="ph has-img" style="--h:0"><img src="${esc(m.photo)}" alt="" loading="lazy"></div>` : ph(m.latin, m.category, m.name); }
+// Eget foto först, annars samma bild som på växtens sida (Växtbibliotekets bild), sist en ritad kruka
+function myPh(m) { if (m.photo) return `<div class="ph has-img" style="--h:0"><img src="${esc(m.photo)}" alt="" loading="lazy"></div>`; const p = m.plant_id && (S.plants || []).find(x => x.id === m.plant_id); return p && p.photo_url ? plantPh(p) : ph(m.latin, m.category, m.name); }
 async function insertUP(row) {
   if (!newRemind()) row.remind = false;
   let r = await sb.from('user_plants').insert(row);
