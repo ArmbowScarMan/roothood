@@ -1052,7 +1052,7 @@ button.pw{cursor:pointer}
 .qbanner{all:unset;box-sizing:border-box;grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:16px;background:var(--pri);color:var(--onpri);font-weight:800;font-size:15px;cursor:pointer}
 .qbanner>i.ph:first-child{font-size:22px}
 .qbanner>i.ph:last-child{margin-left:auto;font-size:18px}
-.qgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:4px 18px 0}
+.qgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:4px 18px 0}
 .qbtn{all:unset;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 2px;border-radius:16px;background:var(--surf);box-shadow:var(--sh);cursor:pointer;text-align:center}
 .qbtn .tic{position:relative;width:44px;height:44px;border-radius:14px;display:grid;place-items:center}
 .qbtn .tic em{position:absolute;top:-6px;right:-10px;font-style:normal;font-size:9px;font-weight:800;background:var(--acc);color:#fff;border-radius:99px;padding:1px 5px}
@@ -1661,10 +1661,12 @@ body.hadv nav{display:none}
 .home2 .wxt{font-size:26px !important}
 .home2 .wxfoot{margin-top:8px}
 .home2 .wxrow{margin-top:10px}
-.home2 .qhome{grid-template-columns:repeat(4,1fr);gap:8px;padding:0 18px}
+.home2 .qhome{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0 18px}
 .home2 .qc,.home2 .qc.big{grid-row:auto;flex-direction:column;align-items:center;justify-content:flex-start;gap:7px;padding:12px 4px 10px;border-radius:18px;font-size:12px;font-weight:700;text-align:center;line-height:1.2;min-height:92px}
 .home2 .qc>i.ph,.home2 .qc.big>i.ph{width:42px;height:42px;border-radius:14px;font-size:22px}
-.home2 .qc span{overflow-wrap:anywhere;hyphens:auto}
+.home2 .qc span{overflow-wrap:normal;hyphens:manual;max-width:100%}
+button,.btn,.qc{hyphens:manual}
+.qc{min-width:0}
 .home2 .qc .pro{top:5px;right:6px}
 .home2 .qc.qmore{background:var(--soft);background-image:none}
 .home2 .qc.qmore>i.ph{background:var(--surf)}
@@ -6472,6 +6474,8 @@ function fitPlanBox() {
   if (box.style.height !== nh) { box.style.height = nh; if (box.id === 'planbox') PL().fit = PL().fit || !PL().fitted; }
   PL().fitted = true;
 }
+window.addEventListener('resize', () => fitBtnText());
+try { document.fonts && document.fonts.ready.then(() => fitBtnText()); } catch (e) {}
 window.addEventListener('resize', () => { if ($('#planbox') || $('#box3d')) { fitPlanBox(); if ($('#plan')) renderPlan(); if ($('#box3d')) mount3d(); } });
 function planHint() {
   const P = PL();
@@ -7851,7 +7855,7 @@ function render() {
   $('#ov').insertAdjacentHTML('beforeend', instBanner());
   const iv = $('#idvid'); if (iv && idStream && iv.srcObject !== idStream) { iv.srcObject = idStream; iv.play().catch(() => {}); idCtlInit(); }
   const lv = $('#lv'); if (lv && lightStream) { lv.srcObject = lightStream; lv.hidden = false; lv.play().catch(() => {}); }
-  loadPhotos(); loadAvatars();
+  loadPhotos(); loadAvatars(); fitBtnText();
   fitPlanBox();
   if ($('#plan') && PL().fit) renderPlan();
   if ($('#box3d')) mount3d();
@@ -9852,6 +9856,27 @@ const AVFLOWER = { A: ['Aster', '🌼'], B: ['Blåklocka', '🌸'], C: ['Cosmos'
 function avFlower(name) { const L = String(name || '').trim().charAt(0).toUpperCase(); return AVFLOWER[L] || ['Blomma', '🌸']; }
 // Profilbilder: hämtas per användar-id och sparas i AV, så att samma bild syns överallt där personen visas
 const AV = {}, AVQ = new Set(); let avBusy = false;
+// Knapptext delas aldrig mitt i ett ord. Är ett ord för långt för knappen krymps texten lite tills det får plats.
+function fitBtnText() {
+  document.querySelectorAll('[data-fs]').forEach(e => { e.style.fontSize = ''; e.style.overflowWrap = ''; delete e.dataset.fs; });
+  document.querySelectorAll('#main button, #ov button, #main .qc, nav button').forEach(btn => {
+    const els = [btn, ...btn.querySelectorAll('span,b')].filter(e => !e.firstElementChild || e === btn);
+    els.forEach(el => {
+      const t = el.textContent || ''; if (!/\S{9,}/.test(t)) return;
+      if (el.dataset.fs) { el.style.fontSize = ''; el.style.overflowWrap = ''; }
+      const cs = getComputedStyle(el); if (cs.whiteSpace === 'nowrap' || cs.display === 'inline' || !el.clientWidth) return;
+      if (el.scrollWidth <= el.clientWidth + 1) return;
+      const base = parseFloat(cs.fontSize); let fs = base; el.dataset.fs = base;
+      while (el.scrollWidth > el.clientWidth + 1 && fs > base * 0.6) { fs -= 0.5; el.style.fontSize = fs + 'px'; }
+      if (el.scrollWidth > el.clientWidth + 1) el.style.overflowWrap = 'anywhere';
+    });
+  });
+  // Knappar i samma rutnät får samma textstorlek, så att raden ser jämn ut
+  document.querySelectorAll('.qgrid, .qhome').forEach(g => {
+    const L = [...g.querySelectorAll('.qc > span')]; const f = L.map(e => parseFloat(e.style.fontSize)).filter(Boolean);
+    if (!f.length) return; const m = Math.min(...f) + 'px'; L.forEach(e => { if (!e.dataset.fs) e.dataset.fs = parseFloat(getComputedStyle(e).fontSize); e.style.fontSize = m; });
+  });
+}
 function avAttr(uid) { return uid && !(uid in AV) && /^[0-9a-f-]{36}$/i.test(String(uid)) ? ` data-avu="${esc(uid)}"` : ''; }
 function avU(uid) { return uid ? AV[uid] || null : null; }
 function avFix(el, u) { el.classList.add('avimg'); el.classList.remove('avflower'); el.style.background = ''; el.removeAttribute('role'); el.innerHTML = `<img src="${esc(u)}" alt="">`; }
