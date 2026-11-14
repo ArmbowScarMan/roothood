@@ -1449,6 +1449,7 @@ body.hadv nav{display:none}
 .plsunbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 18px 8px;padding:6px 12px;background:var(--surf);border-radius:14px;box-shadow:var(--sh);font-size:14px}
 .plsunchk{display:inline-flex;align-items:center;gap:8px;font-weight:700;min-height:40px;cursor:pointer}.plsunchk input{width:20px;height:20px;margin:0;accent-color:var(--pri)}
 .plsunbar input[type=range]{flex:1;min-width:120px;margin:0}.plsunbar b{font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
+.mapsug:empty{display:none}
 .mapsug{display:flex;flex-direction:column;background:var(--surf);border-radius:14px;box-shadow:var(--sh);overflow:hidden;margin-top:6px}.mapsugi{text-align:left;padding:10px 12px;border:0;border-top:1px solid var(--line);background:none;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}.mapsugi:first-child{border-top:0}
 .wx3{position:absolute;left:10px;bottom:10px;z-index:4;background:var(--surf);border-radius:14px;padding:7px 11px;font-size:13px;font-weight:600;box-shadow:var(--sh);pointer-events:none}
 .cemo{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;vertical-align:middle;margin:0 1px}.cemo svg{width:26px;height:26px;display:block}
@@ -2548,6 +2549,8 @@ const demoApi = {
   async saveNames(f, l) { store.set('names', { first: f, last: l }); },
   async saveAvatar(url) { store.set('avatarDemo', url || null); return; },
   async deleteAccount() { try { localStorage.clear(); } catch (e) { console.warn('Roothood:', e); } },
+  async getAddr() { return store.get('addrDemo', null); },
+  async saveAddr(a) { store.set('addrDemo', a || null); },
   async getProfile() { return Object.assign({ avatar_url: store.get('avatarDemo', null), display_name: 'Du', city: '', interests: [], share_photos: store.get('share', false) }, store.get('profile', {})); },
   async saveProfile(p) { store.set('profile', { display_name: p.display_name, first_name: p.first_name, last_name: p.last_name, city: p.city, interests: p.interests, vis: p.vis || (store.get('profile', {}).vis) }); },
   async changePassword() {},
@@ -2833,6 +2836,9 @@ const sbApi = {
   async fixName(n) { const sp = splitName(n); const { error } = await sb.from('profiles').update({ display_name: pubName(sp.first, sp.last) }).eq('id', S.user.id); if (error) throw error; },
   async saveZone(z) { const { error } = await sb.from('profiles').update({ zone: z }).eq('id', S.user.id); if (error) throw /zone/.test(error.message || '') ? new Error('ZONE_NOT_READY') : error; },
   async myZone() { const { data, error } = await sb.from('profiles').select('zone').eq('id', S.user.id); if (error) return undefined; return (data && data[0] && data[0].zone) || null; },
+  // Egen adress: bara den inloggade användaren kan läsa och ändra den (tabellen user_private, SQL 113)
+  async getAddr() { const { data, error } = await sb.from('user_private').select('address,lat,lon').eq('user_id', S.user.id).maybeSingle(); if (error) throw error; return data || null; },
+  async saveAddr(a) { if (!a) { const { error } = await sb.from('user_private').delete().eq('user_id', S.user.id); if (error) throw error; return; } const { error } = await sb.from('user_private').upsert({ user_id: S.user.id, address: a.address, lat: a.lat, lon: a.lon, updated_at: new Date().toISOString() }); if (error) throw error; },
   async saveAvatar(url) { const { error } = await sb.from('profiles').update({ avatar_url: url }).eq('id', S.user.id); if (error) throw /avatar/.test(error.message || '') ? new Error('AVATAR_NOT_READY') : error; },
   async getProfile() {
     let { data, error } = await sb.from('profiles').select('display_name,city,interests,share_photos,vis,avatar_url,notif_prefs').eq('id', S.user.id);
@@ -3762,7 +3768,7 @@ function zonePickV() {
   <a class="btn sm line" href="https://zonkartan.se/" target="_blank" rel="noopener" style="margin-top:8px;display:inline-block">Öppna Svensk Trädgårds zonkarta</a><p class="mut" style="font-size:12px;margin:4px 0 0">Skriv din adress där så ser du din zon. Kartan tillhör Riksförbundet Svensk Trädgård.</p>
   <p class="mut" style="font-size:13px;margin:6px 0 0">Hitta din ort på kartan och välj zonen den ligger i.</p>`;
 }
-async function loadHome() { if (!S.user) return; syncHarvest(); checkZone(); checkNames(); loadSitTasks(); loadFavs(); loadWishes(); loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
+async function loadHome() { if (!S.user) return; loadAddr(); syncHarvest(); checkZone(); checkNames(); loadSitTasks(); loadFavs(); loadWishes(); loadRole().then(() => { if (!S.tool && !S.modal) render(); }); try { const h = await api.getHome(); if (Array.isArray(h)) { S.home = h; S.hplan = {}; } else { S.home = (h && h.rooms) || []; S.hplan = (h && h.plan) || {}; if (h && Array.isArray(h.layout)) { S.layout = h.layout; store.set('homeLayout', h.layout); } } } catch (e) { S.home = []; S.hplan = {}; S.homeErr = e.message; } S.homeLoaded = true; await loadPets(); render(); loadNotifs(); if (!S.notifT) S.notifT = setInterval(() => { if (document.visibilityState === 'visible' && S.user) loadNotifs(); }, 90000); }
 // Ett tryck från Hem: rakt in i rabattplaneringen i ritningen
 function openBedPlan() {
   if (needPro()) return; openHouse(); S.hmode = 'adv';
@@ -6102,7 +6108,7 @@ function mapPanelV() {
   const M = (S.hplan && S.hplan.map) || {};
   if (M.lat == null) return `<div class="mapp"><b>Karta under ritningen</b><span class="mut" style="font-size:13px">Skriv din exakta adress, så hamnar huset på den platsen. Du kan också skriva koordinater, till exempel 65.3172, 21.4794.</span>
     <form class="mrow2" onsubmit="event.preventDefault();mapSearch(this.q.value)"><input id="mapq" name="q" placeholder="Gatuadress och ort, eller koordinater" value="${esc(S.mapQ || '')}" autocomplete="off" oninput="mapSuggest(this.value)" enterkeyhint="search"><button class="btn sm">Sök</button></form><div id="mapsug" class="mapsug"></div>
-    <button class="btn sm line" onclick="mapHere()">📍 Använd min position</button></div>`;
+    ${S.addr && S.addr.lat != null ? `<button class="btn sm" style="margin-bottom:8px" onclick="mapUseAddr()">${ic('ph-house-line', 'currentColor', 16)} Använd min adress: ${esc(S.addr.address)}</button>` : ''}<button class="btn sm line" onclick="mapHere()">📍 Använd min position</button></div>`;
   return `<div class="mapp"><div class="mrow2"><div class="wk2">${[['sat', 'Satellit'], ['map', 'Karta'], ['topo', 'Höjdkurvor'], ['hill', 'Terräng']].map(([k, n]) => `<button class="${(M.layer || 'sat') === k ? 'on' : ''}" onclick="mapSet('layer','${k}')">${n}</button>`).join('')}</div><button class="btn sm line" onclick="mapSet('on',${!M.on})">${M.on ? 'Dölj' : 'Visa'}</button></div>
     <div class="mrow2"><button class="btn sm line" onclick="elevAutoFetch()">⛰️ Hämta markhöjd från nätet</button><small class="mut">${S.hplan && S.hplan.elevAuto ? 'Hämtad' + (S.hplan.elevAuto.src ? ' (' + esc(S.hplan.elevAuto.src) + ')' : '') : 'Ej hämtad'}${(() => { const C = contours(); return C && C.step ? ' · höjdlinjer var ' + String(C.step).replace('.', ',') + ' m' : ''; })()}</small></div>
     <label class="msl"><span>Synlighet</span><input type="range" min="20" max="100" value="${Math.round((M.op || 0.85) * 100)}" oninput="S.hplan.map.op=this.value/100;renderPlan()" onchange="saveHomeSoon()"></label>
@@ -6166,6 +6172,40 @@ async function mapSearch(q) {
     if (!a.length) return toast('Hittade inte adressen. Prova med gata, nummer och ort, eller skriv koordinater.'); S.mapSug = a; mapPick(0); }
   catch (e) { toast('Kunde inte söka just nu. Kontrollera internet.'); }
 }
+// ===== Min adress (bara för användaren själv) =====
+// Används för vädret, solen och för att placera huset i Mitt hem. Andra användare kan aldrig se den.
+async function loadAddr() {
+  if (!S.user) return;
+  const pend = store.get('pendAddr', null);
+  if (pend) { store.set('pendAddr', null); try { await adrSave(pend, true); return; } catch (e) {} }
+  try { S.addr = await api.getAddr(); } catch (e) { return; }
+  const c = S.addr && S.addr.lat != null ? S.addr : null, w = S.wx;
+  if (c && (!w || w.lat == null || Math.abs(w.lat - c.lat) > 0.01 || Math.abs(w.lon - c.lon) > 0.01)) loadWeather(true);
+}
+let adrT = null;
+function adrSuggest(v) { clearTimeout(adrT); S.adrQ = v; const q = (v || '').trim(), box = $('#sadrsug'); if (!box) return; if (q.length < 4) { box.innerHTML = ''; return; }
+  adrT = setTimeout(async () => { const a = await geoAddr(q), cur = $('#sadr'), b = $('#sadrsug'); if (!b || !cur || cur.value.trim() !== q) return; S.adrSug = a;
+    b.innerHTML = a.map((x, i) => `<button type="button" class="mapsugi" onclick="adrPick(${i})">${esc(x.label)}${x.noNr ? '<small class="mut" style="display:block;font-size:12px">Husnumret finns inte på kartan, platsen blir gatan</small>' : ''}</button>`).join(''); }, 400); }
+async function adrPick(i) { const x = (S.adrSug || [])[i]; if (!x) return; S.adrSug = null; await adrStore({ address: ($('#sadr') || {}).value ? $('#sadr').value.trim() : x.label, lat: x.lat, lon: x.lon }); }
+async function adrSave(v, quiet) {
+  v = String(v || '').trim(); if (!v) return toast('Skriv din adress först');
+  const c = parseCoords(v); if (c) return adrStore({ address: v, lat: c.lat, lon: c.lon }, quiet);
+  const a = await geoAddr(v); if (!a.length) { if (!quiet) toast('Hittade inte adressen. Prova med gata, nummer och ort.'); return adrStore({ address: v, lat: null, lon: null }, quiet); }
+  return adrStore({ address: v, lat: a[0].lat, lon: a[0].lon }, quiet);
+}
+async function adrStore(a, quiet) {
+  try { await api.saveAddr(a); S.addr = a; S.adrQ = null; if (!quiet) toast('Adressen är sparad. Bara du kan se den'); if (a && a.lat != null) loadWeather(true); render(); }
+  catch (e) { if (!quiet) toast(/user_private/.test(e.message || '') ? 'Adressen kan inte sparas ännu' : errMsg(e)); }
+}
+async function adrRemove() { try { await api.saveAddr(null); S.addr = null; toast('Adressen är borttagen'); loadWeather(true); render(); } catch (e) { toast(errMsg(e)); } }
+function adrSecV() {
+  const a = S.addr;
+  return `<div class="setcard"><p class="mut" style="margin:0 0 10px;font-size:13px">${ic('ph-lock-simple', 'currentColor', 14)} Bara du kan se din adress. Den används för att visa väder, sol och frost där du bor, och för att placera huset rätt i Mitt hem. Den är frivillig.</p>
+    <form onsubmit="event.preventDefault();adrSave(this.a.value)"><div class="mrow2"><input id="sadr" name="a" maxlength="160" autocomplete="off" placeholder="Gata och nummer, ort" value="${esc(S.adrQ != null ? S.adrQ : (a && a.address) || '')}" oninput="adrSuggest(this.value)" aria-label="Din adress"><button class="btn sm">Spara</button></div><div id="sadrsug" class="mapsug"></div></form>
+    ${a ? `<p class="mut" style="margin:8px 0 0;font-size:12.5px">${a.lat != null ? 'Platsen är hittad.' : 'Platsen kunde inte hittas på kartan, så orten i profilen används för vädret.'}</p><button class="link3 dangerlink" style="margin-top:6px" onclick="adrRemove()">Ta bort min adress</button>` : ''}
+    <p class="mut" style="margin:8px 0 0;font-size:12px">För att hitta platsen skickas adressen till kartsökningen (OpenStreetMap och Photon). Den sparas inte där.</p></div>`;
+}
+function mapUseAddr() { const a = S.addr; if (!a || a.lat == null) return; S.mapQ = a.address; mapPut(a.lat, a.lon, a.address); }
 function mapHere() { if (!navigator.geolocation) return toast('Mobilen kan inte ge din position'); navigator.geolocation.getCurrentPosition(p => mapPut(p.coords.latitude, p.coords.longitude, 'Min position'), () => toast('Fick inte din position. Tillåt plats i Chrome eller sök på adressen.'), { enableHighAccuracy: true, timeout: 15000 }); }
 const UK = [['elev', 'Markhöjd', 'pt', '⛰️'], ['lot', 'Tomt', 'poly', '📐'], ['lawn', 'Gräsmatta', 'poly', '🌿'], ['bed', 'Rabatt', 'poly', '🌷'], ['veg', 'Odlingsland', 'poly', '🥕'], ['path', 'Gång', 'poly', '🪨'], ['patio', 'Altan', 'poly', '🪵'], ['pond', 'Damm', 'poly', '💧'], ['hedge', 'Häck', 'line', '🌳'], ['tree', 'Lövträd', 'pt', '🌳'], ['fruit', 'Fruktträd', 'pt', '🍎'], ['conifer', 'Barrträd', 'pt', '🌲'], ['bush', 'Buske', 'pt', '🌱'], ['ghouse', 'Växthus', 'rect', '🏡'], ['rbed', 'Odlingslåda', 'rect', '🥬'], ['shed', 'Förråd', 'rect', '🛖'], ['compost', 'Kompost', 'rect', '♻️']];
 const UK_M = Object.fromEntries(UK.map(u => [u[0], u]));
@@ -7366,13 +7406,13 @@ function suPick(z) { S.suZone = z; suRedraw(); }
 async function doAuth(form) {
   const d = Object.fromEntries(new FormData(form));
   if (S.authMode === 'up' && !S.suZone) { S.authEmail = d.email; S.authFirst = d.first || ''; S.authLast = d.last || ''; S.msgOk = false; S.msg = 'Välj din odlingszon innan du skapar kontot.'; render(); const e = $('#suzone'); if (e) e.scrollIntoView({ block: 'center' }); return; }
-  S.authEmail = d.email; S.authFirst = d.first || ''; S.authLast = d.last || '';
+  S.authEmail = d.email; S.authFirst = d.first || ''; S.authLast = d.last || ''; S.authAddr = d.addr || '';
   if (S.authMode === 'up' && ((d.first || '').trim().length < 2 || (d.last || '').trim().length < 2)) { S.msgOk = false; S.msg = 'Skriv både förnamn och efternamn, minst 2 bokstäver var.'; return render(); }
   S.busy = true; S.msg = ''; S.needConfirm = false; render();
   try {
     if (S.authMode === 'up') {
       const active = await api.signUp(d.email.trim(), d.pw, d.first.trim(), d.last.trim());
-      store.set('zone', S.suZone); applyPrefs();
+      store.set('zone', S.suZone); applyPrefs(); if ((d.addr || '').trim()) store.set('pendAddr', d.addr.trim()); S.authAddr = '';
       if (!active) { S.busy = false; S.authMode = 'in'; S.msgOk = true; S.msg = 'Vi har skickat en länk till ' + d.email + '. Klicka på den och logga sedan in här.'; return render(); }
     } else await api.signIn(d.email.trim(), d.pw);
     resetUserState();
@@ -7422,7 +7462,7 @@ async function deleteAccount() {
 }
 // Nollställer allt som hör till ett konto, så nästa användare inte ser förra kontots data
 function resetUserState() {
-  S.user = null; S.namesOk = false; S.mine = []; S.home = []; S.hplan = {}; S.log = {}; S.logForm = null; S.prof = null; S.meCard = undefined; S.ucard = null; S.pro = PRO_FREE;
+  S.user = null; S.addr = null; S.adrQ = null; S.namesOk = false; S.mine = []; S.home = []; S.hplan = {}; S.log = {}; S.logForm = null; S.prof = null; S.meCard = undefined; S.ucard = null; S.pro = PRO_FREE;
   S.feed = null; S.listings = null; S.friends = null; S.frLoad = false; S.inbox = null; S.blockedL = null; S.msgErr = null;
   S.threads = []; S.cases = []; S.notifs = []; S.blocks = []; S.follows = []; S.pfol = []; S.modData = []; S.modRes = []; S.role = 'user';
 }
@@ -8052,6 +8092,8 @@ const DAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
 function wxPlace() {
   // Kartans plats för Mitt hem används bara om den ligger nära orten i profilen (inom 50 km). Annars gäller orten, så att vädret, frosten och varningarna inte hamnar på fel plats.
   const M = S.hplan && S.hplan.map, city = (S.city || '').trim(), g0 = store.get('wxGeo', null), g = g0 && g0.q === city.toLowerCase() && g0.lat != null ? g0 : null;
+  // Egen adress (Inställningar, Min adress) går före allt annat
+  if (S.addr && S.addr.lat != null) return { lat: +S.addr.lat, lon: +S.addr.lon, name: city || 'ditt hem' };
   if (M && M.lat != null) { const near = g && Math.hypot((+M.lon - g.lon) * 111.32 * Math.cos(g.lat * Math.PI / 180), (+M.lat - g.lat) * 111.32) < 50; if (!city || near) return { lat: +M.lat, lon: +M.lon, name: city || 'ditt hem' }; }
   return g;
 }
@@ -10849,6 +10891,7 @@ function loginV() {
   ${up ? '<label>Förnamn<input name="first" required minlength="2" maxlength="30" autocomplete="given-name" value="' + esc(S.authFirst || '') + '"></label><label>Efternamn<input name="last" required minlength="2" maxlength="40" autocomplete="family-name" value="' + esc(S.authLast || '') + '"></label><p class="mut" style="margin:-6px 0 12px;font-size:13px">Andra ser bara förnamn och första bokstaven i efternamnet, till exempel <b>Jim O</b>.</p>' : ''}
   <label>E-post<input name="email" type="email" required autocomplete="email" value="${esc(S.authEmail)}"></label>
   <label>Lösenord<input name="pw" type="password" required minlength="6" autocomplete="${up ? 'new-password' : 'current-password'}"></label>
+  ${up ? `<label>Adress (frivillig)<input name="addr" maxlength="160" autocomplete="street-address" placeholder="Gata och nummer, ort" value="${esc(S.authAddr || '')}"></label><p class="mut" style="margin:-6px 0 12px;font-size:13px">${ic('ph-lock-simple', 'currentColor', 13)} Bara du ser din adress. Den gör väder, sol och kartan i Mitt hem rätt från början.</p>` : ''}
   ${up ? `<div id="suzone" class="suzone">${suZoneV()}</div>` : ''}
   ${S.msg ? `<p class="formmsg ${S.msgOk ? 'ok' : ''}">${esc(S.msg)}</p>` : ''}
   ${S.needConfirm ? `<button type="button" class="btn sm line" style="margin:-4px 0 12px" onclick="resendConfirm()">Skicka bekräftelsemejlet igen</button>` : ''}
@@ -15722,6 +15765,7 @@ function settingsFullV() {
   ${setSecV('gard', 'ph-plant', 'Trädgård', zone ? 'Zon ' + zone : 'Ingen zon vald', `<div class="setcard" id="szonesec">
     <p class="mut" style="margin:0 0 10px;font-size:13px">${zone ? 'Zon ' + zone + ' (' + SOWZN[zone] + ')' : 'Ingen zon vald ännu'}. Zon 1 är mildast och zon 8 kallast. Växtsidorna visar om en växt klarar vintern där du bor.</p>
     ${zoneEditV(zone)}</div>`)}
+  ${S.user ? setSecV('adr', 'ph-map-pin', 'Min adress', S.addr ? 'Sparad · bara du ser den' : 'Frivillig · bara du ser den', adrSecV()) : ''}
   <button class="setsech" onclick="S.notifSet=true;render()"><span class="tic">${ic(BELL, 'currentColor', 20)}</span><span class="grow"><b>Notifikationer</b><small>Påminnelser, tider och vilka notiser du får</small></span>${ic('ph-caret-right', 'var(--mut)', 18)}</button>
   ${S.user && !DEMO ? setSecV('konto', 'ph-key', 'Konto', esc(S.user.email || ''), account + setAdvV('konto', `${fam ? `<label class="fl" style="margin-top:4px">Familj</label>${noHead(fam)}` : ''}${ps ? `<label class="fl">Dela trädgårdsplan</label>${noHead(ps)}` : ''}
     <label class="fl">Blockerade</label><div class="setcard">${S.blockedL == null ? (loadBlocked(), '<p class="mut" style="margin:0">Hämtar…</p>') : S.blockedL.length ? S.blockedL.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b></span><button class="btn sm line" onclick="blockUser(${jsArg(u.id)},false)">Avblockera</button></div>`).join('') : '<p class="mut" style="margin:0">Du har inte blockerat någon.</p>'}</div>`)) : ''}

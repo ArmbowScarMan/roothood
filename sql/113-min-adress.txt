@@ -1,0 +1,14 @@
+-- 113: Egen adress, bara för användaren själv. Används för väder, sol och för att placera huset i Mitt hem.
+-- Ingen annan användare kan läsa den: RLS släpper bara igenom ägaren, och inga funktioner för andra användare läser tabellen.
+create table if not exists public.user_private (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  address text check (address is null or length(address) <= 160),
+  lat double precision check (lat is null or lat between -90 and 90),
+  lon double precision check (lon is null or lon between -180 and 180),
+  updated_at timestamptz not null default now()
+);
+alter table public.user_private enable row level security;
+drop policy if exists "Bara egen adress" on public.user_private;
+create policy "Bara egen adress" on public.user_private for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+revoke all on public.user_private from anon;
+grant select, insert, update, delete on public.user_private to authenticated;
