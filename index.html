@@ -1446,6 +1446,9 @@ body.hadv nav{display:none}
 .pbtn{width:44px;height:44px}
 .like,.link2,.plink{min-height:44px;display:inline-flex;align-items:center}
 .fcat,.thr,.chips2 button{min-height:44px;display:inline-flex;align-items:center}
+.plsunbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 18px 8px;padding:6px 12px;background:var(--surf);border-radius:14px;box-shadow:var(--sh);font-size:14px}
+.plsunchk{display:inline-flex;align-items:center;gap:8px;font-weight:700;min-height:40px;cursor:pointer}.plsunchk input{width:20px;height:20px;margin:0;accent-color:var(--pri)}
+.plsunbar input[type=range]{flex:1;min-width:120px;margin:0}.plsunbar b{font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
 .mapsug{display:flex;flex-direction:column;background:var(--surf);border-radius:14px;box-shadow:var(--sh);overflow:hidden;margin-top:6px}.mapsugi{text-align:left;padding:10px 12px;border:0;border-top:1px solid var(--line);background:none;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}.mapsugi:first-child{border-top:0}
 .wx3{position:absolute;left:10px;bottom:10px;z-index:4;background:var(--surf);border-radius:14px;padding:7px 11px;font-size:13px;font-weight:600;box-shadow:var(--sh);pointer-events:none}
 .cemo{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;vertical-align:middle;margin:0 1px}.cemo svg{width:26px;height:26px;display:block}
@@ -6130,15 +6133,37 @@ function mapPut(lat, lon, addr) { pushUndo(); S.hplan = S.hplan || {}; const [cx
 let mapSugT = null;
 // Förslag medan man skriver adress eller ort (Sverige). Listan uppdateras utan att hela vyn ritas om, så att skrivfältet behåller fokus.
 function mapSuggest(v) { clearTimeout(mapSugT); S.mapQ = v; const q = (v || '').trim(), box = $('#mapsug'); if (!box) return; if (q.length < 2) { box.innerHTML = ''; return; } if (parseCoords(q) || /^-?\d+([.,]\d*)?[\s,;]*-?\d*([.,]\d*)?$/.test(q)) { box.innerHTML = parseCoords(q) ? `<button type="button" class="mapsugi" onclick="mapSearch(${jsArg(q)})">Använd koordinaterna ${esc(q)}</button>` : ''; return; }
-  mapSugT = setTimeout(async () => { try { const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=se&addressdetails=1&accept-language=sv&q=' + encodeURIComponent(q)); const a = await r.json(); const cur = $('#mapq'), b = $('#mapsug');
-      if (!b || !cur || cur.value.trim() !== q) return; S.mapSug = a; b.innerHTML = a.length ? a.map((x, i) => `<button type="button" class="mapsugi" onclick="mapPick(${i})">${esc(x.display_name)}</button>`).join('') : '<span class="mut" style="font-size:13px;padding:10px 12px;display:block">Inga förslag</span>'; }
+  mapSugT = setTimeout(async () => { try { const a = await geoAddr(q); const cur = $('#mapq'), b = $('#mapsug');
+      if (!b || !cur || cur.value.trim() !== q) return; S.mapSug = a; b.innerHTML = a.length ? a.map((x, i) => `<button type="button" class="mapsugi" onclick="mapPick(${i})">${esc(x.label)}${x.noNr ? `<small class="mut" style="display:block;font-size:12px">Husnumret finns inte på kartan, huset hamnar på gatan</small>` : ''}</button>`).join('') : '<span class="mut" style="font-size:13px;padding:10px 12px;display:block">Inga förslag</span>'; }
     catch (e) { box.innerHTML = ''; } }, 350); }
-function mapPick(i) { const x = (S.mapSug || [])[i]; if (!x) return; S.mapSug = null; S.mapQ = x.display_name; mapPut(+x.lat, +x.lon, x.display_name); }
+// Adressökning. Husnummer och bokstav för ingången (79E) matchas först. OpenStreetMap (Nominatim) i första hand och Photon som extra källa.
+// Saknas husnumret på kartan visas gatan, med postnumret du skrev först, och man får flytta huset sista biten själv.
+function addrParts(q) { const m = /(\d+)\s*([a-zåäö])?(?=[\s,]|$)/i.exec(q.replace(/\b\d{3}\s?\d{2}\b/, ' ')), pc = (/\b(\d{3})\s?(\d{2})\b/.exec(q) || []).slice(1).join(''); return { nr: m ? m[1] : '', let: m && m[2] ? m[2].toUpperCase() : '', pc }; }
+async function geoAddr(q) {
+  const P = addrParts(q), want = (P.nr + P.let).toUpperCase(), out = [];
+  const lab = (road, nr, pc, city) => [[road, nr].filter(Boolean).join(' '), [pc ? String(pc).replace(/^(\d{3})(\d{2})$/, '$1 $2') : '', city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const nomi = async qq => { try { const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=8&countrycodes=se&addressdetails=1&accept-language=sv&q=' + encodeURIComponent(qq)); return await r.json(); } catch (e) { return []; } };
+  // Hittas inget med nummer och postnummer, sök igen på bara gatan och orten
+  let a0 = await nomi(q); if (!a0.length && (P.nr || P.pc)) a0 = await nomi(q.replace(/\b\d{3}\s?\d{2}\b/, ' ').replace(/\b\d+\s*[a-zåäö]?(?=[\s,]|$)/i, ' ').replace(/\s*,\s*,/g, ',').replace(/\s+/g, ' ').trim());
+  try { const a = a0;
+    a.forEach(x => { const d = x.address || {}, road = d.road || d.pedestrian || d.footway || '', city = d.city || d.town || d.village || d.hamlet || d.municipality || ''; out.push({ lat: +x.lat, lon: +x.lon, nr: (d.house_number || '').toUpperCase(), pc: (d.postcode || '').replace(/\s/g, ''), label: road ? lab(road, d.house_number, d.postcode, city) : x.display_name, road }); }); } catch (e) {}
+  if (want && !out.some(x => x.nr === want)) {
+    try { const r = await fetch('https://photon.komoot.io/api/?limit=8&bbox=10.5,55,24.5,69.2&q=' + encodeURIComponent(q)); const j = await r.json();
+      (j.features || []).forEach(f => { const p = f.properties || {}, c = (f.geometry || {}).coordinates || []; if (p.countrycode && p.countrycode !== 'SE') return; if (!p.housenumber) return; out.push({ lat: c[1], lon: c[0], nr: String(p.housenumber).toUpperCase().replace(/\s/g, ''), pc: (p.postcode || '').replace(/\s/g, ''), label: lab(p.street || p.name, p.housenumber, p.postcode, p.city || p.district), road: p.street || '' }); }); } catch (e) {}
+  }
+  const exact = out.filter(x => want && x.nr === want), num = out.filter(x => P.nr && x.nr && x.nr.startsWith(P.nr) && !exact.includes(x));
+  let rest = out.filter(x => !exact.includes(x) && !num.includes(x));
+  if (want) rest.forEach(x => { if (!x.nr && x.road) x.noNr = true; });
+  if (P.pc) rest.sort((a, b) => (b.pc === P.pc) - (a.pc === P.pc));
+  const seen = new Set();
+  return [...exact, ...num, ...rest].filter(x => { const k = x.label + '|' + x.lat.toFixed(4); if (seen.has(k)) return false; seen.add(k); return isFinite(x.lat) && isFinite(x.lon); }).slice(0, 6);
+}
+function mapPick(i) { const x = (S.mapSug || [])[i]; if (!x) return; S.mapSug = null; S.mapQ = x.label; mapPut(x.lat, x.lon, x.label); if (x.noNr) setTimeout(() => toast('Husnumret finns inte på kartan. Huset står på gatan, dra i kartan så att det hamnar på rätt tomt'), 2600); }
 async function mapSearch(q) {
   q = (q || '').trim(); S.mapQ = q; if (!q) return;
   const c = parseCoords(q); if (c) return mapPut(c.lat, c.lon, '');
-  try { const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=se&accept-language=sv&q=' + encodeURIComponent(q)); const a = await r.json();
-    if (!a.length) return toast('Hittade inte adressen. Prova med gata, nummer och ort, eller skriv koordinater.'); mapPut(+a[0].lat, +a[0].lon, a[0].display_name); }
+  try { const a = await geoAddr(q);
+    if (!a.length) return toast('Hittade inte adressen. Prova med gata, nummer och ort, eller skriv koordinater.'); S.mapSug = a; mapPick(0); }
   catch (e) { toast('Kunde inte söka just nu. Kontrollera internet.'); }
 }
 function mapHere() { if (!navigator.geolocation) return toast('Mobilen kan inte ge din position'); navigator.geolocation.getCurrentPosition(p => mapPut(p.coords.latitude, p.coords.longitude, 'Min position'), () => toast('Fick inte din position. Tillåt plats i Chrome eller sök på adressen.'), { enableHighAccuracy: true, timeout: 15000 }); }
