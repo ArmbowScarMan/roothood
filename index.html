@@ -819,6 +819,11 @@ nav button.on svg{background:var(--soft);border-radius:12px;padding:3px 14px;box
 .pmapb.on{background:#DCEBF3;color:#245E7A}
 .mapp{position:absolute;left:10px;right:60px;bottom:10px;z-index:3;background:var(--surf);border-radius:20px;padding:12px;box-shadow:0 8px 22px rgba(70,52,28,.16);display:flex;flex-direction:column;gap:8px}
 .mrow2{display:flex;gap:8px;align-items:center}
+.mapp2{left:8px;right:58px;bottom:8px;padding:8px 10px;gap:6px;border-radius:18px;background:color-mix(in srgb,var(--surf) 88%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.mapp2 .mrow2{gap:6px;flex-wrap:nowrap}.mapp2 .mrow2 .btn.sm{padding:7px 9px;font-size:12.5px;min-height:36px;white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}.mapp2 .mrow2 .btn.sm:first-child{flex:1 1 auto}
+.mapp2 .degrow .degb{width:auto;min-width:38px;padding:0 6px;height:36px;font-size:12.5px;font-weight:800}.mapp2 .degrow #degin{flex:1 1 60px;min-width:56px}
+.mapp2 .mhint{font-size:11.5px;line-height:1.3}.mapp2 .mmore{display:flex;flex-direction:column;gap:8px;max-height:38vh;overflow:auto;border-top:1px solid var(--line);padding-top:8px}
+.mapp2 .mmore .link3{font-size:13px;min-height:32px}
 .mrow2 input{flex:1;min-width:0;padding:9px 12px;border-radius:14px}
 .wk2{display:flex;gap:4px;background:var(--bg);border-radius:14px;padding:3px;flex:1}
 .wk2 button{flex:1;border:0;background:none;font:inherit;font-size:13px;font-weight:700;color:var(--mut);border-radius:11px;padding:7px 4px;cursor:pointer}
@@ -6109,14 +6114,74 @@ function mapPanelV() {
   if (M.lat == null) return `<div class="mapp"><b>Karta under ritningen</b><span class="mut" style="font-size:13px">Skriv din exakta adress, så hamnar huset på den platsen. Du kan också skriva koordinater, till exempel 65.3172, 21.4794.</span>
     <form class="mrow2" onsubmit="event.preventDefault();mapSearch(this.q.value)"><input id="mapq" name="q" placeholder="Gatuadress och ort, eller koordinater" value="${esc(S.mapQ || '')}" autocomplete="off" oninput="mapSuggest(this.value)" enterkeyhint="search"><button class="btn sm">Sök</button></form><div id="mapsug" class="mapsug"></div>
     ${S.addr && S.addr.lat != null ? `<button class="btn sm" style="margin-bottom:8px" onclick="mapUseAddr()">${ic('ph-house-line', 'currentColor', 16)} Använd min adress: ${esc(S.addr.address)}</button>` : ''}<button class="btn sm line" onclick="mapHere()">📍 Använd min position</button></div>`;
-  return `<div class="mapp"><div class="mrow2"><div class="wk2">${[['sat', 'Satellit'], ['map', 'Karta'], ['topo', 'Höjdkurvor'], ['hill', 'Terräng']].map(([k, n]) => `<button class="${(M.layer || 'sat') === k ? 'on' : ''}" onclick="mapSet('layer','${k}')">${n}</button>`).join('')}</div><button class="btn sm line" onclick="mapSet('on',${!M.on})">${M.on ? 'Dölj' : 'Visa'}</button></div>
-    <div class="mrow2"><button class="btn sm line" onclick="elevAutoFetch()">⛰️ Hämta markhöjd från nätet</button><small class="mut">${S.hplan && S.hplan.elevAuto ? 'Hämtad' + (S.hplan.elevAuto.src ? ' (' + esc(S.hplan.elevAuto.src) + ')' : '') : 'Ej hämtad'}${(() => { const C = contours(); return C && C.step ? ' · höjdlinjer var ' + String(C.step).replace('.', ',') + ' m' : ''; })()}</small></div>
+  const LAY = [['sat', 'Satellit'], ['map', 'Karta'], ['topo', 'Höjdkurvor'], ['hill', 'Terräng']], li = Math.max(0, LAY.findIndex(l => l[0] === (M.layer || 'sat'))), nb = mapBldgs();
+  const step = (d, t, l) => `<button class="degb" onclick="setNorth(northDeg() + ${d})" aria-label="${l}">${t}</button>`;
+  // Kompakt panel: vridning och placering först, resten under Mer. Täcker så lite av kartan som möjligt.
+  return `<div class="mapp mapp2${S.mapMore ? ' more' : ''}">
+    <div class="mrow2 degrow">${step(-1, '−1°', 'Vrid 1 grad åt vänster')}${step(-0.1, '−0,1', 'Vrid en tiondels grad åt vänster')}<input id="degin" type="text" inputmode="decimal" value="${String(Math.round(northDeg() * 10) / 10).replace('.', ',')}" aria-label="Vinkel i grader" onkeydown="if(event.key==='Enter')this.blur()" onchange="const v=parseFloat(this.value.replace(',','.'));if(!isNaN(v))setNorth(v);else render()"><span class="deg">°</span>${step(0.1, '+0,1', 'Vrid en tiondels grad åt höger')}${step(1, '+1°', 'Vrid 1 grad åt höger')}${step(90, '↻90', 'Vrid 90 grader')}</div>
+    <div class="mrow2"><button class="btn sm" onclick="mapAlign()" aria-label="Räta upp ritningen mot huset på kartan" ${S.bldgBusy ? 'disabled' : ''}>${ic('ph-magnet', 'currentColor', 16)} ${S.bldgBusy ? 'Hämtar…' : 'Räta upp'}</button><button class="btn sm line" onclick="mapSet('layer','${LAY[(li + 1) % LAY.length][0]}')" aria-label="Byt kartlager, nu ${LAY[li][1]}">${ic('ph-stack', 'currentColor', 16)} ${LAY[li][1]}</button><button class="btn sm line" onclick="S.mapMore=!S.mapMore;render()" aria-expanded="${!!S.mapMore}">${S.mapMore ? 'Mindre' : 'Mer'}</button><button class="btn sm" onclick="planMapToggle()">Klar</button></div>
+    <small class="mut mhint">Dra för att flytta, vrid med två fingrar.${nb ? ' Hörnen fastnar mot husen (gula linjer).' : ''}</small>
+    ${S.mapMore ? `<div class="mmore">
+    <div class="wk2">${LAY.map(([k, n]) => `<button class="${(M.layer || 'sat') === k ? 'on' : ''}" onclick="mapSet('layer','${k}')">${n}</button>`).join('')}</div>
     <label class="msl"><span>Synlighet</span><input type="range" min="20" max="100" value="${Math.round((M.op || 0.85) * 100)}" oninput="S.hplan.map.op=this.value/100;renderPlan()" onchange="saveHomeSoon()"></label>
-    <label class="msl"><span>Vrid ritningen</span><input type="range" min="0" max="359.5" step="0.5" value="${northDeg()}" oninput="setNorth(+this.value,true)" onchange="setNorth(+this.value)"></label>
-    <div class="mrow2 degrow"><span class="msl" style="width:78px">Exakt vinkel</span><button class="degb" onclick="setNorth(northDeg() - 0.5)" aria-label="Vrid 0,5 grader åt vänster">−</button><input id="degin" type="text" inputmode="decimal" value="${String(Math.round(northDeg() * 10) / 10).replace('.', ',')}" aria-label="Vinkel i grader" onkeydown="if(event.key==='Enter')this.blur()" onchange="const v=parseFloat(this.value.replace(',','.'));if(!isNaN(v))setNorth(v);else render()"><span class="deg">°</span><button class="degb" onclick="setNorth(northDeg() + 0.5)" aria-label="Vrid 0,5 grader åt höger">+</button></div>
-    <div class="mrow2"><span class="mut" style="font-size:11.5px;flex:1">${TILES[M.layer || 'sat'][2]}</span><button class="link3" onclick="mapClear()">Byt adress</button><button class="btn sm" onclick="planMapToggle()">Klar</button></div>
-    <div class="mrow2" style="flex-wrap:wrap"><span style="font-size:12.5px;flex:1;min-width:180px">📍 ${M.addr ? esc(M.addr) + '<br>' : ''}<span class="mut">${(+M.lat).toFixed(6)}, ${(+M.lon).toFixed(6)}</span></span><button class="btn sm line" onclick="mapCoordEdit()">Ändra koordinater</button></div>
-    ${S.mapCoordEd ? `<form class="mrow2" onsubmit="event.preventDefault();mapCoordSave(this.c.value)"><input name="c" id="mapc" inputmode="decimal" autocomplete="off" value="${(+M.lat).toFixed(6)}, ${(+M.lon).toFixed(6)}" aria-label="Koordinater, latitud och longitud"><button class="btn sm">Spara</button></form><small class="mut" style="display:block;margin:-4px 0 6px">Latitud, longitud i decimalgrader (WGS 84), som i Google Maps. Huset flyttas så att mitten hamnar på punkten.</small>` : ''}</div>`;
+    <label class="msl"><span>Vrid fritt</span><input type="range" min="0" max="359.5" step="0.5" value="${northDeg()}" oninput="setNorth(+this.value,true)" onchange="setNorth(+this.value)"></label>
+    <div class="mrow2"><button class="btn sm line" onclick="elevAutoFetch()">⛰️ Hämta markhöjd</button><small class="mut">${S.hplan && S.hplan.elevAuto ? 'Hämtad' + (S.hplan.elevAuto.src ? ' (' + esc(S.hplan.elevAuto.src) + ')' : '') : 'Ej hämtad'}${(() => { const C = contours(); return C && C.step ? ' · höjdlinjer var ' + String(C.step).replace('.', ',') + ' m' : ''; })()}</small></div>
+    <div class="mrow2" style="flex-wrap:wrap"><span style="font-size:12.5px;flex:1;min-width:160px">📍 ${M.addr ? esc(M.addr) + '<br>' : ''}<span class="mut">${(+M.lat).toFixed(6)}, ${(+M.lon).toFixed(6)}</span></span><button class="link3" onclick="mapCoordEdit()">Koordinater</button><button class="link3" onclick="mapClear()">Byt adress</button><button class="link3" onclick="mapSet('on',${!M.on})">${M.on ? 'Dölj karta' : 'Visa karta'}</button></div>
+    ${S.mapCoordEd ? `<form class="mrow2" onsubmit="event.preventDefault();mapCoordSave(this.c.value)"><input name="c" id="mapc" inputmode="decimal" autocomplete="off" value="${(+M.lat).toFixed(6)}, ${(+M.lon).toFixed(6)}" aria-label="Koordinater, latitud och longitud"><button class="btn sm">Spara</button></form><small class="mut" style="display:block;margin:-4px 0 6px">Latitud, longitud i decimalgrader (WGS 84), som i Google Maps.</small>` : ''}
+    <small class="mut" style="font-size:11px">${TILES[M.layer || 'sat'][2]}${nb ? ' · Husens konturer: © OpenStreetMap-bidragsgivare' : ''}</small></div>` : ''}</div>`;
+}
+// ===== Husen på kartan (OpenStreetMap via Overpass): konturer att lägga ritningen mot =====
+// Sparas per plats i minnet. Koordinater omräknas till meter öster (u) och söder (v) om kartans ankarpunkt.
+let BLDG = null;
+function mapBldgs() { const M = S.hplan && S.hplan.map; if (!M || M.lat == null || !BLDG || BLDG.key !== M.lat.toFixed(5) + ',' + M.lon.toFixed(5)) return 0; return BLDG.list.length; }
+async function loadBldgs(force) {
+  const M = S.hplan && S.hplan.map; if (!M || M.lat == null) return null; const key = M.lat.toFixed(5) + ',' + M.lon.toFixed(5);
+  if (BLDG && BLDG.key === key && !force) return BLDG; if (S.bldgBusy) return null; S.bldgBusy = true; render();
+  try {
+    const q = `[out:json][timeout:20];way["building"](around:90,${M.lat},${M.lon});out geom;`;
+    const r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+    const j = await r.json(), kx = 111320 * Math.cos(M.lat * Math.PI / 180), ky = 110574;
+    const list = (j.elements || []).filter(w => w.geometry && w.geometry.length >= 4).map(w => w.geometry.map(g => [(g.lon - M.lon) * kx, -(g.lat - M.lat) * ky]));
+    BLDG = { key, list };
+  } catch (e) { BLDG = null; toast('Kunde inte hämta husen på kartan just nu'); }
+  S.bldgBusy = false; render(); return BLDG;
+}
+// Kartmeter (u, v om ankarpunkten) till ritningens koordinater, med ritningens nuvarande vridning
+function bldgToPlan(q) { const M = S.hplan.map, r = rotPt(q[0], q[1], -viewRot()); return [(M.ox || 0) + r[0], (M.oy || 0) + r[1]]; }
+function mapBldgSvg() {
+  if (!mapOn() || !mapBldgs()) return ''; const P = PL(), M = S.hplan.map, z = P.z, ra = rotPt((M.ox || 0) * z, (M.oy || 0) * z, viewRot()), Ax = P.ox + ra[0], Ay = P.oy + ra[1];
+  return `<g pointer-events="none" fill="none" stroke="#FFD34D" stroke-width="2" stroke-dasharray="6 4" opacity=".95">${BLDG.list.map(L => `<polygon points="${L.map(q => (Ax + q[0] * z).toFixed(1) + ',' + (Ay + q[1] * z).toFixed(1)).join(' ')}"/>`).join('')}</g>`;
+}
+// Ritningens hörn (alla rum) i ritningens koordinater
+function planCorners() { return [].concat(...planRooms().map(roomPoly)); }
+// Räta upp: vrid ritningen så att väggarna blir parallella med det närmaste huset på kartan, och lägg närmaste hörn mot husets hörn
+async function mapAlign() {
+  const B = await loadBldgs(); if (!B) return; if (!B.list.length) return toast('Hittade inga hus på kartan här. Vrid och flytta för hand.');
+  const M = S.hplan.map, C = planCorners(); if (!C.length) return toast('Rita minst ett rum först');
+  const cx = C.reduce((a, q) => a + q[0], 0) / C.length, cy = C.reduce((a, q) => a + q[1], 0) / C.length;
+  // Huset närmast ritningens mitt
+  const cen = L => [L.reduce((a, q) => a + q[0], 0) / L.length, L.reduce((a, q) => a + q[1], 0) / L.length];
+  const pc = [cx - (M.ox || 0), cy - (M.oy || 0)], pcm = rotPt(pc[0], pc[1], viewRot());
+  const H = B.list.slice().sort((a, b) => { const A = cen(a), Bc = cen(b); return Math.hypot(A[0] - pcm[0], A[1] - pcm[1]) - Math.hypot(Bc[0] - pcm[0], Bc[1] - pcm[1]); })[0];
+  // Husets huvudriktning: väggarnas vinklar viktade med längd, räknat modulo 90 grader
+  let sx = 0, sy = 0; for (let i = 0; i < H.length - 1; i++) { const dx = H[i + 1][0] - H[i][0], dy = H[i + 1][1] - H[i][1], l = Math.hypot(dx, dy), t = Math.atan2(dy, dx) * 4; sx += l * Math.cos(t); sy += l * Math.sin(t); }
+  const th = Math.atan2(sy, sx) / 4 * 180 / Math.PI, cur = viewRot();
+  let vr = th; while (vr - cur > 45) vr -= 90; while (vr - cur < -45) vr += 90;
+  pushUndo(); S.hplan.north = Math.round((((-vr % 360) + 360) % 360) * 10) / 10;
+  // Ritningens mitt ska ligga kvar på samma ställe på kartan efter vridningen
+  const keep = rotPt(pcm[0], pcm[1], -viewRot()); M.ox = cx - keep[0]; M.oy = cy - keep[1];
+  // Hörn mot hörn: flytta så att närmaste par av ritningshörn och hushörn möts (högst 6 m)
+  const HP = H.map(bldgToPlan); let best = null;
+  C.forEach(c => HP.forEach(h => { const d = Math.hypot(c[0] - h[0], c[1] - h[1]); if (d < 6 && (!best || d < best.d)) best = { d, dx: c[0] - h[0], dy: c[1] - h[1] }; }));
+  if (best) { M.ox += best.dx; M.oy += best.dy; }
+  planRooms().forEach(syncDirs); saveHomeSoon(); render();
+  toast(best ? 'Ritningen är vriden efter huset och ett hörn ligger mot husets hörn' : 'Ritningen är vriden efter huset. Dra den på plats, hörnen fastnar när de kommer nära');
+}
+// Under dragning: fäst ett ritningshörn mot ett hushörn när de är nära varandra (cirka 14 punkter på skärmen)
+function mapSnapDrag() {
+  if (!mapBldgs()) return; const M = S.hplan.map, P = PL(), lim = Math.max(0.15, 14 / P.z), C = planCorners(); let best = null;
+  BLDG.list.forEach(L => L.forEach(q => { const h = bldgToPlan(q); C.forEach(c => { const d = Math.hypot(c[0] - h[0], c[1] - h[1]); if (d < lim && (!best || d < best.d)) best = { d, dx: c[0] - h[0], dy: c[1] - h[1] }; }); }));
+  if (best) { M.ox += best.dx; M.oy += best.dy; P.msg = 'Hörnet fäst mot huset'; }
 }
 function setNorth(v, live) { v = Math.round((((v % 360) + 360) % 360) * 10) / 10; S.hplan = S.hplan || {}; S.hplan.north = v; const di = $('#degin'); if (di && live) di.value = String(v).replace('.', ','); const c = $('.pnorth span'); if (c) c.style.transform = `rotate(${v + viewRot()}deg)`; if (live) return renderPlan(); pushUndo(); planRooms().forEach(syncDirs); saveHomeSoon(); render(); }
 function mapSet(k, v) { S.hplan.map[k] = v; saveHomeSoon(); render(); }
@@ -6466,7 +6531,7 @@ function planInner() {
   const grid = `<defs><pattern id="g5" width="${z / 2}" height="${z / 2}" patternUnits="userSpaceOnUse" x="${P.ox}" y="${P.oy}"><path d="M${z / 2} 0V${z / 2}H0" fill="none" stroke="var(--line)" stroke-width=".6"/></pattern><pattern id="g1" width="${z}" height="${z}" patternUnits="userSpaceOnUse" x="${P.ox}" y="${P.oy}"><rect width="${z}" height="${z}" fill="url(#g5)"/><path d="M${z} 0V${z}H0" fill="none" stroke="var(--line)" stroke-width="1.2"/></pattern></defs><rect x="-4000" y="-4000" width="9000" height="9000" fill="url(#g1)"/>`;
   const T = (x, y) => `${(P.ox + x * z).toFixed(1)},${(P.oy + y * z).toFixed(1)}`;
   const X = x => (P.ox + x * z).toFixed(1), Y = y => (P.oy + y * z).toFixed(1);
-  let labs = '', out = mapTiles() + `<g transform="rotate(${viewRot()} ${P.ox.toFixed(1)} ${P.oy.toFixed(1)})">` + (z >= 6 ? grid : '') + gardenBelow() + ghostRooms(X, Y);
+  let labs = '', out = mapTiles() + mapBldgSvg() + `<g transform="rotate(${viewRot()} ${P.ox.toFixed(1)} ${P.oy.toFixed(1)})">` + (z >= 6 ? grid : '') + gardenBelow() + ghostRooms(X, Y);
   out += solHeatV(P, X, Y);
   rs.forEach(r => { const v = roomSun(r), on = sel.k === 'room' && sel.id === r.id;
     out += `<polygon data-k="room" data-id="${r.id}" points="${roomPoly(r).map(q => X(q[0]) + ',' + Y(q[1])).join(' ')}" stroke-linejoin="round" fill="${v >= 2.5 ? 'rgba(212,154,46,.20)' : v >= 1.7 ? 'rgba(212,154,46,.10)' : 'var(--surf)'}" fill-opacity="${mapOn() ? .45 : 1}" stroke="none"/>`;
@@ -6571,7 +6636,7 @@ function planHint() {
   if (P.mode === 'ute') { const u = UK_M[P.ukind || 'lot']; return u[2] === 'poly' ? (u[0] === 'lot' && planRooms().length && !planAreas().some(a => a.t === 'lot') ? 'Tryck var som helst så läggs tomten runt huset, eller dra ut den med fingret.' : 'Dra ut en rektangel med fingret, eller tryck så läggs en färdig yta ut. Sedan formar du den med hörnen.') + ' Flytta dig med två fingrar.' : u[2] === 'line' ? 'Dra med fingret där häcken går.' : 'Tryck där ' + u[1].toLowerCase() + ' står.'; }
   if (P.mode === 'win') return { win: 'Tryck på väggen där fönstret sitter.', bay: 'Tryck på väggen där burspråket sitter.', door: 'Tryck på väggen där dörren sitter.', open: 'Tryck på en vägg så tas hela väggbiten bort. Tryck på samma ställe igen för att sätta tillbaka den.', rad: 'Tryck på väggen där elementet sitter.', vent: 'Tryck på väggen där ventilen sitter.', wall: 'Dra med fingret där väggen ska vara. Längs en borttagen vägg sätts den biten tillbaka, annars blir det en ny vägg. Den rätar ut sig och fastnar i hörnen.', half: 'Dra med fingret för att rita en halvvägg, till exempel en bänk eller låg mur.' }[P.wkind || 'win'] + ' Tryck på något igen för att ta bort det.';
   if (P.mode === 'place' && P.pick && P.pick.k === 'furn') return 'Tryck där ' + esc(FURN_M[P.pick.t][1].toLowerCase()) + ' står.';
-  if (P.mode === 'map') return S.hplan.map && S.hplan.map.lat != null ? 'Dra i kartan så att ditt hus hamnar under ritningen. Vrid ritningen med reglaget tills rummen ligger rätt.' : 'Sök på din adress eller använd din position.';
+  if (P.mode === 'map') return S.hplan.map && S.hplan.map.lat != null ? 'Lägg ritningen på ditt hus. Tryck Räta upp, eller dra och vrid med fingrarna.' : 'Sök på din adress eller använd din position.';
   if (P.mode === 'place') return P.pick && P.pick.k === 'plant' ? 'Tryck där ' + esc((S.mine.find(m => m.id === P.pick.id) || {}).name || 'växten') + ' står.' : 'Tryck där ' + esc((DEVS[P.pick.t] || [''])[0].toLowerCase()) + ' står.';
   if (P.sel && P.sel.k === 'area') return 'Dra i hörnen för att forma ytan. Dra i + för att lägga till ett hörn. Dra mitt i ytan för att flytta den.';
   if (P.sel && P.sel.k === 'room' && P.mode === 'move' && ((S.home || []).find(x => x.id === P.sel.id) || {}).pts) return '<b>Dra ett hörn</b> för att ändra rummets form. Väggarna förblir raka och vinkelräta. Dra rummet för att flytta det.';
@@ -6676,7 +6741,10 @@ function planDown(e) {
   const P = PL(), pt = planPt(e), t = e.target.closest('[data-k]');
   ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
   try { $('#plan').setPointerCapture(e.pointerId); } catch (x) {}
-  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], bx = $('#plan').getBoundingClientRect(); P.ldraft = null; P.draft = null; P.drag = { k: 'pinch', d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: P.z, mx: (a.x + b.x) / 2 - bx.left, my: (a.y + b.y) / 2 - bx.top, ox: P.ox, oy: P.oy }; renderPlan(); return; }
+  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], bx = $('#plan').getBoundingClientRect(); P.ldraft = null; P.draft = null; P.drag = { k: 'pinch', d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: P.z, mx: (a.x + b.x) / 2 - bx.left, my: (a.y + b.y) / 2 - bx.top, ox: P.ox, oy: P.oy };
+    // I kartläget vrider två fingrar ritningen mot kartan. Kartan står still och ritningen vrids runt fingrarna.
+    if (P.mode === 'map' && mapOn()) { const M = S.hplan.map, d0 = P.drag, vr = viewRot(), ra = rotPt((M.ox || 0) * d0.z, (M.oy || 0) * d0.z, vr), p0 = rotPt(d0.mx - d0.ox, d0.my - d0.oy, -vr); Object.assign(d0, { rot: true, a0: Math.atan2(b.y - a.y, b.x - a.x), n0: northDeg(), Ax: d0.ox + ra[0], Ay: d0.oy + ra[1], px: p0[0] / d0.z, py: p0[1] / d0.z, snap: snapState() }); }
+    renderPlan(); return; }
   if (P.mode === 'room' && !P.roomDraw && !planRooms().length) { P.drag = { k: 'pan', sx: e.clientX, sy: e.clientY, ox: P.ox, oy: P.oy, moved: false }; return; }
   if (P.mode === 'room' && P.roomDraw === 'free') { P.drag = { k: 'freept', pt, sx: e.clientX, sy: e.clientY, ox: P.ox, oy: P.oy }; return; }
   if (P.mode === 'room' && P.roomDraw) { P.drag = { k: 'draw' }; P.draft = { x0: snap(pt.x), y0: snap(pt.y), x1: snap(pt.x), y1: snap(pt.y) }; return; }
@@ -6724,6 +6792,10 @@ function planMove(e) {
   const P = PL(), d = P.drag; if (!d) return;
   if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (d.k === 'pinch') { if (ptrs.size < 2) return; const [a, b] = [...ptrs.values()], bx = $('#plan').getBoundingClientRect(), nd = Math.hypot(a.x - b.x, a.y - b.y), nz = Math.max(zMin(), Math.min(zMax(), d.z * nd / d.d)), mx = (a.x + b.x) / 2 - bx.left, my = (a.y + b.y) / 2 - bx.top;
+    if (d.rot) { let da = (Math.atan2(b.y - a.y, b.x - a.x) - d.a0) * 180 / Math.PI; if (Math.abs(da) < 1.5 && !d.turned) da = 0; else d.turned = true;
+      const n1 = Math.round((((d.n0 - da) % 360) + 360) % 360 * 10) / 10; S.hplan.north = n1; const vr = viewRot(), q = rotPt(d.px * nz, d.py * nz, vr);
+      P.ox = mx - q[0]; P.oy = my - q[1]; P.z = nz; const Ax = mx + (d.Ax - d.mx) * nz / d.z, Ay = my + (d.Ay - d.my) * nz / d.z, an = rotPt(Ax - P.ox, Ay - P.oy, -vr), M = S.hplan.map; M.ox = an[0] / nz; M.oy = an[1] / nz; d.moved = true;
+      const di = $('#degin'); if (di) di.value = String(n1).replace('.', ','); const c = $('.pnorth span'); if (c) c.style.transform = `rotate(${n1 + vr}deg)`; renderPlan(); return; }
     P.ox = mx - (d.mx - d.ox) / d.z * nz; P.oy = my - (d.my - d.oy) / d.z * nz; P.z = nz; renderPlan(); return; }
   const pt = planPt(e), dx = pt.x - (d.pt ? d.pt.x : 0), dy = pt.y - (d.pt ? d.pt.y : 0);
   if (d.pt && Math.hypot(pt.sx - d.pt.sx, pt.sy - d.pt.sy) > 6) d.moved = true;
@@ -6753,13 +6825,13 @@ function planMove(e) {
   else if (d.k === 'furn' && d.moved) { d.f.x = Math.round((d.o.x + dx) * 20) / 20; d.f.y = Math.round((d.o.y + dy) * 20) / 20; }
   else if (d.k === 'winmove' && d.moved) { const L = sideLen(d.r, d.obj.s), dp = ['t', 'b'].includes(sk(d.r, d.obj.s)) ? dx : dy; d.obj.p = Math.max(0, Math.min(L - d.obj.l, Math.round((d.o + dp) * 20) / 20)); P.msg = `${d.kind === 'bay' ? 'Burspråket' : ({ door: 'Dörren', open: 'Öppningen', rad: 'Elementet', vent: 'Ventilen' })[d.obj.k] || 'Fönstret'} sitter ${String(Math.round(d.obj.p * 100) / 100).replace('.', ',')} m från hörnet. Släpp där det ska sitta.`; const hh = $('#phint'); if (hh) hh.textContent = P.msg; }
   else if (d.k === 'spot' && d.moved) { const s = d.a.spots[d.i]; s.x = Math.round((d.o.x + dx) * 100) / 100; s.y = Math.round((d.o.y + dy) * 100) / 100; P.ssel = d.i; }
-  else if (d.k === 'mapdrag') { const M = S.hplan.map; M.ox = d.o.x + dx; M.oy = d.o.y + dy; d.moved = true; }
+  else if (d.k === 'mapdrag') { const M = S.hplan.map; M.ox = d.o.x + dx; M.oy = d.o.y + dy; d.moved = true; mapSnapDrag(); }
   else return;
   renderPlan();
 }
 async function planUp(e) {
   const P = PL(), d = P.drag; ptrs.delete(e.pointerId); if (!d) return;
-  if (d.k === 'pinch') { if (!ptrs.size) P.drag = null; return; }
+  if (d.k === 'pinch') { if (d.rot && d.turned && !d.committed) { d.committed = true; pushUndo(d.snap); planRooms().forEach(syncDirs); saveHomeSoon(); } if (!ptrs.size) { P.drag = null; if (d.rot && d.turned) render(); } return; }
   P.drag = null; const pt = planPt(e);
   if (d.k === 'draw') { let { x0, y0, x1, y1 } = P.draft; P.draft = null;
     let rect = { x: Math.min(x0, x1), y: Math.min(y0, y1), w: Math.abs(x1 - x0), h: Math.abs(y1 - y0) };
@@ -12743,6 +12815,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.414', '15 nov', ['Mitt hem, kartan: mindre meny som inte döljer bilden. Vrid allt du byggt med två fingrar, eller exakt med knapparna −1°, −0,1°, +0,1°, +1° och 90°', 'Räta upp: husen från kartan visas som gula linjer, och ritningen vrids efter ditt hus med hörn mot hörn. Hörnen fastnar mot husets hörn när du drar']],
   ['Beta 0.413', '14 nov', ['Växtbiblioteket: Populärast fungerar igen och visade tidigare samma ordning som A–Ö. Nu räknas hur många som har växten i samlingen, som favorit eller på önskelistan']],
   ['Beta 0.412', '14 nov', ['Min adress: skriv in din adress under Inställningar eller när du skapar konto. Det är frivilligt och bara du kan se den. Väder, sol och frost följer adressen, och i Mitt hem placerar knappen Använd min adress huset på kartan', 'Adressökningen hittar husnummer och bokstav för ingången bättre, och postnumret avgör vilken del av gatan som visas först. Finns numret inte på kartan står det tydligt', 'Solsken genom fönster i ritningen har fått ett ordentligt utseende']],
   ['Beta 0.411', '14 nov', ['3D: snön på marken följer det riktiga vädret på din ort. Ligger det snö där du bor, eller har det snöat den senaste veckan och är minusgrader, ligger det snö i 3D. Det snöar i 3D när det snöar ute']],
@@ -15370,7 +15443,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.413';
+const APP_VERSION = 'Beta 0.414';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
