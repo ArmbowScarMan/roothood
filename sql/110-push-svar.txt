@@ -1,0 +1,26 @@
+-- 110: Pushnotis direkt när någon svarar på ens fråga i Gemenskap, eller på ens svar.
+-- Skickas inte till den som svarar själv. Mottagaren kan stänga av under Notifikationer (notif_prefs.answer = false).
+create or replace function public.trg_push_answer() returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  p record;
+  parent_user uuid;
+  snippet text;
+begin
+  if coalesce(new.hidden, false) then return new; end if;
+  select user_id, title into p from public.posts where id = new.post_id;
+  snippet := left(coalesce(new.body, ''), 120);
+  if p.user_id is not null and p.user_id <> new.user_id then
+    perform public.push_event('answer', p.user_id, new.user_id, snippet);
+  end if;
+  if new.parent_id is not null then
+    select user_id into parent_user from public.answers where id = new.parent_id;
+    if parent_user is not null and parent_user <> new.user_id and parent_user is distinct from p.user_id then
+      perform public.push_event('answer_reply', parent_user, new.user_id, snippet);
+    end if;
+  end if;
+  return new;
+exception when others then return new;
+end $$;
+revoke all on function public.trg_push_answer() from public, anon, authenticated;
+drop trigger if exists push_answer_t on public.answers;
+create trigger push_answer_t after insert on public.answers for each row execute function public.trg_push_answer();
