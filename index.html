@@ -539,7 +539,7 @@ button,[role=tab],.nrow,.prow,.setrow,.upl,label.tog{-webkit-user-select:none;us
 .swd{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px;border:1px solid rgba(0,0,0,.25)}
 .pfopts{padding:4px 2px 2px}.pftog{display:flex!important;align-items:center;gap:10px;justify-content:flex-start}.pftog input{margin:0;flex:none!important;width:20px!important;height:20px}.pftog span{flex:1;text-align:left}.pfopt{margin-top:8px}.pfopt small{display:block;font-size:12px;font-weight:700;color:var(--mut);margin:0 0 4px}
 .seg2.pl-view{flex:none;width:auto}.seg2.pl-view button{flex:none;padding:7px 11px;font-size:13px;white-space:nowrap}
-.setrow{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;width:100%;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh);cursor:pointer}
+.setlist{display:grid;gap:10px;padding:8px 16px 24px}.setsech{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;width:100%;background:var(--surf);border-radius:18px;padding:14px 16px;box-shadow:var(--sh);cursor:pointer}.setsech .grow{flex:1;min-width:0}.setsech .grow b{display:block;font-size:16px}.setadv .linkbtn{all:unset;cursor:pointer;color:var(--pri);font-weight:600;font-size:14px;padding:6px 0}.setsech small{display:block;color:var(--mut);font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.setsec.on .setsech{border-radius:18px 18px 6px 6px}.setbody{padding:10px 0 4px}.setadv{margin-top:14px}.setout{justify-content:center;color:var(--danger,#e07a6a);margin-top:8px}.setrow{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;width:100%;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh);cursor:pointer}
 .setrow:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
 .setrow .grow{flex:1;display:flex;flex-direction:column;min-width:0}
 .setrow b{font-size:15px}
@@ -8180,12 +8180,12 @@ function weatherV(sz) {
   if (sz === 's') return `<div class="wxc wxs"><div class="wxtop"><span class="wxi">${wxIco(wx[1], 34)}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]}</span></div>${warn.length ? `<span class="wxbadge">${wxIco(warn[0][1], 14)} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span>` : '<span class="wxbadge ok">Inga varningar</span>'}</div></div>`;
   const showDays = sz === 'l' || S.wxAll;
   return `<div class="wxc">
-    <div class="wxtop"><span class="wxi">${wxIco(wx[1], 34)}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]} · ${c.relative_humidity_2m} % luftfukt</span></div></div>
+    <div class="wxtop"><span class="wxi">${wxIco(wx[1], 34)}</span><div class="grow"><span class="wxt">${Math.round(c.temperature_2m)}°</span><span>${wx[0]} · ${c.relative_humidity_2m} % luftfukt</span></div>${S.wxAll && sz !== 'l' ? `<button class="link3" style="align-self:flex-start" onclick="S.wxAll=false;render()">Dölj dagar</button>` : ''}</div>
     ${showDays ? `<div class="wxdays">${d.time.slice(0, 5).map((t, i) => `<div><small>${i === 0 ? 'Idag' : DAYS[new Date(String(t).length === 10 ? t + 'T12:00' : t).getDay()]}</small><span>${(WX[d.weather_code[i]] || ['', '·'])[1]}</span><b>${Math.round(d.temperature_2m_max[i])}°</b><small>${Math.round(d.temperature_2m_min[i])}°</small></div>`).join('')}</div>` : ''}
     ${showDays ? wxRainV(w) : ''}
     ${showDays ? wxExtraV(w) : ''}
     ${warn.length ? `<button class="wxrow" onclick="S.wxOpen=!S.wxOpen;render()" aria-expanded="${!!S.wxOpen}"><span>${wxIco(warn[0][1], 14)} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span><span>${S.wxOpen ? 'Dölj' : 'Visa'}</span></button>${S.wxOpen ? `<div class="wxwarn">${warn.map(x => `<div class="wxw w-${x[0]}"><span class="wwi">${x[1]}</span><div><b>${x[2]}</b><span>${x[3]}</span></div></div>`).join('')}</div>` : ''}` : `<p class="wxok">Inga vädervarningar just nu.</p>`}
-    <div class="wxfoot"><span class="wxsrc">${S.wxAll || S.wxOpen ? `Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString(LOC(), { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}` : esc(w.name || S.city || '')}</span><button class="link3" onclick="S.wxAll=!S.wxAll;render()">${S.wxAll ? 'Dölj dagar' : '5 dagar'}</button></div></div>`;
+    <div class="wxfoot"><span class="wxsrc">${S.wxAll || S.wxOpen ? `Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString(LOC(), { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}` : esc(w.name || S.city || '')}</span>${S.wxAll && sz !== 'l' ? '' : `<button class="link3" onclick="S.wxAll=!S.wxAll;render()">${S.wxAll ? 'Dölj dagar' : '5 dagar'}</button>`}</div></div>`;
 }
 function openDb(focus) { stopLight(); S.sel = null; S.modal = null; S.tool = 'db'; render(); $('#main').scrollTop = 0; if (!S.popMap) loadPop(); if (focus) setTimeout(() => { const i = $('.search input'); if (i) i.focus(); }, 50); }
 function dbV() {
@@ -13096,7 +13096,7 @@ function zoneEditV(z) {
   <div class="sowzs">${[1, 2, 3, 4, 5, 6, 7, 8].map(k => `<button class="${z === k ? 'on' : ''}" aria-pressed="${z === k}" onclick="setPref('zone',${k})"><b>${k}</b><span>${SOWZN[k]}</span></button>`).join('')}</div>`;
 }
 // "Ändra zon" i Säsongstips: öppna inställningarna och scrolla direkt till zonvalet
-function openZoneSettings() { openSettings(); setTimeout(() => { const el = $('#szonesec'); if (el) el.scrollIntoView({ block: 'start' }); }, 400); }
+function openZoneSettings() { openSettings('zon'); setTimeout(() => { const el = $('#szonesec'); if (el) el.scrollIntoView({ block: 'start' }); }, 400); }
 const sowZ = () => store.get('zone', 0) || 0;
 const sowZE = () => Math.min(8, Math.max(1, sowZ() || 3));
 const sowF = y => { const f = FROST[sowZE()]; return new Date(y || new Date().getFullYear(), f[0] - 1, f[1]); };
@@ -15419,7 +15419,7 @@ function famV() {
 }
 async function openSettings(sub) {
   stopLight();
-  S.tool = 'settings'; S.setSub = typeof sub === 'string' ? sub : null; S.prof = null; S.del = null; S.pwMsg = ''; S.fam = null; S.famMsg = '';
+  S.tool = 'settings'; S.setSub = typeof sub === 'string' ? sub : null; S.setOpen = {}; S.setAdv = {}; if (typeof sub === 'string') S.setOpen[{ profil: 'profil', zon: 'gard', konto: 'konto' }[sub] || sub] = true; S.prof = null; S.del = null; S.pwMsg = ''; S.fam = null; S.famMsg = '';
   if (S.user && !DEMO) { loadFam(); S.psh = null; }
   render(); $('#main').scrollTop = 0;
   refreshPush();
@@ -15588,11 +15588,11 @@ function settingsFullV() {
       <label class="fl">Mina intressen</label><div class="chips2">${CATS.map(c => `<button class="${P.interests.includes(c) ? 'on' : ''}" aria-pressed="${P.interests.includes(c)}" onclick="toggleInterest('${c}',this)">${c}</button>`).join('')}</div>
       <p class="mut" style="margin:8px 0 0;font-size:13px">Intressena styr vad appen visar först.</p>
       <label class="sharerow"><input type="checkbox" ${P.share_photos !== false ? 'checked' : ''} onchange="toggleShare(this.checked)"><span><b style="display:block">Visa mina växter och foton för andra</b><span class="mut" style="font-size:13px">Dina foton syns under "Andras bilder" på växtens sida, med ditt namn.</span></span></label>
-      <label class="fl" style="margin-top:16px">Vad andra ser på din profil</label>
+      <div style="margin-top:14px"><button class="btn sm" onclick="saveProfile()">Spara profil</button></div>
+      ${setAdvV('profil', `<label class="fl" style="margin-top:4px">Vad andra ser på din profil</label>
       ${VIS_ITEMS.map(([k, t]) => `<div class="visrow"><span>${t}</span>${seg3([['all', 'Alla'], ['friends', 'Vänner'], ['none', 'Ingen']], visOf(k), `(v=>setVis('${k}',v))`)}</div>`).join('')}
-      <p class="mut" style="margin:6px 0 0;font-size:13px">Vänner är de som du har accepterat en vänförfrågan med. Ditt namn syns alltid.</p>
-      <div style="margin-top:14px"><button class="btn sm" onclick="saveProfile()">Spara profil</button></div></div>`;
-  const account = S.user && !DEMO ? `<div class="sec"><h2>Konto</h2></div><div class="pad"><div class="setcard">
+      <p class="mut" style="margin:6px 0 0;font-size:13px">Vänner är de som du har accepterat en vänförfrågan med. Ditt namn syns alltid.</p>`)}</div>`;
+  const account = S.user && !DEMO ? `<div class="setcard">
       ${S.user.email ? `<label class="fl">E-post</label><p style="margin:0 0 4px">${esc(S.user.email)}</p>` : ''}
       <label class="fl" for="pw1">Nytt lösenord</label><input id="pw1" type="password" minlength="6" autocomplete="new-password">
       <label class="fl" for="pw2">Upprepa nytt lösenord</label><input id="pw2" type="password" minlength="6" autocomplete="new-password">
@@ -15601,40 +15601,43 @@ function settingsFullV() {
       <div class="delacc">${S.delAcc ? `<b>Radera ditt konto?</b><p>Allt försvinner för alltid: dina växter, foton, Växtjournalen, Mitt hem, inlägg, kommentarer, meddelanden och vänner. Det går inte att ångra.</p>
         <label class="fl" for="delw">Skriv RADERA för att bekräfta</label><input id="delw" autocomplete="off" autocapitalize="characters">
         <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn sm danger" onclick="deleteAccount()" ${S.delBusy ? 'disabled' : ''}>${S.delBusy ? 'Raderar…' : 'Radera kontot för alltid'}</button><button class="btn sm line" onclick="S.delAcc=false;render()">Avbryt</button></div>`
-        : `<button class="link3 dangerlink" onclick="S.delAcc=true;render();setTimeout(()=>{const i=$('#delw');if(i)i.scrollIntoView({block:'center'})},50)">Radera mitt konto</button>`}</div></div></div>` : '';
-  return `${topbar('Inställningar', 'closeTool()')}
-  <div class="sec" style="padding-top:8px"><h2>Profil</h2></div><div class="pad">${profile}</div>
-  <div class="sec"><h2>Köp</h2></div><div class="pad">${digitalGoodsRow()}</div>
-  <div class="sec"><h2>Utseende</h2></div><div class="pad"><div class="setcard">
-    <label class="fl">Språk / Language</label><div data-notr>${langPick()}</div>
-    <label class="fl" style="margin-top:14px">Tema</label>${seg3([['system', 'Auto'], ['light', 'Ljust'], ['dark', 'Mörkt']], th, "(v=>setPref('theme',v))")}
+        : `<button class="link3 dangerlink" onclick="S.delAcc=true;render();setTimeout(()=>{const i=$('#delw');if(i)i.scrollIntoView({block:'center'})},50)">Radera mitt konto</button>`}</div></div>` : '';
+  const noHead = h => String(h || '').replace(/<div class="sec"><h2>[^<]*<\/h2><\/div>/g, '').replace(/^\s*<div class="pad">/, '').replace(/<\/div>\s*$/, '');
+  const thN = { system: 'Auto', light: 'Ljust', dark: 'Mörkt' }[th] || '';
+  const fam = famV(), ps = psV();
+  return `${topbar('Inställningar', 'closeTool()')}<div class="setlist">
+  ${setSecV('profil', 'ph-user-circle', 'Profil', P ? esc(P.display_name || '') + (P.city ? ' · ' + esc(P.city) : '') : '', profile)}
+  ${setSecV('utse', 'ph-palette', 'Utseende', thN + (ts > 1 ? ' · större text' : ''), `<div class="setcard">
+    <label class="fl" style="margin-top:0">Tema</label>${seg3([['system', 'Auto'], ['light', 'Ljust'], ['dark', 'Mörkt']], th, "(v=>setPref('theme',v))")}
+    <label class="fl" style="margin-top:14px">Textstorlek</label>${seg3([[1, 'Normal'], [1.1, 'Större'], [1.2, 'Störst']], ts, "(v=>setPref('textsize',v))")}
+    ${setAdvV('utse', `<label class="fl" style="margin-top:4px">Språk / Language</label><div data-notr>${langPick()}</div>
     <label class="fl" style="margin-top:14px">Färgtema</label>
     <div class="palrow">${[['', 'Roothood', '#1F4D3A']].concat(PALS).map(([k, n, c]) => `<button class="pal ${store.get('pal', '') === k ? 'on' : ''}" aria-pressed="${store.get('pal', '') === k}" onclick="setPref('pal','${k}')"><i style="background:${c}"></i><span>${n}</span></button>`).join('')}</div>
     <label class="remrow" style="margin-top:14px"><input type="checkbox" ${store.get('growlight', false) ? 'checked' : ''} onchange="setGrowlight(this.checked)"><span><b>Högkontrast för växtlampor</b><span class="mut">Svart bakgrund och vit text, med tydliga former i stället för färger</span></span></label>
-    <label class="fl" style="margin-top:14px">Textstorlek</label>${seg3([[1, 'Normal'], [1.1, 'Större'], [1.2, 'Störst']], ts, "(v=>setPref('textsize',v))")}
     <label class="fl" style="margin-top:14px">Vy</label>${seg3([[0, 'Vanlig'], [1, 'Enkel']], simpleOn() ? 1 : 0, "(v=>setSimple(!!v))")}<p class="mut" style="margin:6px 0 0;font-size:13px">Enkel vy har stor text, få val och stora knappar.</p>
-    ${isMod() ? `<label class="fl" style="margin-top:14px">Designvariant (test)</label><div class="chips2 sm">${UI_VARS.map(([k, n]) => `<button class="${store.get('ui', '') === k ? 'on' : ''}" aria-pressed="${store.get('ui', '') === k}" onclick="setPref('ui','${k}')">${n}</button>`).join('')}</div><p class="mut" style="font-size:12.5px;margin:6px 0 0">Bara moderatorer ser det här. Det ändrar bara utseendet på den här telefonen.</p>` : ''}
-  </div></div>
-  <div class="sec"><h2>Trädgård</h2></div><div class="pad"><div class="setcard" id="szonesec">
-    <label class="fl">Min odlingszon</label>
-    <p class="mut" style="margin:0 0 10px;font-size:13px">${zone ? 'Zon ' + zone + ' (' + SOWZN[zone] + ')' : 'Ingen zon vald ännu'}. Sverige delas in i odlingszoner från 1 (mildast) till 8. Växtsidorna visar då om en trädgårdsväxt klarar vintern där du bor.</p>
-    ${zoneEditV(zone)}
-  </div></div>
-  <div class="sec"><h2>Notifikationer</h2></div><div class="pad"><button class="btn wide" onclick="S.notifSet=true;render()">${ic(BELL, 'currentColor', 18)} Notifikations-inställningar</button></div>
-  ${S.user ? `<div class="sec"><h2>Blockerade</h2></div><div class="pad"><div class="setcard">${S.blockedL == null ? (loadBlocked(), '<p class="mut" style="margin:0">Hämtar…</p>') : S.blockedL.length ? S.blockedL.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b></span><button class="btn sm line" onclick="blockUser(${jsArg(u.id)},false)">Avblockera</button></div>`).join('') : '<p class="mut" style="margin:0">Du har inte blockerat någon.</p>'}</div></div>` : ''}
-  ${famV()}
-  ${psV()}
-  ${account}
-  <div class="sec"><h2>Support</h2></div><div class="pad"><button class="setrow" onclick="openModal('support')"><span class="tic">${ic('ph-lifebuoy', 'currentColor', 20)}</span><span class="grow"><b>Hjälp och support</b><span>Mejla oss, rapportera fel, vanliga frågor</span></span></button></div>
-  <div class="sec"><h2>Rundtur</h2></div><div class="pad"><button class="setrow" onclick="tourFromSettings()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Visa rundturen</b><span>Gå igenom de vanligaste funktionerna steg för steg</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
-  <div class="sec"><h2>Nytt i appen</h2></div><div class="pad"><button class="setrow" onclick="openNews()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Uppdateringslogg</b><span>Se vad som är nytt i version ${APP_VERSION}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>
-  ${PRO_FREE && !S.user ? '' : `<div class="sec"><h2>Roothood Pro</h2></div><div class="pad"><button class="setrow" onclick="${S.pro ? "openModal('prointro')" : "openModal('pro')"}"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>${S.pro ? 'Hantera ditt medlemskap' : 'Kamera, ljusmätare och obegränsad samling'}</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`}
-  <div class="sec"><h2>Om Roothood</h2></div><div class="pad"><div class="setcard about2">
-    <img src="${LOGO}" alt="" width="56" height="56"><div><b>Roothood ${APP_VERSION}</b><span>Växtfolk som hjälper varandra.</span><span>Foton: Wikipedia. Identifiering: Pl@ntNet.</span></div></div>
-    <a class="btn wide line" style="margin-top:12px;display:flex;justify-content:center;text-decoration:none" href="licenser.html" target="_blank" rel="noopener">Källor och licenser</a>
-    ${DEMO ? `<button class="btn wide line" style="margin-top:12px" onclick="resetDemo()">${S.del === 'reset' ? 'Tryck igen för att börja om' : 'Återställ demodata'}</button>` : ''}
+    ${isMod() ? `<label class="fl" style="margin-top:14px">Designvariant (test)</label><div class="chips2 sm">${UI_VARS.map(([k, n]) => `<button class="${store.get('ui', '') === k ? 'on' : ''}" aria-pressed="${store.get('ui', '') === k}" onclick="setPref('ui','${k}')">${n}</button>`).join('')}</div>` : ''}`)}</div>`)}
+  ${setSecV('gard', 'ph-plant', 'Trädgård', zone ? 'Zon ' + zone : 'Ingen zon vald', `<div class="setcard" id="szonesec">
+    <p class="mut" style="margin:0 0 10px;font-size:13px">${zone ? 'Zon ' + zone + ' (' + SOWZN[zone] + ')' : 'Ingen zon vald ännu'}. Zon 1 är mildast och zon 8 kallast. Växtsidorna visar om en växt klarar vintern där du bor.</p>
+    ${zoneEditV(zone)}</div>`)}
+  <button class="setsech" onclick="S.notifSet=true;render()"><span class="tic">${ic(BELL, 'currentColor', 20)}</span><span class="grow"><b>Notifikationer</b><small>Påminnelser, tider och vilka notiser du får</small></span>${ic('ph-caret-right', 'var(--mut)', 18)}</button>
+  ${S.user && !DEMO ? setSecV('konto', 'ph-key', 'Konto', esc(S.user.email || ''), account + setAdvV('konto', `${fam ? `<label class="fl" style="margin-top:4px">Familj</label>${noHead(fam)}` : ''}${ps ? `<label class="fl">Dela trädgårdsplan</label>${noHead(ps)}` : ''}
+    <label class="fl">Blockerade</label><div class="setcard">${S.blockedL == null ? (loadBlocked(), '<p class="mut" style="margin:0">Hämtar…</p>') : S.blockedL.length ? S.blockedL.map(u => `<div class="prow2"><span class="grow"><b>${esc(u.display_name || 'Okänd')}</b></span><button class="btn sm line" onclick="blockUser(${jsArg(u.id)},false)">Avblockera</button></div>`).join('') : '<p class="mut" style="margin:0">Du har inte blockerat någon.</p>'}</div>`)) : ''}
+  ${setSecV('mer', 'ph-dots-three-circle', 'Hjälp och mer', 'Support, rundtur, nyheter' + (PRO_FREE && !S.user ? '' : ', Pro'), `<div style="display:grid;gap:8px">
+    <button class="setrow" onclick="openModal('support')"><span class="tic">${ic('ph-lifebuoy', 'currentColor', 20)}</span><span class="grow"><b>Hjälp och support</b><span>Mejla oss, rapportera fel, vanliga frågor</span></span></button>
+    <button class="setrow" onclick="tourFromSettings()"><span class="tic">${ic(I.leaf, 'currentColor', 20)}</span><span class="grow"><b>Visa rundturen</b><span>De vanligaste funktionerna steg för steg</span></span></button>
+    <button class="setrow" onclick="openNews()"><span class="tic">${ic('ph-sparkle', 'currentColor', 20)}</span><span class="grow"><b>Nytt i appen</b><span>Version ${APP_VERSION}</span></span></button>
+    ${PRO_FREE && !S.user ? '' : `<button class="setrow" onclick="${S.pro ? "openModal('prointro')" : "openModal('pro')"}"><span class="tic">${ic('ph-leaf', 'currentColor', 20)}</span><span class="grow"><b>${S.pro ? 'Du är Pro' : 'Bli Pro'}</b><span>Roothood Pro</span></span></button>`}
+    <a class="setrow" href="licenser.html" target="_blank" rel="noopener"><span class="tic">${ic('ph-info', 'currentColor', 20)}</span><span class="grow"><b>Källor och licenser</b><span>Roothood ${APP_VERSION}</span></span></a>
+    ${setAdvV('mer', `${digitalGoodsRow()}${DEMO ? `<button class="btn wide line" style="margin-top:12px" onclick="resetDemo()">${S.del === 'reset' ? 'Tryck igen för att börja om' : 'Återställ demodata'}</button>` : ''}`)}</div>`)}
+  ${S.user && !DEMO ? `<button class="setsech setout" onclick="signOut().then(() => { S.tool = null; render(); })"><span class="grow"><b>Logga ut</b></span></button>` : ''}
   </div>`;
 }
+function setSecV(id, icon, title, sub, body) {
+  const on = !!(S.setOpen || {})[id];
+  return `<div class="setsec${on ? ' on' : ''}"><button class="setsech" aria-expanded="${on}" onclick="setTog('${id}')"><span class="tic">${ic(icon, 'currentColor', 20)}</span><span class="grow"><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</span>${ic('ph-caret-down', 'var(--mut)', 18).replace('<svg', `<svg style="transition:transform .2s;transform:rotate(${on ? 180 : 0}deg)"`)}</button>${on ? `<div class="setbody">${body}</div>` : ''}</div>`;
+}
+function setTog(id) { S.setOpen = S.setOpen || {}; S.setOpen[id] = !S.setOpen[id]; keepMain(); }
+function setAdvV(id, body) { const on = !!(S.setAdv || {})[id]; return `<div class="setadv"><button class="linkbtn" onclick="S.setAdv=S.setAdv||{};S.setAdv['${id}']=!S.setAdv['${id}'];keepMain()">${on ? 'Dölj avancerat' : 'Avancerat'} ${on ? '▴' : '▾'}</button>${on ? `<div style="margin-top:10px">${body}</div>` : ''}</div>`; }
 function modBtn() { return `<button class="circ lab" onclick="openMod('open')" aria-label="Moderering" title="Moderering">${ic('ph-shield-check', null, 22)}<span class="cl">Moderera</span></button>`; }
 function gearBtn() { return `<button class="circ lab" onclick="openSettings()" aria-label="Inställningar" title="Inställningar">${ic(GEAR, null, 22)}<span class="cl">Inställningar</span></button>`; }
 function settingsRow() {
