@@ -8278,7 +8278,7 @@ function weatherV(sz) {
     ${warn.length ? `<button class="wxrow" onclick="S.wxOpen=!S.wxOpen;render()" aria-expanded="${!!S.wxOpen}"><span>${wxIco(warn[0][1], 14)} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span><span>${S.wxOpen ? 'Dölj' : 'Visa'}</span></button>${S.wxOpen ? `<div class="wxwarn">${warn.map(x => `<div class="wxw w-${x[0]}"><span class="wwi">${x[1]}</span><div><b>${x[2]}</b><span>${x[3]}</span></div></div>`).join('')}</div>` : ''}` : `<p class="wxok">Inga vädervarningar just nu.</p>`}
     ${S.wxAll || S.wxOpen || sz === 'l' ? `<div class="wxfoot"><span class="wxsrc">${S.wxAll || S.wxOpen ? `Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString(LOC(), { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}` : esc(w.name || S.city || '')}</span></div>` : ''}</div>`;
 }
-function openDb(focus) { stopLight(); S.sel = null; S.modal = null; S.tool = 'db'; render(); $('#main').scrollTop = 0; if (!S.popMap) loadPop(); if (focus) setTimeout(() => { const i = $('.search input'); if (i) i.focus(); }, 50); }
+function openDb(focus) { stopLight(); S.sel = null; S.modal = null; S.tool = 'db'; render(); $('#main').scrollTop = 0; if (!S.popAt || Date.now() - S.popAt > 10 * 60e3) loadPop(); if (focus) setTimeout(() => { const i = $('.search input'); if (i) i.focus(); }, 50); }
 function dbV() {
   const n = dbFilterN();
   return `${topbar('Växtbiblioteket', 'closeTool()')}
@@ -10129,7 +10129,8 @@ function plantsSec(c, self) {
 }
 // ===== Alla växter med filter =====
 function openAllPl() { S.apq = ''; S.apf = {}; S.apOpen = false; S.aps = S.plSort || 'new'; openModal('allpl'); loadPop(); }
-async function loadPop() { try { S.popMap = await api.plantPopularity(); } catch (e) { S.popMap = S.popMap || {}; } if (S.modal === 'allpl') keepScroll(); if (S.tool === 'db' && (S.dsort || 'az') === 'pop') renderList(); }
+// Hämtas om den saknas, misslyckades eller är äldre än 10 minuter, oavsett hur man kom till Växtbiblioteket
+async function loadPop() { if (S.popBusy || (S.popFailAt && Date.now() - S.popFailAt < 60e3)) return; S.popBusy = true; try { S.popMap = await api.plantPopularity(); S.popAt = Date.now(); S.popFailAt = 0; } catch (e) { S.popMap = S.popMap || null; S.popFailAt = Date.now(); } S.popBusy = false; if (S.modal === 'allpl') keepScroll(); if (S.tool === 'db' && (S.dsort || 'az') === 'pop') renderList(); }
 function aplDb(pl) { return pl.plant_id ? S.plants.find(x => x.id === pl.plant_id) : S.plants.find(x => x.swedish_name === pl.name); }
 const APL_F = [['cat', 'Kategori', (pl, db) => [(db && db.category) || null]], ['place', 'Planterad', pl => [(pl.d || {}).place]], ['soil', 'Jord', pl => (pl.d || {}).soil || []], ['light', 'Plats', pl => [(pl.d || {}).light]]];
 function aplItems() {
@@ -10455,6 +10456,7 @@ function lsugPick(n) { S.lti = n; const i = document.getElementById('lti'); if (
 function renderList() {
   if (!$('#list')) return;
   const so = S.dsort || 'az', nm = (a, b) => (a.swedish_name || '').localeCompare(b.swedish_name || '', 'sv');
+  if (so === 'pop' && (!S.popAt || Date.now() - S.popAt > 10 * 60e3)) loadPop();
   const r = dbBase().slice().sort(so === 'za' ? (a, b) => nm(b, a) : so === 'bot' ? (a, b) => (a.latin_name || a.swedish_name || '').localeCompare(b.latin_name || b.swedish_name || '', 'en') || nm(a, b) : so === 'pop' ? (a, b) => ((S.popMap || {})[String(b.id)] || 0) - ((S.popMap || {})[String(a.id)] || 0) || nm(a, b) : so === 'easy' ? (a, b) => (a.water_level || 2) - (b.water_level || 2) || nm(a, b) : so === 'sun' ? (a, b) => (b.light_level || 2) - (a.light_level || 2) || nm(a, b) : so === 'shade' ? (a, b) => (a.light_level || 2) - (b.light_level || 2) || nm(a, b) : so === 'pet' ? (a, b) => (b.pet_safe ? 1 : 0) - (a.pet_safe ? 1 : 0) || nm(a, b) : so === 'type' ? (a, b) => tIdx(a) - tIdx(b) || nm(a, b) : nm);
   $('#count').textContent = r.length + (r.length === 1 ? ' växt' : ' växter');
   const rows = dbRows();
@@ -12741,6 +12743,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.413', '14 nov', ['Växtbiblioteket: Populärast fungerar igen och visade tidigare samma ordning som A–Ö. Nu räknas hur många som har växten i samlingen, som favorit eller på önskelistan']],
   ['Beta 0.412', '14 nov', ['Min adress: skriv in din adress under Inställningar eller när du skapar konto. Det är frivilligt och bara du kan se den. Väder, sol och frost följer adressen, och i Mitt hem placerar knappen Använd min adress huset på kartan', 'Adressökningen hittar husnummer och bokstav för ingången bättre, och postnumret avgör vilken del av gatan som visas först. Finns numret inte på kartan står det tydligt', 'Solsken genom fönster i ritningen har fått ett ordentligt utseende']],
   ['Beta 0.411', '14 nov', ['3D: snön på marken följer det riktiga vädret på din ort. Ligger det snö där du bor, eller har det snöat den senaste veckan och är minusgrader, ligger det snö i 3D. Det snöar i 3D när det snöar ute']],
   ['Beta 0.410', '14 nov', ['Växtbiblioteket fryser inte längre när det öppnas', 'Större ikoner på knapparna under Vad vill du göra?', 'Mindre tomrum: väderkortet visar ort och 5 dagar uppe till höger, Inget att göra just nu och Såkalendern på en rad, kortare knapp Samma problem på frågor', 'Toppknapparna visar bara ikonen, så att sidans rubrik får plats', 'Min samling och växtens sida visar inte samma text två gånger']],
@@ -15367,7 +15370,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.412';
+const APP_VERSION = 'Beta 0.413';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];

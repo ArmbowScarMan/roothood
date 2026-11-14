@@ -1,0 +1,12 @@
+-- 114: Populärast i Växtbiblioteket räknar hur många olika användare som har växten i samlingen, som favorit eller på önskelistan.
+-- Bara antal per växt lämnar databasen, aldrig vem.
+create or replace function public.plant_popularity()
+returns table(plant_id text, users integer) language sql stable security definer set search_path = public as $$
+  select x.plant_id::text, count(distinct x.user_id)::int
+  from (
+    select plant_id, user_id from user_plants where plant_id is not null
+    union all select plant_id, user_id from plant_favs where plant_id is not null
+    union all select plant_id, user_id from plant_wishes where plant_id is not null
+  ) x
+  group by x.plant_id;
+$$;
