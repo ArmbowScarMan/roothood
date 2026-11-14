@@ -3193,6 +3193,10 @@ async function confirmAddp() {
   await run(() => api.addMine(p, photo, !!(S.ap && S.ap.share)), p.swedish_name + ' finns nu i din samling' + invNote(p) + (photo ? ' med ditt foto' : ''));
   S.ap = null; photoWarnCheck(); afterAdd();
 }
+// Webbläsarens egna förslag (tidigare inskrivna värden) ska inte dyka upp ovanför tangentbordet. Inloggningsfälten får behålla sina.
+(() => { const fix = root => { (root.querySelectorAll ? root.querySelectorAll('input,textarea') : []).forEach(el => { if (el.hasAttribute('autocomplete')) return; const t = (el.getAttribute('type') || 'text').toLowerCase(); if (['email', 'password', 'tel'].includes(t) || /mail|pass|login/i.test(el.id + ' ' + (el.name || ''))) return; el.setAttribute('autocomplete', 'off'); }); };
+  try { new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) { if (/^(INPUT|TEXTAREA)$/.test(n.tagName)) fix(n.parentNode || n); else fix(n); } }))).observe(document.documentElement, { childList: true, subtree: true }); } catch (e) { console.warn('Roothood:', e); }
+  document.addEventListener('DOMContentLoaded', () => fix(document)); })();
 const PRO_FREE = true; // allt öppet under testperioden och vid lansering
 let PAY_TEST = false; // true för kontot som testar betalflödet (kolumnen pay_test i profiles)
 let BETA_TESTER = false; // true för konton som skapats under betatestperioden (kolumnen beta_tester i profiles)
@@ -3377,7 +3381,7 @@ function pdetV() {
   return `<div class="mh"><h2>${nameHtml(m)}</h2><button class="close" onclick="closeDetails()" aria-label="Stäng">×</button></div>
   <div class="pdform">
   ${S.pdNew ? `<p class="mut" style="margin:0 0 10px;font-size:14px">${esc(m.name)} finns nu i din samling. Berätta lite om den, så blir råden bättre. Du kan hoppa över och fylla i senare.</p>` : ''}
-  <div class="two"><div><label class="fl" for="pdsort" style="margin-top:0">Sort</label><input id="pdsort" maxlength="60" list="sortlist" placeholder="t.ex. ${esc((sortSuggest(m)[0]) || 'Gyllene Kitajka')}" value="${esc(d.sort || '')}" oninput="S.pd.sort=this.value;pdPrev()"><datalist id="sortlist">${sortSuggest(m).map(x => `<option value="${esc(x)}">`).join('')}</datalist></div>
+  <div class="two"><div><label class="fl" for="pdsort" style="margin-top:0">Sort</label><input id="pdsort" maxlength="60" autocomplete="off" placeholder="t.ex. ${esc((sortSuggest(m)[0]) || 'Gyllene Kitajka')}" value="${esc(d.sort || '')}" oninput="S.pd.sort=this.value;pdPrev()">${(() => { const L = sortSuggest(m).slice(0, 8); return L.length ? `<div class="chips2 sm" style="margin-top:6px">${L.map(x => `<button type="button" onclick="S.pd.sort=${jsArg(x)};$('#pdsort').value=S.pd.sort;pdPrev()">${esc(x)}</button>`).join('')}</div>` : ''; })()}</div>
   <div><label class="fl" for="pdnick" style="margin-top:0">Svenskt namn</label><input id="pdnick" maxlength="60" placeholder="${esc(m.baseName || m.name)}" value="${esc(d.nick || '')}" oninput="S.pd.nick=this.value;pdPrev()"></div></div>
   <div class="pdprev" id="pdprev">${pdPrevHtml(m, d)}</div>
   <label class="fl">Samplanterade i samma kruka</label><div class="cnt"><button class="btn sm line" onclick="pdCount(-1)" aria-label="Färre">−</button><b>${+d.count > 1 ? d.count : 1}</b><button class="btn sm line" onclick="pdCount(1)" aria-label="Fler">+</button><small class="mut">${+d.count > 1 ? 'Visas som en växtprofil med antal' : 'Bara en växt i krukan'}</small></div>
@@ -11609,6 +11613,9 @@ async function sendCase() {
   } catch (e) { toast(e.message === 'DETECT_NOT_READY' ? 'Artbestämning går inte att använda just nu.' : errMsg(e)); }
   S.busy = false; render();
 }
+function gSug(v) { const el = $('#gsug'); if (!el) return; const q = (v || '').trim().toLowerCase(); if (q.length < 2) { el.innerHTML = ''; return; }
+  const L = S.plants.filter(p => (p.swedish_name || '').toLowerCase().startsWith(q) || (p.latin_name || '').toLowerCase().startsWith(q)).slice(0, 6);
+  el.innerHTML = L.map(p => `<button type="button" onclick="$('#gname').value=${jsArg(p.swedish_name)};$('#gsug').innerHTML=''">${esc(p.swedish_name)}</button>`).join(''); }
 function sendGuess(pid) {
   if (needLogin()) return;
   const v = (($('#gname') || {}).value || '').trim();
@@ -11638,8 +11645,8 @@ function caseV() {
   ${best ? `<p class="mut" style="margin:8px 0 0">Löst av <b>${ulink(best.user_id, best.author)}</b>, som fick ${CASE_PTS} p.</p>${bp ? `<button class="btn sm" style="margin-top:10px" onclick="S.tab='home';openPlant(${bp.id})">Se skötselråd för ${esc(bp.swedish_name)}</button>` : ''}` : ''}
   <div class="prow"><span class="grow"></span>${moreBtn('p', c.id, mine)}</div></div></div>
   ${!best && !mine ? `<div class="setcard" style="margin-top:12px"><b>Vad tror du att det är?</b>
-    <div style="display:flex;gap:8px;margin-top:10px"><input id="gname" list="gplants" maxlength="80" placeholder="Skriv växtens namn" style="flex:1"><button class="btn sm cop" onclick="sendGuess(${c.id})">Gissa</button></div>
-    <datalist id="gplants">${S.plants.map(p => `<option value="${esc(p.swedish_name)}">`).join('')}</datalist>
+    <div style="display:flex;gap:8px;margin-top:10px"><input id="gname" autocomplete="off" oninput="gSug(this.value)" maxlength="80" placeholder="Skriv växtens namn" style="flex:1"><button class="btn sm cop" onclick="sendGuess(${c.id})">Gissa</button></div>
+    <div id="gsug" class="chips2 sm" style="margin-top:6px"></div>
     <p class="mut" style="font-size:12.5px;margin:8px 0 0">Tror du samma som någon annan? Tryck Jag håller med på deras gissning. Rätt gissning ger ${CASE_PTS} p. Den som lagt upp fallet väljer vilket svar som är rätt.</p></div>` : ''}
   ${mine && !best && c.answers.length ? '<p class="lnote">Tryck på <b>Rätt!</b> vid den gissning som stämmer, så är fallet löst.</p>' : ''}
   <h3 style="margin:20px 0 10px">${c.answers.length ? c.answers.length + (c.answers.length === 1 ? ' gissning' : ' gissningar') : 'Inga gissningar än'}</h3>
