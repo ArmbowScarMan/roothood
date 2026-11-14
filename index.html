@@ -6731,7 +6731,8 @@ function renderPlan() {
 }
 function planMapToggle() { const P = PL(); if (P.mode === 'map') { const b = P.mapBack; P.mapBack = null; if (!b) return planMode('move'); P.mode = b.mode; P.sel = b.sel; P.pick = b.pick; P.multi = b.multi; P.msg = null; render(); } else { P.mapBack = { mode: P.mode, sel: P.sel, pick: P.pick, multi: P.multi }; P.mode = 'map'; P.msg = null; render(); } }
 function planMode(k) { if (k !== 'map') PL().mapBack = null; const P = PL(); P.multi = k === 'multi' ? [] : null; if (P.mode === 'ute' && (P.upoly || []).length >= 3) finishPoly(); P.wstart = null; P.mode = k; P.pick = null; P.draft = null; P.msg = null; P.upoly = []; P.roomDraw = false; if (k === 'ute') P.ukind = null; if (k === 'win') P.wkind = null; if (k === 'bed') bedModeStart(); if (k !== 'move' && !(k === 'room' && P.sel && P.sel.k === 'room')) P.sel = null; render(); }
-function zMin() { return mapOn() ? 0.35 : 3; }
+// Hur långt man kan zooma ut: med karta ungefär 8 km över skärmen, utan karta ungefär 1 km
+function zMin() { return mapOn() ? 0.05 : 0.4; }
 function planZoom(f) { const P = PL(), box = $('#planbox'), cx = box.clientWidth / 2, cy = box.clientHeight / 2, nz = Math.max(zMin(), Math.min(zMax(), P.z * f)); P.ox = cx - (cx - P.ox) * nz / P.z; P.oy = cy - (cy - P.oy) * nz / P.z; P.z = nz; renderPlan(); }
 function planWheel(e) { e.preventDefault(); planZoom(e.deltaY < 0 ? 1.1 : 0.9); }
 function rotNorth() { pushUndo(); S.hplan = S.hplan || {}; S.hplan.north = (Math.floor(northDeg() / 45 + 1e-6) * 45 + 45) % 360; planRooms().forEach(syncDirs); saveHomeSoon(); render(); toast(mapOn() ? 'Ritningen är vriden ' + northDeg() + '°. Finjustera under kartknappen.' : 'Norr pekar nu ' + ['uppåt', 'snett upp åt höger', 'åt höger', 'snett ner åt höger', 'nedåt', 'snett ner åt vänster', 'åt vänster', 'snett upp åt vänster'][Math.round(northDeg() / 45) % 8]); }
