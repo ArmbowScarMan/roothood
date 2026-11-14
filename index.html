@@ -4901,6 +4901,16 @@ function mixHex(a, b, t) { const p = h => [1, 3, 5].map(i => parseInt(h.substr(i
 function wxKind3d() { const c = S.wx && S.wx.cur; if (!c || S.wx.none) return null; const k = c.weather_code, frozen = c.temperature_2m <= 0;
   if ((k >= 71 && k <= 77) || k === 85 || k === 86 || (frozen && ((k >= 51 && k <= 67) || (k >= 80 && k <= 82)))) return 'snow';
   if ((k >= 51 && k <= 67) || (k >= 80 && k <= 82) || k >= 95) return 'rain'; if (k === 45 || k === 48) return 'fog'; if (k >= 2) return 'cloud'; return 'clear'; }
+// Snö på marken i 3D: för dagens månad följer den det riktiga vädret på orten (snödjup, eller snöfall senaste veckan och minusgrader).
+// För andra månader, eller om vädret saknas, gäller årstiden.
+function now3d() { const m = new Date().getMonth() + 1; return mo3() === m && (!S.sunD || S.sunD.slice(0, 10) === new Date().toLocaleDateString('sv-SE')); }
+function snowGround3() {
+  const w = S.wx, c = w && w.cur;
+  if (now3d() && c && !w.none) { const p = w.past || {}; if (p.depth != null) return p.depth >= 1 || wxKind3d() === 'snow'; if (w.past) return wxKind3d() === 'snow' || ((p.snow || 0) >= 1 && c.temperature_2m <= 1); }
+  return seas3() === 'Vinter';
+}
+// Fallande snö: när det snöar på orten just nu, annars på vintern om man tittar på en annan månad
+function snowFall3() { const w = S.wx; if (now3d() && w && w.cur && !w.none) return wxKind3d() === 'snow'; return seas3() === 'Vinter'; }
 function wx3Text() { if (!S.wx) return 'Hämtar väder…'; const c = S.wx.cur; if (!c || S.wx.none) return seas3() + ' · lägg in din plats under Mitt hem för vädret just nu'; return `${esc(S.wx.name || '')} · ${esc((WX[c.weather_code] || ['Väder'])[0])} ${Math.round(c.temperature_2m)}°`; }
 // Mäter hur snabbt 3D ritas när den ritas om flera bilder i rad. Under cirka 22 bilder per sekund slås enkel grafik på.
 function perf3() { const t = performance.now(), P = T3.pf; if (!P) { T3.pf = { t, n: 0, sum: 0 }; return; } P.sum += t - P.t; P.t = t; P.n++;
@@ -4912,7 +4922,7 @@ function envTick() { const E = T3 && T3.envK, pts = T3 && T3.envPts; if (!E || !
     else if (E.kind !== 'leaf' && a[i * 3 + 1] < 2.8 && E.rooms) { const x = a[i * 3], z = a[i * 3 + 2]; for (const R0 of E.rooms) if (x > R0[0] && x < R0[2] && z > R0[1] && z < R0[3]) { a[i * 3 + 1] += E.box[4] - 2.8; break; } } }
   pts.geometry.attributes.position.needsUpdate = true; T3.dirty = true; }
 function env3d() { try { if (!T3 || !T3.scene) return; const THREE = T3.THREE, sc = T3.scene, dark = document.documentElement.getAttribute('data-theme') === 'dark' || (document.documentElement.getAttribute('data-theme') !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
-  const season = seas3(), wk = wxKind3d() || 'clear', snowing = season === 'Vinter' || wk === 'snow', rainy = wk === 'rain', foggy = wk === 'fog', leaves = season === 'Höst' && !rainy && !snowing;
+  const season = seas3(), wk = wxKind3d() || 'clear', snowing = snowGround3(), falling = snowFall3(), rainy = wk === 'rain', foggy = wk === 'fog', leaves = season === 'Höst' && !rainy && !snowing;
   const wf = { cloud: 0.6, rain: 0.45, snow: 0.55, fog: 0.45, clear: 1 }[wk];
   let mid = dark ? '#16281E' : '#D8E8EE';
   if (!dark) { let cols = SKY3[season]; const mix = { cloud: ['#AEB6BE', 0.3], rain: ['#7F8C98', 0.5], snow: ['#DCE3E8', 0.35], fog: ['#D9DDE0', 0.8] }[wk]; if (mix) cols = cols.map(h => mixHex(h, mix[0], mix[1]));
@@ -4930,7 +4940,9 @@ function env3d() { try { if (!T3 || !T3.scene) return; const THREE = T3.THREE, s
   // Golv i hallar som byggts med fristående väggar lyfts över snön så att det aldrig snöar inne
   sc.traverse(o => { if (o.userData && o.userData.gapf) o.position.y = snowing ? 0.045 : 0.01; });
   if (T3.envPts) { sc.remove(T3.envPts); T3.envPts.geometry.dispose(); T3.envPts.material.dispose(); T3.envPts = null; T3.envK = null; }
-  const pk = lite3() ? null : rainy ? 'rain' : snowing ? 'snow' : leaves ? 'leaf' : null;
+  const pk = lite3() ? null : rainy ? 'rain' : falling ? 'snow' : leaves ? 'leaf' : null;
+  // Rabatternas snötäcke byggs med husmodellen: ändras snöläget (till exempel när vädret har hämtats) byggs modellen om
+  if (T3.snowBuilt != null && T3.snowBuilt !== snowing && !T3.snowRe) { T3.snowRe = 1; setTimeout(() => { T3.snowRe = 0; if ($('#box3d')) mount3d(); }, 0); }
   if (pk) { const k = 1, cnt = Math.round(k * { rain: 900, snow: 700, leaf: 80 }[pk]), b = T3.bounds || [-10, -10, 10, 10], X0 = b[0] - 6, X1 = b[2] + 6, Z0 = b[1] - 6, Z1 = b[3] + 6, H = 14;
     const pos = new Float32Array(cnt * 3); for (let i = 0; i < cnt; i++) { pos[i * 3] = X0 + Math.random() * (X1 - X0); pos[i * 3 + 1] = Math.random() * H; pos[i * 3 + 2] = Z0 + Math.random() * (Z1 - Z0); }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -5676,7 +5688,7 @@ function area3d(a, THREE, M, sc, slab, shape, y) {
   if (a.t === 'pond') { shape(a.pts, y, '#2F5A73'); shape(a.pts, y + 0.03, '#5CA6D6', { transparent: true, opacity: 0.75, roughness: 0.05, metalness: 0.2 });
     if (!lo) { a.pts.forEach((p0, i) => { const p1 = a.pts[(i + 1) % a.pts.length], L = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]); for (let t = 0; t < L; t += 0.28) { const s = new THREE.Mesh(new THREE.SphereGeometry(0.11 + R() * 0.07, 8, 6), M(['#8C8A84', '#A19E96', '#77756F'][Math.floor(R() * 3)])); s.position.set(p0[0] + (p1[0] - p0[0]) * t / L, 0.05, p0[1] + (p1[1] - p0[1]) * t / L); s.scale.y = 0.55; s.castShadow = true; sc.add(s); } });
       const bb = bbox(a.pts); for (let i = 0; i < 4; i++) { const x = bb[0] + (bb[2] - bb[0]) * (0.25 + R() * 0.5), z = bb[1] + (bb[3] - bb[1]) * (0.25 + R() * 0.5); if (!inPoly(x, z, a.pts)) continue; const l = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.01, 14), M('#3F7F3A')); l.position.set(x, y + 0.04, z); sc.add(l); if (i % 2 === 0) { const f = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), M('#F3B8CF')); f.position.set(x + 0.05, y + 0.08, z); sc.add(f); } } } return; }
-  const snowB = seas3() === 'Vinter' || wxKind3d() === 'snow';
+  const snowB = snowGround3(); T3.snowBuilt = snowB;
   if (a.t === 'bed') { slabC(a.pts, 0, 0.12, '#4E3524'); if (snowB) snowMound(a.pts, 0.12); if (!lo) { bedEdge3(a); if (!snowB) for (let i = 0; i < Math.min(60, polyArea(a.pts) * 6); i++) { const bb = bbox(a.pts), x = bb[0] + (bb[2] - bb[0]) * R(), z = bb[1] + (bb[3] - bb[1]) * R(); if (!inPoly(x, z, a.pts) || (ov && inR(x, z))) continue; const s = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.012, 0.03), M('#6B4A2E')); s.position.set(x, 0.126, z); s.rotation.y = R() * 3; sc.add(s); } } garden3d(a, THREE, M, sc); return; }
   if (a.t === 'veg') { slabC(a.pts, 0, 0.08, '#5A3E25'); if (snowB) snowMound(a.pts, 0.08); if (!lo) { scanStrips(a.pts, u, 0.4, (c, a0, a1) => sBox(u, c, a0 + 0.05, a1 - 0.05, 0.08, 0.04, 0.16, '#6E4C2E')); edgeC(a.pts, 0, 0.2, 0.05, '#A47B52'); } garden3d(a, THREE, M, sc); return; }
   slabC(a.pts, 0, 0.05, AREA3[a.t] || '#7FB35B');
@@ -12661,6 +12673,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.411', '14 nov', ['3D: snön på marken följer det riktiga vädret på din ort. Ligger det snö där du bor, eller har det snöat den senaste veckan och är minusgrader, ligger det snö i 3D. Det snöar i 3D när det snöar ute']],
   ['Beta 0.410', '14 nov', ['Växtbiblioteket fryser inte längre när det öppnas', 'Större ikoner på knapparna under Vad vill du göra?', 'Mindre tomrum: väderkortet visar ort och 5 dagar uppe till höger, Inget att göra just nu och Såkalendern på en rad, kortare knapp Samma problem på frågor', 'Toppknapparna visar bara ikonen, så att sidans rubrik får plats', 'Min samling och växtens sida visar inte samma text två gånger']],
   ['Beta 0.409', '14 nov', ['Profilbilder syns överallt: i frågor och svar, notiser, meddelanden, vänlistan och hos experterna', 'Knapptext delas aldrig mitt i ett ord. Långa ord krymps lite så att de får plats, och knapparna på Start har samma storlek']],
   ['Beta 0.408', '14 nov', ['Notis direkt när någon svarar på din fråga eller ditt svar i Gemenskap. Stäng av under Notifikationer', 'Ställ en fråga: skriv en rubrik och sedan frågan i en egen ruta', 'Inställningarna är enklare: alla delar är hopfällda från början och notiserna har en egen sida', 'Dölj dagar sitter högst upp på väderkortet', 'Sök växter heter nu Växtbiblioteket', 'Min samling visar växtens bild från Växtbiblioteket när du inte har ett eget foto']],
@@ -15285,7 +15298,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.410';
+const APP_VERSION = 'Beta 0.411';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
