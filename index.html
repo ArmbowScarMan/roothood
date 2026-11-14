@@ -298,7 +298,7 @@ form label.check input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-co
 .taxbox{background:var(--surf);border-radius:18px;padding:14px 14px 2px;margin:0 0 14px;box-shadow:var(--sh)}
 .taxbox>b{display:block;font-size:14px;margin-bottom:10px}
 .taxline{display:block;color:var(--mut);font-size:13px;margin-top:4px}
-.nbs{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}.nb{font-style:normal;font-size:11px;font-weight:700;line-height:1;padding:3px 7px;border-radius:999px;background:rgba(212,154,46,.28)}.wikitxt{margin:0 0 6px;line-height:1.5}.obs{display:flex;align-items:flex-end;gap:4px;height:70px;margin-bottom:6px}.obsb{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font-size:10px;color:var(--mut)}.obsb i{display:block;width:100%;background:var(--pri2);border-radius:4px 4px 0 0}.obsb span{margin-top:2px}.wxx{display:flex;flex-direction:column;gap:3px;font-size:13px;padding:6px 2px}.wxx small{color:var(--mut);font-size:11px}.altl{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+.nbs{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}.nb{font-style:normal;font-size:11px;font-weight:700;line-height:1;padding:3px 7px;border-radius:999px;background:rgba(212,154,46,.28)}.wikitxt{margin:0 0 6px;line-height:1.5}.obs{display:flex;align-items:flex-end;gap:4px;height:70px;margin-bottom:6px}.obsb{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font-size:10px;color:var(--mut)}.obsb i{display:block;width:100%;background:var(--pri2);border-radius:4px 4px 0 0}.obsb span{margin-top:2px}.wxx{display:flex;flex-direction:column;gap:3px;font-size:13px;padding:6px 2px}.wxx small{color:var(--mut);font-size:11px}.inatn{display:flex;gap:8px;overflow-x:auto;padding:4px 0}.inatn a{flex:0 0 96px;text-decoration:none;color:inherit;font-size:12px;display:flex;flex-direction:column;gap:2px}.inatn img{width:96px;height:96px;object-fit:cover;border-radius:12px}.inatn span{color:var(--mut);font-size:11px}.altl{display:block;color:var(--mut);font-size:12px;margin-top:2px}
 .sameln{display:flex!important;gap:10px;align-items:center;font-weight:600!important;margin:-6px 0 14px!important;cursor:pointer}
 .sameln input{width:20px!important;height:20px;margin:0!important;flex:none;accent-color:var(--pri)}
 input.ro{opacity:.65}
@@ -8098,10 +8098,40 @@ function pollenV(w) {
   const txt = String(f.text).replace(/\r?\n\s*\r?\n/g, ' ').trim().slice(0, 400);
   return `<span>🌼 Pollen, ${esc(b.g.name)}: ${esc(txt)}</span><small>Pollenprognos ${esc(f.startDate)}${f.endDate !== f.startDate ? ' till ' + esc(f.endDate) : ''}. Källa: Pollenrapporten, Naturhistoriska riksmuseet. Gäller regionen, ${Math.round(b.d)} km bort.</small>`;
 }
+let INAT_NEAR;
+function inatNearOpen() {
+  const w = S.wx; if (!w || w.lat == null || w.none) { toast('Lägg in din plats under Mitt hem först'); return; }
+  INAT_NEAR = { loading: true }; keepMain();
+  const d1 = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
+  fetch('https://api.inaturalist.org/v1/observations?lat=' + (+w.lat).toFixed(2) + '&lng=' + (+w.lon).toFixed(2) + '&radius=25&iconic_taxa=Plantae&quality_grade=research&photos=true&photo_license=cc0,cc-by,cc-by-sa&d1=' + d1 + '&per_page=40&order_by=observed_on&locale=sv')
+    .then(r => r.ok ? r.json() : null).then(d => {
+      const seen = new Set(), out = [];
+      ((d && d.results) || []).forEach(o => { const t = o.taxon, ph = o.photos && o.photos[0]; if (!t || !ph || !ph.url || seen.has(t.id)) return; seen.add(t.id); out.push({ n: t.preferred_common_name || t.name, l: t.name, u: ph.url.replace('/square.', '/small.'), a: ph.attribution || '', h: o.uri, d: o.observed_on }); });
+      INAT_NEAR = { items: out.slice(0, 8) }; keepMain();
+    }).catch(e => { console.warn('Roothood:', e); INAT_NEAR = { items: [] }; keepMain(); });
+}
+function inatNearV(w) {
+  if (!w || w.lat == null || w.none) return '';
+  if (!INAT_NEAR) return `<button class="link3" style="margin-top:6px" onclick="inatNearOpen()">🌿 Se vad som setts nära dig de senaste veckorna</button>`;
+  if (INAT_NEAR.loading) return '<small>Hämtar observationer…</small>';
+  const it = INAT_NEAR.items || [];
+  if (!it.length) return '<small>Inga observationer med fria foton hittades nära dig de senaste två veckorna.</small>';
+  return `<div class="inatn">${it.map(x => `<a href="${esc(x.h)}" target="_blank" rel="noopener" title="${esc(x.a)}"><img src="${esc(x.u)}" alt="" loading="lazy"><b>${esc(x.n)}</b><span>${esc(x.d || '')}</span></a>`).join('')}</div><small>Växter observerade inom 2,5 mil från ${esc(w.name || 'din plats')} de senaste två veckorna (bara observationer med bekräftad art och fria foton). Fotografernas namn och licens syns när du håller över eller öppnar bilden. Källa: iNaturalist.</small>`;
+}
+let SUND;
+const MON_FULL = ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
+function sunStatV(w) {
+  if (SUND === undefined) { SUND = null; if (!DEMO && sb) sb.from('station_sun').select('name,lat,lon,years,y_from,y_to,months').gt('years', 0).then(r => { SUND = r.data || null; if (SUND) keepMain(); }, e => { console.warn('Roothood:', e); }); return ''; }
+  if (!SUND || !w || w.lat == null) return '';
+  let b = null; SUND.forEach(f => { const kx = 111.32 * Math.cos(+w.lat * Math.PI / 180), d = Math.hypot((+f.lon - +w.lon) * kx, (+f.lat - +w.lat) * 111.32); if (!b || d < b.d) b = { f, d }; });
+  if (!b || b.d > 150 || !Array.isArray(b.f.months) || b.f.months.length !== 12) return '';
+  const m = new Date().getMonth(), v = Math.round(+b.f.months[m]), mx = b.f.months.reduce((a, x, i) => +x > +b.f.months[a] ? i : a, 0);
+  return `<span>☀️ Soltimmar i ${MON_FULL[m]}: brukar vara <b>cirka ${v} h</b>${mx !== m ? ` (mest i ${MON_FULL[mx]}, cirka ${Math.round(+b.f.months[mx])} h)` : ''}</span><small>Medelvärde ${b.f.y_from}–${b.f.y_to}, uppmätt vid SMHI:s station ${esc(String(b.f.name).replace(/ Sol$/, ''))}, ${Math.round(b.d)} km bort. Solen på just din plats kan skilja. Källa: SMHI.</small>`;
+}
 function wxExtraV(w) {
   const bits = [], s = w.past && w.past.soil;
   if (s != null) bits.push(`<span>🌱 Jord på 6 cm: <b>${String(s).replace('.', ',')} °C</b></span>`);
-  const fr = frostV(w) + pollenV(w);
+  const fr = frostV(w) + sunStatV(w) + pollenV(w) + inatNearV(w);
   return bits.length || fr ? `<div class="wxx">${bits.join('')}${bits.length ? '<small>Jordtemperatur: Open-Meteo (modell)</small>' : ''}${fr}</div>` : '';
 }
 function weatherV(sz) {
@@ -10791,13 +10821,26 @@ async function obsLoad(k) {
   const cur = S.sel ? plantById(S.sel) : null;
   if (d && cur && wikiKey(cur) === k) keepMain();
 }
+const NEAR = {};
+function nearObsV(k) {
+  const w = S.wx; if (!w || w.lat == null || w.none) return '';
+  const y = new Date().getFullYear(), key = k + '|' + (+w.lat).toFixed(1) + '|' + (+w.lon).toFixed(1);
+  if (!(key in NEAR)) {
+    NEAR[key] = null;
+    fetch('https://api.gbif.org/v1/occurrence/search?scientificName=' + encodeURIComponent(k) + '&country=SE&geoDistance=' + (+w.lat).toFixed(2) + ',' + (+w.lon).toFixed(2) + ',50km&year=' + (y - 5) + ',' + y + '&occurrenceStatus=PRESENT&limit=0')
+      .then(r => r.ok ? r.json() : null).then(d => { NEAR[key] = d && typeof d.count === 'number' ? d.count : false; if (NEAR[key]) { const cur = S.sel ? plantById(S.sel) : null; if (cur && wikiKey(cur) === k) keepMain(); } }).catch(e => { console.warn('Roothood:', e); });
+    return '';
+  }
+  const n = NEAR[key]; if (!n) return '';
+  return `<p class="wikitxt" style="margin:6px 0 4px">📍 Rapporterad <b>${String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0')}</b> gånger inom 5 mil från ${esc(w.name || 'din plats')} ${y - 5}–${y}.</p>`;
+}
 function obsV(p) {
   const k = wikiKey(p); if (!k) return '';
   if (!(k in OBS)) { OBS[k] = undefined; obsLoad(k); return ''; }
   const o = OBS[k]; if (!o || !(o.n_se >= 20) || !Array.isArray(o.months) || o.months.length !== 12) return '';
   const mx = Math.max(...o.months, 1), L = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'], N = ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
   const bars = o.months.map((v, i) => `<div class="obsb" title="${N[i]}: ${v} observationer"><i style="height:${Math.max(2, Math.round(v / mx * 100))}%"></i><span>${L[i]}</span></div>`).join('');
-  return `<div class="sec"><h2>Observerad i Sverige</h2></div><div class="pad" style="padding-top:0"><div class="obs" role="img" aria-label="Rapporterade observationer per månad">${bars}</div><small class="mut">${String(o.n_se).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0')} rapporterade observationer i Sverige, per månad. Både vilda och odlade växter ingår, så det visar inte blomningstid. Källa: GBIF (Artdatabanken m.fl.).</small></div>`;
+  return `<div class="sec"><h2>Observerad i Sverige</h2></div><div class="pad" style="padding-top:0"><div class="obs" role="img" aria-label="Rapporterade observationer per månad">${bars}</div>${nearObsV(k)}<small class="mut">${String(o.n_se).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0')} rapporterade observationer i Sverige, per månad. Både vilda och odlade växter ingår, så det visar inte blomningstid. Källa: GBIF (Artdatabanken m.fl.).</small></div>`;
 }
 function wikiV(p) {
   const k = wikiKey(p); if (!k) return '';
@@ -12456,7 +12499,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
-  ['Beta 0.404', '14 nov', ['Växtgrupp i filtret har fler val: ormbunkar, köttätande, suckulenter, palmer, gräs, barrträd, rosor, rhododendron, klematis, hostor, begonior, pelargoner och marantaväxter', 'Växter kan nu ha flera svenska namn: Dyntaxas namn och vardagsnamnet. Båda går att söka på, och växtsidan visar "Även kallad"', 'Märken för fridlyst, rödlistad och invasiv på växtkort, nytt filter "Status i Sverige", varning när du sätter ut en invasiv art, och alternativa namn syns i söklistan', 'Växtsidan har ett stycke "Om arten" med en kort beskrivning från svenska Wikipedia (med källa)', 'Växtsidan visar när arten har rapporterats i Sverige, månad för månad (GBIF)', 'Växtsidan visar var arten naturligt växer (ursprung, från Kew)', 'Väderkortet visar vanligaste datum för sista vårfrost och första höstfrost på din plats (SMHI, medianen för 30 år)', 'Väderkortet visar jordtemperaturen och pollenprognosen från Pollenrapporten (Naturhistoriska riksmuseet)']],
+  ['Beta 0.404', '14 nov', ['Växtgrupp i filtret har fler val: ormbunkar, köttätande, suckulenter, palmer, gräs, barrträd, rosor, rhododendron, klematis, hostor, begonior, pelargoner och marantaväxter', 'Växter kan nu ha flera svenska namn: Dyntaxas namn och vardagsnamnet. Båda går att söka på, och växtsidan visar "Även kallad"', 'Märken för fridlyst, rödlistad och invasiv på växtkort, nytt filter "Status i Sverige", varning när du sätter ut en invasiv art, och alternativa namn syns i söklistan', 'Växtsidan har ett stycke "Om arten" med en kort beskrivning från svenska Wikipedia (med källa)', 'Växtsidan visar när arten har rapporterats i Sverige, månad för månad (GBIF)', 'Växtsidan visar var arten naturligt växer (ursprung, från Kew)', 'Väderkortet visar vanligaste datum för sista vårfrost och första höstfrost på din plats (SMHI, medianen för 30 år)', 'Väderkortet visar hur många soltimmar månaden brukar ha på din plats (SMHI, medelvärde 30 år)', 'Väderkortet kan visa vilka växter som setts nära dig de senaste veckorna (iNaturalist, bara fria foton) och hur ofta arten rapporterats nära dig (GBIF)', 'Väderkortet visar jordtemperaturen och pollenprognosen från Pollenrapporten (Naturhistoriska riksmuseet)']],
   ['Beta 0.403', '13 nov', ['62 växter utan bild har fått ett foto från iNaturalist, bara med fri licens och med fotografens namn under bilden']],
   ['Beta 0.402', '13 nov', ['Växtsidan visar nu om arten är fridlyst, rödlistad eller invasiv i Sverige (källa: Artdatabanken)']],
   ['Beta 0.401', '13 nov', ['Väder: SMHI:s officiella varningar (kyla, vind, skyfall, vattenbrist m.m.) visas för din ort i Sverige. Utomlands används Open-Meteo som förut']],
