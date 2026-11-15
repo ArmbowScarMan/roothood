@@ -6446,7 +6446,7 @@ function inBay(r, by, x, y) { const o = wallPt(r, by.s, 0, 0), q = wallPt(r, by.
   const d = Math.min(by.d, by.l / 2 - 0.05); return out >= 0 && out <= d && along >= by.p + out && along <= by.p + by.l - out; }
 function syncDirs(r) { const segs = winSegs(r); if (!segs.length) { if (r.rect && r.winsTouched) r.dirs = []; return; } const ds = [...new Set(segs.map(g => angDir(g[1])))]; r.dirs = DIRS.map(d => d[0]).filter(d => ds.includes(d)); }
 function segDist(px, py, [x1, y1, x2, y2]) { const dx = x2 - x1, dy = y2 - y1, L = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / L)); return Math.hypot(px - x1 - t * dx, py - y1 - t * dy); }
-function roomAt(x, y) { const rs = planRooms().filter(r => inRoomPt(r, x, y) || (r.bays || []).some(b => inBay(r, b, x, y))); return rs.sort((a, b) => a.rect.w * a.rect.h - b.rect.w * b.rect.h)[0] || null; }
+function roomAt(x, y, fl) { const rs = (Number.isFinite(fl) ? planRoomsAll().filter(r => flOf(r) === fl) : planRooms()).filter(r => inRoomPt(r, x, y) || (r.bays || []).some(b => inBay(r, b, x, y))); return rs.sort((a, b) => a.rect.w * a.rect.h - b.rect.w * b.rect.h)[0] || null; }
 function winWord(r, x, y) { const segs = r ? winSegs(r) : []; if (!segs.length) return null; if ((r.bays || []).some(b => inBay(r, b, x, y))) return 'I fönstret'; const d = Math.min(...segs.map(g => segDist(x, y, g[0]))); return d < 0.7 ? 'I fönstret' : d < 1.6 ? 'Ca 1 m bort' : '2 m eller mer'; }
 let homeSaveT = null;
 function snapState() { return JSON.stringify({ h: S.home || [], p: S.hplan || {} }); }
@@ -6850,7 +6850,7 @@ function planDown(e) {
   if (k === 'fwall') { P.drag = { k: 'selfw', id, pt }; return; }
   if (k === 'fop' || k === 'fbay') { P.drag = { k: 'selfop', kind: k, id, i: +t.dataset.i, pt }; return; }
   if (k === 'room') { const r = S.home.find(x => x.id === id); P.drag = { k: 'room', r, pt, o: { ...r.rect }, op: r.pts ? r.pts.map(q => [...q]) : null, moved: false, snap: snapState(),
-    kids: S.mine.filter(m => m.details && m.details.pos && roomAt(m.details.pos.x, m.details.pos.y) === r).map(m => [m, { ...m.details.pos }]),
+    kids: S.mine.filter(m => m.details && m.details.pos && plantFl(m) === flOf(r) && roomAt(m.details.pos.x, m.details.pos.y, flOf(r)) === r).map(m => [m, { ...m.details.pos }]),
     devs: planItems().filter(it => roomAt(it.x, it.y) === r).map(it => [it, { x: it.x, y: it.y }]),
     fws: planWalls().filter(wl => roomAt(wl.x1, wl.y1) === r && roomAt(wl.x2, wl.y2) === r).map(wl => [wl, { ...wl }]),
     fur: planFurn().filter(f => roomAt(f.x, f.y) === r).map(f => [f, { x: f.x, y: f.y }]) }; return; }
@@ -6967,7 +6967,7 @@ async function tapMove(pt) {
   if (s.k === 'area') { const a = planAreas().find(x => x.id === s.id); if (!a) return false; const cx = a.pts.reduce((v, q) => v + q[0], 0) / a.pts.length, cy = a.pts.reduce((v, q) => v + q[1], 0) / a.pts.length, dx = r1(pt.x - cx), dy = r1(pt.y - cy);
     a.pts = a.pts.map(q => [r1(q[0] + dx), r1(q[1] + dy)]); if (a.spots) a.spots = a.spots.map(q => ({ ...q, x: Math.round((q.x + dx) * 100) / 100, y: Math.round((q.y + dy) * 100) / 100 })); pushUndo(sn); saveHomeSoon(); render(); return true; }
   if (s.k === 'room') { const r = S.home.find(x => x.id === s.id); if (!r || !r.rect) return false; const R = r.rect, nx = snap(pt.x - R.w / 2), ny = snap(pt.y - R.h / 2), dx = nx - R.x, dy = ny - R.y; if (!dx && !dy) return true;
-    const kids = S.mine.filter(m => m.details && m.details.pos && roomAt(m.details.pos.x, m.details.pos.y) === r), devs = planItems().filter(it => roomAt(it.x, it.y) === r), fws = planWalls().filter(wl => roomAt(wl.x1, wl.y1) === r && roomAt(wl.x2, wl.y2) === r), fur = planFurnAll().filter(f => roomAt(f.x, f.y) === r);
+    const kids = S.mine.filter(m => m.details && m.details.pos && plantFl(m) === flOf(r) && roomAt(m.details.pos.x, m.details.pos.y, flOf(r)) === r), devs = planItems().filter(it => roomAt(it.x, it.y) === r), fws = planWalls().filter(wl => roomAt(wl.x1, wl.y1) === r && roomAt(wl.x2, wl.y2) === r), fur = planFurnAll().filter(f => roomAt(f.x, f.y) === r);
     roomShift(r, dx, dy); kids.forEach(m => m.details.pos = { x: r1(m.details.pos.x + dx), y: r1(m.details.pos.y + dy) }); devs.forEach(it => { it.x = r1(it.x + dx); it.y = r1(it.y + dy); }); fws.forEach(wl => { wl.x1 = r1(wl.x1 + dx); wl.y1 = r1(wl.y1 + dy); wl.x2 = r1(wl.x2 + dx); wl.y2 = r1(wl.y2 + dy); }); fur.forEach(f => { f.x = r1(f.x + dx); f.y = r1(f.y + dy); });
     pushUndo(sn); syncDirs(r); saveHomeSoon(); for (const m of kids) await savePos(m, true); render(); return true; }
   return false;
@@ -6979,7 +6979,7 @@ function areaScale(id, f) { const a = planAreas().find(x => x.id === id); if (!a
 function bayShift(dp) { pushUndo(); const sel = PL().sel, r = S.home.find(x => x.id === sel.id), b = r && r.bays[sel.i]; if (!b) return; const L = sideLen(r, b.s); b.p = Math.max(0, Math.min(L - b.l, r1(b.p + dp))); syncDirs(r); saveHomeSoon(); render(); }
 function growLamp(it) { if (it.t !== 'grow') return; const r = roomAt(it.x, it.y); if (r && !r.lamp) { r.lamp = true; toast(r.name + ' har nu växtlampa'); } }
 async function savePos(m, quiet) {
-  const d = JSON.parse(JSON.stringify(m.details || {})), r = d.pos ? roomAt(d.pos.x, d.pos.y) : null;
+  const d = JSON.parse(JSON.stringify(m.details || {})), pf = (m.details && m.details.room && roomOf(m)) ? plantFl(m) : curFl(), r = d.pos ? roomAt(d.pos.x, d.pos.y, pf) : null;
   if (r) { d.room = r.id; const ww = winWord(r, d.pos.x, d.pos.y); if (ww) d.win = ww; else if (!(r.dirs || []).length) delete d.win; d.light = roomLightWord(r, d.win); }
   else if (d.pos) { delete d.room; delete d.win; }
   try { await api.saveDetails(m.id, d); S.mine = await api.mine(); if (!quiet) { const sel = PL().sel; PL().sel = { k: 'plant', id: m.id }; render(); if (r && !sel) {} } }
@@ -12887,6 +12887,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.419', '15 nov', ['Rättat fel: växter kunde hamna på fel våning när man flyttade eller kopierade ett rum som låg ovanpå ett rum på en annan våning. Växter stannar nu på sin egen våning']],
   ['Beta 0.418', '15 nov', ['Rum med fri form: dra ett hörn mot ett grannhörn så fastnar det och de slås ihop när du släpper. Rummet får färre hörn, och fönster, dörrar och burspråk följer med till rätt vägg. Ångra tar tillbaka det']],
   ['Beta 0.417', '15 nov', ['Ritning: Norr, Karta, Ångra, zoom, Allt och Bild ligger i en kolumn och hamnar inte längre ovanpå varandra, även på små skärmar. Raderna med rumsval och kartpanelens gradknappar går inte heller över dem', 'Inga ordförslag eller autokorrigering från telefonens tangentbord i textfälten', 'Nyckelpigan döljs i Ritning och 3D så att den inte ligger över knappar. Rapportera fel finns under Profil → Hjälp och support']],
   ['Beta 0.416', '15 nov', ['3D: ny kartknapp bredvid solknappen. Den lägger kartan (satellit, karta eller topo, samma som i Ritning) på marken, och ett tryck till tar bort den igen']],
@@ -15519,7 +15520,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.418';
+const APP_VERSION = 'Beta 0.419';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
