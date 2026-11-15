@@ -1484,6 +1484,8 @@ body.hadv nav{display:none}
 .bname input,.bname select{font:inherit;font-size:15px;padding:9px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surf);color:var(--ink);width:100%}
 .sunrow{display:flex;align-items:center;gap:8px;padding:0 4px}
 .v3dock .gear{flex:0 0 34px;min-height:30px;padding:0;display:grid;place-items:center}
+.v3dock .gear.on{background:var(--pri);color:#fff}
+.m3attr{position:absolute;right:10px;top:10px;max-width:70%;font-size:10px;line-height:1.3;color:#fff;background:rgba(0,0,0,.5);padding:2px 7px;border-radius:8px;pointer-events:none;text-align:right}
 .v3pop input[type=range]{width:100%;accent-color:var(--pri);margin:2px 0 10px}
 .sunrow label{margin:0;white-space:nowrap;font-size:12px;font-weight:700;color:var(--mut)}
 .sunrow input{flex:1;min-width:0;accent-color:var(--pri)}
@@ -4463,7 +4465,7 @@ function view3dV() {
   const has = planRoomsAll().length || planAreas().length;
   const P = PL(), placing = P.mode === 'place' && P.pick, selF = !placing && P.sel && P.sel.k === 'furn' && planFurnAll().some(x => x.id === P.sel.id), selD = !placing && P.sel && P.sel.k === 'dev' && planItems().some(x => x.id === P.sel.id), selR = !placing && P.sel && (P.sel.k === 'rooms' || P.sel.k === 'wface');
   return `<div class="planbox" id="box3d">${has ? '<p class="l3">Laddar 3D…</p>' : '<p class="l3">Rita först ditt hem under Ritning, så visas det här i 3D.</p>'}${has && !S.walk && placing ? `<div class="p3hint"><span>Tryck på golvet där ${esc(place3Name())} ska stå</span><button class="btn sm line" onclick="PL().mode='move';PL().pick=null;render()">Avbryt</button></div>` : ''}${has && !S.walk && S.mv3 ? `<div class="p3hint"><span>Dra med fingret för att flytta ${esc(mv3Name())}. Den stannar mot väggar och möbler.</span><button class="btn sm" onclick="mv3Stop()">Klar</button></div>` : ''}${has && !S.walk && !S.mv3 && (selF || selD || selR) ? `<div class="p3sel">${planSelV()}</div>` : ''}${has && !S.walk && !S.mv3 && !placing && !selF && !selD && S.v3p != null && S.mine.some(x => x.id === S.v3p) ? `<div class="p3sel">${plantSelV()}</div>` : ''}
-    ${has && !S.walk ? coach3V() : ''}${has && S.walk ? walkUiV() : has ? `<div class="v3dock"><div class="v3top"><div class="wx3 wx3in" id="wx3">${wx3Text()}</div><button class="v3undo" onclick="undoPlan()" ${(S.undo || []).length ? '' : 'disabled'} aria-label="Ångra">↶ Ångra</button><button class="v3undo v3z" onclick="zoomBtn3(0.6)" aria-label="Zooma in">+</button><button class="v3undo v3z" onclick="zoomBtn3(1.6)" aria-label="Zooma ut">−</button><button class="v3undo v3z" onclick="turn3(-1)" aria-label="Vrid åt vänster" title="Vrid">⟲</button><button class="v3undo v3z" onclick="turn3(1)" aria-label="Vrid åt höger" title="Vrid">⟳</button></div><div class="v3pop" id="v3pop" hidden></div><div class="r"><button onclick="v3pop('beds')">Rabatter ▾</button><button onclick="v3pop('add')">+ Lägg till ▾</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="v3pop('view')">Vy ▾</button></div><div class="r tm"><button class="m3b" onclick="stepMon3(-1)" aria-label="Förra månaden">‹</button><button class="m3n" onclick="S.mon3=null;S.sunD=null;S.sunT=null;S.sunPin=false;build3d();keepMain()" title="Tillbaka till nu">${MONTH_NAMES[mo3() - 1].replace(/^./, c => c.toUpperCase())}</button><button class="m3b" onclick="stepMon3(1)" aria-label="Nästa månad">›</button></div><div class="sunrow"><label>Solen kl <b id="sunlbl">${sunLbl()}</b></label><input type="range" min="0" max="23.75" step="0.25" value="${sunH()}" oninput="sunSet(this.value)"><button class="gear" onclick="v3pop('sun')" aria-label="Datum och solens bana">${ic('ph-sun-horizon', 'currentColor', 16)}</button><button class="gear" onclick="v3pop('set')" aria-label="Inställningar">${ic(GEAR, 'currentColor', 16)}</button></div></div>` : ''}</div>
+    ${has && !S.walk ? coach3V() : ''}${has && S.walk ? walkUiV() : has ? `<div class="v3dock"><div class="v3top"><div class="wx3 wx3in" id="wx3">${wx3Text()}</div><button class="v3undo" onclick="undoPlan()" ${(S.undo || []).length ? '' : 'disabled'} aria-label="Ångra">↶ Ångra</button><button class="v3undo v3z" onclick="zoomBtn3(0.6)" aria-label="Zooma in">+</button><button class="v3undo v3z" onclick="zoomBtn3(1.6)" aria-label="Zooma ut">−</button><button class="v3undo v3z" onclick="turn3(-1)" aria-label="Vrid åt vänster" title="Vrid">⟲</button><button class="v3undo v3z" onclick="turn3(1)" aria-label="Vrid åt höger" title="Vrid">⟳</button></div><div class="v3pop" id="v3pop" hidden></div><div class="r"><button onclick="v3pop('beds')">Rabatter ▾</button><button onclick="v3pop('add')">+ Lägg till ▾</button><button class="on" onclick="walkStart()">Gå runt</button><button onclick="v3pop('view')">Vy ▾</button></div><div class="r tm"><button class="m3b" onclick="stepMon3(-1)" aria-label="Förra månaden">‹</button><button class="m3n" onclick="S.mon3=null;S.sunD=null;S.sunT=null;S.sunPin=false;build3d();keepMain()" title="Tillbaka till nu">${MONTH_NAMES[mo3() - 1].replace(/^./, c => c.toUpperCase())}</button><button class="m3b" onclick="stepMon3(1)" aria-label="Nästa månad">›</button></div><div class="sunrow"><label>Solen kl <b id="sunlbl">${sunLbl()}</b></label><input type="range" min="0" max="23.75" step="0.25" value="${sunH()}" oninput="sunSet(this.value)"><button class="gear${map3On() ? ' on' : ''}" onclick="map3Toggle(this)" aria-label="Visa kartan på marken" aria-pressed="${map3On()}" title="Visa kartan på marken">${ic('ph-map-trifold', 'currentColor', 16)}</button><button class="gear" onclick="v3pop('sun')" aria-label="Datum och solens bana">${ic('ph-sun-horizon', 'currentColor', 16)}</button><button class="gear" onclick="v3pop('set')" aria-label="Inställningar">${ic(GEAR, 'currentColor', 16)}</button></div></div>` : ''}</div>
   <div style="height:12px"></div>`;
 }
 async function mount3d() {
@@ -4642,6 +4644,55 @@ function floorTex3d(THREE, kind, col) { return canvasTex3d(THREE, 512, 512, (x, 
     x.fillStyle = sh(col, -0.3); x.fillRect(0, r * ph, w, 2); } }); }
 // Mjuk skugga där golvet möter väggen (mörk vid väggen, genomskinlig en bit in)
 function aoTex3d(THREE) { return canvasTex3d(THREE, 4, 64, (x, w, h) => { const g = x.createLinearGradient(0, h, 0, 0); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.35, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, w, h); }); }
+// Karta på marken i 3D: kartbilden läggs som ett lager ovanpå marken. Läget gäller bara den här sessionen (S.map3).
+function map3On() { return !!S.map3 && mapOn(); }
+// Kartans meter (öster, söder om ankaret) och ritningens koordinater: samma vridning som bldgToPlan, i omvänd ordning
+function map3ToMap(M, x, y) { return rotPt(x - (M.ox || 0), y - (M.oy || 0), -northDeg()); }
+function map3Spec(M, cx, cz, W) {
+  const layer = M.layer && TILES[M.layer] ? M.layer : 'sat', latR = M.lat * Math.PI / 180, cosL = Math.cos(latR);
+  let tz = layer === 'sat' ? (M.lat > 61 ? 17 : 18) : (TILES[layer][1] || 19), sp;
+  const cs = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(k => map3ToMap(M, cx + k[0] * W / 2, cz + k[1] * W / 2)), us = cs.map(q => q[0]), vs = cs.map(q => q[1]);
+  for (; tz >= 3; tz--) {
+    const n = 2 ** tz, mpp = 156543.034 * cosL / n, gx = (M.lon + 180) / 360 * 256 * n, gy = (1 - Math.log(Math.tan(latR) + 1 / cosL) / Math.PI) / 2 * 256 * n;
+    const tx0 = Math.floor((gx + Math.min(...us) / mpp) / 256), tx1 = Math.floor((gx + Math.max(...us) / mpp) / 256), ty0 = Math.floor((gy + Math.min(...vs) / mpp) / 256), ty1 = Math.floor((gy + Math.max(...vs) / mpp) / 256);
+    sp = { layer, tz, n, mpp, gx, gy, tx0, tx1, ty0, ty1 }; if (tx1 - tx0 < 7 && ty1 - ty0 < 7) break; }
+  sp.key = [M.lat, M.lon, sp.layer, sp.tz, sp.tx0, sp.ty0, sp.tx1, sp.ty1].join('|'); return sp;
+}
+function map3Load(c, sp, done) {
+  const cv = c.canvas, cx = cv.getContext('2d'); cx.fillStyle = '#8DA67B'; cx.fillRect(0, 0, cv.width, cv.height);
+  const url = TILES[sp.layer][0]; let left = 0, ok = 0, bad = 0;
+  const fin = () => { if (--left > 0) return; c.loading = false; c.ready = ok > 0; c.failed = ok === 0; done(c); };
+  for (let tx = sp.tx0; tx <= sp.tx1; tx++) for (let ty = sp.ty0; ty <= sp.ty1; ty++) { if (ty < 0 || ty >= sp.n) continue; left++;
+    const u = url.replace('{z}', sp.tz).replace('{x}', ((tx % sp.n) + sp.n) % sp.n).replace('{y}', ty), im = new Image(); im.crossOrigin = 'anonymous';
+    im.onload = () => { cx.drawImage(im, (tx - sp.tx0) * 256, (ty - sp.ty0) * 256); ok++; fin(); };
+    im.onerror = () => { if (!im.dataset.f && u.includes('server.arcgisonline')) { im.dataset.f = 1; im.src = u.replace('server.arcgisonline.com/ArcGIS', 'services.arcgisonline.com/arcgis'); return; } bad++; fin(); };
+    im.src = u; }
+  if (!left) { c.loading = false; c.failed = true; done(c); }
+}
+function map3Mesh(THREE, cx, cz, span, dark) {
+  const M = S.hplan.map, W = Math.min(span * 6, 300), sp = map3Spec(M, cx, cz, W);
+  const geo = hasGround() ? terrainGeo3d(THREE, cx, cz, W, 40) : new THREE.PlaneGeometry(W, W, 40, 40), q = geo.attributes.position, uv = geo.attributes.uv, PW = (sp.tx1 - sp.tx0 + 1) * 256, PH = (sp.ty1 - sp.ty0 + 1) * 256;
+  for (let i = 0; i < q.count; i++) { const m = map3ToMap(M, cx + q.getX(i), cz - q.getY(i)), px = sp.gx + m[0] / sp.mpp, py = sp.gy + m[1] / sp.mpp; uv.setXY(i, (px - sp.tx0 * 256) / PW, 1 - (py - sp.ty0 * 256) / PH); }
+  uv.needsUpdate = true;
+  const mat = new THREE.MeshStandardMaterial({ color: '#8DA67B', roughness: 1, metalness: 0, envMapIntensity: 0.3 }), mk = new THREE.Mesh(geo, mat);
+  mk.rotation.x = -Math.PI / 2; mk.position.set(cx, -0.016, cz); mk.userData.map3 = 1;
+  const useTex = c => { if (!c.ready || T3.m3 !== c || T3.m3mesh !== mk) return; const t = new THREE.CanvasTexture(c.canvas); if (THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+    if (T3.renderer && T3.renderer.capabilities) t.anisotropy = Math.min(8, T3.renderer.capabilities.getMaxAnisotropy()); mat.map = t; mat.color.set('#ffffff'); mat.needsUpdate = true; T3.dirty = true; };
+  T3.m3mesh = mk;
+  if (!T3.m3 || T3.m3.key !== sp.key) { const cv = document.createElement('canvas'); cv.width = PW; cv.height = PH; T3.m3 = { key: sp.key, canvas: cv, loading: true, ready: false, failed: false };
+    const c = T3.m3; map3Load(c, sp, d => { if (d.failed && T3.m3 === d && !d.warned) { d.warned = 1; toast('Kartan kunde inte hämtas just nu. Kontrollera internet.'); } else if (T3.m3m) T3.m3m(d); }); }
+  T3.m3m = c => { if (T3.m3 === c) useTex(c); };
+  if (T3.m3.ready) useTex(T3.m3);
+  return mk;
+}
+function map3Attr() { const b = $('#box3d'); if (!b) return; let a = b.querySelector('.m3attr');
+  if (!map3On()) { if (a) a.remove(); return; }
+  const M = S.hplan.map, t = TILES[M.layer && TILES[M.layer] ? M.layer : 'sat'][2]; if (!a) { a = document.createElement('div'); a.className = 'm3attr'; b.appendChild(a); } a.textContent = t; }
+function map3Toggle(btn) {
+  if (!mapOn()) { toast('Lägg först ut en karta under Ritning → Karta, så kan du visa den på marken här.'); return; }
+  S.map3 = !S.map3; T3 && (T3.m3 = null); if (btn) { btn.classList.toggle('on', S.map3); btn.setAttribute('aria-pressed', String(S.map3)); }
+  build3d(); T3 && (T3.dirty = true);
+}
 function groundMat3d(THREE, span, dark, o) {
   const tex = canvasTex3d(THREE, 512, 512, (x, w, h) => {
     const base = dark ? '#355A41' : '#9EBF7E'; x.fillStyle = base; x.fillRect(0, 0, w, h);
@@ -4798,6 +4849,7 @@ function build3dInner(first) {
   const g = new THREE.Mesh(hasGround() ? terrainGeo3d(THREE, cx, cz, span * 6, 40) : new THREE.PlaneGeometry(span * 6, span * 6), groundMat3d(THREE, span, dark, F3.some(f3 => f3.l < 0 && !f3.sub) && floorVis(-1) ? { transparent: true, opacity: 0.4, depthWrite: false } : null)); g.rotation.x = -Math.PI / 2; g.position.set(cx, -0.02, cz); add(g, false, true);
   if (S.hplan && S.hplan.ground === 'sand') { const sd = new THREE.Mesh(hasGround() ? terrainGeo3d(THREE, cx, cz, span * 6, 40) : new THREE.PlaneGeometry(span * 6, span * 6), M(dark ? '#8C7650' : '#D9C08A', { roughness: 1 })); sd.rotation.x = -Math.PI / 2; sd.position.set(cx, -0.018, cz); add(sd, false, true); }
   else if (!S.low3d) { const ov = new THREE.Mesh(hasGround() ? terrainGeo3d(THREE, cx, cz, span * 6, 40) : new THREE.PlaneGeometry(span * 6, span * 6), grassVar3d(THREE, dark)); ov.rotation.x = -Math.PI / 2; ov.position.set(cx, -0.019, cz); ov.renderOrder = 0; add(ov, false, true); }
+  if (map3On()) add(map3Mesh(THREE, cx, cz, span, dark), false, true); else { T3.m3mesh = null; }
   if (hasGround()) { const C = contours(), lim = span * 3; if (C && C.segs.length) { const pos = []; C.segs.forEach(s => { if (Math.abs(s[0] - cx) > lim || Math.abs(s[1] - cz) > lim) return; pos.push(s[0], gRel(s[0], s[1]) + 0.05, s[1], s[2], gRel(s[2], s[3]) + 0.05, s[3]); });
     if (pos.length) { const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); const ln = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: dark ? '#E8C08A' : '#7A4A1E', transparent: true, opacity: 0.75 })); ln.userData.nohit = 1; sc.add(ln); } } }
   sc.add(new THREE.HemisphereLight(dark ? '#9fb7c8' : '#f4f8ff', dark ? '#1b2a20' : '#b9c6ae', (dark ? 0.7 : 0.68) * HEMI3));
@@ -4935,7 +4987,7 @@ function envTick() { const E = T3 && T3.envK, pts = T3 && T3.envPts; if (!E || !
     // Snö och regn faller inte in i huset: flingor som når taknivå ovanför ett rum börjar om högst upp
     else if (E.kind !== 'leaf' && a[i * 3 + 1] < 2.8 && E.rooms) { const x = a[i * 3], z = a[i * 3 + 2]; for (const R0 of E.rooms) if (x > R0[0] && x < R0[2] && z > R0[1] && z < R0[3]) { a[i * 3 + 1] += E.box[4] - 2.8; break; } } }
   pts.geometry.attributes.position.needsUpdate = true; T3.dirty = true; }
-function env3d() { try { if (!T3 || !T3.scene) return; const THREE = T3.THREE, sc = T3.scene, dark = document.documentElement.getAttribute('data-theme') === 'dark' || (document.documentElement.getAttribute('data-theme') !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+function env3d() { try { if (!T3 || !T3.scene) return; map3Attr(); const THREE = T3.THREE, sc = T3.scene, dark = document.documentElement.getAttribute('data-theme') === 'dark' || (document.documentElement.getAttribute('data-theme') !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
   const season = seas3(), wk = wxKind3d() || 'clear', snowing = snowGround3(), falling = snowFall3(), rainy = wk === 'rain', foggy = wk === 'fog', leaves = season === 'Höst' && !rainy && !snowing;
   const wf = { cloud: 0.6, rain: 0.45, snow: 0.55, fog: 0.45, clear: 1 }[wk];
   let mid = dark ? '#16281E' : '#D8E8EE';
@@ -4946,7 +4998,7 @@ function env3d() { try { if (!T3 || !T3.scene) return; const THREE = T3.THREE, s
   sc.children.forEach(o => { if (o.isDirectionalLight) { o.intensity = (dark ? 1.0 : 1.85) * SUN3 * (SUNF3[season] || 1) * wf * v3br(dark); o.castShadow = S.v3sh !== false; } if (o.isHemisphereLight) o.intensity = (dark ? 0.7 : 0.68) * HEMI3 * v3br(dark); });
   sc.traverse(o => { if (o.userData && o.userData.lbl) o.visible = S.v3lab !== false; });
   if (T3.snowG) { sc.remove(T3.snowG); T3.snowG.geometry.dispose(); T3.snowG = null; }
-  if (snowing && T3.bounds) { const b = T3.bounds, span = Math.max(12, b[2] - b[0], b[3] - b[1]) + 12, cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2, H2 = span * 1.5;
+  if (snowing && T3.bounds && !map3On()) { const b = T3.bounds, span = Math.max(12, b[2] - b[0], b[3] - b[1]) + 12, cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2, H2 = span * 1.5;
     // Snön ligger bara ute: rummen på bottenvåningen skärs ut ur snötäcket
     const sh = new THREE.Shape([new THREE.Vector2(cx - H2, -(cz - H2)), new THREE.Vector2(cx + H2, -(cz - H2)), new THREE.Vector2(cx + H2, -(cz + H2)), new THREE.Vector2(cx - H2, -(cz + H2))]);
     planRoomsAll().filter(r => flOf(r) === 0 && r.rect).forEach(r => { try { sh.holes.push(new THREE.Path(roomPoly(r).map(q => new THREE.Vector2(q[0], -q[1])))); } catch (e) { } });
@@ -12816,6 +12868,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.416', '15 nov', ['3D: ny kartknapp bredvid solknappen. Den lägger kartan (satellit, karta eller topo, samma som i Ritning) på marken, och ett tryck till tar bort den igen']],
   ['Beta 0.415', '15 nov', ['Ritningen går att zooma ut mycket längre: ungefär 8 km över skärmen med karta och 1 km utan']],
   ['Beta 0.414', '15 nov', ['Mitt hem, kartan: mindre meny som inte döljer bilden. Vrid allt du byggt med två fingrar, eller exakt med knapparna −1°, −0,1°, +0,1°, +1° och 90°', 'Räta upp: husen från kartan visas som gula linjer, och ritningen vrids efter ditt hus med hörn mot hörn. Hörnen fastnar mot husets hörn när du drar']],
   ['Beta 0.413', '14 nov', ['Växtbiblioteket: Populärast fungerar igen och visade tidigare samma ordning som A–Ö. Nu räknas hur många som har växten i samlingen, som favorit eller på önskelistan']],
@@ -15445,7 +15498,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.415';
+const APP_VERSION = 'Beta 0.416';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
