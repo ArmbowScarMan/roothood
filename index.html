@@ -6731,7 +6731,8 @@ function renderPlan() {
 }
 function planMapToggle() { const P = PL(); if (P.mode === 'map') { const b = P.mapBack; P.mapBack = null; if (!b) return planMode('move'); P.mode = b.mode; P.sel = b.sel; P.pick = b.pick; P.multi = b.multi; P.msg = null; render(); } else { P.mapBack = { mode: P.mode, sel: P.sel, pick: P.pick, multi: P.multi }; P.mode = 'map'; P.msg = null; render(); } }
 function planMode(k) { if (k !== 'map') PL().mapBack = null; const P = PL(); P.multi = k === 'multi' ? [] : null; if (P.mode === 'ute' && (P.upoly || []).length >= 3) finishPoly(); P.wstart = null; P.mode = k; P.pick = null; P.draft = null; P.msg = null; P.upoly = []; P.roomDraw = false; if (k === 'ute') P.ukind = null; if (k === 'win') P.wkind = null; if (k === 'bed') bedModeStart(); if (k !== 'move' && !(k === 'room' && P.sel && P.sel.k === 'room')) P.sel = null; render(); }
-function zMin() { return mapOn() ? 0.35 : 3; }
+// Hur långt man kan zooma ut: med karta ungefär 8 km över skärmen, utan karta ungefär 1 km
+function zMin() { return mapOn() ? 0.05 : 0.4; }
 function planZoom(f) { const P = PL(), box = $('#planbox'), cx = box.clientWidth / 2, cy = box.clientHeight / 2, nz = Math.max(zMin(), Math.min(zMax(), P.z * f)); P.ox = cx - (cx - P.ox) * nz / P.z; P.oy = cy - (cy - P.oy) * nz / P.z; P.z = nz; renderPlan(); }
 function planWheel(e) { e.preventDefault(); planZoom(e.deltaY < 0 ? 1.1 : 0.9); }
 function rotNorth() { pushUndo(); S.hplan = S.hplan || {}; S.hplan.north = (Math.floor(northDeg() / 45 + 1e-6) * 45 + 45) % 360; planRooms().forEach(syncDirs); saveHomeSoon(); render(); toast(mapOn() ? 'Ritningen är vriden ' + northDeg() + '°. Finjustera under kartknappen.' : 'Norr pekar nu ' + ['uppåt', 'snett upp åt höger', 'åt höger', 'snett ner åt höger', 'nedåt', 'snett ner åt vänster', 'åt vänster', 'snett upp åt vänster'][Math.round(northDeg() / 45) % 8]); }
@@ -12815,6 +12816,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.415', '15 nov', ['Ritningen går att zooma ut mycket längre: ungefär 8 km över skärmen med karta och 1 km utan']],
   ['Beta 0.414', '15 nov', ['Mitt hem, kartan: mindre meny som inte döljer bilden. Vrid allt du byggt med två fingrar, eller exakt med knapparna −1°, −0,1°, +0,1°, +1° och 90°', 'Räta upp: husen från kartan visas som gula linjer, och ritningen vrids efter ditt hus med hörn mot hörn. Hörnen fastnar mot husets hörn när du drar']],
   ['Beta 0.413', '14 nov', ['Växtbiblioteket: Populärast fungerar igen och visade tidigare samma ordning som A–Ö. Nu räknas hur många som har växten i samlingen, som favorit eller på önskelistan']],
   ['Beta 0.412', '14 nov', ['Min adress: skriv in din adress under Inställningar eller när du skapar konto. Det är frivilligt och bara du kan se den. Väder, sol och frost följer adressen, och i Mitt hem placerar knappen Använd min adress huset på kartan', 'Adressökningen hittar husnummer och bokstav för ingången bättre, och postnumret avgör vilken del av gatan som visas först. Finns numret inte på kartan står det tydligt', 'Solsken genom fönster i ritningen har fått ett ordentligt utseende']],
@@ -15443,7 +15445,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.414';
+const APP_VERSION = 'Beta 0.415';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
