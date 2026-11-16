@@ -9250,7 +9250,7 @@ const fbUrls = v => String(v || '').split(/\s+/).filter(Boolean);
 function fbPhoto(inp) { const L = S.fbf.photos = S.fbf.photos || []; const files = [...(inp.files || [])]; if (!files.length) return; const room = FB_MAX_PH - L.length; files.slice(0, room).forEach(f => L.push({ file: f, url: URL.createObjectURL(f) })); if (files.length > room) toast('Max ' + FB_MAX_PH + ' bilder per rapport'); inp.value = ''; keepScroll(); }
 function fbPhotoDel(i) { (S.fbf.photos || []).splice(i, 1); keepScroll(); }
 async function fbSend() { const t = $('#fbt'), body = ((t && t.value) || '').trim(); if (body.length < 3) return toast('Beskriv kort vad som hände'); S.busy = true; render();
-  try { await api.sendFb({ kind: S.fbf.kind, body: body.slice(0, 4000), view: (S.fbView || '').slice(0, 200), version: APP_VERSION, ua: navigator.userAgent.slice(0, 300) }, (S.fbf.photos || []).map(x => x.file)); S.fbf = null; S.modal = null; toast('Tack! Din rapport är skickad 🙏'); }
+  try { await api.sendFb({ kind: S.fbf.kind, body: body.slice(0, 4000), view: (S.fbView || '').slice(0, 200), version: APP_VERSION, ua: navigator.userAgent.slice(0, 300), display_info: fbDisplayInfo() }, (S.fbf.photos || []).map(x => x.file)); S.fbf = null; S.modal = null; toast('Tack! Din rapport är skickad 🙏'); }
   catch (e) { toast(e.message === 'FB_NOT_READY' ? 'Rapporter är inte påslagna än. Kör SQL-filen 056-feedback i Supabase.' : errMsg(e)); } S.busy = false; render(); }
 function fbV() { const F = S.fbf || { kind: 'bug' };
   return `<div class="mh"><h2>Rapportera fel eller ge förslag</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
@@ -9262,7 +9262,7 @@ function fbV() { const F = S.fbf || { kind: 'bug' };
   <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="fbSend()">${S.busy ? 'Skickar…' : 'Skicka'}</button>`; }
 function modFbV(D, t) { const st = { new: 'Ny', seen: 'Sedd', fixed: 'Fixad', wontfix: 'Görs inte' }, kd = { bug: '🐞 Fel', idea: '💡 Förslag', other: 'Annat' };
   const sorted = [...(D || [])].sort(FB_SORTS[S.modFbSort || 'new'][1]);
-  return `<div class="pad">${sorted.length ? modStatusGroups(sorted, st).map(([k, L]) => `<details class="mgrp" ${k === 'fixed' || k === 'wontfix' ? '' : 'open'}><summary>${st[k] || 'Övrigt'} <em class="tabn">${L.length}</em></summary>${L.map(f => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">${kd[f.kind] || ''} · ${esc(f.author || '')} · ${ago(f.created_at)} · ${esc(f.version || '')}</small><p style="white-space:pre-wrap;margin:6px 0">${esc(f.body)}</p>${fbUrls(f.photo_url).length ? `<div class="fbshots">${fbUrls(f.photo_url).map((u, i) => `<img class="fbshot" src="${esc(u)}" alt="Bifogad skärmbild ${i + 1}" onclick="this.classList.toggle('big')" onerror="fbBroken(this)">`).join('')}</div>` : ''}<p style="margin:4px 0;font-size:14px"><b>Sida:</b> ${esc(f.view || 'okänd')}</p><small class="mut" style="display:block;word-break:break-all">${esc((f.ua || '').slice(0, 120))}</small>
+  return `<div class="pad">${sorted.length ? modStatusGroups(sorted, st).map(([k, L]) => `<details class="mgrp" ${k === 'fixed' || k === 'wontfix' ? '' : 'open'}><summary>${st[k] || 'Övrigt'} <em class="tabn">${L.length}</em></summary>${L.map(f => `<div class="card modc" style="padding:14px;margin-bottom:12px"><small class="mut">${kd[f.kind] || ''} · ${esc(f.author || '')} · ${ago(f.created_at)} · ${esc(f.version || '')}</small><p style="white-space:pre-wrap;margin:6px 0">${esc(f.body)}</p>${fbUrls(f.photo_url).length ? `<div class="fbshots">${fbUrls(f.photo_url).map((u, i) => `<img class="fbshot" src="${esc(u)}" alt="Bifogad skärmbild ${i + 1}" onclick="this.classList.toggle('big')" onerror="fbBroken(this)">`).join('')}</div>` : ''}<p style="margin:4px 0;font-size:14px"><b>Sida:</b> ${esc(f.view || 'okänd')}</p>${f.display_info ? `<p style="margin:4px 0;font-size:14px"><b>Inställningar:</b> ${esc(f.display_info)}</p>` : ''}<small class="mut" style="display:block;word-break:break-all">${esc((f.ua || '').slice(0, 120))}</small>
     ${frThreadV(f)}
     <div class="chips2 sm" style="margin-top:8px">${Object.entries(st).map(([k, n]) => `<button class="${f.status === k ? 'on' : ''}" onclick="modFbSet(${f.id},'${k}')">${n}</button>`).join('')}</div></div>`).join('')}</details>`).join('') : `<p class="mut">${t === 'err' ? 'Inga felrapporter än.' : t === 'nyckl' ? 'Inget har kommit in via felknappen än.' : 'Inga förslag eller annan feedback än.'}</p>`}</div>`; }
 function frList(id) { return (S.modFr || []).filter(r => r.feedback_id === id); }
@@ -15626,6 +15626,20 @@ function tidyInline() { if (!tidyOn) return; document.querySelectorAll('#app [st
   document.querySelectorAll('#app p.mut, #app p.l3, #app p.empty2').forEach(p => { if (/^(Hämtar|Laddar)/.test(p.textContent.trim())) { p.classList.add('skel'); p.setAttribute('aria-busy', 'true'); } }); }
 function uiIcons() { tidyInline(); const w = UI_ICON[document.documentElement.dataset.ui || ''], all = ['ph-light', 'ph-thin', 'ph-fill'];
   document.querySelectorAll('i.ph').forEach(i => { all.forEach(c => { if (c !== 'ph-' + w) i.classList.remove(c); }); if (w) i.classList.add('ph-' + w); }); }
+// Vilka visningsinställningar avsändaren hade när felrapporten skickades (så att vi ser vilken vy som ska justeras)
+function fbDisplayInfo() {
+  try {
+    const d = document.documentElement, ts = +store.get('textsize', 1) || 1, th = store.get('theme', 'dark'), pal = store.get('pal', ''), rf = parseFloat(getComputedStyle(d).fontSize) || 16;
+    return [
+      'Vy: ' + (d.dataset.simple ? 'Enkel' : 'Vanlig'),
+      'Textstorlek: ' + Math.round(ts * 100) + ' %',
+      'Tema: ' + ({ dark: 'mörkt', light: 'ljust', system: 'enhetens' }[th] || th),
+      pal ? 'Palett: ' + pal : '',
+      rf !== 16 ? 'Webbläsarens textstorlek: ' + Math.round(rf / 16 * 100) + ' %' : '',
+      'Skärm: ' + innerWidth + '×' + innerHeight + ' (' + (devicePixelRatio || 1) + 'x)'
+    ].filter(Boolean).join(' · ').slice(0, 300);
+  } catch (e) { return null; }
+}
 function applyPrefs() {
   const th = store.get('theme', 'dark'), ts = store.get('textsize', 1);
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
