@@ -4973,8 +4973,8 @@ const SUNF3 = { Sommar: 1.15, Vår: 1.0, Höst: 0.8, Vinter: 0.7 };
 const HEMI3 = 0.85, SUN3 = 2.0, TONE3 = 1.0;
 function mixHex(a, b, t) { const p = h => [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16)), A = p(a), B = p(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
 function wxKind3d() { const c = S.wx && S.wx.cur; if (!c || S.wx.none) return null; const k = c.weather_code, frozen = c.temperature_2m <= 0;
-  if ((k >= 71 && k <= 77) || k === 85 || k === 86 || (frozen && ((k >= 51 && k <= 67) || (k >= 80 && k <= 82)))) return 'snow';
-  if ((k >= 51 && k <= 67) || (k >= 80 && k <= 82) || k >= 95) return 'rain'; if (k === 45 || k === 48) return 'fog'; if (k >= 2) return 'cloud'; return 'clear'; }
+  if ((k >= 71 && k <= 77) || k === 85 || k === 86 || (frozen && ((k >= 51 && k <= 69) || (k >= 80 && k <= 82)))) return 'snow';
+  if ((k >= 51 && k <= 69) || (k >= 80 && k <= 82) || k >= 95) return 'rain'; if (k === 45 || k === 48) return 'fog'; if (k >= 2) return 'cloud'; return 'clear'; }
 // Snö på marken i 3D: för dagens månad följer den det riktiga vädret på orten (snödjup, eller snöfall senaste veckan och minusgrader).
 // För andra månader, eller om vädret saknas, gäller årstiden.
 function now3d() { const m = new Date().getMonth() + 1; return mo3() === m && (!S.sunD || S.sunD.slice(0, 10) === new Date().toLocaleDateString('sv-SE')); }
@@ -5673,10 +5673,9 @@ function gRel(x, y) { if (!hasGround()) return 0; const r = houseRefXY(); return
 // Alla markpunkter: dina egna (väger tungt) och de från nätet (väger lätt). Höjden är meter relativt huset.
 function groundPts() { const out = elevPts().map(p => ({ x: p.x, y: p.y, z: p.h || 0, w: 25 })); const A = S.hplan && S.hplan.elevAuto; if (A && A.pts) { const R = houseRefXY(); A.pts.forEach(([dx, dy, z]) => out.push({ x: R.x + dx, y: R.y + dy, z, w: 1 })); } return out; }
 function hasGround() { return groundPts().length > 0; }
-// Höjder för en lista punkter: först OpenTopoData (EU-DEM 25 m), annars Open-Meteo (Copernicus 90 m). Högst 100 punkter per anrop.
+// Höjder för en lista punkter från OpenTopoData (EU-DEM 25 m). Högst 100 punkter per anrop.
 async function elevFetchPts(pts) {
   try { const r = await fetch('https://api.opentopodata.org/v1/eudem25m?locations=' + pts.map(p => p.lat.toFixed(6) + ',' + p.lon.toFixed(6)).join('|')), j = await r.json(); if (j.status === 'OK' && j.results && j.results.length === pts.length) return { e: j.results.map(x => x.elevation), src: 'EU-DEM 25 m' }; } catch (e) {}
-  try { const r = await fetch('https://api.open-meteo.com/v1/elevation?latitude=' + pts.map(p => p.lat.toFixed(6)).join(',') + '&longitude=' + pts.map(p => p.lon.toFixed(6)).join(',')), j = await r.json(); if (Array.isArray(j.elevation) && j.elevation.length === pts.length) return { e: j.elevation, src: 'Copernicus 90 m' }; } catch (e) {}
   return null;
 }
 // Hämtar markhöjd i två rutnät: tätt (12,5 m) närmast huset och glest (75 m) ut till ±300 m. Kräver att huset är utlagt på kartan.
@@ -8228,8 +8227,11 @@ function home() {
   ${S.user ? `<div class="hcfgrow"><button class="hcfgb" onclick="openHomeCfg()">${ic(PEN, 'currentColor', 15)} Anpassa startsidan</button></div>` : ''}</div>`;
 }
 
-// ===== Väder (Open-Meteo, gratis och utan nyckel) =====
-const WX = { 0: ['Klart', '☀️'], 1: ['Mest klart', '🌤️'], 2: ['Halvklart', '⛅'], 3: ['Mulet', '☁️'], 45: ['Dimma', '🌫️'], 48: ['Rimfrost och dimma', '🌫️'], 51: ['Lätt duggregn', '🌦️'], 53: ['Duggregn', '🌦️'], 55: ['Kraftigt duggregn', '🌧️'], 56: ['Underkylt duggregn', '🧊'], 57: ['Underkylt duggregn', '🧊'], 61: ['Lätt regn', '🌦️'], 63: ['Regn', '🌧️'], 65: ['Kraftigt regn', '🌧️'], 66: ['Underkylt regn', '🧊'], 67: ['Underkylt regn', '🧊'], 71: ['Lätt snöfall', '🌨️'], 73: ['Snöfall', '🌨️'], 75: ['Kraftigt snöfall', '❄️'], 77: ['Snökorn', '🌨️'], 80: ['Regnskurar', '🌦️'], 81: ['Regnskurar', '🌧️'], 82: ['Kraftiga skurar', '⛈️'], 85: ['Snöbyar', '🌨️'], 86: ['Kraftiga snöbyar', '❄️'], 95: ['Åska', '⛈️'], 96: ['Åska med hagel', '⛈️'], 99: ['Åska med hagel', '⛈️'] };
+// ===== Väder (SMHI:s öppna data, CC BY 4.0, via vår serverfunktion weather som cachar svaren) =====
+// Ortssökning via Photon (OpenStreetMap-data), samma tjänst som adressökningen. Bara i Sverige om se är sant.
+async function geoFind(q, se) { const r = await fetch('https://photon.komoot.io/api/?limit=1&layer=city&layer=locality&layer=district' + (se ? '&bbox=10.5,55,24.5,69.2' : '') + '&q=' + encodeURIComponent(q)); if (!r.ok) throw new Error('geo ' + r.status); const j = await r.json(), f = j.features && j.features[0]; return { results: f ? [{ latitude: f.geometry.coordinates[1], longitude: f.geometry.coordinates[0], name: f.properties.name || q }] : [] }; }
+async function wxFn(q) { const r = await fetch(SUPABASE_URL + '/functions/v1/weather?' + q, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY } }); if (!r.ok) throw new Error('wx ' + r.status); return r.json(); }
+const WX = { 0: ['Klart', '☀️'], 1: ['Mest klart', '🌤️'], 2: ['Halvklart', '⛅'], 3: ['Mulet', '☁️'], 45: ['Dimma', '🌫️'], 48: ['Rimfrost och dimma', '🌫️'], 51: ['Lätt duggregn', '🌦️'], 53: ['Duggregn', '🌦️'], 55: ['Kraftigt duggregn', '🌧️'], 56: ['Underkylt duggregn', '🧊'], 57: ['Underkylt duggregn', '🧊'], 61: ['Lätt regn', '🌦️'], 63: ['Regn', '🌧️'], 65: ['Kraftigt regn', '🌧️'], 66: ['Underkylt regn', '🧊'], 67: ['Underkylt regn', '🧊'], 68: ['Lätt snöblandat regn', '🌨️'], 69: ['Snöblandat regn', '🌨️'], 71: ['Lätt snöfall', '🌨️'], 73: ['Snöfall', '🌨️'], 75: ['Kraftigt snöfall', '❄️'], 77: ['Snökorn', '🌨️'], 80: ['Regnskurar', '🌦️'], 81: ['Regnskurar', '🌧️'], 82: ['Kraftiga skurar', '⛈️'], 85: ['Snöbyar', '🌨️'], 86: ['Kraftiga snöbyar', '❄️'], 95: ['Åska', '⛈️'], 96: ['Åska med hagel', '⛈️'], 99: ['Åska med hagel', '⛈️'] };
 const WXI = { '☀': 'ph-sun', '🌤': 'ph-cloud-sun', '⛅': 'ph-cloud-sun', '☁': 'ph-cloud', '🌫': 'ph-cloud-fog', '🌦': 'ph-cloud-rain', '🌧': 'ph-cloud-rain', '🌨': 'ph-cloud-snow', '🧊': 'ph-snowflake', '❄': 'ph-snowflake', '🥶': 'ph-snowflake', '🌡': 'ph-thermometer', '💨': 'ph-wind', '💧': 'ph-drop', '🔥': 'ph-fire', '⛈': 'ph-cloud-lightning' };
 const wxIco = (e, s) => ic(WXI[String(e || '').replace(/\uFE0F/g, '')] || 'ph-warning', 'currentColor', s || 20);
 const DAYS = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
@@ -8243,26 +8245,25 @@ function wxPlace() {
 }
 async function loadWeather(force) {
   if (S.wxBusy) { S.wxAgain = true; return; } if (!force && S.wxFailAt && Date.now() - S.wxFailAt < 10 * 60e3) return; const c = store.get('wx', null), pl = wxPlace();
-  if (!force && c && c.v === 2 && c.d && c.d.sunshine_duration && c.cur && c.cur.cloud_cover != null && Date.now() - c.t < 30 * 60e3 && pl && Math.abs(c.lat - pl.lat) < 0.01 && Math.abs(c.lon - pl.lon) < 0.01) { S.wx = c; loadSmhi(pl).then(() => { if (!S.tool && !S.sel && S.tab === 'home') render(); }); if (T3 && T3.scene) env3d(); if (!S.tool && !S.sel && S.tab === 'home') render(); return; }
+  if (!force && c && c.v === 3 && c.d && c.d.sunshine_duration && c.cur && c.cur.cloud_cover != null && Date.now() - c.t < 30 * 60e3 && pl && Math.abs(c.lat - pl.lat) < 0.01 && Math.abs(c.lon - pl.lon) < 0.01) { S.wx = c; loadSmhi(pl).then(() => { if (!S.tool && !S.sel && S.tab === 'home') render(); }); if (T3 && T3.scene) env3d(); if (!S.tool && !S.sel && S.tab === 'home') render(); return; }
   S.wxBusy = true;
   try {
     let place = pl;
     if (!place && (S.city || '').trim()) {
-      const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=sv&countryCode=SE&name=' + encodeURIComponent(S.city.trim())); const j = await r.json();
+      const j = await geoFind(S.city.trim(), true);
       if (j.results && j.results[0]) { place = { q: S.city.trim().toLowerCase(), lat: j.results[0].latitude, lon: j.results[0].longitude, name: j.results[0].name }; store.set('wxGeo', place); }
     }
     if (!place) { S.wx = { none: true }; return; }
-    const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,cloud_cover&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,wind_gusts_10m_max,uv_index_max,sunshine_duration&wind_speed_unit=ms&timezone=Europe%2FStockholm&forecast_days=5`;
-    const r = await fetch(u); if (!r.ok) throw new Error('wx ' + r.status); const j = await r.json();
-    S.wx = { v: 2, t: Date.now(), lat: place.lat, lon: place.lon, name: place.name, cur: j.current, d: j.daily };
+    const j = await wxFn(`kind=fc&lat=${(+place.lat).toFixed(3)}&lon=${(+place.lon).toFixed(3)}`); if (!j.current || !j.daily) throw new Error('wx tomt');
+    S.wx = { v: 3, src: 'SMHI', t: Date.now(), lat: place.lat, lon: place.lon, name: place.name, cur: j.current, d: j.daily };
     await loadSmhi(place);
     // Regn och snö de senaste 7 dagarna och snödjupet nu, för att räkna ut om utomhusväxterna behöver vattnas
-    try { const r2 = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&daily=precipitation_sum,rain_sum,snowfall_sum&current=snow_depth,soil_temperature_6cm&timezone=Europe%2FStockholm&past_days=7&forecast_days=1`); if (r2.ok) { const j2 = await r2.json(), D2 = j2.daily || {}, n = (D2.time || []).length - 1, sum = a => Math.round((a || []).slice(0, n).reduce((x, v) => x + (v || 0), 0) * 10) / 10; S.wx.past = { prec: sum(D2.precipitation_sum), rain: sum(D2.rain_sum), snow: sum(D2.snowfall_sum), depth: j2.current && j2.current.snow_depth != null ? Math.round(j2.current.snow_depth * 100) : null, soil: j2.current && j2.current.soil_temperature_6cm != null ? Math.round(j2.current.soil_temperature_6cm * 10) / 10 : null }; } } catch (e) { }
+    try { const o = await wxFn(`kind=obs&lat=${(+place.lat).toFixed(3)}&lon=${(+place.lon).toFixed(3)}`); if (o.past) S.wx.past = o.past; if (o.station) S.wx.st = o.station; } catch (e) { }
     store.set('wx', S.wx); S.wxFailAt = 0; if (T3 && T3.scene) env3d();
   } catch (e) { S.wxFailAt = Date.now(); S.wx = Object.assign({}, store.get('wx', {}), { err: 1 }); }
   finally { S.wxBusy = false; if (S.wxAgain) { S.wxAgain = false; return loadWeather(true); } if (!S.tool && !S.sel && S.tab === 'home') render(); }
 }
-// SMHI:s officiella varningar (öppna data, CC BY 4.0, ingen nyckel). Bara för platser i Sverige, utomlands används enbart Open-Meteo.
+// SMHI:s officiella varningar (öppna data, CC BY 4.0, ingen nyckel). Bara för platser i Sverige.
 const SMHI_LVL = { RED: ['Röd varning', 0], ORANGE: ['Orange varning', 1], YELLOW: ['Gul varning', 2], MESSAGE: ['Meddelande', 3] };
 const smhiInSE = (lat, lon) => lat >= 55 && lat <= 69.2 && lon >= 10.5 && lon <= 24.5;
 function smhiRing(x, y, ring) { let ins = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) ins = !ins; } return ins; }
@@ -8397,7 +8398,7 @@ function wxExtraV(w) {
   const bits = [], s = w.past && w.past.soil;
   if (s != null) bits.push(`<span>🌱 Jord på 6 cm: <b>${String(s).replace('.', ',')} °C</b></span>`);
   const fr = frostV(w) + sunStatV(w) + pollenV(w) + inatNearV(w);
-  return bits.length || fr ? `<div class="wxx">${bits.join('')}${bits.length ? '<small>Jordtemperatur: Open-Meteo (modell)</small>' : ''}${fr}</div>` : '';
+  return bits.length || fr ? `<div class="wxx">${bits.join('')}${fr}</div>` : '';
 }
 function weatherV(sz) {
   sz = sz || 'm';
@@ -8420,7 +8421,7 @@ function weatherV(sz) {
     ${showDays ? wxRainV(w) : ''}
     ${showDays ? wxExtraV(w) : ''}
     ${warn.length ? `<button class="wxrow" onclick="S.wxOpen=!S.wxOpen;render()" aria-expanded="${!!S.wxOpen}"><span>${wxIco(warn[0][1], 14)} ${warn.length} ${warn.length === 1 ? 'varning' : 'varningar'}</span><span>${S.wxOpen ? 'Dölj' : 'Visa'}</span></button>${S.wxOpen ? `<div class="wxwarn">${warn.map(x => `<div class="wxw w-${x[0]}"><span class="wwi">${x[1]}</span><div><b>${x[2]}</b><span>${x[3]}</span></div></div>`).join('')}</div>` : ''}` : `<p class="wxok">Inga vädervarningar just nu.</p>`}
-    ${S.wxAll || S.wxOpen || sz === 'l' ? `<div class="wxfoot"><span class="wxsrc">${S.wxAll || S.wxOpen ? `Väder från Open-Meteo · uppdaterat ${new Date(w.t).toLocaleTimeString(LOC(), { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}` : esc(w.name || S.city || '')}</span></div>` : ''}</div>`;
+    ${S.wxAll || S.wxOpen || sz === 'l' ? `<div class="wxfoot"><span class="wxsrc">${S.wxAll || S.wxOpen ? `Väderdata: SMHI (CC BY 4.0)${w.st ? ', observationer från ' + esc(w.st.name) : ''} · uppdaterat ${new Date(w.t).toLocaleTimeString(LOC(), { hour: '2-digit', minute: '2-digit' })}${w.err ? ' (kunde inte uppdatera)' : ''}` : esc(w.name || S.city || '')}</span></div>` : ''}</div>`;
 }
 function openDb(focus) { stopLight(); S.sel = null; S.modal = null; S.tool = 'db'; render(); $('#main').scrollTop = 0; if (!S.popAt || Date.now() - S.popAt > 10 * 60e3) loadPop(); if (focus) setTimeout(() => { const i = $('.search input'); if (i) i.focus(); }, 50); }
 function dbV() {
@@ -12549,7 +12550,7 @@ function toxSet() {
 function bedSetH(v) { v = parseFloat(String(v).replace(',', '.')); if (!(v > 0)) return; v = Math.max(0.05, Math.min(2, Math.round(v * 100) / 100)); const P = PL(), a = curBed(); if (!a || P.bnew) { P.bdim = Object.assign({ L: 3, D: 1.2, shape: 'rect' }, P.bdim, { H: v }); render(); return; } if (!a.br) return; pushUndo(); a.br.H = v; saveHomeSoon(); render(); }
 function bedSoilTxt(L, D, H) { const liters = Math.round(L * D * H * 1000); return 'Kräver ' + liters + ' liter planteringsjord (' + Math.ceil(liters / 40) + ' säckar à 40 liter)'; }
 
-// ===== Regnvatten: hur mycket vatten taket samlar. Taket mäts på en satellitkarta, regnet hämtas från Open-Meteo. =====
+// ===== Regnvatten: hur mycket vatten taket samlar. Taket mäts på en satellitkarta, regnet hämtas från SMHI. =====
 // 1 mm regn på 1 m² ger 1 liter. Ytan räknas sett uppifrån, så takets lutning spelar ingen roll.
 const RAIN_ROOF = [['std', 'Vanligt tak (0,8)', 0.8], ['plat', 'Plåt', 0.9], ['tegel', 'Tegel eller betong', 0.85], ['papp', 'Papp', 0.85], ['gront', 'Grönt tak', 0.4]];
 const RAIN_SHARE = [[1, 'Hela taket'], [0.5, 'Halva'], [0.25, 'En fjärdedel']];
@@ -12608,18 +12609,15 @@ async function rainFind(q) { q = (q || '').trim(); if (!q) return;
   try { const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=se&accept-language=sv&q=' + encodeURIComponent(q)), a = await r.json(); if (!a.length) return toast('Hittade inte adressen. Prova med gata, nummer och ort.'); rainGo(+a[0].lat, +a[0].lon); }
   catch (e) { toast('Kunde inte söka just nu. Kontrollera internet.'); } }
 function rainHere() { if (!navigator.geolocation) return toast('Mobilen kan inte ge din position'); navigator.geolocation.getCurrentPosition(p => rainGo(p.coords.latitude, p.coords.longitude), () => toast('Fick inte din position. Sök på adressen i stället.'), { enableHighAccuracy: true, timeout: 15000 }); }
-// Regn: senaste 31 dagarna och 7 dagars prognos från Open-Meteo, och senaste året från Open-Meteos arkiv. Sparas i telefonen i tre timmar.
+// Regn: uppmätt nederbörd per dygn senaste året från närmaste SMHI-station och 7 dagars prognos från SMHI. Sparas i telefonen i tre timmar.
 async function rainLoad(force) {
   const R = rainS(), lat = Math.round(R.c.lat * 100) / 100, lon = Math.round(R.c.lon * 100) / 100, key = lat + ',' + lon, now = Date.now(), cached = store.get('rainWx', null);
   if (!force && cached && cached.key === key && now - cached.t < 3 * 3600e3) { R.wx = cached; return S.tool === 'rain' && keepMain(); }
   if (R.busy) return; R.busy = true; R.wxErr = false;
   try {
-    const iso = d => d.toISOString().slice(0, 10), y0 = iso(new Date(now - 366 * 864e5)), y1 = iso(new Date(now - 6 * 864e5));
-    const [f, a] = await Promise.all([
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=precipitation_sum&past_days=31&forecast_days=7&timezone=auto`).then(r => r.json()),
-      fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${y0}&end_date=${y1}&daily=precipitation_sum&timezone=auto`).then(r => r.json()).catch(() => null)]);
+    const q = `lat=${lat}&lon=${lon}`, [f, a] = await Promise.all([wxFn('kind=fc&' + q), wxFn('kind=obs&' + q).catch(() => null)]);
     if (!f || !f.daily || !f.daily.time) throw new Error('ingen data');
-    R.wx = { key, t: now, d: { time: f.daily.time, p: f.daily.precipitation_sum }, y: a && a.daily && a.daily.time ? { time: a.daily.time, p: a.daily.precipitation_sum } : null }; store.set('rainWx', R.wx);
+    R.wx = { key, t: now, d: { time: f.daily.time, p: f.daily.precipitation_sum }, y: a && a.daily && a.daily.time ? { time: a.daily.time, p: a.daily.precipitation_sum } : null, st: a && a.station }; store.set('rainWx', R.wx);
   } catch (e) { R.wxErr = true; }
   R.busy = false; if (S.tool === 'rain') keepMain();
 }
@@ -12669,7 +12667,7 @@ function rainV() {
       <div style="display:flex;align-items:flex-end;gap:2px;height:130px;margin-top:10px" role="img" aria-label="Liter regnvatten per månad">${s.months.map(([m, mm]) => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px" title="${RAIN_MON[+m.slice(5) - 1]} ${m.slice(0, 4)}: ${fmtL(eff * mm)} (${num(mm)} mm)" onclick="toast('${RAIN_MON[+m.slice(5) - 1]} ${m.slice(0, 4)}: ${fmtL(eff * mm)} (${num(mm)} mm regn)')"><div style="width:100%;max-width:22px;background:var(--pri);border-radius:4px 4px 0 0;height:${Math.max(2, mm / mx * 100).toFixed(1)}%"></div><small class="mut" style="font-size:10.5px">${RAIN_MON[+m.slice(5) - 1]}</small></div>`).join('')}</div>
       <small class="mut" style="display:block;margin-top:8px">Mest i ${RAIN_MON[+top[0].slice(5) - 1]} ${top[0].slice(0, 4)}: ${fmtL(eff * top[1])}. Tryck på en stapel för siffran. Vintertid kommer mycket som snö, som rinner av först när den smälter.</small>
       <table class="sr"><caption>Regnvatten per månad</caption>${s.months.map(([m, mm]) => `<tr><th>${RAIN_MON[+m.slice(5) - 1]} ${m.slice(0, 4)}</th><td>${fmtL(eff * mm)}</td></tr>`).join('')}</table></div>` : ''}` : `<p class="mut">Mät taket på kartan eller skriv in ytan, så räknas mängden ut.</p>`}
-    <p class="mut" style="font-size:12.5px;margin-top:12px">Regnet gäller platsen mitt på kartan och kommer från Open-Meteo. Det är en uppskattning, och verkliga mängder blir lite lägre om rännor och tunnor svämmar över.</p>
+    <p class="mut" style="font-size:12.5px;margin-top:12px">Regnet gäller platsen mitt på kartan och kommer från SMHI (uppmätt vid närmaste station och prognos). Det är en uppskattning, och verkliga mängder blir lite lägre om rännor och tunnor svämmar över.</p>
   </div>`;
 }
 
@@ -13820,7 +13818,7 @@ function sunPSet(k, v) { S[k] = v; if (k === 'sunD' || k === 'sunT') S.sunPin = 
 function sunHere() { if (!navigator.geolocation) return toast('Mobilen kan inte ge din position'); toast('Hämtar din position…'); navigator.geolocation.getCurrentPosition(p => { store.set('sunLoc', { lat: +p.coords.latitude.toFixed(4), lon: +p.coords.longitude.toFixed(4), name: 'Min position' }); keepMain(); }, () => toast('Fick inte din position. Sök på orten i stället.'), { enableHighAccuracy: false, timeout: 12000, maximumAge: 6e5 }); }
 async function sunFind() {
   const q = ((document.getElementById('sunq') || {}).value || '').trim(); if (q.length < 2) return toast('Skriv en ort');
-  try { const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=sv&name=' + encodeURIComponent(q)); const j = await r.json(); const x = j.results && j.results[0]; if (!x) return toast('Hittade inte ' + q);
+  try { const j = await geoFind(q); const x = j.results && j.results[0]; if (!x) return toast('Hittade inte ' + q);
     store.set('sunLoc', { lat: x.latitude, lon: x.longitude, name: x.name }); S.sunPlace = false; keepMain(); } catch (e) { toast('Kunde inte söka just nu. Försök med Min position.'); }
 }
 function sunObsAdd() {
@@ -14438,16 +14436,14 @@ function sfClose() { if (SF && SF.el) SF.el.remove(); SF = null; }
 // Skuggfaktorer från molnighet (%): mulet gör skuggorna ljusare och mjukare, helt mulet nästan borta. null = okänt väder, då som vid sol.
 function wxFactor(c) { if (c == null) return { k: 1, soft: 1 }; const f = Math.max(0, Math.min(1, c / 100)); return { k: 1 - 0.9 * Math.pow(f, 1.3), soft: 1 + 2.2 * f }; }
 // Molnighet per timme (24 värden) för en plats och ett datum. Prognos från idag, arkiv för tidigare dagar. null om det inte går.
-async function wxHourly(lat, lon, ds) { try { const past = ds < new Date().toISOString().slice(0, 10), r = await fetch(`${past ? 'https://archive-api.open-meteo.com/v1/archive' : 'https://api.open-meteo.com/v1/forecast'}?latitude=${(+lat).toFixed(3)}&longitude=${(+lon).toFixed(3)}&hourly=cloud_cover&start_date=${ds}&end_date=${ds}&timezone=auto`); if (!r.ok) return null; const j = await r.json(), a = j && j.hourly && j.hourly.cloud_cover; return Array.isArray(a) && a.length >= 24 && a.some(v => v != null) ? a : null; } catch (e) { return null; } }
+async function wxHourly(lat, lon, ds) { try { const j = await wxFn(`kind=cloud&lat=${(+lat).toFixed(3)}&lon=${(+lon).toFixed(3)}&ds=${ds}`), a = j && j.cloud_cover; return Array.isArray(a) && a.length >= 24 && a.some(v => v != null) ? a : null; } catch (e) { return null; } }
 function wxAt(a, tMin) { if (!a) return null; const h = Math.max(0, Math.min(23.999, tMin / 60)), i = Math.floor(h), f = h - i, x = a[i], y = a[Math.min(23, i + 1)]; if (x == null && y == null) return null; if (x == null) return y; if (y == null) return x; return x + (y - x) * f; }
-// Molnighet (%) per timme för fotots plats och datum, från Open-Meteo. Prognos för kommande dagar, arkiv för tidigare.
+// Molnighet (%) per timme för fotots plats och datum, från SMHI:s prognos. Tidigare datum saknar molndata.
 async function sfLoadWx() {
   if (!SF) return; const key = SF.ds + '|' + SF.lat.toFixed(2) + '|' + SF.lon.toFixed(2); if (SF.wxKey === key) return; SF.wxKey = key; SF.wx = null; sfWxTxt();
-  const past = SF.ds < new Date().toISOString().slice(0, 10), base = past ? 'https://archive-api.open-meteo.com/v1/archive' : 'https://api.open-meteo.com/v1/forecast';
   try {
-    const r = await fetch(`${base}?latitude=${SF.lat.toFixed(3)}&longitude=${SF.lon.toFixed(3)}&hourly=cloud_cover&start_date=${SF.ds}&end_date=${SF.ds}&timezone=auto`);
-    if (!r.ok) throw new Error(r.status); const j = await r.json(), a = j && j.hourly && j.hourly.cloud_cover;
-    if (!SF || SF.wxKey !== key) return; SF.wx = Array.isArray(a) && a.length >= 24 && a.some(v => v != null) ? a : null;
+    const a = await wxHourly(SF.lat, SF.lon, SF.ds);
+    if (!SF || SF.wxKey !== key) return; SF.wx = a;
   } catch (e) { if (SF && SF.wxKey === key) SF.wx = null; }
   if (!SF) return; sfWxTxt(); sfRender();
 }
