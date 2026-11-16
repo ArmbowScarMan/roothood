@@ -10888,6 +10888,7 @@ function detail() {
   ${tips.length ? `<div class="sec"><h2>Skötseltips</h2></div><div class="tips">${tips.map(t => `<div class="tipr"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>${t[0]}</b><span>${esc(t[1])}</span></div></div>`).join('')}</div>` : ''}
   ${wikiV(p)}
   ${obsV(p)}
+  ${sosNearV(p)}
   ${originV(p)}
   ${similar.length ? `<div class="sec"><h2>Liknande växter</h2></div><div class="similar">${similar.map(s => `<button onclick="openPlant(${s.id})">${plantPh(s)}<span>${esc(s.swedish_name)}</span></button>`).join('')}</div>` : ''}
   ${my ? `<div class="pad" style="padding-top:14px"><button class="setrow" onclick="openDoc(${my.id})"><span class="tic doc">${ic(DOCI, 'currentColor', 20)}</span><span class="grow"><b>Något som inte ser friskt ut?</b><span>Fråga Växtdoktorn om skador och ohyra</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>` : ''}
@@ -11208,6 +11209,26 @@ function nearObsV(k) {
   }
   const n = NEAR[key]; if (!n) return '';
   return `<p class="wikitxt" style="margin:6px 0 4px">📍 Rapporterad <b>${String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0')}</b> gånger inom 5 mil från ${esc(w.name || 'din plats')} ${y - 5}–${y}.</p>`;
+}
+// Fynd nära dig: artobservationer inom 1 mil från hemmet senaste 10 åren, från SLU Artdatabanken (Artportalen m.fl.) via serverfunktionen sos-near.
+const SOSN = {};
+function sosPlace() { const h = soilPlace(); if (h) return { ...h, home: true }; const w = S.wx; return w && w.lat != null && !w.none ? { lat: +w.lat, lon: +w.lon, name: w.name } : null; }
+function sosNearV(p) {
+  const k = wikiKey(p), pl = sosPlace(); if (!k || !pl || DEMO || !navigator.onLine) return '';
+  const key = k + '|' + pl.lat.toFixed(2) + '|' + pl.lon.toFixed(2);
+  if (!(key in SOSN)) {
+    SOSN[key] = undefined;
+    fetch(SUPABASE_URL + '/functions/v1/sos-near?km=10&name=' + encodeURIComponent(k) + '&lat=' + pl.lat.toFixed(3) + '&lon=' + pl.lon.toFixed(3), { headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY } })
+      .then(r => r.ok ? r.json() : null).then(d => { SOSN[key] = d && d.taxonId ? d : null; const cur = S.sel ? plantById(S.sel) : null; if (SOSN[key] && cur && wikiKey(cur) === k) keepMain(); }).catch(() => { SOSN[key] = null; });
+    return '';
+  }
+  const d = SOSN[key]; if (!d || d.count == null) return '';
+  if (!d.count && ['Krukväxt', 'Kaktus', 'Orkidé', 'Akvarieväxt'].includes(p.category)) return '';
+  const where = pl.home ? 'ditt hem' : esc(pl.name || 'din ort'), nf = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+  const L = d.latest, dt = L && L.date ? new Date(L.date + 'T12:00').toLocaleDateString(LOC(), { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  const body = d.count ? `Rapporterad <b>${nf(d.count)}</b> ${d.count === 1 ? 'gång' : 'gånger'} inom 1 mil från ${where} de senaste ${d.years} åren.${L && dt ? ` Senast ${dt}${L.place ? ', ' + esc(L.place) : ''}${L.km != null ? ` (${String(L.km).replace('.', ',')} km bort)` : ''}.` : ''}`
+    : `Inga fynd rapporterade inom 1 mil från ${where} de senaste ${d.years} åren.`;
+  return `<div class="sec"><h2>Fynd nära dig</h2></div><div class="pad" style="padding-top:0"><p class="wikitxt" style="margin:0 0 4px">🔎 ${body}</p><small class="mut">Källa: SLU Artdatabanken (Artportalen m.fl.). Både vilda och odlade växter kan ingå.</small></div>`;
 }
 function obsV(p) {
   const k = wikiKey(p); if (!k) return '';
