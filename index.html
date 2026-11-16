@@ -8394,11 +8394,30 @@ function sunStatV(w) {
   const m = new Date().getMonth(), v = Math.round(+b.f.months[m]), mx = b.f.months.reduce((a, x, i) => +x > +b.f.months[a] ? i : a, 0);
   return `<span>☀️ Soltimmar i ${MON_FULL[m]}: brukar vara <b>cirka ${v} h</b>${mx !== m ? ` (mest i ${MON_FULL[mx]}, cirka ${Math.round(+b.f.months[mx])} h)` : ''}</span><small>Medelvärde ${b.f.y_from}–${b.f.y_to}, uppmätt vid SMHI:s station ${esc(String(b.f.name).replace(/ Sol$/, ''))}, ${Math.round(b.d)} km bort. Solen på just din plats kan skilja. Källa: SMHI.</small>`;
 }
+// Jordart vid hemmet från SGU:s jordartskarta 1:25 000–1:100 000 (öppna data, CC0). Bara när hemmets exakta plats är känd (adress eller karta).
+const SOILTIP = [[/morän/i, 'Blandad jord med sten. Oftast bra för det mesta i trädgården.'], [/lera|gyttja/i, 'Tung jord som håller vatten och näring. Lucka gärna med kompost.'], [/sand|isälv|grus|svallsediment/i, 'Lätt jord som dränerar snabbt och torkar ut. Tillför kompost och vattna oftare.'], [/silt|mo|mjäla/i, 'Finkornig jord som lätt slammar igen. Täck jorden och tillför organiskt material.'], [/torv|kärr|mosse/i, 'Organisk, ofta sur och blöt jord. Passar rhododendron och blåbär.'], [/berg|häll/i, 'Tunt jordlager över berg. Odla i upphöjda bäddar.'], [/fyllning/i, 'Utfylld mark. Jorden kan variera mycket, gör gärna ett eget jordprov.']];
+function soilPlace() { if (S.addr && S.addr.lat != null) return { lat: +S.addr.lat, lon: +S.addr.lon }; const M = S.hplan && S.hplan.map; return M && M.lat != null ? { lat: +M.lat, lon: +M.lon } : null; }
+async function loadSoil() {
+  const p = soilPlace(); if (!p || p.lat < 55 || p.lat > 69.2 || p.lon < 10.5 || p.lon > 24.5) return;
+  const key = p.lat.toFixed(4) + ',' + p.lon.toFixed(4), c = store.get('soilSgu', null); if (c && c.key === key && Date.now() - c.t < 30 * 864e5) return;
+  if (S.soilBusy === key) return; S.soilBusy = key;
+  try {
+    const d = 0.0005, r = await fetch('https://maps3.sgu.se/geoserver/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&QUERY_LAYERS=jord:SE.GOV.SGU.JORD.GRUNDLAGER.25K&LAYERS=jord:SE.GOV.SGU.JORD.GRUNDLAGER.25K&STYLES=&INFO_FORMAT=application/json&FEATURE_COUNT=1&X=50&Y=50&SRS=EPSG:4326&WIDTH=101&HEIGHT=101&BBOX=' + [p.lon - d, p.lat - d, p.lon + d, p.lat + d].map(v => v.toFixed(6)).join(','));
+    if (!r.ok) throw new Error('sgu ' + r.status); const j = await r.json(), f = j.features && j.features[0], name = f && f.properties && f.properties.Jordart;
+    store.set('soilSgu', { key, t: Date.now(), name: name || null }); if (S.tab === 'home' && !S.tool && !S.sel) render();
+  } catch (e) { } finally { S.soilBusy = null; }
+}
+function soilV() {
+  const p = soilPlace(), c = store.get('soilSgu', null); if (!p) return ''; if (!c || c.key !== p.lat.toFixed(4) + ',' + p.lon.toFixed(4)) { loadSoil(); return ''; }
+  if (!c.name) return ''; const tip = (SOILTIP.find(x => x[0].test(c.name)) || [0, ''])[1];
+  return `<span>🪨 Jordart vid hemmet: <b>${esc(c.name)}</b>${tip ? ` · ${tip}` : ''}</span>`;
+}
 function wxExtraV(w) {
   const bits = [], s = w.past && w.past.soil;
   if (s != null) bits.push(`<span>🌱 Jord på 6 cm: <b>${String(s).replace('.', ',')} °C</b></span>`);
+  const so = soilV(); if (so) bits.push(so);
   const fr = frostV(w) + sunStatV(w) + pollenV(w) + inatNearV(w);
-  return bits.length || fr ? `<div class="wxx">${bits.join('')}${fr}</div>` : '';
+  return bits.length || fr ? `<div class="wxx">${bits.join('')}${so ? '<small>Jordart: SGU:s jordartskarta</small>' : ''}${fr}</div>` : '';
 }
 function weatherV(sz) {
   sz = sz || 'm';
