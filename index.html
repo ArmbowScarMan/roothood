@@ -8094,6 +8094,7 @@ function render() {
   fitPlanBox();
   if ($('#plan') && PL().fit) renderPlan();
   if ($('#box3d')) mount3d();
+  if ($('#dscard')) dsBind(); // Svep fungerar även efter att man varit inne på en växt och gått tillbaka
   trackView();
 }
 // ===== Kom ihåg var man var (och tillbaka-knappen) =====
@@ -12421,7 +12422,7 @@ function dsButton(dir) {
 function dsBind() {
   const el = document.getElementById('dscard'); if (!el || el.dataset.b) return; el.dataset.b = '1';
   let x0 = null, dx = 0;
-  el.addEventListener('pointerdown', e => { x0 = e.clientX; dx = 0; try { el.setPointerCapture(e.pointerId); } catch (err) {} el.style.transition = 'none'; });
+  el.addEventListener('pointerdown', e => { if (e.target.closest('button, a')) return; x0 = e.clientX; dx = 0; try { el.setPointerCapture(e.pointerId); } catch (err) {} el.style.transition = 'none'; });
   el.addEventListener('pointermove', e => { if (x0 == null) return; dx = e.clientX - x0; el.style.transform = 'translateX(' + dx + 'px) rotate(' + (dx / 20) + 'deg)'; });
   const end = () => { if (x0 == null) return; const d = dx; x0 = null; if (Math.abs(d) > 90) dsButton(d > 0 ? 'r' : 'l'); else { el.style.transition = 'transform .2s ease'; el.style.transform = ''; } };
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
