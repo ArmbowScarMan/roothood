@@ -15455,7 +15455,7 @@ function gauge() {
 function lightDyn() {
   const L = S.light, c = pclass(), has = L && L.lux != null;
   if (L && L.lux == null) return `<div class="gwrap">${gauge()}<div class="gval"><b>${fmt(L.rel)}</b><span>ljusindex 0–100</span></div></div>
-  <div class="lclass">Bara jämförelse</div><p class="mut" style="text-align:center;margin:0">Din kamera tillåter inte att appen räknar ut exakta värden. Högre index betyder mer ljus. Se tipset nedan.</p>`;
+  <div class="lclass">${/Letar/.test(L.method || '') ? 'Letar efter bästa kameran…' : 'Bara jämförelse'}</div>${/Letar/.test(L.method || '') ? '' : `<p class="mut" style="text-align:center;margin:0">${lcamOther() ? 'Den här kameran låter inte appen räkna ut lux. <button class="link3" onclick="lcamSet(\'' + lcamOther() + '\')">Prova ' + (lcamOther() === 'user' ? 'framkameran' : 'kameran på baksidan') + '</button>' : 'Mobilens kameror låter inte appen räkna ut lux, så du får ett index där högre betyder mer ljus. Det fungerar bra för att jämföra platser hemma.'} För riktiga lux-värden kan du koppla en Bluetooth-växtsensor under Smarta hemmet.</p>`}`;
   return `<div class="gwrap">${gauge()}<div class="gval"><b>${has ? fmt(ppfd()) : '–'}</b><span>PPFD µmol/m²/s</span></div></div>
   ${has ? `<p class="mut" style="font-size:12.5px;text-align:center;margin:4px 0 0">${lcalNote(L)}</p>` : ''}
   <div class="lclass">${c ? c.name : 'Tryck på Starta mätning'}${S.lhold ? ' (låst)' : ''}</div>
@@ -15484,13 +15484,22 @@ function lightRest() {
 function lightV() {
   return `${topbar('Ljusmätare', 'closeTool()')}<div class="pad">
   <div class="chips2" style="margin:6px 0 10px">${[['paper', 'Med vitt papper (bäst)'], ['bare', 'Utan papper']].map(([k, t]) => `<button class="${lmode() === k ? 'on' : ''}" onclick="setLmode('${k}')">${t}</button>`).join('')}</div>
-  <p class="mut" style="margin:0 0 12px">${lmode() === 'paper'
-    ? 'Lägg en bit vanligt vitt skrivarpapper över <b>framkameran</b>. Ställ mobilen där växten ska stå, med skärmen mot ljuset, och håll den still.'
-    : 'Ställ mobilen där växten ska stå, med skärmen mot ljuset. Utan papper blir värdena mer osäkra, särskilt om lampan syns i bilden.'}</p>
+  ${lcamChips()}
+  <p class="mut" style="margin:0 0 12px">${lcamFacing() === 'environment'
+    ? (lmode() === 'paper' ? 'Lägg en bit vanligt vitt skrivarpapper över <b>kameran på baksidan</b>. Ställ mobilen där växten ska stå, med baksidan mot ljuset, och håll den still. Mobilen vibrerar och låser värdet när mätningen är klar.' : 'Ställ mobilen där växten ska stå, med <b>baksidan</b> mot ljuset. Mobilen vibrerar och låser värdet när mätningen är klar. Utan papper blir värdena mer osäkra.')
+    : (lmode() === 'paper' ? 'Lägg en bit vanligt vitt skrivarpapper över <b>framkameran</b>. Ställ mobilen där växten ska stå, med skärmen mot ljuset, och håll den still.' : 'Ställ mobilen där växten ska stå, med skärmen mot ljuset. Utan papper blir värdena mer osäkra, särskilt om lampan syns i bilden.')}</p>
   <div class="lightbox"><video id="lv" muted playsinline autoplay ${lightStream ? '' : 'hidden'}></video><div id="ldyn">${lightDyn()}</div></div>
   <div class="lctl"><label>Ljuskälla</label><div class="chips2">${LSRC.map(s => `<button class="${S.lsrc === s[0] ? 'on' : ''}" onclick="S.lsrc='${s[0]}';this.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===this));showLight(S.light,true)">${s[1]}</button>`).join('')}</div>
   <label style="margin-top:14px" for="lh">Ljus per dag: <span id="lhv">${S.lhours}</span> timmar</label><input id="lh" type="range" min="4" max="18" step="1" value="${S.lhours}" oninput="S.lhours=+this.value;$('#lhv').textContent=this.value;showLight(S.light,true)"></div></div>
   <div id="lrest">${lightRest()}</div>`;
+}
+function lcamOther() { const info = lcamInfo(), cur = lcamFacing(), o = cur === 'user' ? 'environment' : 'user'; if (!info || !info.all) return ''; const sc = f => Math.max(0, ...info.all.filter(x => x.facing === f).map(x => x.score)); return sc(o) > sc(cur) ? o : ''; }
+function lcamChips() {
+  const info = lcamInfo(); if (!info || !info.all) return '';
+  const has = f => info.all.some(o => o.facing === f), best = f => Math.max(0, ...info.all.filter(o => o.facing === f).map(o => o.score));
+  if (!has('user') || !has('environment')) return '';
+  const lbl = f => (f === 'user' ? 'Framkameran' : 'Kameran på baksidan') + (best(f) === 3 && best(f) > best(f === 'user' ? 'environment' : 'user') ? ' (bäst)' : '');
+  return `<div class="chips2 sm" style="margin:0 0 8px">${['user', 'environment'].map(f => `<button class="${lcamFacing() === f ? 'on' : ''}" onclick="lcamSet('${f}')">${lbl(f)}</button>`).join('')}</div>`;
 }
 function setLmode(m) { store.set('lmode', m); const run = !!lightStream; stopLight(); S.light = null; render(); if (run) startLight(); }
 function calibrateLight() {
@@ -15524,8 +15533,39 @@ function luxFrom(y, tUnits, iso) {
   const L = 12.5 * 4 / (tSec * iso) * (ylin / 0.18);
   return L * 10;
 }
+// Välj den kamera som bäst kan låsa exponeringen. Framkameran saknar det ofta, kameran på baksidan har det oftare.
+// Resultatet sparas i mobilen så att det bara behöver provas en gång. lcamUser är användarens eget val (user/environment).
+const lcamInfo = () => store.get('lcam', null);
+const lcamFacing = () => { const u = store.get('lcamUser', ''); if (u) return u; const c = lcamInfo(); return (c && c.facing) || 'user'; };
+function lcamSet(f) { store.set('lcamUser', f); const run = !!lightStream; stopLight(); S.light = null; render(); if (run) startLight(); }
+async function lcamProbe() {
+  let devs = [];
+  try { devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput'); } catch (e) { return null; }
+  const bad = store.get('lcamBad', []), out = [];
+  for (const d of devs.slice(0, 5)) {
+    if (!d.deviceId || bad.includes(d.deviceId)) continue;
+    let st = null;
+    try {
+      st = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: d.deviceId }, width: { ideal: 640 }, height: { ideal: 480 } } });
+      const tr = st.getVideoTracks()[0]; let c = {}, g = {};
+      try { c = tr.getCapabilities ? tr.getCapabilities() : {}; } catch (e) { /* ingen info */ }
+      await new Promise(r => setTimeout(r, 250));
+      try { g = tr.getSettings ? tr.getSettings() : {}; } catch (e) { /* ingen info */ }
+      const facing = g.facingMode || c.facingMode && c.facingMode[0] || (/front|user|fram/i.test(d.label) ? 'user' : /back|rear|environment|bak/i.test(d.label) ? 'environment' : '');
+      const score = (c.exposureMode || []).includes('manual') && c.exposureTime ? 3 : (g.exposureTime && g.iso) ? 2 : 1;
+      out.push({ id: d.deviceId, facing: facing || 'user', score });
+    } catch (e) { /* kameran gick inte att öppna */ }
+    finally { if (st) st.getTracks().forEach(t => t.stop()); }
+  }
+  if (!out.length) return null;
+  // Bäst poäng vinner. Vid lika: framkameran (lättast att läsa av), annars den första på baksidan (oftast huvudkameran).
+  out.sort((a, b) => b.score - a.score || (a.facing === 'user' ? -1 : 0) - (b.facing === 'user' ? -1 : 0));
+  const pick = { id: out[0].id, facing: out[0].facing, score: out[0].score, all: out.map(o => ({ facing: o.facing, score: o.score, id: o.id })), t: Date.now() };
+  store.set('lcam', pick);
+  return pick;
+}
 async function startLight() {
-  S.lhold = false; S.light = null;
+  S.lhold = false; S.light = null; S.lautoLock = false;
   if ('AmbientLightSensor' in window) {
     try {
       const s = new AmbientLightSensor({ frequency: 2 });
@@ -15537,10 +15577,21 @@ async function startLight() {
       render(); return;
     } catch (e) { if (lightSensor) lightSensor.stop(); lightSensor = null; }
   }
+  let info = lcamInfo();
+  if (!info || Date.now() - (info.t || 0) > 90 * 864e5) {
+    showLight({ lux: null, rel: 0, method: 'Letar efter den kamera som mäter bäst…', raw: {} }); render();
+    try { const p = await navigator.mediaDevices.getUserMedia({ video: true }); p.getTracks().forEach(t => t.stop()); } catch (e) { return toast('Appen fick inte använda kameran. Tillåt kameran i Chrome och försök igen.'); }
+    info = await lcamProbe();
+  }
+  const want = lcamFacing(), dev = info && info.all ? (info.all.find(o => o.facing === want && o.id === info.id) || info.all.filter(o => o.facing === want).sort((a, b) => b.score - a.score)[0]) : null;
   try {
-    lightStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } });
-  } catch (e) { lightStream = null; return toast('Appen fick inte använda kameran. Tillåt kameran i Chrome och försök igen.'); }
+    lightStream = await navigator.mediaDevices.getUserMedia({ video: Object.assign({ width: { ideal: 640 }, height: { ideal: 480 } }, dev ? { deviceId: { exact: dev.id } } : { facingMode: want }) });
+  } catch (e) {
+    try { lightStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: want, width: { ideal: 640 }, height: { ideal: 480 } } }); }
+    catch (e2) { lightStream = null; return toast('Appen fick inte använda kameran. Tillåt kameran i Chrome och försök igen.'); }
+  }
   lightTrack = lightStream.getVideoTracks()[0];
+  S.lfacing = want;
   render();
   let caps = {}; try { caps = lightTrack.getCapabilities ? lightTrack.getCapabilities() : {}; } catch (e) { console.warn('Roothood:', e); }
   const capTxt = [caps.exposureMode ? 'exponering: ' + caps.exposureMode.join('/') : 'ingen exponeringsstyrning', caps.exposureTime ? 'tid ' + caps.exposureTime.min + '–' + caps.exposureTime.max : '', caps.iso ? 'ISO ' + caps.iso.min + '–' + caps.iso.max : ''].filter(Boolean).join(', ');
@@ -15572,7 +15623,7 @@ async function startLight() {
     const lo = tB > tA ? yA : yB, hi = tB > tA ? yB : yA;
     const works = lo != null && hi != null && (hi > lo * 1.5 || (hi >= 220 && hi - lo > 25));
     probe = `prov ${Math.round(yA || 0)} → ${Math.round(yB || 0)} (${works ? 'låsning fungerar' : 'låsning fungerar inte'})`;
-    if (!works) { manual = false; try { await lightTrack.applyConstraints({ advanced: [{ exposureMode: 'continuous' }] }); } catch (e) { console.warn('Roothood:', e); } }
+    if (!works) { manual = false; const sid = (lightTrack.getSettings && lightTrack.getSettings().deviceId) || ''; if (sid && lo != null && hi != null && lo >= 15 && hi <= 235) { const b = store.get('lcamBad', []); if (!b.includes(sid)) { b.push(sid); store.set('lcamBad', b); store.set('lcam', null); } } try { await lightTrack.applyConstraints({ advanced: [{ exposureMode: 'continuous' }] }); } catch (e) { console.warn('Roothood:', e); } }
     else { t = tA; try { await setExp(); } catch (e) { console.warn('Roothood:', e); } }
     if (!lightStream) return;
   }
@@ -15600,6 +15651,11 @@ async function startLight() {
     if (lux == null) { avg = avg == null ? y : avg * .7 + y * .3; return showLight({ lux: null, rel: Math.round(avg / 2.55), method, raw }); }
     avg = avg == null ? lux : avg * .7 + lux * .3;
     showLight({ lux: avg, method, raw });
+    // Kameran på baksidan: skärmen pekar bort, så lås värdet när det är stabilt och vibrera
+    if (S.lfacing === 'environment' && !S.lhold && !S.lautoLock) {
+      const h = S.lstab || (S.lstab = []); h.push(avg); if (h.length > 8) h.shift();
+      if (h.length === 8 && Math.max(...h) / Math.max(1, Math.min(...h)) < 1.12) { S.lhold = true; S.lautoLock = true; S.lstab = []; try { navigator.vibrate && navigator.vibrate([120, 80, 120]); } catch (e) { /* ingen vibration */ } showLight(S.light, true); toast('Klart! Värdet är låst. Vänd på mobilen och läs av.'); }
+    }
   }, 500);
 }
 let idStream = null;
