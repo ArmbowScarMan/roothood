@@ -1024,6 +1024,10 @@ button.pw{cursor:pointer}
 .mycard h3 .svn{display:block;font-size:.78em;font-weight:600;opacity:.85}
 .myname .sci{font-weight:700}
 .myname .svn{margin-left:6px;font-weight:600;color:var(--mut)}
+.pmbtn{display:inline-flex;align-items:center;gap:6px;margin:6px 0 0;font-size:13.5px}
+.pmimg{position:relative;margin:10px 0 0;border-radius:14px;overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none}.pmimg img{display:block;width:100%;height:auto;max-height:62vh;object-fit:contain;background:#000}.pmimg svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.pmstep{margin:10px 0 0;padding:10px 12px;border-radius:12px;background:rgba(127,127,127,.12);font-size:14.5px}.pmres{margin:12px 0 0;padding:12px 14px;border-radius:14px;background:rgba(139,192,106,.16);font-size:15px}
+.pmcam{position:relative;margin:10px 0 0;border-radius:14px;overflow:hidden;background:#000;width:100%;aspect-ratio:4/3;max-height:38vh}.pmcam video{width:100%;height:100%;object-fit:cover;display:block}.pmcam .cross{position:absolute;left:0;right:0;top:50%;height:2px;background:#ff5a4f;box-shadow:0 0 0 1px #0006}.pmcam .cross:after{content:'';position:absolute;left:50%;top:-9px;width:2px;height:20px;background:#ff5a4f}.pmcam .ang{position:absolute;left:10px;top:10px;padding:4px 10px;border-radius:999px;background:#000a;color:#fff;font-weight:700;font-size:15px}
 .chatl{display:flex;flex-direction:column;gap:8px;padding-bottom:90px}.bimg{display:block;max-width:100%;max-height:260px;border-radius:12px;margin:0 0 4px;cursor:zoom-in;object-fit:cover}.bimg.big{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:contain;background:rgba(0,0,0,.92);z-index:99;border-radius:0;margin:0;cursor:zoom-out}.dmph{position:relative;flex:none;width:40px;height:40px}.dmph img{width:40px;height:40px;object-fit:cover;border-radius:12px;display:block}.dmph button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:var(--ink);color:var(--surf);font-size:14px;line-height:1;cursor:pointer}.chatrep{align-self:flex-start;border:0;background:none;padding:2px 0;margin:0 0 2px;font:inherit;font-size:12px;color:var(--mut);text-decoration:underline;cursor:pointer}.dmphb{flex:none;width:40px;height:40px;display:grid;place-items:center;border-radius:50%;cursor:pointer}.bub{max-width:80%;align-self:flex-start;background:var(--surf);border-radius:16px 16px 16px 4px;padding:9px 12px;display:flex;flex-direction:column;gap:2px;word-break:break-word}.bub.me{align-self:flex-end;background:var(--pri);color:var(--onpri);border-radius:16px 16px 4px 16px}.bub small{opacity:.65;font-size:11px}.bub.me small{opacity:.9}.chatpg{display:flex;flex-direction:column;min-height:calc(100dvh - 130px)}#app.nochat nav{display:none}#app.nochat #main{padding-bottom:0}#app.nochat .chatpg{min-height:calc(100dvh - 70px)}.chatpg .chatl{flex:1;padding-bottom:12px}.chatf{position:sticky;bottom:0;display:flex;gap:8px;align-items:flex-end;padding:10px 14px;background:var(--bg);border-top:1px solid var(--line,#ffffff22)}.chatf textarea{flex:1;min-height:40px;max-height:120px;resize:none}
 .flbar{display:flex;gap:8px;align-items:center;padding:4px 14px 8px;overflow-x:auto}.flbar .chips2{flex:1;flex-wrap:nowrap;overflow-x:auto}.flbar .btn{flex:none}
 .cnt{display:flex;align-items:center;gap:12px}.cnt b{min-width:24px;text-align:center;font-size:18px}
@@ -3390,6 +3394,94 @@ function detailsV(m, inModal) {
   ${hints.map(x => `<div class="pdhint ${x[0]}"><span class="ck">${x[0] === 'warn' ? '⚠️' : '💡'}</span><span>${esc(x[1])}</span></div>`).join('')}
   ${!items.length || inModal ? `<button class="btn sm ${items.length ? 'line' : ''}" style="margin-top:10px" onclick="openDetails(${m.id})">${items.length ? 'Redigera uppgifter' : '+ Lägg till uppgifter'}</button>` : ''}</div>`;
 }
+// ===== Mät växten med kameran: 1) foto med ett föremål man vet storleken på, 2) luta telefonen (som en trädhöjdsmätare) =====
+const PM_REFS = [['a4', 'A4-papper, stående', 29.7], ['a4l', 'A4-papper, liggande', 21], ['stick', 'Meterstock, 1 m', 100], ['me', 'Jag själv', 0], ['own', 'Något annat', 0]];
+const PM_STEPS = ['Tryck på <b>toppen</b> av växten', 'Tryck där växten möter <b>marken</b>', 'Tryck på <b>toppen</b> av föremålet', 'Tryck på <b>foten</b> av föremålet', 'Bredd (kan hoppas över): tryck på växtens <b>vänstra</b> kant', 'Tryck på växtens <b>högra</b> kant'];
+let pmStream = null, pmOri = null;
+function pmOpen() { S.pm = S.pm && S.pm.keep ? S.pm : { mode: 'ref', ref: 'a4', pts: [], d: '', base: null, top: null, ang: null }; S.pm.keep = false; openModal('pmeas'); }
+function pmRefCm() { const pm = S.pm, r = PM_REFS.find(x => x[0] === pm.ref) || PM_REFS[0]; if (r[0] === 'me') return +store.get('myHeight', 0) || 0; if (r[0] === 'own') return +pm.own || 0; return r[2]; }
+function pmMode(m) { pmStop(); S.pm.mode = m; render(); }
+function pmPhoto(inp) { const f = inp.files && inp.files[0]; if (!f) return; if (S.pm.url) URL.revokeObjectURL(S.pm.url); S.pm.url = URL.createObjectURL(f); S.pm.pts = []; S.pm.nw = 0; S.pm.nh = 0; render(); }
+function pmImgLoad(img) { if (S.pm.nw === img.naturalWidth && S.pm.nh === img.naturalHeight) return false; S.pm.nw = img.naturalWidth; S.pm.nh = img.naturalHeight; return true; }
+function pmTap(ev) {
+  const pm = S.pm; if (pm.pts.length >= 6) return;
+  const img = ev.currentTarget, r = img.getBoundingClientRect();
+  // Bilden kan ha svarta kanter (object-fit: contain). Räkna bara inom själva fotot.
+  const iw = img.naturalWidth || 1, ih = img.naturalHeight || 1, sc = Math.min(r.width / iw, r.height / ih), w = iw * sc, h = ih * sc, ox = (r.width - w) / 2, oy = (r.height - h) / 2;
+  const x = (ev.clientX - r.left - ox) / w, y = (ev.clientY - r.top - oy) / h; if (x < 0 || x > 1 || y < 0 || y > 1) return;
+  pm.pts.push([x, y]); if (navigator.vibrate) navigator.vibrate(15); render();
+}
+function pmUndo() { S.pm.pts.pop(); render(); }
+function pmCalc() {
+  const pm = S.pm, P = pm.pts, W = pm.nw || 1, H = pm.nh || 1, refCm = pmRefCm();
+  const dist = (a, b) => Math.hypot((a[0] - b[0]) * W, (a[1] - b[1]) * H);
+  if (P.length < 4 || !(refCm > 0)) return null;
+  const refPx = dist(P[2], P[3]); if (refPx < 4) return null;
+  const k = refCm / refPx, h = dist(P[0], P[1]) * k, w = P.length >= 6 ? Math.abs(P[5][0] - P[4][0]) * W * k : null;
+  return { h: pmRound(h), w: w ? pmRound(w) : null };
+}
+const pmRound = v => v < 100 ? Math.round(v) : Math.round(v / 5) * 5;
+function pmSvg() {
+  const P = S.pm.pts, W = S.pm.nw || 1, H = S.pm.nh || 1, col = ['#8bc06a', '#8bc06a', '#ffb347', '#ffb347', '#6fb7ff', '#6fb7ff'];
+  const dot = (p, i) => `<circle cx="${p[0] * W}" cy="${p[1] * H}" r="${Math.max(W, H) / 80}" fill="${col[i]}" stroke="#000" stroke-width="${Math.max(W, H) / 400}"/>`;
+  const ln = (a, b, c) => `<line x1="${a[0] * W}" y1="${a[1] * H}" x2="${b[0] * W}" y2="${b[1] * H}" stroke="${c}" stroke-width="${Math.max(W, H) / 220}" stroke-dasharray="${Math.max(W, H) / 70} ${Math.max(W, H) / 140}"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${P.length >= 2 ? ln(P[0], P[1], col[0]) : ''}${P.length >= 4 ? ln(P[2], P[3], col[2]) : ''}${P.length >= 6 ? ln(P[4], P[5], col[4]) : ''}${P.map(dot).join('')}</svg>`;
+}
+// Lutning: vinkeln uppåt (+) eller nedåt (−) från vågrätt, med telefonen stående och kameran på baksidan
+function pmOriH(e) { if (e.beta == null) return; const a = e.beta - 90; S.pm.ang = S.pm.ang == null ? a : S.pm.ang * .7 + a * .3; const el = $('#pmang'); if (el) el.textContent = (S.pm.ang > 0 ? '+' : '') + S.pm.ang.toFixed(1) + '°'; }
+async function pmTiltStart() {
+  try { if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) { const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') return toast('Appen fick inte använda lutningssensorn'); } } catch (e) { }
+  if (!('DeviceOrientationEvent' in window)) return toast('Den här enheten har ingen lutningssensor');
+  if (!pmOri) { pmOri = pmOriH; window.addEventListener('deviceorientation', pmOri); }
+  try { pmStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }); } catch (e) { pmStream = 'nocam'; }
+  S.pm.live = true; render();
+  const v = $('#pmvid'); if (v && pmStream && pmStream !== 'nocam') { v.srcObject = pmStream; v.play().catch(() => { }); }
+  setTimeout(() => { if (S.pm && S.pm.live && S.pm.ang == null) toast('Ingen lutning mäts. Fungerar bara på telefon eller surfplatta.'); }, 2500);
+}
+function pmStop() { if (pmStream && pmStream !== 'nocam') pmStream.getTracks().forEach(t => t.stop()); pmStream = null; if (pmOri) { window.removeEventListener('deviceorientation', pmOri); pmOri = null; } if (S.pm) S.pm.live = false; }
+function pmMark(k) { if (S.pm.ang == null) return toast('Ingen lutning mäts än'); S.pm[k] = S.pm.ang; if (navigator.vibrate) navigator.vibrate(30); render(); const v = $('#pmvid'); if (v && pmStream && pmStream !== 'nocam') { v.srcObject = pmStream; v.play().catch(() => { }); } }
+function pmTiltCalc() { const pm = S.pm, d = +String(pm.d).replace(',', '.'); if (!(d > 0) || pm.base == null || pm.top == null) return null; const R = Math.PI / 180, h = d * (Math.tan(pm.top * R) - Math.tan(pm.base * R)) * 100; return h > 0 ? { h: pmRound(h), w: null } : null; }
+function pmUse(h, w) { pmStop(); S.pd = S.pd || {}; S.pd.h = h; if (w) S.pd.w = w; S.modal = 'pdet'; render(); toast('Höjden är ifylld' + (w ? ', och bredden' : '') + '. Tryck Spara.'); setTimeout(() => { const el = $('#pdh'); if (el) el.scrollIntoView({ block: 'center' }); }, 80); }
+function pmBack() { pmStop(); S.modal = 'pdet'; render(); setTimeout(() => { const el = $('#pdh'); if (el) el.scrollIntoView({ block: 'center' }); }, 80); }
+function pmeasV() {
+  const pm = S.pm || (S.pm = { mode: 'ref', ref: 'a4', pts: [], d: '' });
+  const head = `<div class="mh"><h2>Mät med kameran</h2><button class="close" onclick="pmBack()" aria-label="Tillbaka">×</button></div>
+  <div class="chips2" style="margin:4px 0 6px">${[['ref', 'Foto med föremål'], ['tilt', 'Luta telefonen']].map(([k, n]) => `<button class="${pm.mode === k ? 'on' : ''}" onclick="pmMode('${k}')">${n}</button>`).join('')}</div>`;
+  if (pm.mode === 'tilt') {
+    const res = pmTiltCalc();
+    return `${head}<p class="mut" style="margin:0;font-size:14px">Bäst för träd och höga buskar. Stå på plan mark, ett bra stycke från växten, så att du ser både foten och toppen.</p>
+    <label class="fl" for="pmd">Avstånd till växten (meter)</label><input id="pmd" type="text" inputmode="decimal" placeholder="t.ex. 10" value="${esc(pm.d)}" oninput="S.pm.d=this.value;const r=$('#pmres');if(r)r.innerHTML=pmTiltRes()">
+    <p class="mut" style="font-size:12.5px;margin:4px 0 0">Stega upp avståndet från stammen. Ett vanligt steg är ungefär 0,75 m, så 12 steg är ca 9 m.</p>
+    ${pm.live ? `<div class="pmcam">${pmStream && pmStream !== 'nocam' ? '<video id="pmvid" playsinline muted autoplay></video>' : '<div class="center mut" style="padding:40px 10px">Kameran gick inte att starta. Sikta längs telefonens kant i stället.</div>'}<div class="cross"></div><span class="ang" id="pmang">${pm.ang != null ? (pm.ang > 0 ? '+' : '') + pm.ang.toFixed(1) + '°' : '…'}</span></div>
+      <p class="mut" style="font-size:13px;margin:8px 0 0">Håll telefonen <b>stående</b>. Sikta med det röda strecket.</p>
+      <div style="display:flex;gap:8px;margin-top:8px"><button class="btn sm ${pm.base != null ? 'line' : ''}" style="flex:1" onclick="pmMark('base')">${pm.base != null ? '✓ Foten ' + pm.base.toFixed(1) + '°' : '1. Sikta på foten, tryck'}</button><button class="btn sm ${pm.top != null ? 'line' : ''}" style="flex:1" onclick="pmMark('top')">${pm.top != null ? '✓ Toppen ' + pm.top.toFixed(1) + '°' : '2. Sikta på toppen, tryck'}</button></div>`
+      : `<button class="btn wide formbtn" onclick="pmTiltStart()">${ic('ph-camera', 'currentColor', 18)} Starta kameran</button>`}
+    <div id="pmres">${pmTiltRes()}</div>`;
+  }
+  const res = pmCalc(), n = pm.pts.length, r = PM_REFS.find(x => x[0] === pm.ref) || PM_REFS[0];
+  return `${head}<p class="mut" style="margin:0;font-size:14px">Ställ något du vet storleken på <b>bredvid växten</b>, lika långt bort från dig. Ta fotot rakt från sidan, inte uppifrån.</p>
+  <label class="fl">Vad står bredvid växten?</label><div class="chips2 sm">${PM_REFS.map(([k, n2]) => `<button class="${pm.ref === k ? 'on' : ''}" onclick="S.pm.ref='${k}';render()">${n2}</button>`).join('')}</div>
+  ${pm.ref === 'me' ? `<label class="fl" for="pmme">Din längd (cm)</label><input id="pmme" type="number" inputmode="numeric" min="50" max="250" value="${store.get('myHeight', '') || ''}" oninput="store.set('myHeight',+this.value||0);const r=$('#pmres');if(r)r.innerHTML=pmRefRes()"><p class="mut" style="font-size:12.5px;margin:4px 0 0">Ställ dig bredvid växten och be någon annan ta fotot. Längden sparas till nästa gång.</p>` : ''}
+  ${pm.ref === 'own' ? `<label class="fl" for="pmown">Föremålets höjd (cm)</label><input id="pmown" type="number" inputmode="decimal" min="1" max="2000" value="${esc(pm.own || '')}" oninput="S.pm.own=this.value;const r=$('#pmres');if(r)r.innerHTML=pmRefRes()">` : ''}
+  <label class="btn ${pm.url ? 'line' : ''} wide formbtn" style="display:flex;justify-content:center;gap:8px" onclick="photoPick(event,this)">${ic('ph-camera', 'currentColor', 18)} ${pm.url ? 'Ta ett nytt foto' : 'Ta foto eller välj bild'}<input type="file" accept="image/*" class="sr" onchange="pmPhoto(this)"></label>
+  ${pm.url ? `<div class="pmimg"><img src="${pm.url}" alt="Fotot du mäter på" onload="if(pmImgLoad(this))render()" onclick="pmTap(event)">${pm.nw ? pmSvg() : ''}</div>
+  <div class="pmstep">${n < 6 ? `<b>${n + 1}/${n < 4 ? 4 : 6}</b> ${PM_STEPS[n]}${n >= 2 && n < 4 ? ` (${esc(r[1].toLowerCase())})` : ''}` : 'Klart. Alla punkter är satta.'}</div>
+  <div style="display:flex;gap:8px;margin-top:8px">${n ? `<button class="btn sm line" onclick="pmUndo()">Ångra punkt</button><button class="btn sm line" onclick="S.pm.pts=[];render()">Börja om</button>` : ''}</div>` : ''}
+  <div id="pmres">${pmRefRes()}</div>`;
+}
+function pmRefRes() {
+  const pm = S.pm; if (!pm || !pm.url || pm.pts.length < 4) return '';
+  if (!(pmRefCm() > 0)) return '<p class="pmres">Fyll i hur högt föremålet är, så räknar appen ut måtten.</p>';
+  const r = pmCalc(); if (!r) return '<p class="pmres">Punkterna för föremålet ligger för nära varandra. Tryck Börja om och försök igen.</p>';
+  return `<div class="pmres">Höjd ca <b>${r.h} cm</b>${r.w ? ` · bredd ca <b>${r.w} cm</b>` : ''}<br><span class="mut" style="font-size:12.5px">Ungefärligt mått, oftast inom 10 %. Blir bäst när föremålet står lika långt bort som växten.</span>
+  <button class="btn wide formbtn" style="margin-top:10px" onclick="pmUse(${r.h},${r.w || 0})">Använd ${r.w ? 'måtten' : 'höjden'}</button></div>`;
+}
+function pmTiltRes() {
+  const pm = S.pm; if (!pm || pm.base == null || pm.top == null) return '';
+  const r = pmTiltCalc(); if (!r) return `<p class="pmres">${+String(pm.d).replace(',', '.') > 0 ? 'Toppen måste vara högre upp än foten. Sikta igen.' : 'Fyll i avståndet till växten.'}</p>`;
+  return `<div class="pmres">Höjd ca <b>${r.h >= 200 ? fmt(r.h / 100, 1) + ' m' : r.h + ' cm'}</b><br><span class="mut" style="font-size:12.5px">Ungefärligt mått. Blir bäst med rätt avstånd och plan mark.</span>
+  <button class="btn wide formbtn" style="margin-top:10px" onclick="pmUse(${r.h},0)">Använd höjden</button></div>`;
+}
 function openDetails(id, focusId) {
   const m = S.mine.find(x => x.id === id); if (!m) return;
   S.pdId = id; S.pdBack = S.modal === 'myplant';
@@ -3426,14 +3518,14 @@ function pdetV() {
   <label class="fl" style="margin-top:0">Hur är den planterad? <small class="mut" style="font-weight:600">(välj en eller flera)</small></label>${pdChips('place')}
   ${pot ? `<div class="two"><div><label class="fl" for="pdcm">Krukans diameter (cm)</label><input id="pdcm" type="number" inputmode="numeric" min="1" max="300" value="${d.cm || ''}" oninput="S.pd.cm=+this.value||null"></div>
   <div><label class="fl" for="pdph">Krukans höjd (cm)</label><input id="pdph" type="number" inputmode="numeric" min="1" max="300" value="${d.ph || ''}" oninput="S.pd.ph=+this.value||null"></div></div>
-  <label class="fl" for="pdh">Växtens höjd eller längd (cm)</label><p class="mut" style="font-size:12.5px;margin:-2px 0 6px">Mät från jorden till toppen. Hänger eller klättrar den, mät den längsta rankan.</p><input id="pdh" type="number" inputmode="numeric" min="1" max="2000" value="${d.h || ''}" oninput="S.pd.h=+this.value||null">
+  <label class="fl" for="pdh">Växtens höjd eller längd (cm)</label><p class="mut" style="font-size:12.5px;margin:-2px 0 6px">Mät från jorden till toppen. Hänger eller klättrar den, mät den längsta rankan.</p><input id="pdh" type="number" inputmode="numeric" min="1" max="2000" value="${d.h || ''}" oninput="S.pd.h=+this.value||null"><button type="button" class="link3 pmbtn" onclick="pmOpen()">${ic('ph-camera', 'currentColor', 15)} Mät med kameran</button>
   <div class="two"><div><label class="fl" for="pdw">Växtens bredd (cm)</label><input id="pdw" type="number" inputmode="numeric" min="1" max="3000" placeholder="Bredaste stället" value="${d.w || ''}" oninput="S.pd.w=+this.value||null"></div>
   <div><label class="fl" for="pdleaf">Största bladet (cm)</label><input id="pdleaf" type="number" inputmode="numeric" min="1" max="300" placeholder="Längd på bladskivan" value="${d.leaf || ''}" oninput="S.pd.leaf=+this.value||null"></div></div>
   <p class="mut" style="font-size:12.5px;margin:6px 0 0">Mät största bladet från bladfästet till spetsen, utan stjälken. Sparas i Växtjournalen så du ser när bladen blir större.</p>
   <label class="fl">Krukans material</label>${pdChips('mat')}
   <label class="tog"><input type="checkbox" ${d.self ? 'checked' : ''} onchange="S.pd.self=this.checked;keepScroll()"><span><b>Självvattnande kruka</b></span></label>
   ${d.self ? '' : `<label class="fl">Dräneringshål i botten?</label>${pdChips('drain')}`}`
-  : `<div class="two"><div><label class="fl" for="pdh">Växtens höjd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="4000" placeholder="${ps ? 'Fullvuxen ca ' + ps[0] : ''}" value="${d.h || ''}" oninput="S.pd.h=+this.value||null"></div>
+  : `<div class="two"><div><label class="fl" for="pdh">Växtens höjd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="4000" placeholder="${ps ? 'Fullvuxen ca ' + ps[0] : ''}" value="${d.h || ''}" oninput="S.pd.h=+this.value||null"><button type="button" class="link3 pmbtn" onclick="pmOpen()">${ic('ph-camera', 'currentColor', 15)} Mät med kameran</button></div>
   <div><label class="fl" for="pdw">Bredd (cm)</label><input id="pdw" type="number" inputmode="numeric" min="1" max="3000" placeholder="${ps ? 'Fullvuxen ca ' + ps[1] : ''}" value="${d.w || ''}" oninput="S.pd.w=+this.value||null"></div></div>
   <label class="fl" for="pdleaf">Största bladet (cm)</label><input id="pdleaf" type="number" inputmode="numeric" min="1" max="300" placeholder="Längd på bladskivan" value="${d.leaf || ''}" oninput="S.pd.leaf=+this.value||null">${outd ? '<p class="mut" style="font-size:12.5px;margin:6px 0 0">Höjden och bredden används när växten visas i 3D och på ritningen av Mitt hem.</p>' : ''}`}
   <label class="fl">Vad står växten i? (välj flera)</label>${pdChips('soil', true)}${glossD(['Substrat', 'Leca', 'Pon', 'Perlit', 'Pimpsten', 'Kokosfiber', 'Vitmossa'])}
@@ -8130,6 +8222,7 @@ const SCRX_SEL = '.tabs, .scrx, .chips2.qfilt, .gwrow, .mfilt, .qfilt, .mycards,
 function rowCenter() { document.querySelectorAll(SCRX_SEL).forEach(p => { const ov = p.scrollWidth > p.clientWidth + 2; p.classList.toggle('ovf', ov); if (!ov || p.dataset.c === (p.querySelector('.on') || {}).textContent) return; const on = p.querySelector('.on'); if (!on) return; p.dataset.c = on.textContent; const a = p.getBoundingClientRect(), b = on.getBoundingClientRect(); p.scrollLeft += (b.left + b.width / 2) - (a.left + a.width / 2); });
   document.querySelectorAll(SCRX_SEL.split(', ').map(x => x + '.ovf').join(', ')).forEach(p => { if (p.dataset.sl) return; p.dataset.sl = 1; p.addEventListener('scroll', () => p.classList.toggle('end', p.scrollLeft + p.clientWidth >= p.scrollWidth - 4), { passive: true }); }); }
 function render() {
+  if (pmStream && S.modal !== 'pmeas') pmStop();
   applyGrowlight();
   requestAnimationFrame(rowCenter); requestAnimationFrame(uiIcons);
   HV = otherHome();
@@ -8153,7 +8246,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'mf' ? mfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'pmeas' ? pmeasV() : S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'mf' ? mfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -9546,7 +9639,7 @@ function outFormV(m, d, ps) {
   <label class="fl">Hur mycket sol får den?</label>${outChips('sun')}
   <label class="fl">Hur skyddat står den?</label>${outChips('shelter')}
   ${pot ? '' : `<label class="fl">Vilken sorts jord?</label>${outChips('gsoil')}`}
-  <div class="two"><div><label class="fl" for="pdh">Växtens höjd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="4000" placeholder="${ps ? 'Fullvuxen ca ' + ps[0] : ''}" value="${d.h || ''}" oninput="S.pd.h=+this.value||null"></div>
+  <div class="two"><div><label class="fl" for="pdh">Växtens höjd (cm)</label><input id="pdh" type="number" inputmode="numeric" min="1" max="4000" placeholder="${ps ? 'Fullvuxen ca ' + ps[0] : ''}" value="${d.h || ''}" oninput="S.pd.h=+this.value||null"><button type="button" class="link3 pmbtn" onclick="pmOpen()">${ic('ph-camera', 'currentColor', 15)} Mät med kameran</button></div>
   <div><label class="fl" for="pdw">Bredd (cm)</label><input id="pdw" type="number" inputmode="numeric" min="1" max="3000" placeholder="${ps ? 'Fullvuxen ca ' + ps[1] : ''}" value="${d.w || ''}" oninput="S.pd.w=+this.value||null"></div></div>
   <label class="tog"><input type="checkbox" ${d.wcover ? 'checked' : ''} onchange="S.pd.wcover=this.checked;keepScroll()"><span><b>Jag täcker eller skyddar den på vintern</b></span></label>
   <div class="two"><div><label class="fl" for="pdsince">Planterad</label><input id="pdsince" type="date" max="${today()}" value="${d.since || ''}" oninput="S.pd.since=this.value||null"></div>
