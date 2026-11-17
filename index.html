@@ -12939,6 +12939,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.424', '17 nov', ['Har du inte slagit på notiser får du en fråga om det när du öppnar appen, med förklaring om hur du väljer vilka notiser du får under Profil, Inställningar och Notifikationer', 'Är notiser blockerade i telefonen visar appen hur du tillåter dem igen']],
   ['Beta 0.423', '17 nov', ['Fyra nya sidor under Lär dig mer: Stenparti, Hållbar odling, Äpplen och Beskärning', 'Svep bland växter: du kan gå in på en växt och sedan tillbaka och fortsätta svepa där du slutade', 'Svep bland växter: knappen Visa mer om växten fungerar även med mus']],
   ['Beta 0.422', '17 nov', ['Åtta nya sidor under Lär dig mer: Vattning, Omplantering och krukor, Luftfuktighet och temperatur, Skadedjur och sjukdomar, Förökning, Mosspålar och klätterstöd, Orkidéer samt Kaktusar och suckulenter', 'Rosor har fått en kort beskrivning som de andra sidorna', 'Ämnesraden överst på Lär dig mer-sidorna går att svepa i sidled']],
   ['Beta 0.421', '17 nov', ['Rättat fel i 3D: altan, rabatter och andra ytor utomhus syntes inte när marknivån hade hämtats, eftersom marken låg ovanpå dem. Marken är nu platt under huset, tomten och det du har ritat utomhus']],
@@ -15660,7 +15661,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.423';
+const APP_VERSION = 'Beta 0.424';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -16124,14 +16125,41 @@ async function refreshPush() {
     try { await autoPush(); st = 'on'; } catch (e) { console.warn('Roothood:', e); } finally { S.autoPushing = false; }
   }
   if (S.push !== st) { S.push = st; render(); }
-  // Första gången: fråga om notiser, så att testare märker när det kommer uppdateringar
-  if (st === 'off' && S.user && !S.modal && !store.get('pushAsked', false) && typeof Notification !== 'undefined' && Notification.permission === 'default') setTimeout(() => { if (!S.modal && !store.get('pushAsked', false)) { store.set('pushAsked', true); openModal('pushask'); } }, 1500);
+  // Varje gång appen öppnas: be inloggade som inte har notiser på att slå på dem (en gång per öppning)
+  pushAskMaybe(st);
 }
-function pushAskV() { return `<div class="mh"><h2>Vill du ha notiser?</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+let pushAskDone = false;
+function pushAskMaybe(st) {
+  if (pushAskDone || !S.user) return;
+  const ios = isIOS() && !isInstalled();
+  if (!(st === 'off' || st === 'denied' || (st === 'unsupported' && ios))) return;
+  pushAskDone = true;
+  let n = 0;
+  // Vänta tills andra rutor (t.ex. Nytt i versionen) är stängda, högst ca två minuter
+  const t = () => { if (S.push === 'on') return; if (S.modal || S.sel) { if (++n < 60) setTimeout(t, 2000); return; } S.pushAskSt = ios && st === 'unsupported' ? 'ios' : st; openModal('pushask'); };
+  setTimeout(t, 1500);
+}
+function openNotifSet() { closeModal(); openSettings(); S.notifSet = true; render(); $('#main').scrollTop = 0; }
+function pushAskV() {
+  const k = S.pushAskSt || S.push, path = '<b>Profil</b> → <b>Inställningar</b> (kugghjulet) → <b>Notifikationer</b>';
+  const how = `<div class="setcard" style="padding:12px 14px;margin:14px 0 4px;text-align:left"><p style="margin:0 0 6px"><b>Välj själv vilka notiser du får</b></p>
+    <p class="mut" style="margin:0;font-size:13.5px;line-height:1.45">Gå till ${path}. Där kan du</p>
+    <ul style="margin:6px 0 0;padding-left:20px;font-size:13.5px;line-height:1.45"><li>stänga av eller slå på bara vissa sorters notiser, till exempel meddelanden, vänförfrågningar eller nya uppdateringar</li><li>välja vilken tid vattningspåminnelsen kommer</li><li>stänga av alla notiser med knappen Stäng av</li></ul></div>`;
+  let main;
+  if (k === 'denied') main = `<p>Notiser är blockerade för Roothood i din telefon, så appen kan inte fråga själv. Så här slår du på dem:</p>
+    <ol style="text-align:left;padding-left:20px;line-height:1.5"><li>I Chrome: tryck på ikonen till vänster om adressen, välj <b>Behörigheter</b> eller <b>Webbplatsinställningar</b> och sätt <b>Aviseringar</b> till Tillåt.</li><li>Om Roothood ligger som en app på hemskärmen: håll fingret på appikonen, välj <b>Appinformation</b> → <b>Aviseringar</b> och slå på dem.</li><li>Kom tillbaka hit och tryck på knappen nedan.</li></ol>
+    <button class="btn wide" onclick="closeModal();enablePush()">Jag har tillåtit notiser</button>`;
+  else if (k === 'ios') main = `<p>På iPhone fungerar notiser bara när Roothood ligger på hemskärmen.</p>
+    <ol style="text-align:left;padding-left:20px;line-height:1.5"><li>Tryck på <b>Dela</b> i Safari (rutan med pilen uppåt).</li><li>Välj <b>Lägg till på hemskärmen</b>.</li><li>Öppna Roothood från hemskärmen. Då kommer den här frågan igen och du kan slå på notiser.</li></ol>
+    <button class="btn wide" onclick="closeModal()">Jag förstår</button>`;
+  else main = `<button class="btn wide" onclick="closeModal();enablePush()">Ja, slå på notiser</button>`;
+  return `<div class="mh"><h2>Slå på notiser</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div class="pushask"><span class="tic">${ic(BELL, 'currentColor', 30)}</span>
-  <p>Roothood kan meddela dig när</p><ul><li>en växt behöver vattnas</li><li>någon svarar dig eller vill bli din vän</li><li>det kommer en ny uppdatering av appen</li></ul>
-  <p class="mut" style="font-size:13px">Du väljer själv tiden och kan stänga av när du vill under Inställningar.</p>
-  <button class="btn wide" onclick="closeModal();enablePush()">Ja, slå på notiser</button><button class="link3" style="display:block;margin:12px auto 0" onclick="closeModal()">Inte nu</button></div>`; }
+  <p>Med notiser missar du inget. Roothood meddelar dig när</p><ul><li>en växt behöver vattnas</li><li>någon skickar ett meddelande, svarar dig eller vill bli din vän</li><li>Nyckelpigan har svarat på din felrapport</li><li>det kommer en ny uppdatering av appen</li></ul>
+  ${main}${how}
+  <button class="link3" style="display:block;margin:10px auto 0" onclick="openNotifSet()">Öppna notisinställningar</button>
+  <button class="link3" style="display:block;margin:10px auto 0" onclick="closeModal()">Inte nu</button></div>`;
+}
 async function enablePush() {
   if (!S.user) return openModal('login');
   if (!pushOk()) return toast(isIOS() && !isInstalled() ? 'På iPhone: lägg först till Roothood på hemskärmen via Dela i Safari, öppna appen därifrån och slå på notiser.' : 'Notiser fungerar inte här. Öppna appen i Chrome.');
