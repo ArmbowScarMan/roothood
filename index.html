@@ -7252,8 +7252,71 @@ async function placeAt(pt) {
   await savePos(m);
   const m2 = S.mine.find(x => x.id === pk.id) || m, r = roomOf(m2); m = m2; toast(r ? m.name + ' står i ' + r.name.toLowerCase() + ((m.details || {}).win ? ', ' + m.details.win.toLowerCase() : '') : m.name + ' står utanför rummen');
 }
-function openSmart() { if (needPro()) return; stopLight(); S.sel = null; S.tool = 'smart'; S.sm = S.sm || { ppfd: '', dli: '', start: '07:00', flow: '', ml: '', rh: '' }; render(); $('#main').scrollTop = 0; }
-function smUpd(k, v) { const [sec, f] = k.split('_'); if (f && f !== 'p' && f !== 'x') S.sm[f] = v; const r = $('#smres-' + sec); if (r) r.innerHTML = smResult(sec); }
+function openSmart() { if (needPro()) return; stopLight(); S.sel = null; S.tool = 'smart'; S.sm = S.sm || { ppfd: '', dli: '', start: '07:00', flow: '', ml: '', rh: '' }; render(); $('#main').scrollTop = 0; hueLoad(); }
+// ===== Philips Hue: styrning via serverfunktionen hue (Hues Remote API) =====
+async function hueCall(action, body) {
+  if (DEMO) throw new Error('Philips Hue fungerar inte i demoläget');
+  const { data } = await sb.auth.getSession();
+  const r = await fetch(SUPABASE_URL + '/functions/v1/hue?action=' + action, { method: body ? 'POST' : 'GET', headers: Object.assign({ apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + (data.session ? data.session.access_token : '') }, body ? { 'Content-Type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.error) throw new Error(j.error || 'fel ' + r.status);
+  return j;
+}
+function hueRefresh() { const el = $('#huebox'); if (el) { el.innerHTML = hueV(); iconize(el); } }
+async function hueLoad() {
+  if (!S.user || DEMO) { S.hue = { off: true }; return hueRefresh(); }
+  S.hue = Object.assign({}, S.hue || {}, { busy: true }); hueRefresh();
+  try { const j = await hueCall('status'); S.hue = j; if (j.sched && j.sched.light) S.hueLight = j.sched.light; }
+  catch (e) { S.hue = { connected: true, err: e.message }; }
+  hueRefresh();
+}
+async function hueConnect() {
+  try { const j = await hueCall('start'); location.href = j.url; } catch (e) { toast(errMsg(e)); }
+}
+async function hueDisconnect() {
+  if (!confirm('Koppla bort Philips Hue? Schemat slutar styra lampan.')) return;
+  try { await hueCall('disconnect', {}); S.hue = { connected: false }; hueRefresh(); toast('Philips Hue är bortkopplat'); } catch (e) { toast(errMsg(e)); }
+}
+async function hueSet(on) {
+  const id = S.hueLight; if (!id) return toast('Välj en lampa först');
+  try { await hueCall('set', { light: id, on }); toast(on ? 'Lampan är tänd' : 'Lampan är släckt'); const l = (S.hue.lights || []).find(x => x.id === id); if (l) l.on = on; hueRefresh(); } catch (e) { toast(errMsg(e)); }
+}
+// Lampschemat från uträkningen ovan: starttid och antal minuter per dag
+function smLampPlan() {
+  const s = S.sm || {}, ppfdV = +s.ppfd, p = S.plants.find(x => x.id === +s.plant), dli = +s.dli || (p ? DLI_T[p.light_level][0] + (DLI_T[p.light_level][1] - DLI_T[p.light_level][0]) / 2 : 0);
+  if (!(ppfdV > 0) || !(dli > 0)) return null;
+  const h = Math.min(18, Math.max(1, dli * 1e6 / (ppfdV * 3600))), hh = Math.floor(h), mm = Math.round((h - hh) * 60 / 15) * 15;
+  return { start: s.start || '07:00', mins: hh * 60 + mm };
+}
+async function hueSched(on) {
+  const id = S.hueLight, plan = smLampPlan();
+  if (on && !id) return toast('Välj en lampa först');
+  if (on && !plan) return toast('Fyll i lampans PPFD och välj en växt ovan, så räknar appen ut schemat');
+  const l = (S.hue.lights || []).find(x => x.id === id);
+  try {
+    await hueCall('sched', { light: id || null, name: l ? l.name : null, on, start: plan ? plan.start : '07:00', mins: plan ? plan.mins : 0 });
+    S.hue.sched = { on, light: id, start: plan ? plan.start : '07:00', mins: plan ? plan.mins : 0 }; hueRefresh();
+    toast(on ? 'Klart! Roothood tänder och släcker lampan enligt schemat.' : 'Schemat är avstängt');
+  } catch (e) { toast(errMsg(e)); }
+}
+function hueV() {
+  const H = S.hue;
+  const head = `<p style="margin:0 0 6px"><b>Styr en Philips Hue-lampa</b></p>`;
+  if (!H || H.busy) return head + '<p class="mut" style="margin:0;font-size:14px">Kollar kopplingen…</p>';
+  if (H.off) return head + `<p class="mut" style="margin:0;font-size:14px">${DEMO ? 'Finns inte i demoläget.' : 'Logga in för att koppla Philips Hue.'}</p>`;
+  if (!H.connected) return head + `<p class="mut" style="margin:0 0 8px;font-size:14px">Koppla din Hue-brygga så tänder och släcker Roothood växtlampan enligt schemat, även när appen är stängd. Du loggar in hos Philips Hue och godkänner kopplingen.</p><button class="btn sm" onclick="hueConnect()">Koppla Philips Hue</button>`;
+  if (H.err) return head + `<p style="margin:0 0 8px;font-size:14px">${esc(H.err)}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm line" onclick="hueLoad()">Försök igen</button><button class="btn sm" onclick="hueConnect()">Koppla igen</button><button class="link3" onclick="hueDisconnect()">Koppla bort</button></div>`;
+  const L = H.lights || [], sc = H.sched || {}, plan = smLampPlan(), cur = L.find(x => x.id === S.hueLight);
+  const endTxt = (st, m) => { const [a, b] = st.split(':').map(Number), t = (a * 60 + b + m) % 1440; return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+  return head + `<p class="mut" style="margin:0 0 8px;font-size:14px">Kopplad till din Hue-brygga. Välj vilken lampa som är växtlampa.</p>
+  ${L.length ? `<select id="huel" onchange="S.hueLight=this.value;hueRefresh()" aria-label="Hue-lampa"><option value="">Välj lampa…</option>${L.map(x => `<option value="${esc(x.id)}" ${S.hueLight === x.id ? 'selected' : ''}>${esc(x.name)}${x.on ? ' (tänd)' : ''}</option>`).join('')}</select>` : '<p style="margin:0">Hittade inga lampor i bryggan.</p>'}
+  ${cur ? `<div style="display:flex;gap:8px;margin-top:8px"><button class="btn sm line" onclick="hueSet(true)">Tänd</button><button class="btn sm line" onclick="hueSet(false)">Släck</button></div>` : ''}
+  ${sc.on && sc.light ? `<p style="margin:10px 0 0;font-size:14px">${ic('ph-check-circle', 'currentColor', 16)} Schemat är på: <b>${esc((L.find(x => x.id === sc.light) || {}).name || 'lampan')}</b> tänds <b>${esc(sc.start)}</b> och släcks <b>${endTxt(sc.start, sc.mins)}</b> varje dag.</p>${sc.error ? `<p style="margin:6px 0 0;font-size:13px;color:var(--warn,#d9822b)">Senaste försöket misslyckades: ${esc(sc.error)}</p>` : ''}` : ''}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${cur ? `<button class="btn sm" onclick="hueSched(true)">${sc.on ? 'Uppdatera schemat' : 'Styr lampan efter schemat'}</button>` : ''}${sc.on ? '<button class="btn sm line" onclick="hueSched(false)">Stäng av schemat</button>' : ''}</div>
+  ${cur && plan ? `<p class="mut" style="margin:6px 0 0;font-size:12.5px">Schemat ovan: ${esc(plan.start)}–${endTxt(plan.start, plan.mins)}. Du kan fortfarande tända och släcka själv i Hue-appen.</p>` : cur ? '<p class="mut" style="margin:6px 0 0;font-size:12.5px">Fyll i PPFD och växt ovan, så räknar appen ut hur länge lampan ska lysa.</p>' : ''}
+  <button class="link3" style="margin-top:10px" onclick="hueDisconnect()">Koppla bort Philips Hue</button>`;
+}
+function smUpd(k, v) { const [sec, f] = k.split('_'); if (f && f !== 'p' && f !== 'x') S.sm[f] = v; const r = $('#smres-' + sec); if (r) r.innerHTML = smResult(sec); if (sec === 'lamp' && S.hue && S.hue.connected) hueRefresh(); }
 const DLI_T = { 1: [3, 5], 2: [6, 10], 3: [12, 20] };
 function smResult(sec) {
   const s = S.sm;
@@ -7288,7 +7351,7 @@ function smartV() {
   const mineOpts = sel => `<option value="">Välj växt i samlingen…</option>` + mine.map(m => `<option value="${m.id}" ${+sel === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('');
   const lastPpfd = S.light && S.light.lux != null ? Math.round(ppfd()) : null;
   return `${topbar('Smarta hemmet', 'closeTool()')}
-  <p class="mut" style="margin:0 18px">Koppla sensorer och smarta uttag till dina växter. Fungerar med Tapo, Philips Hue, IKEA och Google Home.</p>
+  <p class="mut" style="margin:0 18px">Koppla sensorer och lampor till dina växter. Roothood kan styra Philips Hue-lampor direkt. För Tapo, IKEA och Google Home räknar appen ut schemat och visar hur du lägger in det i deras appar.</p>
 
   <div class="smcard"><h3>${ic(BTI, 'currentColor', 20)} Växtsensorer</h3>
   <p class="mut" style="margin:0 0 6px;font-size:14px">Stick ner en Bluetooth-sensor i krukan, till exempel <b>Xiaomi Flower Care</b> (jordfukt, ljus, temperatur, näring). Termometern <b>Xiaomi LYWSD03MMC</b> mäter luftfukt. Kopplas och läses av på varje växts sida.</p>
@@ -7303,9 +7366,9 @@ function smartV() {
   <div><label class="fl" for="smst">Tänds kl</label><input id="smst" type="time" value="${esc(s.start)}" oninput="smUpd('lamp_start',this.value)"></div></div>
   ${lastPpfd ? `<button class="x" onclick="S.sm.ppfd='${lastPpfd}';render()">Använd ljusmätarens värde (${lastPpfd})</button>` : '<p class="mut" style="font-size:12.5px;margin:6px 0 0">Mät PPFD med ljusmätaren under lampan.</p>'}
   <div class="smres" id="smres-lamp">${smResult('lamp')}</div>
-  <details class="tech"><summary>Lägg in schemat i din app</summary>
+  <div class="setcard" id="huebox" style="padding:12px 14px;margin-top:12px">${hueV()}</div>
+  <details class="tech"><summary>Har du Tapo, IKEA eller Google Home? Lägg in schemat själv</summary>
   <p><b>Tapo:</b> öppna uttaget → <b>Schema</b> → lägg till en tid för PÅ och en för AV.</p>
-  <p><b>Philips Hue:</b> <b>Automationer</b> → <b>Ny automation</b> → välj tider och lampan.</p>
   <p><b>IKEA Home smart:</b> <b>Automationer</b> → <b>Schemalagd</b> → välj lampan eller uttaget.</p>
   <p><b>Google Home:</b> <b>Automatiseringar</b> → <b>+</b> → <b>Tid på dagen</b> → <b>Slå på</b> enheten. Gör en till för att stänga av.</p></details></div>
 
@@ -7333,10 +7396,10 @@ function smartV() {
   <li>Använd gärna avkalkat eller kokat och avsvalnat vatten, annars blir det vita fläckar.</li>
   <li>Sikta på 50–60 %. Över 70 % länge kan ge mögel.</li></ol></details></div>
 
-  <div class="smcard"><h3>${ic(I.leaf, 'currentColor', 20)} Så blir det vid lansering</h3>
-  <p class="mut" style="margin:0;font-size:14px">Med en egen server kan Roothood styra lampor och uttag själv, helt automatiskt:</p>
+  <div class="smcard"><h3>${ic(I.leaf, 'currentColor', 20)} Så blir det framöver</h3>
+  <p class="mut" style="margin:0;font-size:14px">Philips Hue styrs redan av Roothoods server. Målet är att fler märken ska fungera likadant, helt automatiskt:</p>
   <div class="flow"><div>🌱 Sensorn i krukan mäter att jorden är torr</div><div class="arr">↓</div><div>☁️ Roothoods server får värdet</div><div class="arr">↓</div><div>🔌 Servern säger åt Tapo, Hue, IKEA eller Google Home att starta pumpen eller tända lampan</div><div class="arr">↓</div><div>📱 Du får en notis: "Monsteran fick 200 ml vatten"</div></div>
-  <p class="mut" style="font-size:12.5px;margin:10px 0 0">Kräver att varje företag godkänner appen (Google kräver certifiering), därför kommer det senare.</p></div>
+  <p class="mut" style="font-size:12.5px;margin:10px 0 0">Tapo, IKEA och Google Home har inget öppet sätt för appar att styra deras uttag (Google kräver certifiering), därför kommer det senare.</p></div>
   <div style="height:20px"></div>`;
 }
 
@@ -16420,7 +16483,8 @@ async function init() {
   const startTool = new URLSearchParams(location.search).get('tool');
   if (startTool === 'msgs' || startTool === 'notif') { try { history.replaceState(null, '', location.pathname); } catch (e) { console.warn('Roothood:', e); } setTimeout(() => { if (S.user) startTool === 'msgs' ? openMsgs() : openNotif(); }, 600); }
   if (startTool === 'id') { try { history.replaceState(null, '', location.pathname); } catch (e) { console.warn('Roothood:', e); } setTimeout(() => { openTool('id'); if (S.tool === 'id') startIdCam(); }); }
-  if (startTab === 'mine' || ['msgs', 'notif', 'id'].includes(startTool)) { try { history.replaceState({ d: 0, st: Object.assign(navTake(), { tab: 'home', tool: null, sel: null }), y: 0 }, '', '#home'); curHash = '#home'; } catch (e) { console.warn('Roothood:', e); } }
+  if (startTool === 'smart') { const hq = new URLSearchParams(location.search).get('hue'); try { history.replaceState(null, '', location.pathname); } catch (e) { console.warn('Roothood:', e); } setTimeout(() => { if (!S.user) return; openSmart(); if (hq) toast({ ok: 'Philips Hue är kopplat! Välj lampa nedan.', nej: 'Du avbröt kopplingen till Philips Hue.', brygga: 'Inloggningen gick bra, men appen fick inte kontakt med Hue-bryggan. Kolla att bryggan är på och kopplad till internet och försök igen.', gammal: 'Kopplingen tog för lång tid. Försök igen.' }[hq] || 'Kunde inte koppla Philips Hue. Försök igen.'); }, 600); }
+  if (startTab === 'mine' || ['msgs', 'notif', 'id', 'smart'].includes(startTool)) { try { history.replaceState({ d: 0, st: Object.assign(navTake(), { tab: 'home', tool: null, sel: null }), y: 0 }, '', '#home'); curHash = '#home'; } catch (e) { console.warn('Roothood:', e); } }
   render();
   if (restoreY) setTimeout(() => { const m = $('#main'); if (m) m.scrollTop = restoreY; }, 350);
   $('#main').addEventListener('scroll', () => { navY = $('#main').scrollTop; clearTimeout(scrollT); scrollT = setTimeout(saveView, 400); }, { passive: true });
