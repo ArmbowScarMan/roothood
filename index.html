@@ -7252,6 +7252,9 @@ async function placeAt(pt) {
   await savePos(m);
   const m2 = S.mine.find(x => x.id === pk.id) || m, r = roomOf(m2); m = m2; toast(r ? m.name + ' står i ' + r.name.toLowerCase() + ((m.details || {}).win ? ', ' + m.details.win.toLowerCase() : '') : m.name + ' står utanför rummen');
 }
+// Genväg från lampschemat till ljusmätaren och tillbaka med värdet ifyllt
+function lampMeasure() { openTool('light'); S.lampFrom = true; render(); }
+function lampUse() { if (!S.light || S.light.lux == null) return toast('Mät först, vänta tills värdet visas'); S.sm = S.sm || {}; S.sm.ppfd = String(Math.round(ppfd())); toast('PPFD ' + S.sm.ppfd + ' är ifyllt i lampschemat'); navBack(); }
 function openSmart() { if (needPro()) return; stopLight(); S.sel = null; S.tool = 'smart'; S.sm = S.sm || { ppfd: '', dli: '', start: '07:00', flow: '', ml: '', rh: '' }; render(); $('#main').scrollTop = 0; hueLoad(); }
 // ===== Philips Hue: styrning via serverfunktionen hue (Hues Remote API) =====
 async function hueCall(action, body) {
@@ -7347,7 +7350,9 @@ function smResult(sec) {
 function smartV() {
   if (!S.sm) S.sm = { ppfd: '', dli: '', start: '07:00', flow: '', ml: '', rh: '' };
   const s = S.sm, mine = S.mine, withSensor = mine.filter(m => m.details && (m.details.sensor || m.details.climate));
-  const plantOpts = sel => `<option value="">Välj växt…</option>` + S.plants.slice().sort((a, b) => a.swedish_name.localeCompare(b.swedish_name, 'sv')).map(p => `<option value="${p.id}" ${+sel === p.id ? 'selected' : ''}>${esc(p.swedish_name)}</option>`).join('');
+  // Bara växter som finns i Min samling (en rad per art, även om man har flera av samma)
+  const mineArts = [...new Set(mine.map(m => m.plant_id))].map(id => S.plants.find(p => p.id === id)).filter(Boolean).sort((a, b) => a.swedish_name.localeCompare(b.swedish_name, 'sv'));
+  const plantOpts = sel => (mineArts.length ? `<option value="">Välj växt i din samling…</option>` : `<option value="">Du har inga växter i samlingen än</option>`) + mineArts.map(p => `<option value="${p.id}" ${+sel === p.id ? 'selected' : ''}>${esc(p.swedish_name)}</option>`).join('');
   const mineOpts = sel => `<option value="">Välj växt i samlingen…</option>` + mine.map(m => `<option value="${m.id}" ${+sel === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('');
   const lastPpfd = S.light && S.light.lux != null ? Math.round(ppfd()) : null;
   return `${topbar('Smarta hemmet', 'closeTool()')}
@@ -7364,7 +7369,8 @@ function smartV() {
   <label class="fl" for="smp">Växt</label><select id="smp" onchange="S.sm.plant=this.value;S.sm.dli='';smUpd('lamp_p',this.value)">${plantOpts(s.plant)}</select>
   <div class="two"><div><label class="fl" for="smpp">Lampans PPFD vid växten</label><input id="smpp" type="number" inputmode="numeric" placeholder="${lastPpfd ? 'Senast uppmätt: ' + lastPpfd : 't.ex. 150'}" value="${esc(s.ppfd)}" oninput="smUpd('lamp_ppfd',this.value)"></div>
   <div><label class="fl" for="smst">Tänds kl</label><input id="smst" type="time" value="${esc(s.start)}" oninput="smUpd('lamp_start',this.value)"></div></div>
-  ${lastPpfd ? `<button class="x" onclick="S.sm.ppfd='${lastPpfd}';render()">Använd ljusmätarens värde (${lastPpfd})</button>` : '<p class="mut" style="font-size:12.5px;margin:6px 0 0">Mät PPFD med ljusmätaren under lampan.</p>'}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm line" onclick="lampMeasure()">${ic(I.sun, 'currentColor', 16)} Mät med ljusmätaren</button>${lastPpfd ? `<button class="btn sm line" onclick="S.sm.ppfd='${lastPpfd}';render()">Använd senaste mätningen (${lastPpfd})</button>` : ''}</div>
+  <p class="mut" style="font-size:12.5px;margin:6px 0 0">Mät PPFD under lampan, där växten står.</p>
   <div class="smres" id="smres-lamp">${smResult('lamp')}</div>
   <div class="setcard" id="huebox" style="padding:12px 14px;margin-top:12px">${hueV()}</div>
   <details class="tech"><summary>Har du Tapo, IKEA eller Google Home? Lägg in schemat själv</summary>
@@ -8197,7 +8203,7 @@ function timeSwitch(h) { timeFlush(false); const f = featOf(h); timeF = f ? f.sl
 document.addEventListener('visibilitychange', () => { if (document.hidden) timeFlush(true); else timeT = timeF ? Date.now() : 0; });
 function trackUse(h) { timeSwitch(h); const f = featOf(h); if (!f || !S.user || DEMO || !sb || isAdmin()) return; const now = Date.now(); if (trackSent[f] && now - trackSent[f] < 6e5) return; trackSent[f] = now; try { sb.rpc('track_use', { p_feature: f.slice(0, 40).toLowerCase().replace(/[^a-z0-9_-]/g, '') }).then(() => {}, () => {}); } catch (e) { } }
 function navTake() { const o = {}; NAVK.forEach(k => o[k] = S[k]); return o; }
-function navBack() { if (S.tool === 'house' && S.hDirty) saveHomeNow(true); stopLight(); if (((history.state || {}).d || 0) > 0) { try { history.back(); return; } catch (e) { } } S.tool = null; S.sel = null; S.post = null; if (S.tab === 'home') render(); else go('home'); }
+function navBack() { S.lampFrom = false; if (S.tool === 'house' && S.hDirty) saveHomeNow(true); stopLight(); if (((history.state || {}).d || 0) > 0) { try { history.back(); return; } catch (e) { } } S.tool = null; S.sel = null; S.post = null; if (S.tab === 'home') render(); else go('home'); }
 function trackView() {
   if (S.loading || S.err) return;
   const h = viewHash();
@@ -12396,7 +12402,7 @@ function docV() {
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="docAsk()">${ic('ph-graduation-cap', 'currentColor', 16)} Fråga en expert${S.pro ? '' : ' ' + proBadge()}</button></div></div></div>
   <p class="mut" style="margin:14px 18px 28px;font-size:12.5px">Växtdoktorn ger förslag utifrån det du väljer. Är du osäker, visa en bild för någon som kan växter.</p>`;
 }
-function openTool(t) { if (needPro()) return; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
+function openTool(t) { if (needPro()) return; S.lampFrom = false; S.tool = t; S.idRes = null; S.idErr = null; S.light = null; render(); $('#main').scrollTop = 0; }
 function closeTool() { navBack(); }
 // ===== Upptäck: svep på växter du inte har =====
 // Höger = läggs i Villhöver (samma lista som under Min samling). Vänster = hoppar över utan att spara något.
@@ -13002,6 +13008,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.426', '17 nov', ['Schema för växtlampan: du väljer bara bland växter som finns i Min samling', 'Ny knapp Mät med ljusmätaren vid PPFD-fältet. Du mäter under lampan och värdet fylls i lampschemat med ett tryck']],
   ['Beta 0.425', '17 nov', ['Ljusmätaren väljer själv den kamera som kan låsa exponeringen och låser värdet automatiskt med kameran på baksidan. Kan telefonen bara ge ett index får du bättre råd om vad du kan göra', 'Smarta hemmet: du kan koppla Philips Hue och styra växtlampan direkt från appen, tända och släcka den och låta den följa schemat som appen räknat ut. För Tapo, IKEA och Google Home räknar appen fortfarande bara ut schemat']],
   ['Beta 0.424', '17 nov', ['Har du inte slagit på notiser får du en fråga om det när du öppnar appen, med förklaring om hur du väljer vilka notiser du får under Profil, Inställningar och Notifikationer', 'Är notiser blockerade i telefonen visar appen hur du tillåter dem igen']],
   ['Beta 0.423', '17 nov', ['Fyra nya sidor under Lär dig mer: Stenparti, Hållbar odling, Äpplen och Beskärning', 'Svep bland växter: du kan gå in på en växt och sedan tillbaka och fortsätta svepa där du slutade', 'Svep bland växter: knappen Visa mer om växten fungerar även med mus']],
@@ -15547,6 +15554,7 @@ function lightRest() {
 }
 function lightV() {
   return `${topbar('Ljusmätare', 'closeTool()')}<div class="pad">
+  ${S.lampFrom ? `<div class="smcard" style="margin:6px 0 10px"><b>Mäter för lampschemat</b><p class="mut" style="margin:4px 0 8px;font-size:13.5px">Håll mobilen under lampan där växten står. När värdet visas tryck på knappen.</p><button class="btn" onclick="lampUse()">Använd värdet i lampschemat</button></div>` : ''}
   <div class="chips2" style="margin:6px 0 10px">${[['paper', 'Med vitt papper (bäst)'], ['bare', 'Utan papper']].map(([k, t]) => `<button class="${lmode() === k ? 'on' : ''}" onclick="setLmode('${k}')">${t}</button>`).join('')}</div>
   ${lcamChips()}
   <p class="mut" style="margin:0 0 12px">${lcamFacing() === 'environment'
@@ -15781,7 +15789,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.425';
+const APP_VERSION = 'Beta 0.426';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
