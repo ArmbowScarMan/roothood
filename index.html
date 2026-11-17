@@ -3390,11 +3390,12 @@ function detailsV(m, inModal) {
   ${hints.map(x => `<div class="pdhint ${x[0]}"><span class="ck">${x[0] === 'warn' ? '⚠️' : '💡'}</span><span>${esc(x[1])}</span></div>`).join('')}
   ${!items.length || inModal ? `<button class="btn sm ${items.length ? 'line' : ''}" style="margin-top:10px" onclick="openDetails(${m.id})">${items.length ? 'Redigera uppgifter' : '+ Lägg till uppgifter'}</button>` : ''}</div>`;
 }
-function openDetails(id) {
+function openDetails(id, focusId) {
   const m = S.mine.find(x => x.id === id); if (!m) return;
   S.pdId = id; S.pdBack = S.modal === 'myplant';
   S.pd = JSON.parse(JSON.stringify(m.details || {})); if (!S.pd.soil) S.pd.soil = [];
   openModal('pdet');
+  if (focusId) setTimeout(() => { const el = document.getElementById(focusId); if (el) { el.scrollIntoView({ block: 'center' }); try { el.focus({ preventScroll: true }); } catch (e) { } } }, 80);
   if (document.activeElement) document.activeElement.blur();
 }
 function keepScroll() { const md = $('.modal'), y = md ? md.scrollTop : 0; render(); const m2 = $('.modal'); if (m2) m2.scrollTop = y; }
@@ -7862,7 +7863,7 @@ function diaryV(m, inModal) {
     <div class="jrow"><input id="jd${m.id}" type="date" value="${today()}" max="${today()}" aria-label="Datum">${speechOk() ? `<button class="btn sm line" onclick="jVoice(${m.id})" aria-label="Diktera">${ic('ph-microphone', 'currentColor', 16)}</button>` : ''}<button class="btn sm" onclick="jNote(${m.id})">Spara</button></div></div>
   ${m.interval ? `<label class="remrow"><input type="checkbox" ${m.remind !== false ? 'checked' : ''} onchange="setRemind(${m.id}, this.checked)"><span><b>Påminn mig när den behöver vatten</b><span class="mut">${m.remind !== false ? 'Var ' + m.interval + ':e dag, i appen och som notis' : 'Av. Du sköter vattningen själv'}</span></span></label>` : ''}
   ${nextStepsV(m)}
-  <div class="chips2 sm jfilt scrx" role="tablist">${[['all', 'Allt'], ['care', 'Skötsel'], ['note', 'Anteckningar'], ['mat', 'Mått']].map(([k, n]) => `<button class="${f === k ? 'on' : ''}" role="tab" aria-selected="${f === k}" onclick="S.jf=S.jf||{};S.jf[${m.id}]='${k}';keepMain()">${n}</button>`).join('')}<button onclick="openDetails(${m.id})">${ic('ph-ruler', 'currentColor', 14)} Mät</button></div>
+  <div class="chips2 sm jfilt scrx" role="tablist">${(all.length ? [['all', 'Allt'], ['care', 'Skötsel'], ['note', 'Anteckningar'], ['mat', 'Mått']] : []).map(([k, n]) => `<button class="${f === k ? 'on' : ''}" role="tab" aria-selected="${f === k}" onclick="S.jf=S.jf||{};S.jf[${m.id}]='${k}';keepMain()">${n}</button>`).join('')}<button onclick="openDetails(${m.id},'pdh')">${ic('ph-ruler', 'currentColor', 14)} Mät höjd</button></div>
   ${items}</div>`;
 }
 
