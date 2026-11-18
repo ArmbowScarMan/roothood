@@ -1143,6 +1143,7 @@ button.pw{cursor:pointer}
 .stip.sow .sw em{font-style:normal;font-weight:700;color:var(--pri)}
 .stip.sow .sw.now{background:var(--soft);border-radius:8px;padding:2px 8px;margin:2px -8px}
 .stip.sow .stp{margin-top:4px;font-size:13px}
+.lfig{margin:10px 0 12px;padding:10px;border-radius:14px;background:rgba(127,183,126,.08);color:var(--txt,inherit)}.lfig svg{display:block;width:100%;height:auto;font-family:inherit}.lfig figcaption{font-size:12.5px;opacity:.75;margin-top:6px}
 .acc{background:var(--surf);border-radius:18px;box-shadow:var(--sh);margin-bottom:10px;overflow:hidden}
 .acc summary{display:flex;gap:12px;align-items:center;padding:14px 16px;cursor:pointer;list-style:none;font-size:15.5px}
 .acc summary::-webkit-details-marker{display:none}
@@ -13238,6 +13239,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.434', '18 nov', ['Lär dig mer, Ljus: ett stort kapitel med 18 kort och egna bilder. Fotosyntes, klorofyll, vad som händer i bladens celler med och utan ljus, lux, PPFD och DLI, fönster, ljuset under året, växtlampor, rekommenderade lampor, avstånd, timer, förodling, myter och säkerhet']],
   ['Beta 0.433', '18 nov', ['Välj växt i Mät med kameran och Dagboken: egen lista grupperad per rum, med en bildknapp på varje växt så att du ser exakt vilken det är','Trycker du på en notis om en uppdatering hamnar du nu på Start i stället för Min samling. Vattningspåminnelser öppnar fortfarande Min samling']],
   ['Beta 0.432', '18 nov', ['Välj växt i Mät med kameran och i Dagboken: listan är grupperad per rum, och har du flera av samma sort visas detaljer (fönster, kruka, när du la till den) så att du ser vilken det är']],
   ['Beta 0.431', '18 nov', ['Ny ruta Blomning på växtsidan: en månadsstapel som visar när växten blommar, plus blomfärg. Saknas tiden i databasen visas en ungefärlig tid för släktet','Fel bilder rättade: många växter hade bilder på frimärken, kartor, organ, fåglar och insekter. Dessa är bytta mot riktiga växtbilder, och appen hoppar nu över sådana bilder','Fototexten ligger i bilden i stället för över knapparna Sök bilder och Rapportera bild']],
@@ -15326,13 +15328,222 @@ const LEARN = {
     ['🌱', 'Organiskt eller mineraliskt', 'Organisk gödsel kommer från växter och djur, mineralisk är framställd. Båda fungerar.', ['Organisk gödsel matar jordlivet, bäst ute och i jord', 'Mineralisk näring verkar direkt, bäst i hydro och leca', 'Kompost och nässelvatten är gratis näring för trädgården']],
     ['🔍', 'Brist eller överskott?', 'Bladen visar ofta vad som saknas.', ['Gula äldre blad: kvävebrist', 'Gula blad med gröna nerver: järn- eller magnesiumbrist', 'Bruna bladkanter och vita skorpor: för mycket näring']],
     ['🏡', 'I trädgården', 'Gödsla i trädgården på våren och försommaren. Sluta gödsla buskar och perenner i augusti så att de hinner bli härdiga.', ['Kompost och välbrunnen gödsel på våren', 'Gräsmattan: kväve på våren, kalium på hösten', 'Grönsaker som tomat och squash är storätare']]]],
-  ljus: ['Ljus', 'ph-sun', 'Ljus är växternas mat. Lär dig mäta, förstå och komplettera ljuset hemma.', [
-    ['☀️', 'Varför ljus är viktigast', 'Växter gör socker av ljus. För lite ljus ger långa, svaga skott, små blad och att växten inte blommar.', ['De flesta krukväxter vill ha mycket ljus men inte stark middagssol', 'Ljuset minskar snabbt med avståndet från fönstret', 'En meter in i rummet kan ljuset vara hälften så starkt']],
-    ['🧭', 'Fönster och väderstreck', 'I Sverige ger söderfönster mest ljus, norrfönster minst.', ['Söder: sol större delen av dagen, passar kaktus och suckulenter', 'Öster och väster: mild morgon- eller kvällssol, passar de flesta', 'Norr: jämnt men svagt ljus, passar ormbunkar och fredskalla']],
-    ['📏', 'Lux, PPFD och DLI', 'Lux mäter ljus som ögat ser det. PPFD mäter ljuset växten kan använda. DLI är hur mycket ljus växten får under en hel dag.', ['Skugga: under 2 500 lux', 'Halvskugga: 2 500–10 000 lux', 'Ljust: över 10 000 lux. Mät med Ljusmätaren i appen']],
-    ['💡', 'Växtbelysning', 'På vintern räcker inte dagsljuset i Sverige. En växtlampa kan göra stor skillnad.', ['Vitt fullspektrumljus fungerar bra och ser naturligt ut', 'Häng lampan 20–45 cm ovanför växten', 'Ha den tänd 12–14 timmar om dagen, gärna med timer']],
-    ['❄️', 'Vintern', 'Från oktober till februari är ljuset svagt och dagarna korta.', ['Flytta växterna närmare fönstret', 'Torka av dammiga blad så att de får mer ljus', 'Vattna och gödsla mindre, växten växer långsammare']],
-    ['🔥', 'För mycket ljus', 'Även solälskande växter kan bränna sig, särskilt efter en mörk vinter.', ['Bruna eller vita fläckar på bladen efter sol är brännskador', 'Vänj växter vid mer sol gradvis under några veckor', 'Ett tunt gardin sprider ljuset och skyddar']]]],
+  ljus: ['Ljus', 'ph-sun', 'Ljus är växternas mat. Här får du veta hur växten använder ljuset, hur du mäter det och hur du ger mer ljus med en växtlampa.', [
+    ['🌱', 'Fotosyntesen, steg för steg', 'Fotosyntes betyder ungefär att bygga med ljus. Växten tar ljus, vatten och koldioxid och gör socker och syre. Sockret är växtens mat och byggmaterial.', [
+      '<b>Formeln i ord:</b> vatten + koldioxid + ljus blir socker + syre.',
+      '<b>Vattnet</b> tas upp av rötterna och går upp genom stammen till bladen i tunna rör, bladnerverna.',
+      '<b>Koldioxiden</b> kommer in från luften genom små öppningar på bladets undersida, klyvöppningar. Ett blad kan ha tiotusentals per kvadratcentimeter.',
+      '<b>Steg 1, ljusreaktionen:</b> i kloroplasterna fångar klorofyllet ljuset. Energin används för att dela vattnet. Då blir syre över, och det släpps ut genom klyvöppningarna.',
+      '<b>Steg 2, Calvincykeln:</b> energin från steg 1 används för att bygga socker av koldioxiden. Det steget kallas ibland mörkerreaktionen, men det sker också på dagen.',
+      '<b>Sockret</b> blir till cellulosa i nya blad och rötter, lagras som stärkelse eller används som energi.',
+      'Utan ljus stannar steg 1, och då stannar också steg 2. Därför är ljuset det viktigaste för en krukväxt, viktigare än gödsel.'],
+      `<figure class="lfig"><svg viewBox="0 0 320 200" role="img" aria-label="Ett blad i genomskärning. Ljus kommer uppifrån, vatten från bladnerven, koldioxid in genom klyvöppningen. Socker går ut i nerven och syre ut genom klyvöppningen.">
+<defs><marker id="la" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a9a8f"/></marker></defs>
+<circle cx="40" cy="28" r="16" fill="#f4c542"/><g stroke="#f4c542" stroke-width="3" marker-end="url(#la)" color="#f4c542"><line x1="62" y1="38" x2="98" y2="62"/><line x1="52" y1="48" x2="78" y2="68"/></g>
+<rect x="70" y="66" width="230" height="16" rx="6" fill="#7fb77e" opacity=".55"/>
+<g fill="#3f8f4f"><rect x="78" y="86" width="22" height="40" rx="9"/><rect x="106" y="86" width="22" height="40" rx="9"/><rect x="134" y="86" width="22" height="40" rx="9"/><rect x="162" y="86" width="22" height="40" rx="9"/><rect x="190" y="86" width="22" height="40" rx="9"/><rect x="218" y="86" width="22" height="40" rx="9"/><rect x="246" y="86" width="22" height="40" rx="9"/><rect x="274" y="86" width="22" height="40" rx="9"/></g>
+<g fill="#9bd38f"><circle cx="89" cy="96" r="3.5"/><circle cx="89" cy="112" r="3.5"/><circle cx="117" cy="100" r="3.5"/><circle cx="145" cy="96" r="3.5"/><circle cx="173" cy="104" r="3.5"/><circle cx="201" cy="96" r="3.5"/><circle cx="229" cy="108" r="3.5"/><circle cx="257" cy="98" r="3.5"/><circle cx="285" cy="104" r="3.5"/></g>
+<g fill="#5fa56a" opacity=".6"><circle cx="122" cy="134" r="6"/><circle cx="200" cy="134" r="6"/><circle cx="240" cy="136" r="6"/></g>
+<ellipse cx="160" cy="146" rx="18" ry="11" fill="#3b7fbf" opacity=".85"/><rect x="70" y="160" width="230" height="10" rx="5" fill="#7fb77e" opacity=".55"/>
+<rect x="150" y="160" width="20" height="10" fill="var(--bg,#10261a)"/><path d="M146 162q14-10 28 0" stroke="#3f8f4f" stroke-width="4" fill="none"/>
+<g stroke-width="2.5" fill="none" marker-end="url(#la)"><path d="M150 196L156 168" stroke="#9aa5b1" color="#9aa5b1"/><path d="M166 168L176 196" stroke="#cfe8ff" color="#cfe8ff"/><path d="M178 146L250 146" stroke="#e8a33c" color="#e8a33c"/><path d="M40 146L141 146" stroke="#4aa3e0" color="#4aa3e0"/></g>
+<g font-size="11" fill="currentColor" font-family="inherit"><text x="8" y="60">Ljus</text><text x="72" y="190">Koldioxid in</text><text x="182" y="190">Syre ut</text><text x="6" y="142">Vatten</text><text x="254" y="150">Socker</text><text x="232" y="62" font-size="9.5">kloroplaster</text></g>
+</svg><figcaption>Ett blad i genomskärning. Den blå ovalen är en bladnerv. Kloroplasterna (små gröna korn) sitter i de avlånga cellerna överst, där ljuset är starkast.</figcaption></figure>`],
+    ['🟢', 'Klorofyll, bladets solpanel', 'Klorofyll är det gröna färgämnet i kloroplasterna. Det fungerar som en solpanel: det fångar ljus och gör om det till energi som växten kan använda.', [
+      '<b>Varför är blad gröna?</b> Klorofyll tar upp mest blått och rött ljus. Det gröna ljuset tas upp sämre och studsar tillbaka, och det är det vi ser.',
+      '<b>Klorofyll a och b:</b> två sorters klorofyll som fångar lite olika färger. Tillsammans täcker de mer av ljuset.',
+      '<b>Karotenoider</b> är gula och orangea färgämnen som hjälper till att fånga ljus och skyddar klorofyllet mot för starkt ljus.',
+      '<b>Grönt ljus är inte värdelöst.</b> Det tränger djupare in i bladet och når celler längre ner. Därför fungerar vitt ljus bra för växter.',
+      '<b>På hösten</b> bryter träden ner klorofyllet och tar tillbaka näringen. Då syns karotenoiderna, och bladen blir gula och orangea. Röda blad är nya färgämnen som bildas på hösten.',
+      '<b>Klorofyll behöver näring:</b> mitt i varje klorofyllmolekyl sitter magnesium, och järn behövs för att bilda det. Brist ger gula blad med gröna nerver.',
+      '<b>Brokiga blad</b> har vita eller gula fläckar utan klorofyll. De delarna gör ingen fotosyntes, så brokiga växter behöver mer ljus än helgröna av samma sort.'],
+      `<figure class="lfig"><svg viewBox="0 0 320 170" role="img" aria-label="Diagram över vilka färger klorofyll tar upp. Höga toppar i blått och rött, en dal i grönt.">
+<defs><linearGradient id="lsp" x1="0" x2="1"><stop offset="0" stop-color="#6a3cc9"/><stop offset=".17" stop-color="#2f5fe0"/><stop offset=".33" stop-color="#20a9c9"/><stop offset=".45" stop-color="#3cbf4a"/><stop offset=".6" stop-color="#d9d33a"/><stop offset=".72" stop-color="#f29a2e"/><stop offset=".86" stop-color="#e2412e"/><stop offset="1" stop-color="#8e1d1d"/></linearGradient></defs>
+<rect x="30" y="132" width="270" height="12" rx="4" fill="url(#lsp)"/>
+<path d="M30 120 C40 100 46 34 56 30 C64 28 70 70 82 100 C100 118 150 124 190 120 C214 116 222 100 232 80 C238 64 246 52 252 70 C258 92 266 116 300 122" fill="none" stroke="#3f8f4f" stroke-width="3"/>
+<path d="M30 122 C44 116 56 70 68 46 C74 36 82 50 90 90 C110 118 160 124 190 122 C206 120 214 106 222 92 C228 82 234 86 240 100 C250 116 270 122 300 124" fill="none" stroke="#9bd38f" stroke-width="2.5" stroke-dasharray="5 4"/>
+<g font-size="10.5" fill="currentColor"><text x="30" y="160">400</text><text x="150" y="160">550</text><text x="280" y="160">700 nm</text><text x="64" y="26">blått</text><text x="262" y="66">rött</text><text x="136" y="108">grönt studsar tillbaka</text>
+<line x1="120" y1="14" x2="134" y2="14" stroke="#3f8f4f" stroke-width="3"/><text x="138" y="18">klorofyll a</text><line x1="120" y1="30" x2="134" y2="30" stroke="#9bd38f" stroke-width="2.5" stroke-dasharray="5 4"/><text x="138" y="34">klorofyll b</text></g>
+</svg><figcaption>Klorofyll tar upp mest blått och rött ljus. Det gröna tas upp sämst, därför ser bladen gröna ut.</figcaption></figure>`],
+    ['🔬', 'Vad händer i cellerna med och utan ljus?', 'Bladets celler ändrar sig hela tiden efter ljuset. Kloroplasterna kan till och med flytta på sig inne i cellen.', [
+      '<b>Lagom ljus:</b> kloroplasterna lägger sig längs cellens över- och undersida, med bredsidan mot ljuset, för att fånga så mycket som möjligt. Klyvöppningarna är öppna och sockret byggs upp.',
+      '<b>Starkt ljus:</b> kloroplasterna flyttar ut till cellens sidor, med kanten mot ljuset, ungefär som när du drar ner en persienn. Karotenoiderna tar hand om överskottsenergin.',
+      '<b>För starkt ljus:</b> skyddet räcker inte. Klorofyllet bryts ner och cellerna dör. Det syns som vita, gula eller bruna fläckar, brännskada. Det händer oftast när en växt flyttas från mörker till sol för snabbt.',
+      '<b>För lite ljus:</b> växten gör mindre socker än den gör av med. Den tar av sitt lager, och de äldsta bladen gulnar och faller av, eftersom växten flyttar näringen därifrån till nya blad.',
+      '<b>Etiolering:</b> i mycket svagt ljus sträcker sig växten mot ljuset. Stammen blir lång och tunn med långt mellan bladen, och bladen blir små och bleka. Det är ett nödläge, inte tillväxt.',
+      '<b>Skuggblad och solblad:</b> blad som växer i skugga blir tunnare och större med mer klorofyll. Blad som växer i sol blir tjockare och mindre. Därför tål en skuggvand växt inte direkt sol direkt.',
+      '<b>I mörker på natten</b> stänger de flesta växter klyvöppningarna och andas: de använder socker och syre och släpper ut lite koldioxid, precis som vi. Kaktusar och suckulenter gör tvärtom: de öppnar på natten för att spara vatten.',
+      '<b>Växten behöver natten.</b> Mörkret är när många växter flyttar och lagrar socker. Därför ska en växtlampa inte vara tänd dygnet runt.'],
+      `<figure class="lfig"><svg viewBox="0 0 320 172" role="img" aria-label="Tre celler. I svagt ljus ligger kloroplasterna mot ljuset. I starkt ljus står de längs sidorna. I mörker ligger de samlade i botten.">
+<g fill="none" stroke="#7fb77e" stroke-width="2.5"><rect x="12" y="38" width="88" height="96" rx="14"/><rect x="116" y="38" width="88" height="96" rx="14"/><rect x="220" y="38" width="88" height="96" rx="14"/></g>
+<g fill="#f4c542"><path d="M44 8h24l-12 22z"/><path d="M136 4h48l-24 30z"/></g>
+<g fill="#3f8f4f"><ellipse cx="32" cy="48" rx="10" ry="4"/><ellipse cx="56" cy="48" rx="10" ry="4"/><ellipse cx="80" cy="48" rx="10" ry="4"/><ellipse cx="32" cy="124" rx="10" ry="4"/><ellipse cx="56" cy="124" rx="10" ry="4"/><ellipse cx="80" cy="124" rx="10" ry="4"/>
+<ellipse cx="124" cy="58" rx="4" ry="10"/><ellipse cx="124" cy="84" rx="4" ry="10"/><ellipse cx="124" cy="110" rx="4" ry="10"/><ellipse cx="196" cy="58" rx="4" ry="10"/><ellipse cx="196" cy="84" rx="4" ry="10"/><ellipse cx="196" cy="110" rx="4" ry="10"/>
+<ellipse cx="238" cy="124" rx="8" ry="5"/><ellipse cx="256" cy="126" rx="8" ry="5"/><ellipse cx="274" cy="124" rx="8" ry="5"/><ellipse cx="292" cy="126" rx="8" ry="5"/><ellipse cx="247" cy="116" rx="8" ry="5"/><ellipse cx="283" cy="116" rx="8" ry="5"/></g>
+<g font-size="11" fill="currentColor" text-anchor="middle"><text x="56" y="152">Svagt ljus</text><text x="56" y="166" font-size="9.5">fångar allt</text><text x="160" y="152">Starkt ljus</text><text x="160" y="166" font-size="9.5">skyddar sig</text><text x="264" y="152">Mörker</text><text x="264" y="166" font-size="9.5">vilar</text><text x="264" y="24" font-size="18">🌙</text></g>
+</svg><figcaption>Kloroplasterna flyttar sig efter ljuset. Förenklad bild av en cell sedd från sidan.</figcaption></figure>`],
+    ['🌈', 'Ljusets färger', 'Växter använder ljus med våglängder mellan 400 och 700 nanometer. Det kallas PAR och är ungefär samma färger som vi ser.', [
+      '<b>Blått ljus (400–500 nm)</b> ger kompakta växter med tjocka blad och styr hur klyvöppningarna öppnas.',
+      '<b>Grönt ljus (500–600 nm)</b> når djupare in i bladet och ner till nedre blad.',
+      '<b>Rött ljus (600–700 nm)</b> är effektivt för fotosyntesen och påverkar blomning.',
+      '<b>Långrött ljus (700–750 nm)</b> syns knappt men talar om för växten att den står i skugga. Den sträcker då på sig.',
+      '<b>UV-ljus</b> behövs inte för krukväxter. Lite UV kan ge starkare färger, men för mycket skadar.',
+      'Vitt ljus innehåller alla färger. Det räcker gott för krukväxter och är skönt att vistas i.'],
+      `<figure class="lfig"><svg viewBox="0 0 320 96" role="img" aria-label="Ljusets färger från UV till långrött. Området 400 till 700 nanometer heter PAR och är det växten använder.">
+<defs><linearGradient id="lsp2" x1="0" x2="1"><stop offset="0" stop-color="#6a3cc9"/><stop offset=".17" stop-color="#2f5fe0"/><stop offset=".33" stop-color="#20a9c9"/><stop offset=".45" stop-color="#3cbf4a"/><stop offset=".6" stop-color="#d9d33a"/><stop offset=".72" stop-color="#f29a2e"/><stop offset=".86" stop-color="#e2412e"/><stop offset="1" stop-color="#8e1d1d"/></linearGradient></defs>
+<rect x="10" y="34" width="44" height="22" rx="4" fill="#4b2a7a" opacity=".6"/><rect x="58" y="34" width="210" height="22" rx="4" fill="url(#lsp2)"/><rect x="272" y="34" width="38" height="22" rx="4" fill="#5c1414" opacity=".7"/>
+<g font-size="11" fill="currentColor" text-anchor="middle"><text x="32" y="28">UV</text><text x="163" y="26">PAR, det växten använder</text><text x="291" y="28">långrött</text><text x="58" y="74">400</text><text x="163" y="74">550</text><text x="268" y="74">700 nm</text><text x="90" y="90" font-size="10">blått</text><text x="163" y="90" font-size="10">grönt</text><text x="236" y="90" font-size="10">rött</text></g>
+</svg><figcaption>Ljusets färger. Växten använder det som ligger inom PAR.</figcaption></figure>`],
+    ['📏', 'Lux, PPFD och DLI', 'Det finns tre mått som är bra att känna till. Lux är det du kan mäta med mobilen, DLI är det som säger mest om växten.', [
+      '<b>Lux</b> mäter hur ljust det är för ett mänskligt öga. Ögat ser grönt bäst, så lux säger inte allt om ljuset för växten.',
+      '<b>PPFD</b> (µmol/m²/s) är hur många ljuspartiklar i PAR som träffar en yta varje sekund. Det är måttet för växtlampor.',
+      '<b>DLI</b> (mol/m²/dag) är hur mycket ljus växten får under en hel dag. Det är som växtens kaloriintag.',
+      '<b>Räkna lux till PPFD:</b> dagsljus: dela lux med 54. Vit LED-lampa: dela lux med ungefär 70. Exempel: 10 000 lux dagsljus är ca 185 PPFD.',
+      '<b>Räkna ut DLI:</b> PPFD × antal timmar × 0,0036. Exempel: 150 PPFD i 12 timmar ger 6,5 DLI.',
+      'Svag lampa länge kan ge samma DLI som stark lampa kort tid. Därför spelar både styrka och tid roll.',
+      'Ljusmätaren i appen räknar om lux till PPFD och DLI åt dig.'],
+      `<figure class="lfig"><svg viewBox="0 0 320 120" role="img" aria-label="PPFD gånger timmar gånger 0,0036 blir DLI. Exempel: 150 gånger 12 timmar blir 6,5 DLI.">
+<g fill="none" stroke="#7fb77e" stroke-width="2"><rect x="8" y="20" width="84" height="54" rx="12"/><rect x="118" y="20" width="84" height="54" rx="12"/><rect x="228" y="20" width="84" height="54" rx="12"/></g>
+<g font-size="12" fill="currentColor" text-anchor="middle"><text x="50" y="42" font-weight="700">PPFD</text><text x="50" y="62" font-size="11">150</text><text x="105" y="52" font-size="16">×</text><text x="160" y="42" font-weight="700">Timmar</text><text x="160" y="62" font-size="11">12</text><text x="215" y="52" font-size="16">=</text><text x="270" y="42" font-weight="700">DLI</text><text x="270" y="62" font-size="11">6,5</text>
+<text x="160" y="100" font-size="10.5">ljus per sekund × tid × 0,0036 = ljus per dag</text></g>
+</svg><figcaption>Så räknar du ut DLI, växtens dagsranson av ljus.</figcaption></figure>`],
+    ['📊', 'Hur mycket ljus behöver min växt?', 'Här är ungefärliga DLI-värden. Lägre värden håller växten vid liv, högre ger snabb tillväxt och blommor.', [
+      '<b>Lite ljus, DLI 2–6:</b> zamioculcas, fredskalla, ormbunkar, svärmorstunga, gullranka, calathea. Klarar norrfönster.',
+      '<b>Mellanljus, DLI 6–12:</b> monstera, filodendron, anthurium, hoya, alocasia, fikus lyrata. Öster- eller västerfönster, eller en lampa.',
+      '<b>Mycket ljus, DLI 12–20:</b> citrus, oliv, örter, sallad, pelargon, orkidéer som vanda. Söderfönster eller lampa.',
+      '<b>Väldigt mycket ljus, DLI 20–40:</b> kaktusar, suckulenter, tomat, chili. Söderfönster på sommaren, annars stark lampa.',
+      '<b>Förodling av plantor:</b> DLI 12–18. Plantorna blir annars långa och tunna, se kortet om förodling.',
+      'Siffrorna är vägledning. Läs om din egen växt i Växtbiblioteket och titta på hur den växer.'],
+      `<figure class="lfig"><svg viewBox="0 0 320 150" role="img" aria-label="Stapeldiagram över behov av DLI. Ormbunkar 2 till 6, monstera 6 till 12, citrus och örter 12 till 20, kaktus och tomat 20 till 40.">
+<g font-size="10.5" fill="currentColor"><text x="4" y="30">Ormbunke</text><text x="4" y="58">Monstera</text><text x="4" y="86">Citrus, örter</text><text x="4" y="114">Kaktus, tomat</text>
+<text x="88" y="140">0</text><text x="148" y="140">10</text><text x="208" y="140">20</text><text x="268" y="140">30</text><text x="296" y="140">DLI</text></g>
+<g stroke="currentColor" opacity=".15"><line x1="90" y1="12" x2="90" y2="126"/><line x1="150" y1="12" x2="150" y2="126"/><line x1="210" y1="12" x2="210" y2="126"/><line x1="270" y1="12" x2="270" y2="126"/></g>
+<g><rect x="102" y="20" width="24" height="14" rx="4" fill="#5fa56a"/><rect x="126" y="48" width="36" height="14" rx="4" fill="#7fb77e"/><rect x="162" y="76" width="48" height="14" rx="4" fill="#d9b23a"/><rect x="210" y="104" width="100" height="14" rx="4" fill="#e2762e"/></g>
+</svg><figcaption>Ungefärligt behov av ljus per dag (DLI) för olika växtgrupper.</figcaption></figure>`],
+    ['🧭', 'Fönster och avstånd', 'I Sverige ger söderfönster mest ljus och norrfönster minst. Men avståndet från fönstret betyder ännu mer än väderstrecket.', [
+      '<b>Söder:</b> sol större delen av dagen. Passar kaktus, suckulenter, citrus och örter.',
+      '<b>Öster:</b> mild morgonsol. Passar de flesta krukväxter.',
+      '<b>Väster:</b> varm eftermiddagssol. Bra, men kan bli varmt på sommaren.',
+      '<b>Norr:</b> jämnt, svagt ljus utan direkt sol. Passar ormbunkar, fredskalla och zamioculcas.',
+      '<b>Ljuset minskar snabbt:</b> en meter in i rummet är det ofta bara hälften så ljust som i fönstret, två meter in en fjärdedel.',
+      'Det som står utanför spelar roll: träd, balkong, tak och hus mittemot kan ta mycket ljus.',
+      'Gardiner, smutsiga fönster och energiglas tar också ljus. Tvätta fönstren inför vintern.',
+      'Använd Mitt hem i appen för att se vilka fönster dina växter står i.'],
+      `<figure class="lfig"><svg viewBox="0 0 320 170" role="img" aria-label="Ett rum sett uppifrån. Längst fram vid fönstret 100 procent ljus, en meter in 50 procent, två meter in 25 procent, tre meter in 10 procent.">
+<defs><linearGradient id="lrm" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#f4c542" stop-opacity=".85"/><stop offset=".35" stop-color="#f4c542" stop-opacity=".4"/><stop offset=".7" stop-color="#f4c542" stop-opacity=".14"/><stop offset="1" stop-color="#f4c542" stop-opacity=".03"/></linearGradient></defs>
+<rect x="14" y="20" width="200" height="140" rx="6" fill="url(#lrm)" stroke="#7fb77e" stroke-width="2"/><rect x="64" y="14" width="100" height="10" rx="3" fill="#8fc6ef"/>
+<g font-size="11" fill="currentColor"><text x="94" y="10">Fönster</text><text x="222" y="34">100 %</text><text x="222" y="64">50 % (1 m)</text><text x="222" y="98">25 % (2 m)</text><text x="222" y="132">10 % (3 m)</text></g>
+<g stroke="currentColor" stroke-dasharray="3 4" opacity=".4"><line x1="14" y1="60" x2="216" y2="60"/><line x1="14" y1="94" x2="216" y2="94"/><line x1="14" y1="128" x2="216" y2="128"/></g>
+<g font-size="16"><text x="102" y="48">🪴</text><text x="48" y="86">🪴</text><text x="150" y="122">🪴</text></g>
+</svg><figcaption>Ljuset minskar snabbt in i rummet. Siffrorna är ungefärliga och gäller utan direkt sol.</figcaption></figure>`],
+    ['📅', 'Ljuset i Sverige under året', 'I Sverige är skillnaden mellan sommar och vinter enorm. I juni får växterna kanske 20 gånger mer ljus än i december.', [
+      '<b>Maj till augusti:</b> gott om ljus. Även en meter in från fönstret kan räcka för många växter.',
+      '<b>Mars–april och september:</b> mellanläge. Ljuset ökar snabbt på våren, så vänj växterna vid solen gradvis.',
+      '<b>Oktober till februari:</b> mörkt. Ett söderfönster i december ger ungefär lika mycket ljus som ett norrfönster i juni.',
+      'Längre norrut är vintern mörkare, men sommaren ljusare med midnattssol.',
+      'På vintern växer de flesta krukväxter långsamt eller vilar. Vattna och gödsla mindre.',
+      'En växtlampa gör störst skillnad från oktober till mars.'],
+      `<figure class="lfig"><svg viewBox="0 0 320 160" role="img" aria-label="Stapeldiagram över dagsljus utomhus i Mellansverige per månad. Lägst i december, högst i juni.">
+<g fill="#f4c542"><rect x="22" y="126" width="16" height="8" rx="3"/><rect x="46" y="114" width="16" height="20" rx="3"/><rect x="70" y="92" width="16" height="42" rx="3"/><rect x="94" y="64" width="16" height="70" rx="3"/><rect x="118" y="34" width="16" height="100" rx="3"/><rect x="142" y="20" width="16" height="114" rx="3"/><rect x="166" y="28" width="16" height="106" rx="3"/><rect x="190" y="56" width="16" height="78" rx="3"/><rect x="214" y="88" width="16" height="46" rx="3"/><rect x="238" y="112" width="16" height="22" rx="3"/><rect x="262" y="124" width="16" height="10" rx="3"/><rect x="286" y="128" width="16" height="6" rx="3"/></g>
+<g font-size="10" fill="currentColor" text-anchor="middle"><text x="30" y="148">J</text><text x="54" y="148">F</text><text x="78" y="148">M</text><text x="102" y="148">A</text><text x="126" y="148">M</text><text x="150" y="148">J</text><text x="174" y="148">J</text><text x="198" y="148">A</text><text x="222" y="148">S</text><text x="246" y="148">O</text><text x="270" y="148">N</text><text x="294" y="148">D</text><text x="150" y="14">ca 35 DLI</text><text x="294" y="120">ca 2</text></g>
+</svg><figcaption>Ungefärligt dagsljus utomhus i Mellansverige per månad (DLI). Inomhus vid fönstret blir det bara en bråkdel av detta.</figcaption></figure>`],
+    ['🔍', 'Tecken på för lite eller för mycket ljus', 'Växten visar ganska tydligt om ljuset inte är rätt.', [
+      '<b>För lite ljus:</b> långa, tunna stammar med långt mellan bladen.',
+      '<b>För lite ljus:</b> nya blad blir mindre än de gamla, och brokiga blad blir mer gröna.',
+      '<b>För lite ljus:</b> växten lutar mot fönstret, blommar inte och de nedersta bladen gulnar.',
+      '<b>För lite ljus:</b> jorden torkar långsamt, så det är lätt att vattna för mycket och få rotröta.',
+      '<b>För mycket ljus:</b> vita, gula eller bruna torra fläckar på bladen som får mest sol.',
+      '<b>För mycket ljus:</b> bladen blir bleka, gulaktiga eller rödaktiga, och kanterna rullar sig.',
+      'Vrid krukan en kvarts varv varje vecka så växer den jämnt.'],
+      `<figure class="lfig"><svg viewBox="0 0 320 172" role="img" aria-label="Två plantor. Den vänstra har fått lite ljus och är lång, tunn och blek. Den högra har fått lagom ljus och är kompakt och grön.">
+<g stroke-linecap="round"><path d="M80 120V22" stroke="#b9cf8a" stroke-width="3"/><g fill="#c9dc9a"><ellipse cx="70" cy="30" rx="10" ry="4"/><ellipse cx="90" cy="54" rx="10" ry="4"/><ellipse cx="70" cy="80" rx="9" ry="3.5"/><ellipse cx="90" cy="104" rx="8" ry="3"/></g>
+<path d="M240 120V66" stroke="#3f8f4f" stroke-width="5"/><g fill="#3f8f4f"><ellipse cx="220" cy="70" rx="22" ry="9"/><ellipse cx="262" cy="74" rx="22" ry="9"/><ellipse cx="222" cy="92" rx="20" ry="8"/><ellipse cx="258" cy="98" rx="20" ry="8"/></g></g>
+<g fill="#a0704a"><path d="M60 120h40l-5 16H65z"/><path d="M220 120h40l-5 16h-30z"/></g>
+<g font-size="11" fill="currentColor" text-anchor="middle"><text x="80" y="154">För lite ljus</text><text x="80" y="168" font-size="9.5">lång, tunn, blek</text><text x="240" y="154">Lagom ljus</text><text x="240" y="168" font-size="9.5">kompakt, grön</text></g>
+</svg><figcaption>Samma sorts planta i för lite ljus (vänster) och lagom ljus (höger).</figcaption></figure>`],
+    ['💡', 'Olika sorters växtlampor', 'Det finns fyra vanliga sorter. Vilken du ska välja beror på hur många växter du har och var de står.', [
+      '<b>Lampa med vanlig sockel (E27):</b> skruvas i en vanlig lampa eller klämlampa. Bra för en eller ett par växter. Ljuset blir starkt i mitten och svagare ut mot kanterna.',
+      '<b>Klämlampa med armar:</b> två till fyra armar med LED-ljus som kläms fast på hyllan. Billig och enkel, men ofta svag.',
+      '<b>LED-list (T5):</b> smala lister som skruvas eller fästs med magnet under en hylla. Bra för hyllor med många små växter, sticklingar och förodling. Ljuset är jämnt men svagt, så de ska sitta nära.',
+      '<b>Panel:</b> en platt lampa med många lysdioder. Stark och jämn, för många växter, ljuskrävande växter eller odlingstält.',
+      '<b>Vanliga lampor i taket</b> räcker nästan aldrig. Ljuset är för svagt när det når växten.',
+      'Lysrör och glödlampor är gammal teknik. LED ger mer ljus per krona el och blir inte lika varm.'],
+      `<figure class="lfig"><svg viewBox="0 0 320 120" role="img" aria-label="Fyra lamptyper: lampa med sockel, klämlampa, LED-list och panel.">
+<g fill="none" stroke="#7fb77e" stroke-width="2"><path d="M30 20h20v10l8 16H22l8-16z"/><path d="M110 70v-40m0 0l-14-12m14 12l14-12"/><rect x="176" y="40" width="64" height="8" rx="4"/><rect x="262" y="24" width="48" height="34" rx="5"/></g>
+<g fill="#f4c542" opacity=".55"><path d="M24 48h32l14 40H10z"/><path d="M86 22l-8 34h16zM134 22l-8 34h16z" opacity=".7"/><path d="M178 50h60l8 34h-76z"/><path d="M264 60h44l8 28h-60z"/></g>
+<g font-size="10.5" fill="currentColor" text-anchor="middle"><text x="40" y="108">Sockel E27</text><text x="110" y="108">Klämlampa</text><text x="208" y="108">LED-list</text><text x="286" y="108">Panel</text></g>
+</svg><figcaption>De fyra vanligaste sorterna av växtlampor.</figcaption></figure>`],
+    ['🛒', 'Så väljer du lampa', 'Det viktigaste är hur mycket ljus som når bladen, inte hur lampan ser ut eller vilken färg den har.', [
+      '<b>Titta efter PPFD på ett visst avstånd</b>, till exempel 150 PPFD på 30 cm. Det säger mer än watt eller lumen.',
+      '<b>Riktig effekt i watt:</b> titta på hur många watt lampan drar, inte vad den jämförs med. Fusk med siffror som "motsvarar 1000 W" är vanligt.',
+      '<b>Effektivitet</b> (µmol/J): bra LED ger 2 eller mer. Då får du mycket ljus för elen.',
+      '<b>Vitt ljus, inte lila:</b> vitt fullspektrum (3000–5000 K) fungerar lika bra för krukväxter, ser naturligt ut och gör det lätt att se om växten mår bra.',
+      '<b>3000 K</b> är varmt vitt och mysigt i vardagsrummet. <b>4000–5000 K</b> är mer som dagsljus.',
+      '<b>Bra att ha:</b> dimmer, inbyggd timer, CE-märkning och garanti.',
+      '<b>Elkostnad:</b> en 24 W lampa tänd 12 timmar om dagen drar ca 9 kWh i månaden, alltså ungefär 10–25 kr beroende på elpris.'],
+      ''],
+    ['⭐', 'Rekommenderade växtlampor', 'Några lampor som är populära bland växtodlare och som går att köpa i Sverige. Priserna är ungefärliga och kontrollerades i november 2026. Roothood har inget samarbete med något märke.', [
+      '<b>SANSI 15 W, 24 W eller 36 W (E27):</b> vitt fullspektrum i vanlig sockel. Mätvärden för 24 W: ca 177 PPFD på 30 cm och 44 PPFD på 60 cm. Bra till en eller några krukväxter. Ca 200–450 kr på nätet.',
+      '<b>Barrina T5 (LED-list):</b> lister på 30–120 cm i 5000 K som kan kopplas ihop. Billiga och lätta att sätta under en hylla. Svagt ljus, så de ska sitta 10–30 cm från bladen. Bra för hyllor, sticklingar och förodling. Ca 400–700 kr för ett paket med flera lister.',
+      '<b>Soltech Aspect:</b> en snygg hänglampa med 3000 K och dimmer. Stark: uppmätt ca 680 PPFD på 30 cm och 167 PPFD på 60 cm. Bra till en stor växt i vardagsrummet. Dyr, ofta över 2 000 kr.',
+      '<b>Nelson Garden Plantlights:</b> lister och lampor som finns i många svenska butiker. LED No.1 60 cm (15 W) fick högst betyg i ett svenskt test. Ca 250–500 kr.',
+      '<b>Airam och Jula växtlampa (E27):</b> enkla lampor med sockel från svenska butiker, för en eller två växter. Ca 90–300 kr.',
+      '<b>Panel för odlingstält</b>, till exempel Spider Farmer eller Mars Hydro: för många växter, ljuskrävande växter eller grönsaker inomhus. Från ca 1 000 kr.',
+      'Tips: läs recensioner, titta efter PPFD-tabell, och köp hellre en bra lampa än flera svaga.'],
+      ''],
+    ['📐', 'Avstånd och tid', 'Avståndet till lampan betyder mycket. Ljuset minskar snabbt: dubbla avståndet ger ungefär en fjärdedel så mycket ljus.', [
+      '<b>LED-list:</b> 10–30 cm ovanför bladen.',
+      '<b>Lampa med sockel (15–36 W):</b> 20–50 cm ovanför bladen.',
+      '<b>Stor lampa eller panel:</b> 40–90 cm, beroende på styrka. Följ tillverkarens tabell.',
+      '<b>Antal timmar:</b> 10–14 timmar för krukväxter, 14–16 timmar för förodling och sticklingar.',
+      '<b>Ha alltid mörkt</b> minst 8 timmar per dygn. Många växter behöver natten.',
+      '<b>Använd timer</b>, så tänds och släcks lampan samma tid varje dag.',
+      '<b>Testa med handen:</b> håll handen där bladen är. Känns det varmt är lampan för nära.',
+      'Om bladen bleknar eller får fläckar: höj lampan. Om växten sträcker sig: sänk lampan eller ha den tänd längre.'],
+      `<figure class="lfig"><svg viewBox="0 0 320 170" role="img" aria-label="En lampa ovanför tre nivåer. På 30 centimeter ca 177 PPFD, på 60 centimeter ca 44, på 90 centimeter ca 20.">
+<path d="M70 12h40v10l10 14H60l10-14z" fill="none" stroke="#7fb77e" stroke-width="2"/>
+<path d="M62 38h56l70 130H-8z" fill="#f4c542" opacity=".25"/>
+<g stroke="currentColor" stroke-dasharray="3 4" opacity=".45"><line x1="10" y1="68" x2="200" y2="68"/><line x1="10" y1="108" x2="200" y2="108"/><line x1="10" y1="148" x2="200" y2="148"/></g>
+<g font-size="11" fill="currentColor"><text x="206" y="66">30 cm: ca 177</text><text x="206" y="106">60 cm: ca 44</text><text x="206" y="146">90 cm: ca 20</text><text x="206" y="164" font-size="9.5" opacity=".75">PPFD, SANSI 24 W</text></g>
+</svg><figcaption>Ljuset blir mycket svagare ju längre bort växten står. Exemplet är uppmätt för en SANSI 24 W.</figcaption></figure>`],
+    ['📱', 'Smarta lampor och timer', 'En timer gör att växterna får samma ljus varje dag, även när du glömmer eller är bortrest.', [
+      '<b>Enklast:</b> en vanlig timer i eluttaget, ca 50–100 kr.',
+      '<b>Smart eluttag</b> styrs från mobilen och kan följa schema eller solens upp- och nedgång.',
+      '<b>Philips Hue:</b> koppla Hue i appen så kan Roothood tända och släcka dina lampor efter ett lampschema.',
+      '<b>Lampschemat</b> i appen räknar ut hur länge lampan ska vara tänd för att din växt ska få rätt DLI.',
+      'Vanliga smarta lampor (Hue, IKEA) är oftast för svaga för att vara växtlampa, men fungerar bra som extra ljus.'],
+      ''],
+    ['🌤️', 'Vänja växter vid mer ljus', 'Blad som vuxit i svagt ljus tål inte starkt ljus direkt. Växten behöver tid att bygga nya, tåligare blad.', [
+      '<b>Efter vintern:</b> vårsolen i mars och april kan bränna blad som vant sig vid mörker. Ha en tunn gardin de första soliga veckorna.',
+      '<b>Flytta ut på sommaren:</b> börja i skugga, ställ dem sedan i sol en timme om dagen och öka varje dag under 1–2 veckor. Det kallas avhärdning.',
+      '<b>Ny lampa:</b> börja med lampan högre upp eller dimmad, och sänk den under en vecka.',
+      '<b>Nyköpt växt:</b> den kommer ofta från ett växthus med mycket ljus. Ge den ljust, men inte direkt middagssol, de första veckorna.',
+      'Brända fläckar blir inte gröna igen, men nya blad blir bra när växten vant sig.'],
+      ''],
+    ['🌱', 'Förodling och småplantor', 'Fröplantor behöver mer ljus än nästan alla krukväxter. Ett fönster i mars räcker sällan, därför blir plantorna långa och tunna.', [
+      '<b>Ge DLI 12–18:</b> en LED-list 10–20 cm ovanför plantorna i 14–16 timmar om dagen.',
+      '<b>Höj lampan</b> efterhand som plantorna växer.',
+      '<b>Svalt och ljust</b> ger kraftiga plantor. Varmt och mörkt ger långa och svaga.',
+      '<b>En liten fläkt</b> eller att du stryker över plantorna med handen varje dag gör stammarna starkare.',
+      '<b>Så inte för tidigt.</b> Tomat och chili i mars och sommarblommor i april blir ofta bättre än tidigare sådd utan lampa.',
+      'Se Såkalendern i appen för när du ska så i din zon.'],
+      ''],
+    ['❓', 'Myter om ljus', 'Det finns många råd om ljus. Här är några som inte stämmer.', [
+      '<b>"Lila ljus är bäst."</b> Nej. Lila (rött och blått) ljus fungerar, men vitt ljus är lika bra för krukväxter och mycket trevligare att leva med.',
+      '<b>"Lampan kan vara tänd hela dygnet."</b> Nej. De flesta växter behöver mörker, och vissa får skador av ljus dygnet runt.',
+      '<b>"Skuggväxter klarar sig i mörker."</b> Nej. De klarar lite ljus, men ett hörn långt från fönstret räcker inte ens för en zamioculcas.',
+      '<b>"Watt är samma som ljus."</b> Nej. Det är hur mycket ljus lampan ger per watt och hur nära den är som räknas.',
+      '<b>"Vanliga taklampor räcker."</b> Nej. En vanlig taklampa ger kanske 300–500 lux vid växten. Det är för lite.',
+      '<b>"Det går inte att ge för mycket ljus."</b> Jo, det går. Brännskador och bleka blad är tecken på det.'],
+      ''],
+    ['⚠️', 'Säkerhet', 'Växtlampor är säkra om du använder dem rätt.', [
+      'Köp CE-märkta lampor från seriösa säljare. Billiga lampor utan märkning kan vara brandfarliga.',
+      'Lampor och sladdar ska inte bli blöta. Vattna försiktigt under lampan.',
+      'Titta inte rakt in i starka LED-lampor. Det bländar och kan vara obehagligt.',
+      'Häng lampan stadigt och se till att den inte kan ramla ner på växten eller djur.',
+      'Låt inte husdjur tugga på sladdar. Använd sladdskydd.',
+      'Starkt ljus på natten kan störa sömnen. Använd timer och ställ lampan så att den inte lyser in i sovrummet.'],
+      '']]],
   rosor: ['Rosor', 'ph-flower', 'Allt om rosor i svenskt klimat: sorter, plantering, beskärning, vinterskydd och sjukdomar.', [
     ['🌹', 'Olika sorters rosor', 'Rosor delas in efter hur de växer. Vilken grupp rosen tillhör avgör var i landet den klarar sig och hur den ska skötas.', ['Buskrosor och parkrosor (till exempel vresros och kanadensiska rosor) är härdigast och klarar sig ofta upp till zon 4–6', 'Rabattrosor (floribunda och tehybrider) blommar länge men behöver vinterskydd och klarar sig oftast bara i zon 1–3', 'Klätterrosor växer på spaljé eller vägg. Klängrosor (ramblers) är större och blommar en gång per sommar', 'Engelska rosor har fyllda, doftande blommor och sköts som rabattrosor']],
     ['📍', 'Plats och jord', 'Rosor vill ha sol och luft. En luftig plats gör att bladen torkar snabbt, vilket minskar svampsjukdomar.', ['Minst sex timmar sol om dagen', 'Djup, näringsrik och väldränerad jord med pH runt 6–7', 'Plantera inte en ny ros där en gammal ros nyss har stått. Byt jorden eller välj en annan plats']],
@@ -15441,7 +15652,7 @@ const LEARN = {
 function learnCat(c) { dbClear(); S.q = ''; S.env = 'all'; S.cat = c; openDb(); }
 function learnRoses() { dbClear(); S.q = ''; S.env = 'all'; S.ptypes = ['Rosor']; openDb(); }
 function openLearn(k) { if (needPro()) return; stopLight(); S.sel = null; S.modal = null; S.tool = 'learn'; S.learnT = k; render(); const c = $('#learnchips .on'); if (c) c.scrollIntoView({ inline: 'center', block: 'nearest' }); $('#main').scrollTop = 0; }
-function learnCard(s, open) { return `<details class="acc" ${open ? 'open' : ''}><summary><span class="aem">${s[0]}</span><span class="grow"><b>${s[1]}</b></span></summary><div class="accb"><p>${s[2]}</p><ul>${s[3].map(x => `<li>${x}</li>`).join('')}</ul></div></details>`; }
+function learnCard(s, open) { return `<details class="acc" ${open ? 'open' : ''}><summary><span class="aem">${s[0]}</span><span class="grow"><b>${s[1]}</b></span></summary><div class="accb"><p>${s[2]}</p>${s[4] || ''}<ul>${s[3].map(x => `<li>${x}</li>`).join('')}</ul></div></details>`; }
 function learnBodyHtml(k) {
   const q = (S.learnQ || '').trim().toLowerCase();
   if (!q) return LEARN[k][3].map((s, i) => learnCard(s, i === 0)).join('');
@@ -16036,7 +16247,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.433';
+const APP_VERSION = 'Beta 0.434';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
