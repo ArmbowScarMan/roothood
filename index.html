@@ -2902,7 +2902,7 @@ const sbApi = {
     try { await sb.auth.signOut(); } catch (e) { console.warn('Roothood:', e); }
   },
   async mine() {
-    const cols = 'id,plant_id,last_watered,custom_name,custom_latin,custom_category,custom_water_interval_days,notes,plants(swedish_name,latin_name,category,water_interval_days)';
+    const cols = 'id,plant_id,created_at,last_watered,custom_name,custom_latin,custom_category,custom_water_interval_days,notes,plants(swedish_name,latin_name,category,water_interval_days)';
     let res = await sb.from('user_plants').select(cols + ',photo_url,photos,show_own,details,remind').order('created_at');
     if (res.error && /remind/.test(res.error.message || '')) res = await sb.from('user_plants').select(cols + ',photo_url,photos,show_own,details').order('created_at');
     if (res.error && /details/.test(res.error.message || '')) res = await sb.from('user_plants').select(cols + ',photo_url,photos,show_own').order('created_at');
@@ -2911,7 +2911,7 @@ const sbApi = {
     if (res.error) throw res.error;
     return res.data.map(r => {
       const own = r.photo_url || null, showOwn = r.show_own !== false;
-      const ph_ = { own, photos: r.photos && r.photos.length ? r.photos : own ? [own] : [], showOwn, photo: showOwn && own ? own : null, details: r.details || {}, remind: r.remind !== false };
+      const ph_ = { own, photos: r.photos && r.photos.length ? r.photos : own ? [own] : [], showOwn, photo: showOwn && own ? own : null, details: r.details || {}, remind: r.remind !== false, created_at: r.created_at };
       return applyNick(Object.assign(r.plants
         ? { id: r.id, plant_id: r.plant_id, name: r.plants.swedish_name, latin: r.plants.latin_name, category: r.plants.category, interval: r.plants.water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: false }
         : { id: r.id, plant_id: null, name: r.custom_name, latin: r.custom_latin, category: r.custom_category, interval: r.custom_water_interval_days, last_watered: r.last_watered, notes: r.notes, custom: true }, ph_));
@@ -3509,11 +3509,21 @@ function pmSaveTo(h, w) {
   pmStop(); S.pmFree = false; openDetails(id, 'pdh'); S.pd.h = h; if (w) S.pd.w = w; render();
   setTimeout(() => { const el = $('#pdh'); if (el) el.scrollIntoView({ block: 'center' }); }, 120); toast('Måtten är ifyllda. Tryck Spara.');
 }
+// Lista över Min samling för val i en rullista: grupperad på rum (Ute / Utan rum sist), och med detaljer så att två av samma sort går att skilja åt
+function mineOptsV(sel) {
+  const rooms = S.home || [], grp = new Map();
+  S.mine.forEach(m => { const d = m.details || {}, o = isOutM(m), r = !o && d.room && rooms.find(x => x.id === d.room); const key = o ? 'Ute' : r ? r.name : 'Utan rum'; if (!grp.has(key)) grp.set(key, []); grp.get(key).push(m); });
+  const order = k => k === 'Ute' ? 1 : k === 'Utan rum' ? 2 : 0, keys = [...grp.keys()].sort((a, b) => order(a) - order(b) || a.localeCompare(b, 'sv'));
+  const base = m => m.name || '';
+  const extra = m => { const d = m.details || {}, x = []; if (d.win) x.push(d.win); if (d.place && !isOutM(m) && d.place !== 'Kruka inne') x.push(d.place); if (d.cm) x.push(d.cm + ' cm kruka'); if (m.created_at) { const t = new Date(m.created_at); if (!isNaN(t)) x.push('tillagd ' + t.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })); } return x; };
+  return keys.map(k => { const L = grp.get(k).slice().sort((a, b) => base(a).localeCompare(base(b), 'sv')), cnt = {}, idx = {}; L.forEach(m => { cnt[base(m)] = (cnt[base(m)] || 0) + 1; });
+    return `<optgroup label="${esc(k)}">${L.map(m => { const dup = cnt[base(m)] > 1, ex = extra(m); idx[base(m)] = (idx[base(m)] || 0) + 1; const label = base(m) + (dup ? ' (' + (ex.length ? ex.slice(0, 2).join(', ') : 'nr ' + idx[base(m)]) + ')' : ''); return `<option value="${m.id}" ${+sel === m.id ? 'selected' : ''}>${esc(label)}</option>`; }).join('')}</optgroup>`; }).join('');
+}
 // I fritt läge (från Utforska): välj vilken växt i samlingen måtten ska sparas på
 function pmPlantPick() {
   if (!S.pmFree) return '';
   if (!S.user || !(S.mine && S.mine.length)) return '<p class="mut" style="font-size:13px;margin:8px 0 0">Lägg till växten i Min samling om du vill spara måtten.</p>';
-  return `<label class="fl" for="pmpl">Spara på växten</label><select id="pmpl" onchange="S.pmPlant=this.value"><option value="">Välj växt…</option>${S.mine.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'sv')).map(m => `<option value="${m.id}" ${+S.pmPlant === m.id ? 'selected' : ''}>${esc(m.name || '')}</option>`).join('')}</select>`;
+  return `<label class="fl" for="pmpl">Spara på växten</label><select id="pmpl" onchange="S.pmPlant=this.value"><option value="">Välj växt…</option>${mineOptsV(S.pmPlant)}</select>`;
 }
 function pmeasV() {
   const pm = S.pm || (S.pm = { mode: 'ref', ref: 'a4', pts: [], d: '' });
@@ -8156,7 +8166,7 @@ function journalAllV() { if (!S.mine.length) return ''; const sel = S.jsel && S.
   rec.sort((a, b) => String(b[1].done_on).localeCompare(String(a[1].done_on)) || String(b[1].created_at).localeCompare(String(a[1].created_at)));
   const q = (S.jq || '').trim().toLowerCase(), shown = rec.filter(([m, e]) => !q || (m.name + ' ' + (e.note || '') + ' ' + (LOGK[e.kind] || LOGK.note)[0]).toLowerCase().includes(q)).slice(0, S.jmore ? 200 : 8);
   return `<div class="sec"><h2>Växtjournalen</h2></div><div class="pad"><div class="jnote jall">
-    <select aria-label="Vilken växt" onchange="S.jsel=+this.value;keepMain()">${S.mine.slice().sort((a, b) => a.name.localeCompare(b.name, 'sv')).map(m => `<option value="${m.id}" ${m.id === sel ? 'selected' : ''}>${esc((m.details && m.details.nick) || m.name)}</option>`).join('')}</select>
+    <select aria-label="Vilken växt" onchange="S.jsel=+this.value;keepMain()">${mineOptsV(sel)}</select>
     <textarea id="jn${sel}" rows="2" maxlength="480" placeholder="Vad har hänt med ${esc(mm.name.toLowerCase())}?" oninput="S.jdraft=S.jdraft||{};S.jdraft[${sel}]=this.value">${esc((S.jdraft || {})[sel] || '')}</textarea>
     <div class="chips2 sm jtags">${JTAGS.map(([k, n]) => `<button class="${tag === k ? 'on' : ''}" onclick="jTag(${sel},'${k}')">${n}</button>`).join('')}</div>
     <div class="jrow"><input id="jd${sel}" type="date" value="${today()}" max="${today()}" aria-label="Datum"><button class="btn sm line" onclick="jQuick(${sel},'water')">${ic(I.drop, 'currentColor', 15)} Vattnat</button><button class="btn sm" onclick="jNote(${sel}).then(()=>{delete S.log[${sel}];loadAllLogs()})">Spara</button></div></div>
@@ -13218,6 +13228,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.432', '18 nov', ['Välj växt i Mät med kameran och i Dagboken: listan är grupperad per rum, och har du flera av samma sort visas detaljer (fönster, kruka, när du la till den) så att du ser vilken det är']],
   ['Beta 0.431', '18 nov', ['Ny ruta Blomning på växtsidan: en månadsstapel som visar när växten blommar, plus blomfärg. Saknas tiden i databasen visas en ungefärlig tid för släktet','Fel bilder rättade: många växter hade bilder på frimärken, kartor, organ, fåglar och insekter. Dessa är bytta mot riktiga växtbilder, och appen hoppar nu över sådana bilder','Fototexten ligger i bilden i stället för över knapparna Sök bilder och Rapportera bild']],
   ['Beta 0.430', '18 nov', ['Ny guide i Lär dig mer: Aroider. Om monstera, filodendron, anthurium, alocasia och andra i kallafamiljen, med ljus, vattning, jord, klätterstöd, förökning och vanliga problem']],
   ['Beta 0.429', '18 nov', ['Enklare att hitta: Start visar bara det viktigaste. Mitt hem i 3D, Händer nära dig och Säsongstips kan slås på i Anpassa Start', 'Alla verktyg är samlade i fyra grupper, med dina favoriter överst. Lär dig mer har en egen sida med alla guider, och sällan använda verktyg ligger under Fler verktyg', 'Sökrutan Vad vill du göra? förstår fler vardagsord och hittar även växter', 'På sidan för dina växter finns Verktyg för växten: Växtdoktorn, Mät höjd, Mät ljuset eller Jordart och Fråga om växten']],
@@ -16014,7 +16025,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.431';
+const APP_VERSION = 'Beta 0.432';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
