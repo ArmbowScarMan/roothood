@@ -1,4 +1,17 @@
 window.EN_DICT={
+'Köp & sälj':'Buy & sell',
+'Säljes':'For sale',
+'Bytes':'For swap',
+'Skänkes':'Free',
+'Jag säljer':'I am selling',
+'Jag skänker':'I am giving away',
+'Jag vill köpa!':'I want to buy!',
+'Handla tryggt':'Trade safely',
+'Såld':'Sold',
+'Visa':'Show',
+'Växternas namn':'Plant names',
+'Visa alla':'Show all',
+
 'Sök: vad vill du göra?':'Search: what do you want to do?',
 'Vad är viktigt för dig?':'What matters to you?',
 'Kom igång':'Get started',
