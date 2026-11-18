@@ -3822,7 +3822,12 @@ function firstGoalV() {
   ${b('ph-chats-circle', 'Fråga om en växt', 'Få svar direkt eller fråga andra odlare.', 'openAsk()')}</div>`;
 }
 function simpleTilesV() {
-  return `<div class="simpletiles"><button onclick="S.mtab='mine';go('mine')">${ic('ph-plant', 'currentColor', 34)}Min samling</button><button onclick="openAsk()">${ic('ph-sparkle', 'currentColor', 34)}Fråga om en växt</button><button onclick="openDb()">${ic('ph-magnifying-glass', 'currentColor', 34)}Växtbiblioteket</button><button onclick="go('comm');setCtab('q')">${ic('ph-chats-circle', 'currentColor', 34)}Fråga andra</button></div>`;
+  return `<div class="simpletiles"><button onclick="S.mtab='mine';go('mine')">${ic('ph-plant', 'currentColor', 34)}Min samling</button><button onclick="openAsk()">${ic('ph-sparkle', 'currentColor', 34)}Snabbfråga</button><button onclick="openDb()">${ic('ph-magnifying-glass', 'currentColor', 34)}Växtbiblioteket</button><button onclick="go('comm');setCtab('q')">${ic('ph-chats-circle', 'currentColor', 34)}Fråga andra</button>${simpleFavsV()}</div>`;
+}
+// Enkel vy: favoriterna (stjärnorna under Utforska) visas som stora knappar under de fasta
+function simpleFavsV() {
+  const Q = QUICK(), fixed = ['ask', 'db', 'comm'];
+  return favs().filter(k => !fixed.includes(k)).map(k => Q.find(q => q[0] === k)).filter(Boolean).slice(0, 7).map(q => { const icn = (QPH[q[0]] || [q[2]])[0], lbl = q[1]; return `<button onclick="${q[4]}">${ic(String(icn).startsWith('ph-') ? icn : 'ph-star', 'currentColor', 34)}${esc(lbl)}</button>`; }).join('');
 }
 // Namn: man anger förnamn och efternamn. Andra ser bara förnamn och efternamnets första bokstav, t.ex. Jim O.
 function pubName(f, l) { const cap = x => { x = (x || '').trim().replace(/\s+/g, ' '); return x.charAt(0).toLocaleUpperCase('sv') + x.slice(1); }; f = cap(f); l = cap(l); return l ? (f + ' ' + l.charAt(0)).trim() : f; }
