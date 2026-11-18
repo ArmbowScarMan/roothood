@@ -1,4 +1,13 @@
 window.EN_DICT={
+'Sök: vad vill du göra?':'Search: what do you want to do?',
+'Vad är viktigt för dig?':'What matters to you?',
+'Kom igång':'Get started',
+'Dagens tips':'Tip of the day',
+'Jag fattar':'Got it',
+'Dölj listan':'Hide the list',
+'Hoppa över':'Skip',
+'Sökningar':'Searches',
+
 'Välj växt…':'Choose plant…',
 'Ute':'Outdoors',
 
