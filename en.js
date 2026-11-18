@@ -1,4 +1,7 @@
 window.EN_DICT={
+'Välj växt…':'Choose plant…',
+'Ute':'Outdoors',
+
 'Utan rum':'No room',
 
 'Blomning':'Flowering',
