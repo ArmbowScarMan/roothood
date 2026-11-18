@@ -3395,12 +3395,12 @@ function detailsV(m, inModal) {
   ${!items.length || inModal ? `<button class="btn sm ${items.length ? 'line' : ''}" style="margin-top:10px" onclick="openDetails(${m.id})">${items.length ? 'Redigera uppgifter' : '+ Lägg till uppgifter'}</button>` : ''}</div>`;
 }
 // ===== Mät växten med kameran: 1) foto med ett föremål man vet storleken på, 2) luta telefonen (som en trädhöjdsmätare) =====
-const PM_REFS = [['a4', 'A4-papper, stående', 29.7], ['a4l', 'A4-papper, liggande', 21], ['stick', 'Meterstock, 1 m', 100], ['me', 'Jag själv', 0], ['own', 'Något annat', 0]];
+const PM_REFS = [['a4', 'A4-papper, stående', 29.7], ['a4l', 'A4-papper, liggande', 21], ['stick', 'Meterstock, 1 m', 100], ['me', 'Jag själv', 0], ['person', 'En annan person', 0], ['own', 'Något annat', 0]];
 const PM_STEPS = ['Tryck på <b>toppen</b> av växten', 'Tryck där växten möter <b>marken</b>', 'Tryck på <b>toppen</b> av föremålet', 'Tryck på <b>foten</b> av föremålet', 'Bredd (kan hoppas över): tryck på växtens <b>vänstra</b> kant', 'Tryck på växtens <b>högra</b> kant'];
 let pmStream = null, pmOri = null;
 function pmOpenFree() { stopLight(); S.pmFree = true; S.pm = { mode: 'ref', ref: 'a4', pts: [], d: '' }; S.pm.keep = true; S.pmPlant = ''; pmOpen(); }
 function pmOpen() { if (S.modal === 'pdet') S.pmFree = false; S.pm = S.pm && S.pm.keep ? S.pm : { mode: 'ref', ref: 'a4', pts: [], d: '', base: null, top: null, ang: null }; S.pm.keep = false; openModal('pmeas'); }
-function pmRefCm() { const pm = S.pm, r = PM_REFS.find(x => x[0] === pm.ref) || PM_REFS[0]; if (r[0] === 'me') return +store.get('myHeight', 0) || 0; if (r[0] === 'own') return +pm.own || 0; return r[2]; }
+function pmRefCm() { const pm = S.pm, r = PM_REFS.find(x => x[0] === pm.ref) || PM_REFS[0]; if (r[0] === 'me') return +store.get('myHeight', 0) || 0; if (r[0] === 'person') return +pm.pers || 0; if (r[0] === 'own') return +pm.own || 0; return r[2]; }
 function pmMode(m) { pmStop(); S.pm.mode = m; render(); }
 function pmPhoto(inp) { const f = inp.files && inp.files[0]; if (!f) return; if (S.pm.url) URL.revokeObjectURL(S.pm.url); S.pm.url = URL.createObjectURL(f); S.pm.pts = []; S.pm.nw = 0; S.pm.nh = 0; render(); }
 function pmImgLoad(img) { if (S.pm.nw === img.naturalWidth && S.pm.nh === img.naturalHeight) return false; S.pm.nw = img.naturalWidth; S.pm.nh = img.naturalHeight; return true; }
@@ -3474,6 +3474,7 @@ function pmeasV() {
   return `${head}<p class="mut" style="margin:0;font-size:14px">Ställ något du vet storleken på <b>bredvid växten</b>, lika långt bort från dig. Ta fotot rakt från sidan, inte uppifrån.</p>
   <label class="fl">Vad står bredvid växten?</label><div class="chips2 sm">${PM_REFS.map(([k, n2]) => `<button class="${pm.ref === k ? 'on' : ''}" onclick="S.pm.ref='${k}';render()">${n2}</button>`).join('')}</div>
   ${pm.ref === 'me' ? `<label class="fl" for="pmme">Din längd (cm)</label><input id="pmme" type="number" inputmode="numeric" min="50" max="250" value="${store.get('myHeight', '') || ''}" oninput="store.set('myHeight',+this.value||0);const r=$('#pmres');if(r)r.innerHTML=pmRefRes()"><p class="mut" style="font-size:12.5px;margin:4px 0 0">Ställ dig bredvid växten och be någon annan ta fotot. Längden sparas till nästa gång.</p>` : ''}
+  ${pm.ref === 'person' ? `<label class="fl" for="pmpers">Personens längd (cm)</label><input id="pmpers" type="number" inputmode="numeric" min="50" max="250" placeholder="t.ex. 170" value="${esc(pm.pers || '')}" oninput="S.pm.pers=this.value;const r=$('#pmres');if(r)r.innerHTML=pmRefRes()"><p class="mut" style="font-size:12.5px;margin:4px 0 0">Be personen ställa sig rakt upp bredvid växten. Längden används bara till den här mätningen och sparas inte.</p>` : ''}
   ${pm.ref === 'own' ? `<label class="fl" for="pmown">Föremålets höjd (cm)</label><input id="pmown" type="number" inputmode="decimal" min="1" max="2000" value="${esc(pm.own || '')}" oninput="S.pm.own=this.value;const r=$('#pmres');if(r)r.innerHTML=pmRefRes()">` : ''}
   <label class="btn ${pm.url ? 'line' : ''} wide formbtn" style="display:flex;justify-content:center;gap:8px" onclick="photoPick(event,this)">${ic('ph-camera', 'currentColor', 18)} ${pm.url ? 'Ta ett nytt foto' : 'Ta foto eller välj bild'}<input type="file" accept="image/*" class="sr" onchange="pmPhoto(this)"></label>
   ${pm.url ? `<div class="pmimg"><img src="${pm.url}" alt="Fotot du mäter på" onload="if(pmImgLoad(this))render()" onclick="pmTap(event)">${pm.nw ? pmSvg() : ''}</div>
@@ -3483,7 +3484,7 @@ function pmeasV() {
 }
 function pmRefRes() {
   const pm = S.pm; if (!pm || !pm.url || pm.pts.length < 4) return '';
-  if (!(pmRefCm() > 0)) return '<p class="pmres">Fyll i hur högt föremålet är, så räknar appen ut måtten.</p>';
+  if (!(pmRefCm() > 0)) return `<p class="pmres">${S.pm.ref === 'person' ? 'Fyll i hur lång personen är' : S.pm.ref === 'me' ? 'Fyll i hur lång du är' : 'Fyll i hur högt föremålet är'}, så räknar appen ut måtten.</p>`;
   const r = pmCalc(); if (!r) return '<p class="pmres">Punkterna för föremålet ligger för nära varandra. Tryck Börja om och försök igen.</p>';
   return `<div class="pmres">Höjd ca <b>${r.h} cm</b>${r.w ? ` · bredd ca <b>${r.w} cm</b>` : ''}<br><span class="mut" style="font-size:12.5px">Ungefärligt mått, oftast inom 10 %. Blir bäst när föremålet står lika långt bort som växten.</span>
   ${pmPlantPick()}${S.pmFree && !(S.user && S.mine && S.mine.length) ? '' : `<button class="btn wide formbtn" style="margin-top:10px" onclick="pmUse(${r.h},${r.w || 0})">${S.pmFree ? 'Spara på växten' : 'Använd ' + (r.w ? 'måtten' : 'höjden')}</button>`}</div>`;
