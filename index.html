@@ -1997,12 +1997,12 @@ html[data-ui="lek"][data-ui]:not([data-theme="light"]) #app{background:radial-gr
   :root[data-ui=stad] .frs:active .mfg,:root[data-ui=stad] .mrs:active .mfg{transform:scale(.98)}
 }
 /* 108–111: startsidan i Städad */
-:root[data-ui=stad] .qrow4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 20px}
+:root[data-ui=stad] .qrow4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 20px}.qrow4 .qt2 span{white-space:normal !important;overflow:visible !important;text-overflow:clip !important;overflow-wrap:anywhere;hyphens:auto;-webkit-hyphens:auto;font-size:12.5px;line-height:1.15}
 :root[data-ui=stad] .qt2{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:76px;padding:8px 4px;border:0;border-radius:20px;background:var(--surf);box-shadow:0 0 0 1px var(--line);color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
 :root[data-ui=stad] .qt2 i.ph{font-size:24px;color:var(--pri)}
 :root[data-ui=stad] .qt2 span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 :root[data-ui=stad] .atgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
-:root[data-ui=stad] .atgrid .qt2 span{white-space:normal;text-align:center;line-height:1.2}
+:root[data-ui=stad] .atgrid .qt2 span{white-space:normal;text-align:center;line-height:1.2;overflow-wrap:anywhere;hyphens:auto;-webkit-hyphens:auto}
 :root[data-ui=stad] .psrow{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;margin-top:12px;padding:8px 14px;border:0;border-radius:20px;background:var(--surf);box-shadow:0 0 0 1px var(--line);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
 :root[data-ui=stad] .pstack{display:flex;align-items:center;flex:0 0 auto;color:var(--pri)}
 :root[data-ui=stad] .pstack img{width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--surf)}
@@ -3737,13 +3737,13 @@ function roomHints(p, r, win, pd) {
   return h;
 }
 async function loadRole() { if (!S.user) return; try { S.role = await api.myRole(); applyUI(); S.blocks = await api.myBlocks(); if (isMod()) S.modOpen = await api.modOpen(); } catch (e) { console.warn('Roothood:', e); } try { S.pfol = await api.myPlantFollows(); } catch (e) { S.pfol = S.pfol || []; } }
-// Enkel vy: ett val vid första start, och en inställning. Färre flikar och val, större text och knappar.
+// Enkel vy: ett val vid första start, och en inställning. Samma funktioner som Vanlig, men enklare startsida och större text och knappar.
 const simpleOn = () => !!store.get('simple', false);
 function simpleKey() { return 'simpleAsked_' + (S.user ? S.user.id : 'anon'); }
 function simplePickV() {
   return `<div class="simplepick"><div class="mh"><h2>Hur vill du ha appen?</h2></div>
   <p style="margin:0;font-size:16px;line-height:1.45">Du kan byta när som helst under Inställningar.</p>
-  <button class="opt" onclick="simpleChoose(true)"><b>Enkel</b><span>Stor text, få val och stora knappar. Du ser dina växter, vattning och att fråga andra.</span></button>
+  <button class="opt" onclick="simpleChoose(true)"><b>Enkel</b><span>Stor text och stora knappar. Startsidan visar det viktigaste, och allt annat finns under Alla verktyg.</span></button>
   <button class="opt" onclick="simpleChoose(false)"><b>Vanlig</b><span>Alla verktyg och funktioner.</span></button></div>`;
 }
 function simpleChoose(on) { try { store.set(simpleKey(), true); } catch (e) {} setSimple(on); S.modal = null; render(); toast(on ? 'Enkel vy är på' : 'Vanlig vy är på'); }
@@ -3822,7 +3822,7 @@ function firstGoalV() {
   ${b('ph-chats-circle', 'Fråga om en växt', 'Få svar direkt eller fråga andra odlare.', 'openAsk()')}</div>`;
 }
 function simpleTilesV() {
-  return `<div class="simpletiles"><button onclick="S.mtab='mine';go('mine')">${ic('ph-plant', 'currentColor', 34)}Min samling</button><button onclick="openAsk()">${ic('ph-sparkle', 'currentColor', 34)}Snabbfråga</button><button onclick="openDb()">${ic('ph-magnifying-glass', 'currentColor', 34)}Växtbiblioteket</button><button onclick="go('comm');setCtab('q')">${ic('ph-chats-circle', 'currentColor', 34)}Fråga andra</button>${simpleFavsV()}</div>`;
+  return `<div class="simpletiles"><button onclick="S.mtab='mine';go('mine')">${ic('ph-plant', 'currentColor', 34)}Min samling</button><button onclick="openAsk()">${ic('ph-sparkle', 'currentColor', 34)}Snabbfråga</button><button onclick="openDb()">${ic('ph-magnifying-glass', 'currentColor', 34)}Växtbiblioteket</button><button onclick="go('comm');setCtab('q')">${ic('ph-chats-circle', 'currentColor', 34)}Fråga andra</button>${simpleFavsV()}<button onclick="openExplore()">${ic('ph-squares-four', 'currentColor', 34)}Alla verktyg</button></div>`;
 }
 // Enkel vy: favoriterna (stjärnorna under Utforska) visas som stora knappar under de fasta
 function simpleFavsV() {
@@ -10700,7 +10700,7 @@ function plantswipeW() {
 // Snabbåtgärder: fyra i en rad med samma gröna ikonfärg. Fråga har en egen ikon i stället för gnistan, och Såkalendern en ikon som fungerar.
 const QPH_STAD = { sit: ['ph-hand-heart', 'Växtpassning'], sunpath: ['ph-sun-horizon', 'Solbana'], rain: ['ph-cloud-rain', 'Regnvatten'], nearby: ['ph-map-pin', 'Trädgårdar'], ask: ['ph-chat-circle-text', 'Fråga'], db: ['ph-magnifying-glass', 'Sök'], id: ['ph-camera', 'Identifiera'], sow: ['ph-plant', 'Såkalender'], light: ['ph-sun', 'Ljusmätare'], care: ['ph-notebook', 'Växtjournal'], doc: ['ph-first-aid-kit', 'Växtdoktor'], inspo: ['ph-video', 'Odlare att följa'], smart: ['ph-lightbulb', 'Smarta hemmet'] };
 const ALL_TOOLS = ['care', 'sit', 'doc', 'sow', 'pets', 'light', 'inspo', 'smart', 'house', 'bed', 'sunpath', 'rain', 'compass', 'nearby', 'season', 'perma', 'detect', 'jord', 'hydro', 'naring', 'ljuslara', 'rosor', 'vatten', 'skadedjur', 'forokning', 'omplant', 'klimat', 'orkide', 'kaktus', 'stod', 'beskarning', 'applen', 'stenparti', 'hallbar'];
-function qtileS(k, n, act) { const [icn, lbl] = QPH_STAD[k] || QPH[k] || ['ph-star', n]; return `<button class="qt2" onclick="${act}"><i class="ph ${icn.startsWith('ph-') ? icn : 'ph-star'}" aria-hidden="true"></i><span>${lbl}</span></button>`; }
+function qtileS(k, n, act) { const [icn, lbl] = QPH_STAD[k] || QPH[k] || ['ph-star', n]; return `<button class="qt2" onclick="${act}"><i class="ph ${icn.startsWith('ph-') ? icn : 'ph-star'}" aria-hidden="true"></i><span>${String(lbl).replace(/^(Växt|Ljus|Regn|Trädgårds)(?=\S{5,})/, '$1&shy;')}</span></button>`; }
 // Alla verktyg öppnas som ett fönster nerifrån, i appens vanliga fönstersystem så att det ligger över menyraden
 function allToolsModalV() { const Q = QUICK();
   return `<div class="mh2"><h2>Alla verktyg</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
@@ -10714,10 +10714,12 @@ function h3Snap() { if (!stadUI() || !S.user || Date.now() - h3SnapT < 20000) re
     cv.getContext('2d').drawImage(c, 0, 0, cv.width, cv.height); const u = cv.toDataURL('image/jpeg', 0.72); if (u.length > 3000) store.set('h3thumb_' + S.user.id, u); } catch (e) { } }
 function quickV() {
   const Q = QUICK(), f = favs().map(k => Q.find(q => q[0] === k)).filter(Boolean).slice(0, 7);
-  if (stadUI()) return `<div class="sec cap2"><h2>Vad vill du göra?</h2></div><div class="qrow4">${['id', 'ask', 'db'].map(k => Q.find(q => q[0] === k)).filter(Boolean).map(q => qtileS(q[0], q[1], q[4])).join('')}<button class="qt2" onclick="openModal('alltools')"><i class="ph ph-squares-four" aria-hidden="true"></i><span>Alla</span></button></div>${plantswipeS()}`;
-  let ordered = f.filter(q => q[0] === 'id').concat(f.filter(q => q[0] !== 'id'));
+  // Favoriterna (stjärnorna under Utforska) visas på Start, högst 7, med Identifiera först. Utan favoriter: tre standardval.
+  const favT = (f.length ? f.filter(q => q[0] === 'id').concat(f.filter(q => q[0] !== 'id')) : ['id', 'ask', 'db'].map(k => Q.find(q => q[0] === k)).filter(Boolean));
+  if (stadUI()) return `<div class="sec cap2"><h2>Vad vill du göra?</h2></div><div class="qrow4">${favT.map(q => qtileS(q[0], q[1], q[4])).join('')}<button class="qt2" onclick="openModal('alltools')"><i class="ph ph-squares-four" aria-hidden="true"></i><span>Alla</span></button></div>${plantswipeS()}`;
+  let ordered = favT;
   // Städad: tre snabbåtgärder (Identifiera, Fråga, Sök) och "Alla" i en rad
-  if (document.documentElement.getAttribute('data-ui') === 'stad') ordered = ['id', 'ask', 'db'].map(k => Q.find(q => q[0] === k)).filter(Boolean);
+  if (stadUI()) ordered = favT;
   return `${plantswipeW()}<div class="sec cap2"><h2>Vad vill du göra?</h2></div><div class="qhome">${ordered.map(qcard).join('')}<button class="qc qmore" onclick="openExplore()"><i class="ph ph-squares-four" aria-hidden="true"></i><span>Alla verktyg</span></button></div>`;
 }
 function openExplore() { stopLight(); S.sel = null; S.modal = null; S.tool = 'explore'; S.favEdit = false; render(); $('#main').scrollTop = 0; }
@@ -11745,7 +11747,7 @@ function loadTabCounts() {
   if (S.tcDone || S.tcBusy || !S.user) return; S.tcBusy = true;
   Promise.all([api.feed('thread').then(l => { S.threads = l; }).catch(() => {}), api.feed('question').then(l => { if (!S.feed) S.feed = l; }).catch(() => {})]).then(() => { S.tcDone = true; S.tcBusy = false; if (S.tab === 'comm') keepMain(); });
 }
-function ctabsFor() { loadTabCounts(); return (document.documentElement.getAttribute('data-ui') === 'stad' ? CTABS.filter(([k]) => !CTABS_STAD_HIDE.includes(k)) : CTABS).filter(([k]) => S.ctab === k || (!tabThin(k) && !(simpleOn() && !['friends', 'q', 'swap'].includes(k)))); }
+function ctabsFor() { loadTabCounts(); return (document.documentElement.getAttribute('data-ui') === 'stad' ? CTABS.filter(([k]) => !CTABS_STAD_HIDE.includes(k)) : CTABS).filter(([k]) => S.ctab === k || (!tabThin(k))); }
 function segBar() {
   if (document.documentElement.getAttribute('data-ui') === 'stad' && CTABS_STAD_HIDE.includes(S.ctab)) S.ctab = 'q';
   if (stadUI()) {
@@ -16232,7 +16234,7 @@ const STAD_SUBV = {
     return `<div class="sform"><label class="fl">Språk</label><div data-notr>${langPick()}</div>
     <label class="fl">Tema</label>${seg3([['system', 'Auto'], ['light', 'Ljust'], ['dark', 'Mörkt']], th, "(v=>setPref('theme',v))")}
     <label class="fl">Textstorlek</label>${seg3([[1, 'Normal'], [1.1, 'Större'], [1.2, 'Störst']], ts, "(v=>setPref('textsize',v))")}
-    <label class="fl" style="margin-top:14px">Vy</label>${seg3([[0, 'Vanlig'], [1, 'Enkel']], simpleOn() ? 1 : 0, "(v=>setSimple(!!v))")}<p class="mut" style="margin:6px 0 0;font-size:13px">Enkel vy har stor text, få val och stora knappar.</p>
+    <label class="fl" style="margin-top:14px">Vy</label>${seg3([[0, 'Vanlig'], [1, 'Enkel']], simpleOn() ? 1 : 0, "(v=>setSimple(!!v))")}<p class="mut" style="margin:6px 0 0;font-size:13px">Enkel vy har stor text och stora knappar. Alla funktioner finns kvar under Alla verktyg.</p>
     <label class="fl">Färgtema</label><div class="pdots">${[['', 'Roothood', '#1F4D3A']].concat(PALS).map(([k, n, c]) => `<button class="pdot${pal === k ? ' on' : ''}" aria-pressed="${pal === k}" aria-label="${n}" onclick="setPref('pal','${k}')"><i style="background:${c}"></i><span>${pal === k ? n : ''}</span></button>`).join('')}</div></div>
     ${sgroup('', [sswitch(store.get('growlight', false), 'setGrowlight(this.checked)', 'Högkontrast för växtlampor')])}
     ${isMod() ? sgroup('Designvariant (utvecklare)', UI_VARS.map(([k, n]) => `<button class="srow" onclick="setPref('ui','${k}')"><span class="st">${n}</span>${store.get('ui', '') === k ? ic('ph-check', 'var(--pri)', 20) : ''}</button>`)) : ''}`; },
@@ -16296,7 +16298,7 @@ function settingsFullV() {
     <label class="fl" style="margin-top:14px">Färgtema</label>
     <div class="palrow">${[['', 'Roothood', '#1F4D3A']].concat(PALS).map(([k, n, c]) => `<button class="pal ${store.get('pal', '') === k ? 'on' : ''}" aria-pressed="${store.get('pal', '') === k}" onclick="setPref('pal','${k}')"><i style="background:${c}"></i><span>${n}</span></button>`).join('')}</div>
     <label class="remrow" style="margin-top:14px"><input type="checkbox" ${store.get('growlight', false) ? 'checked' : ''} onchange="setGrowlight(this.checked)"><span><b>Högkontrast för växtlampor</b><span class="mut">Svart bakgrund och vit text, med tydliga former i stället för färger</span></span></label>
-    <label class="fl" style="margin-top:14px">Vy</label>${seg3([[0, 'Vanlig'], [1, 'Enkel']], simpleOn() ? 1 : 0, "(v=>setSimple(!!v))")}<p class="mut" style="margin:6px 0 0;font-size:13px">Enkel vy har stor text, få val och stora knappar.</p>
+    <label class="fl" style="margin-top:14px">Vy</label>${seg3([[0, 'Vanlig'], [1, 'Enkel']], simpleOn() ? 1 : 0, "(v=>setSimple(!!v))")}<p class="mut" style="margin:6px 0 0;font-size:13px">Enkel vy har stor text och stora knappar. Alla funktioner finns kvar under Alla verktyg.</p>
     ${isMod() ? `<label class="fl" style="margin-top:14px">Designvariant (test)</label><div class="chips2 sm">${UI_VARS.map(([k, n]) => `<button class="${store.get('ui', '') === k ? 'on' : ''}" aria-pressed="${store.get('ui', '') === k}" onclick="setPref('ui','${k}')">${n}</button>`).join('')}</div>` : ''}`)}</div>`)}
   ${setSecV('gard', 'ph-plant', 'Trädgård', zone ? 'Zon ' + zone : 'Ingen zon vald', `<div class="setcard" id="szonesec">
     <p class="mut" style="margin:0 0 10px;font-size:13px">${zone ? 'Zon ' + zone + ' (' + SOWZN[zone] + ')' : 'Ingen zon vald ännu'}. Zon 1 är mildast och zon 8 kallast. Växtsidorna visar om en växt klarar vintern där du bor.</p>
