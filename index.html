@@ -1151,6 +1151,9 @@ button.pw{cursor:pointer}
 .daytip{display:flex;gap:12px;align-items:flex-start}.dtic{width:40px;height:40px;border-radius:12px;background:rgba(127,183,126,.18);display:flex;align-items:center;justify-content:center;flex:0 0 auto;color:var(--pri)}.daytip .x40{background:transparent;border:0;color:inherit;width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}.daytip small{font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.7}.daytip p{margin:4px 0 10px}
 .tbub{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;background:rgba(127,183,126,.14);border:1.5px solid rgba(127,183,126,.35);border-radius:16px;padding:12px 14px}.tbub>span{color:var(--pri);margin-top:2px}.tbub p{margin:0;min-width:200px}.tbub .btn{margin-left:auto}
 .soklist{margin-top:12px;display:grid;gap:8px}.sokr{background:var(--surf);border-radius:14px;padding:10px 14px;display:flex;flex-direction:column;gap:2px}.sokr .sok0{font-style:normal;color:#e2762e;font-weight:600}
+.hvrow .grow{flex:1}.hvrow{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:6px 2px;border-bottom:1px solid rgba(127,183,126,.15)}.hvic{width:36px;height:36px;border-radius:10px;background:rgba(127,183,126,.15);display:flex;align-items:center;justify-content:center;color:var(--pri);flex:0 0 auto}.hvsw{width:46px;height:28px;border-radius:14px;background:rgba(127,127,127,.35);position:relative;flex:0 0 auto;transition:background .15s}.hvsw i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .15s}.hvsw.on{background:var(--pri)}.hvsw.on i{left:21px}.hvbtn.on{border-color:var(--acc);color:var(--acc)}
+.lprice{display:block;font-weight:800;color:var(--cop,#C2643F);margin:2px 0}.lprice small{font-weight:600;color:var(--mut)}.lprice.big{font-size:20px;margin:0 0 8px}.lsafe{background:rgba(127,183,126,.12);border:1.5px solid rgba(127,183,126,.35);border-radius:16px;padding:12px 14px;margin:14px 0 4px}.lsafe b{display:flex;gap:8px;align-items:center}.lsafe ul{margin:6px 0 0;padding-left:20px}.lsafe li{margin:3px 0}:root[data-ui=stad] .ltag.t-sell{background:rgba(194,100,63,.16);color:#C2643F}
+.hvrow2{display:flex;align-items:center;gap:10px;min-height:56px;padding:6px 2px;border-bottom:1px solid rgba(127,183,126,.15)}.hvrow2 .grow{flex:1}.hvname{display:inline-flex;align-items:center;gap:4px;height:36px;padding:0 10px;border-radius:18px;border:1.5px solid rgba(127,183,126,.45);background:transparent;color:inherit;font:inherit;font-size:13px}.hvname.on{background:rgba(127,183,126,.22);border-color:var(--pri)}.hvname:disabled{opacity:.4}.hvswb{border:0;background:transparent;padding:6px 0;min-height:44px;display:flex;align-items:center}
 .acc{background:var(--surf);border-radius:18px;box-shadow:var(--sh);margin-bottom:10px;overflow:hidden}
 .acc summary{display:flex;gap:12px;align-items:center;padding:14px 16px;cursor:pointer;list-style:none;font-size:15.5px}
 .acc summary::-webkit-details-marker{display:none}
@@ -2399,7 +2402,7 @@ const DEMO_PLANTS = [{"id": 1, "swedish_name": "Monstera", "latin_name": "Monste
 const CATS = ['Krukväxt','Köksträdgård','Trädgård','Orkidé','Kaktus','Akvarieväxt'];
 const LIGHT = ['Skugga','Halvskugga','Full sol'], WATER = ['Lite','Måttligt','Mycket'];
 LIGHT[-1] = WATER[-1] = '?'; // nivå 0 i databasen = uppgift saknas, visas som ?
-const S = {smonth:new Date().getMonth() + 1, listings:null, newL:false, lf:'Alla', lcity:null, lt:'Ge bort', lti:'', lbo:'', lphoto:null, others:{}, lb:null, log:{}, logForm:null, loading:true, err:null, tab:'home', sel:null, cat:'Alla', q:'', modal:null, prefill:'',
+const S = {smonth:new Date().getMonth() + 1, listings:null, newL:false, lf:'Alla', lcity:null, lt:'Säljes', lti:'', lbo:'', lphoto:null, others:{}, lb:null, log:{}, logForm:null, loading:true, err:null, tab:'home', sel:null, cat:'Alla', q:'', modal:null, prefill:'',
   authMode:'in', env:'all', ctab:(() => { try { const v = JSON.parse(localStorage.getItem('gronska_ctabLast')); return ['friends', 'q', 'show', 'swap'].includes(v) ? v : 'q'; } catch (e) { return 'q'; } })(), pro:false, tool:null, idImg:null, idFile:null, idShots:[], idVar:null, idSingle:false, idOrgan:'auto', idRes:null, idErr:null, idBusy:false, idDemo:false, light:null, lsrc:'sun', lhours:12, lhold:false, limitHit:false, prefillLatin:'', threads:null, forum:null, newThread:false, tt:'', tb:'', msg:'', feed:null, feedErr:null, post:null, draft:'', adraft:'', qcat:'', rep:null, msgOk:false, busy:false, del:null, liked:{}, plants:[], user:null, mine:[]};
 
 // ===== Hjälpfunktioner =====
@@ -2659,13 +2662,14 @@ const demoApi = {
       { id: 201, kind: 'listing', user_id: 'elin', author: 'Elin', category: 'Ge bort', title: 'Monstera-sticklingar', body: 'Tre rotade sticklingar med 2–3 blad var. Hämtas i centrala Uppsala.', city: 'Uppsala', taken: false, created_at: t(3), best_answer_id: null, likers: [],
         answers: [{ id: 2011, user_id: 'omar', author: 'Omar', body: 'Jag skulle gärna ta en! Kan hämta i helgen.', created_at: t(2) }] },
       { id: 202, kind: 'listing', user_id: 'karim', author: 'Karim', category: 'Byta', title: 'Tomatfrön mot chilifrön', body: 'Har egna frön av Gardener’s Delight och Black Krim. Byter gärna mot starka chilisorter.', city: 'Göteborg', taken: false, created_at: t(26), best_answer_id: null, likers: [], answers: [] },
+      { id: 205, kind: 'listing', user_id: 'omar', author: 'Omar', category: 'Säljes', title: 'Monstera Thai Constellation', body: 'Rotad stickling med två blad, ca 25 cm. Säljes på grund av flytt.', city: 'Uppsala', price: 350, ship: 'bada', taken: false, created_at: t(8), best_answer_id: null, likers: [], answers: [] },
       { id: 203, kind: 'listing', user_id: 'maja', author: 'Maja', category: 'Önskas', title: 'Hoya carnosa', body: 'Letar efter en stickling av vaxblomma. Kan bjuda på pilea-skott i utbyte.', city: 'Stockholm', taken: false, created_at: t(50), best_answer_id: null, likers: [], answers: [] },
       { id: 204, kind: 'listing', user_id: 'sara', author: 'Sara', category: 'Ge bort', title: 'Stor svärmors tunga', body: 'Har blivit för stor för min lägenhet, ca 80 cm hög.', city: 'Malmö', taken: true, created_at: t(120), best_answer_id: null, likers: [], answers: [] });
     this._save(f); store.set('swapSeeded', true);
   },
-  async newListing(type, title, body, city, photo) {
+  async newListing(type, title, body, city, photo, sell) {
     const f = this._feed(), url = photo ? await fileShrink(photo, 720, true) : null;
-    f.unshift({ id: Date.now(), kind: 'listing', user_id: 'demo', author: 'Du', category: type, title, body, city: city || null, photo_url: url, taken: false, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f);
+    f.unshift({ id: Date.now(), kind: 'listing', user_id: 'demo', author: 'Du', category: type, title, body, city: city || null, photo_url: url, price: sell ? sell.price : null, ship: sell ? sell.ship : null, taken: false, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f);
   },
   async setTaken(id, on) { const f = this._feed(); f.find(p => p.id === id).taken = on; this._save(f); },
   _caseSeed(f) {
@@ -3018,9 +3022,9 @@ const sbApi = {
   },
   async ask(cat, body, photo, title) { const url = photo ? await uploadPhoto(photo) : null, row = { user_id: S.user.id, category: cat, body }; if (title) row.title = title; if (url) row.photo_url = url; const { error } = await sb.from('posts').insert(row); if (error) throw error; },
   async newThread(cat, title, body, photo) { const url = photo ? await uploadPhoto(photo) : null, row = { user_id: S.user.id, kind: 'thread', category: cat, title, body }; if (url) row.photo_url = url; const { error } = await sb.from('posts').insert(row); if (error) throw error; },
-  async newListing(type, title, body, city, photo) {
+  async newListing(type, title, body, city, photo, sell) {
     const url = photo ? await uploadPhoto(photo) : null;
-    const { error } = await sb.from('posts').insert({ user_id: S.user.id, kind: 'listing', category: type, title, body, city: city || null, photo_url: url });
+    const { error } = await sb.from('posts').insert(Object.assign({ user_id: S.user.id, kind: 'listing', category: type, title, body, city: city || null, photo_url: url }, sell || {}));
     if (error) throw /kind_check|city|photo_url/.test(error.message || '') ? new Error('SWAP_NOT_READY') : error;
   },
   async setTaken(id, on) { const { error } = await sb.from('posts').update({ taken: on }).eq('id', id); if (error) throw error; },
@@ -4185,7 +4189,7 @@ function houseV() {
   const noRoom = S.mine.filter(m => !roomOf(m));
   const hv = S.hview === '3d' ? '3d' : 'plan'; if (hv !== '3d' && S.walk) { S.walk = false; if (T3) T3.walk = null; }
   const seg = `<div class="seg2 hseg">${[['plan', 'Ritning'], ['3d', '3D']].map(([k, n]) => `<button class="${hv === k ? 'on' : ''}" onclick="setHView('${k}')">${n}</button>`).join('')}</div>`;
-  const advTop = topbar(hv === '3d' ? 'Huset i 3D' : 'Planritning', "setHMode('simple')", `<button class="btn sm" onclick="setHMode('simple')">Klar</button>`);
+  const advTop = topbar(hv === '3d' ? 'Huset i 3D' : 'Planritning', "setHMode('simple')", `<button class="btn sm line hvbtn${hvSet().hide.length || !hvSet().names ? ' on' : ''}" onclick="openModal('hvis')" aria-label="Visa eller dölj växter och namn">${ic(hvSet().hide.length || !hvSet().names ? 'ph-eye-slash' : 'ph-eye', 'currentColor', 16)} Visa</button><button class="btn sm" onclick="setHMode('simple')">Klar</button>`);
   if (hv === 'plan') return `${advTop}${seg}${planV()}`;
   if (hv === '3d') return `${advTop}${seg}${view3dV()}`;
   return `${topbar('Mitt hem', 'closeTool()')}${seg}
@@ -5126,10 +5130,10 @@ function build3dInner(first) {
   const clr = (x, y, r, fl) => { const wallSegs = WS[fl || 0] || []; for (let it = 0; it < 4; it++) wallSegs.forEach(([x1, y1, x2, y2]) => { const dx = x2 - x1, dy = y2 - y1, L = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / L)), nx = x1 + t * dx, ny = y1 + t * dy, d = Math.hypot(x - nx, y - ny);
       if (d < r) { if (d < 1e-4) { const ln = Math.sqrt(L); x += -dy / ln * r; y += dx / ln * r; } else { x = nx + (x - nx) / d * r; y = ny + (y - ny) / d * r; } } }); return [x, y]; };
   const PLT = []; T3.plt = PLT;
-  (HV ? [] : S.mine).filter(m => m.details && m.details.pos).forEach(m => { const pp = plantById(m.plant_id), isOut = OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place);
+  (HV ? [] : S.mine).filter(m => m.details && m.details.pos && !hvOffM(m)).forEach(m => { const pp = plantById(m.plant_id), isOut = OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place);
     const pRoom = m.details.room && (S.home || []).find(rr => rr.id === m.details.room && rr.rect), pfl = pRoom && !isOut ? flOf(pRoom) : 0; if (!floorVis(pfl)) return;
     const rad = isOut ? Math.min(2.5, ((m.details.w || pSize(pp || {})[1]) / 100) / 2) + TH / 2 + 0.02 : 0.32 + TH / 2 + 0.03, [x, y] = clr(m.details.pos.x, m.details.pos.y, rad, pfl);
-    if (OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place)) { const g3 = plant3d(pp || { id: m.id, swedish_name: m.name, latin_name: m.latin || '', category: m.category }, THREE, M, m.details.h, m.details.w, m.id * 31); (g3.userData || (g3.userData = {})).pid = m.id; g3.position.set(x, 0, y); sc.add(g3); if (mineSunBad(m)) sunRing3d(THREE, M, sc, x, y, 0, m.id); if (S.hview === '3d' && !S.low3d && (m.details.h || m.details.w)) { const lab = label3d(m.name); if (lab) { lab.position.set(x, Math.min(40, (m.details.h || pSize(pp || {})[0]) / 100) + 0.5, y); lab.scale.multiplyScalar ? lab.scale.multiplyScalar(0.7) : 0; sc.add(lab); } } return; }
+    if (OUTDOOR.includes(m.category || (pp || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place)) { const g3 = plant3d(pp || { id: m.id, swedish_name: m.name, latin_name: m.latin || '', category: m.category }, THREE, M, m.details.h, m.details.w, m.id * 31); (g3.userData || (g3.userData = {})).pid = m.id; g3.position.set(x, 0, y); sc.add(g3); if (mineSunBad(m)) sunRing3d(THREE, M, sc, x, y, 0, m.id); if (S.hview === '3d' && !S.low3d && (m.details.h || m.details.w) && hvNameM(m)) { const lab = label3d(m.name); if (lab) { lab.position.set(x, Math.min(40, (m.details.h || pSize(pp || {})[0]) / 100) + 0.5, y); lab.scale.multiplyScalar ? lab.scale.multiplyScalar(0.7) : 0; sc.add(lab); } } return; }
     const ok = plantMarkerOk(m), gr = new THREE.Group();
     const PT = pot3d(THREE, M, m.details || {}, seed3(m.id)); gr.add(PT.g); { const bl = blob3(THREE, (PT.r || 0.12) * 2.4); bl.position.y = 0.004; gr.add(bl); }
     { const sc0 = Math.max(0.55, Math.min(1.5, PT.r / 0.16)), pl = (HANG3 = !!PT.inv, indoor3d(THREE, M, pp || { swedish_name: m.name, latin_name: m.latin || '', category: m.category }, ok, seed3(m.id))); HANG3 = false; pl.scale.set(sc0, sc0, sc0); pl.position.y = PT.top - 0.3 * sc0; gr.add(pl); gr.userData.pl = pl; }
@@ -5153,13 +5157,40 @@ function build3dInner(first) {
   devices3d(THREE, M, sc, PLT, fyOf);
   growZones3d(THREE, M, sc, fyOf);
   // träd och buskar
-  planGarden().filter(t => t.t !== 'elev').forEach(t => { const R = t.r || 1.5, g3 = veg3d(THREE, M, GKIND[t.t] || 'lov', t.h || gDefH(t), R * 2, Math.round(t.x * 577 + t.y * 97), 120, t.t === 'fruit' ? { fruit: true } : {}); g3.position.set(t.x, gRel(t.x, t.y), t.y); sc.add(g3); });
+  planGarden().filter(t => t.t !== 'elev' && !hvOffG(t)).forEach(t => { const R = t.r || 1.5, g3 = veg3d(THREE, M, GKIND[t.t] || 'lov', t.h || gDefH(t), R * 2, Math.round(t.x * 577 + t.y * 97), 120, t.t === 'fruit' ? { fruit: true } : {}); g3.position.set(t.x, gRel(t.x, t.y), t.y); sc.add(g3); });
   T3.ty = Math.max(0, ...F3.filter(f3 => floorVis(f3.l)).map(f3 => f3.l)) * FLH / 2;
   if (first || !T3.st.dist) fit3d(); T3.dirty = true;
 }
 
 // Utomhus i 3D: växter i rabatter och byggnader i trädgården
-function garden3d(a, THREE, M, sc) { const y0 = a.t === 'bed' ? 0.12 : 0.08; (a.spots || []).slice(0, 600).forEach(s => { const p = plantById(s.pid); if (!p) return; const g = plant3d(p, THREE, M, null, null, Math.round(s.x * 977 + s.y * 131)); g.position.set(s.x, y0, s.y); sc.add(g); if (spotSunBad(s)) sunRing3d(THREE, M, sc, s.x, s.y, y0); }); }
+// ===== Visa-menyn i Mitt hem och rabatten: växtnamn och grupper av växter =====
+function hvSet() { return S.hvis || (S.hvis = Object.assign({ names: true, hide: [], noname: [] }, store.get('hvis', {}))); }
+const HV_GK = { tree: 'trad', fruit: 'frukt', conifer: 'barr', bush: 'buske' };
+function hvOffG(g) { const h = hvSet().hide; return !!h.length && h.includes(HV_GK[g.t] || 'trad'); }
+function hvNameM(m) { const v = hvSet(); return v.names && !(v.noname || []).includes(hvGroupM(m)); }
+function hvNameP(p) { const v = hvSet(); return v.names && !(v.noname || []).includes(guessType(p)); }
+function hvNameTog(k) { const v = hvSet(); v.noname = v.noname || []; v.noname = v.noname.includes(k) ? v.noname.filter(x => x !== k) : v.noname.concat(k); hvSave(); }
+function hvIsPot(m, p) { return !(OUTDOOR.includes(m.category || (p || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes((m.details || {}).place)); }
+function hvGroupM(m) { const p = plantById(m.plant_id); return hvIsPot(m, p) ? 'kruk' : guessType(p || { category: m.category, latin_name: m.latin || '' }); }
+function hvOffM(m) { const h = hvSet().hide; return !!h.length && h.includes(hvGroupM(m)); }
+function hvOffP(p) { const h = hvSet().hide; return !!h.length && h.includes(guessType(p)); }
+function hvName(k) { return k === 'kruk' ? 'Krukväxter' : TYPE_G[k] || PT_NAME[k] || k; }
+function hvGroups() { const c = {}; S.mine.filter(m => m.details && m.details.pos).forEach(m => { const k = hvGroupM(m); c[k] = (c[k] || 0) + 1; }); planAreas().forEach(a => (a.spots || []).forEach(s => { const p = plantById(s.pid); if (p) { const k = guessType(p); c[k] = (c[k] || 0) + 1; } })); planGarden().filter(g => g.t !== 'elev').forEach(g => { const k = HV_GK[g.t] || 'trad'; c[k] = (c[k] || 0) + 1; }); return Object.entries(c).sort((a, b) => hvName(a[0]).localeCompare(hvName(b[0]), 'sv')); }
+function hvSave() { store.set('hvis', hvSet()); if (S.tool === 'house' && S.hview === '3d' && T3) { try { build3d(); } catch (e) { console.warn('Roothood:', e); } } keepScroll(); }
+function hvTog(k) { const v = hvSet(); v.hide = v.hide.includes(k) ? v.hide.filter(x => x !== k) : v.hide.concat(k); hvSave(); }
+function hvNames() { const v = hvSet(); v.names = !v.names; hvSave(); }
+function hvRooms() { S.v3lab = !(S.v3lab !== false); if (T3) { try { env3d(); } catch (e) { } } keepScroll(); }
+function hvAll() { const v = hvSet(); v.hide = []; v.noname = []; v.names = true; S.v3lab = true; hvSave(); }
+function hvisV() {
+  const v = hvSet(), G = hvGroups(), sw = (on, txt, act, icn) => `<button class="hvrow" role="switch" aria-checked="${on}" onclick="${act}"><span class="hvic">${ic(icn, 'currentColor', 20)}</span><span class="grow">${txt}</span><span class="hvsw ${on ? 'on' : ''}"><i></i></span></button>`;
+  return `<button class="close" onclick="closeModal()" aria-label="Stäng">×</button><h2>Visa</h2>
+  <p class="mut" style="margin:0 0 10px">Välj vad som syns i Mitt hem och i rabatten. Dolda växter ligger kvar i samlingen och på sina platser.</p>
+  <label class="fl">Namn</label>${sw(v.names, 'Alla växters namn', 'hvNames()', 'ph-text-aa')}${sw(S.v3lab !== false, 'Rummens namn (3D)', 'hvRooms()', 'ph-house-line')}
+  <label class="fl">Växter</label><p class="mut" style="margin:0 0 4px;font-size:13px">Reglaget visar eller döljer växterna. Knappen Namn visar eller döljer bara namnen, i ritningen, rabatten och 3D.</p>${G.length ? G.map(([k, n]) => { const on = !v.hide.includes(k), nm = v.names && !(v.noname || []).includes(k), icn = k === 'kruk' ? 'ph-potted-plant' : ['trad', 'frukt', 'barr'].includes(k) ? 'ph-tree' : k === 'buske' || k === 'bar' ? 'ph-plant' : 'ph-flower';
+    return `<div class="hvrow2"><span class="hvic">${ic(icn, 'currentColor', 20)}</span><span class="grow">${esc(hvName(k))} <small class="mut">${n} st</small></span><button class="hvname ${nm ? 'on' : ''}" aria-pressed="${nm}" ${on && v.names ? '' : 'disabled'} onclick="hvNameTog('${k}')" aria-label="Namn på ${esc(hvName(k))}">${ic(nm ? 'ph-text-aa' : 'ph-text-strikethrough', 'currentColor', 16)} Namn</button><button class="hvswb" role="switch" aria-checked="${on}" aria-label="Visa ${esc(hvName(k))}" onclick="hvTog('${k}')"><span class="hvsw ${on ? 'on' : ''}"><i></i></span></button></div>`; }).join('') : '<p class="mut">Du har inga växter utplacerade i hemmet eller rabatten än.</p>'}
+  <button class="btn wide line" style="margin-top:14px" onclick="hvAll()">Visa alla</button><button class="btn wide" style="margin-top:8px" onclick="closeModal()">Klar</button>`;
+}
+function garden3d(a, THREE, M, sc) { const y0 = a.t === 'bed' ? 0.12 : 0.08; (a.spots || []).slice(0, 600).forEach(s => { const p = plantById(s.pid); if (!p || hvOffP(p)) return; const g = plant3d(p, THREE, M, null, null, Math.round(s.x * 977 + s.y * 131)); g.position.set(s.x, y0, s.y); sc.add(g); if (spotSunBad(s)) sunRing3d(THREE, M, sc, s.x, s.y, y0); }); }
 // Detaljerade växter i 3D. Storlek i meter, seed ger variation som är samma varje gång.
 function rng3(seed) { let s = (Math.abs(Math.round(seed)) % 2147483646) + 1; return () => (s = s * 16807 % 2147483647) / 2147483647; }
 const SEAS3 = ['Sommar', 'Höst', 'Vinter', 'Vår'];
@@ -6563,7 +6594,7 @@ function gardenBelow() {
   { const C = contours(); if (C && C.segs.length) { const d = mj => C.segs.filter(s => s[5] === mj).map(s => `M${X(s[0])} ${Y(s[1])}L${X(s[2])} ${Y(s[3])}`).join('');
     o += `<g fill="none" stroke="#8A5A2B" stroke-linecap="round" pointer-events="none"><path d="${d(false)}" stroke-width="1" stroke-opacity=".6"/><path d="${d(true)}" stroke-width="2" stroke-opacity=".8"/></g>`; } }
   elevPts().forEach(g => { o += `<g data-k="gitem" data-id="${g.id}"><circle cx="${X(g.x)}" cy="${Y(g.y)}" r="6" fill="#FFE14D" stroke="${sel.k === 'gitem' && sel.id === g.id ? 'var(--acc)' : '#7A5C00'}" stroke-width="2"/><text x="${X(g.x)}" y="${(P.oy + g.y * z - 10).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="800" fill="#fff" stroke="#000" stroke-width="2.5" paint-order="stroke" pointer-events="none">${(g.h || 0).toFixed(1).replace('.', ',')} m</text></g>`; });
-  if (z >= 3) planGarden().filter(g => g.t !== 'elev').forEach(g => { const on = sel.k === 'gitem' && sel.id === g.id, R = Math.max(5, g.r * z);
+  if (z >= 3) planGarden().filter(g => g.t !== 'elev' && !hvOffG(g)).forEach(g => { const on = sel.k === 'gitem' && sel.id === g.id, R = Math.max(5, g.r * z);
     let body = g.t === 'conifer' ? `<polygon points="${Array.from({ length: 16 }, (_, i) => { const a = i * Math.PI / 8, rr = i % 2 ? R * 0.62 : R; return (Math.cos(a) * rr).toFixed(1) + ',' + (Math.sin(a) * rr).toFixed(1); }).join(' ')}" fill="rgba(40,95,55,.55)" stroke="#2F5E3A" stroke-width="1.5"/>`
       : `<circle r="${R.toFixed(1)}" fill="${g.t === 'bush' ? 'rgba(120,170,80,.55)' : 'rgba(80,140,70,.42)'}" stroke="#4E8B3A" stroke-width="1.5"/>`;
     if (g.t === 'fruit') body += [[-.35, -.2], [.3, -.3], [.1, .35], [-.2, .3]].map(([a, b]) => `<circle cx="${(a * R).toFixed(1)}" cy="${(b * R).toFixed(1)}" r="${Math.max(2, R * 0.09).toFixed(1)}" fill="#D2553F"/>`).join('');
@@ -6877,12 +6908,12 @@ function planInner() {
     out += `<g data-k="furn" data-id="${f.id}" transform="translate(${T(f.x, f.y)}) rotate(${f.rot || 0})">${round ? `<ellipse rx="${(W / 2).toFixed(1)}" ry="${(H / 2).toFixed(1)}"` : `<rect x="${(-W / 2).toFixed(1)}" y="${(-H / 2).toFixed(1)}" width="${W.toFixed(1)}" height="${H.toFixed(1)}" rx="${Math.min(6, W / 5, H / 5).toFixed(1)}"`} fill="${wf ? 'none' : rug ? 'rgba(160,140,200,.18)' : 'var(--phb)'}" fill-opacity="${S.hplan.map && S.hplan.map.on ? .8 : 1}" stroke="${on ? 'var(--acc)' : 'var(--mut)'}" stroke-width="${on ? 2.5 : wf ? 3 : 1.3}" ${rug || wf ? 'stroke-dasharray="4 3"' : ''}/>${!rug && (!round || f.t === 'clock') && f.t !== 'stairs' ? frontMark(W, H) : ''}${f.t === 'sofa' && H > 14 ? `<rect x="${(-W / 2 + 3).toFixed(1)}" y="${(-H / 2 + 3).toFixed(1)}" width="${(W - 6).toFixed(1)}" height="${(H * 0.28).toFixed(1)}" rx="3" fill="none" stroke="var(--mut)" stroke-width="1" pointer-events="none"/>` : ''}${f.t.startsWith('bed') && H > 20 ? `<rect x="${(-W / 2 + 4).toFixed(1)}" y="${(-H / 2 + 4).toFixed(1)}" width="${(W - 8).toFixed(1)}" height="${(H * 0.18).toFixed(1)}" rx="3" fill="var(--surf)" stroke="var(--mut)" stroke-width="1" pointer-events="none"/>` : ''}${(f.rot || 0) % 180 === 90 ? (H > 34 && W > 13) : (f.rot || 0) % 180 === 0 ? (W > 34 && H > 13) : (Math.min(W, H) > 30) ? `<text y="4" text-anchor="middle" font-size="${Math.min(11, Math.min(W, H) * 0.45).toFixed(1)}" font-weight="700" fill="var(--mut)" pointer-events="none" transform="rotate(${-(f.rot || 0)})">${esc(nm)}</text>` : ''}</g>`; });
   planItems().forEach(it => { const on = (sel.k === 'dev' && sel.id === it.id) || multiHas('dev', it.id), d = DEVS[it.t] || ['?', '•'];
     out += `<g data-k="dev" data-id="${it.id}" transform="translate(${T(it.x, it.y)})">${on ? '<circle r="20" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>' : ''}<circle r="14" fill="var(--surf)" stroke="var(--pri)" stroke-width="2"/><text y="5" text-anchor="middle" font-size="14" pointer-events="none">${d[1]}</text></g>`; });
-  if (z >= 2) S.mine.filter(m => m.details && m.details.pos && OUTDOOR.includes(m.category || (plantById(m.plant_id) || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place)).forEach(m => { const { x, y } = m.details.pos, pp = plantById(m.plant_id), wm = (m.details.w || pSize(pp || {})[1]) / 100, k = pp ? kind3d(pp) : 'perenn', col = ['gran', 'tall', 'pelare', 'krypbarr'].includes(k) ? '47,94,58' : '78,139,58';
+  if (z >= 2) S.mine.filter(m => m.details && m.details.pos && !hvOffM(m) && OUTDOOR.includes(m.category || (plantById(m.plant_id) || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes(m.details.place)).forEach(m => { const { x, y } = m.details.pos, pp = plantById(m.plant_id), wm = (m.details.w || pSize(pp || {})[1]) / 100, k = pp ? kind3d(pp) : 'perenn', col = ['gran', 'tall', 'pelare', 'krypbarr'].includes(k) ? '47,94,58' : '78,139,58';
     out += `<circle cx="${X(x)}" cy="${Y(y)}" r="${Math.max(4, wm / 2 * z).toFixed(1)}" fill="rgba(${col},.32)" stroke="rgb(${col})" stroke-width="1.5" ${m.details.w ? '' : 'stroke-dasharray="4 3"'} pointer-events="none"/>`; });
-  if (z >= 6) S.mine.filter(m => m.details && m.details.pos && plantOnFl(m)).forEach(m => { const { x, y } = m.details.pos, on = sel.k === 'plant' && sel.id === m.id, ok = plantMarkerOk(m);
+  if (z >= 6) S.mine.filter(m => m.details && m.details.pos && plantOnFl(m) && !hvOffM(m)).forEach(m => { const { x, y } = m.details.pos, on = sel.k === 'plant' && sel.id === m.id, ok = plantMarkerOk(m);
     const ring = ok === null ? 'var(--pri)' : ok ? 'var(--pri2)' : 'var(--cop)';
     out += `<g data-k="plant" data-id="${m.id}" transform="translate(${T(x, y)})">${on ? '<circle r="23" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>' : ''}<circle r="17" fill="var(--surf)" stroke="${ring}" stroke-width="3"/><foreignObject x="-14" y="-14" width="28" height="28" pointer-events="none"><div xmlns="http://www.w3.org/1999/xhtml" class="pmk">${myPh(m)}</div></foreignObject>${ok === false ? '<circle cx="12" cy="-12" r="6" fill="var(--cop)" stroke="#fff" stroke-width="1.5"/>' : ''}</g>`;
-    if (z >= 30) out += `<text x="${X(x)}" y="${(P.oy + y * z + 30).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)" stroke="var(--bg)" stroke-width="3" paint-order="stroke" pointer-events="none">${esc(m.name.slice(0, 14))}</text>`; });
+    if (z >= 30 && hvNameM(m)) out += `<text x="${X(x)}" y="${(P.oy + y * z + 30).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)" stroke="var(--bg)" stroke-width="3" paint-order="stroke" pointer-events="none">${esc(m.name.slice(0, 14))}</text>`; });
   if (P.roomDraw === 'free' && (P.free || []).length) { const F = P.free; out += `<polyline points="${F.map(q => X(q[0]) + ',' + Y(q[1])).join(' ')}" fill="${F.length >= 3 ? 'rgba(31,77,58,.10)' : 'none'}" stroke="var(--acc)" stroke-width="3" stroke-linejoin="round" pointer-events="none"/>` + F.map((q, i) => `<circle cx="${X(q[0])}" cy="${Y(q[1])}" r="${i === 0 && F.length >= 3 ? 12 : 7}" fill="${i === 0 ? 'var(--acc)' : '#fff'}" stroke="var(--acc)" stroke-width="3" pointer-events="none"/>`).join(''); }
   if (P.draft) { const d = P.draft; out += `<rect x="${X(Math.min(d.x0, d.x1))}" y="${Y(Math.min(d.y0, d.y1))}" width="${(Math.abs(d.x1 - d.x0) * z).toFixed(1)}" height="${(Math.abs(d.y1 - d.y0) * z).toFixed(1)}" fill="rgba(31,77,58,.12)" stroke="var(--pri)" stroke-width="2" stroke-dasharray="6 4"/><text x="${X((d.x0 + d.x1) / 2)}" y="${Y((d.y0 + d.y1) / 2)}" text-anchor="middle" font-size="13" font-weight="800" fill="var(--pri)">${Math.abs(d.x1 - d.x0)} × ${Math.abs(d.y1 - d.y0)} m</text>`; }
   if (sel.k === 'area') { const a = planAreas().find(x => x.id === sel.id); if (a) { const n = a.pts.length;
@@ -7697,7 +7728,7 @@ function homeAlerts(sz) {
   if (due.length) a.push([due.length === 1 ? `${due[0].name} behöver vatten idag` : `${due.length} växter behöver vatten idag`, '', "go('mine')"]);
   return a.slice(0, { s: 1, m: 2, l: 6 }[sz || 'm']).map(x => `<button class="alertb" onclick="${x[2]}"><span class="ai">${ic(I.drop, 'currentColor', 18)}</span><span class="grow"><b>${esc(x[0])}</b>${x[1] ? `<span>${x[1]}</span>` : ''}</span>${ic(I.back, 'currentColor', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button>`).join('');
 }
-async function loadLocal() { S.localBusy = true; try { S.listings = await api.feed('listing'); } catch (e) { S.listings = []; } S.localBusy = false; if (S.tab === 'home' && !S.sel && !S.tool) render(); }
+async function loadLocal() { S.localBusy = true; try { S.listings = lFix(await api.feed('listing')); } catch (e) { S.listings = []; } S.localBusy = false; if (S.tab === 'home' && !S.sel && !S.tool) render(); }
 function openListing(id) { S.tab = 'comm'; S.ctab = 'swap'; S.post = id; S.sel = null; S.tool = null; render(); $('#main').scrollTop = 0; loadFeed(); }
 function localV(sz) {
   if (S.listings == null) { if (!S.localBusy) setTimeout(loadLocal); return ''; }
@@ -7709,11 +7740,11 @@ function localV(sz) {
   // Städad (110): kort på 80 % bredd med glimt av nästa, snap-scroll, ingen text klipps, bild i stället för bladet och sekundära knappar
   if (stadUI()) return `<div class="sec cap2"><h2>${near.length ? 'Händer i ' + esc(S.city) : 'Händer nära dig'}</h2><button class="viewall" onclick="S.tab='comm';S.ctab='swap';S.post=null;render();loadFeed()">Visa alla ›</button></div>
   <div class="lcar">${list.map(p => { const pl = !p.photo_url && S.plants.find(x => x.swedish_name.toLowerCase() === String(p.title || '').toLowerCase().replace(/-?sticklingar?$/, '').trim()), img = p.photo_url || (pl && pl.photo_url);
-    return `<div class="lcard2"><button class="lcimg" onclick="openListing(${p.id})" aria-label="Öppna annonsen">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : '<span class="skel lcsk" aria-hidden="true"></span>'}</button><div class="lcb"><span class="ltag t-${p.category === 'Önskas' ? 'want' : p.category === 'Byta' ? 'swap' : 'give'}">${esc(p.category)}</span><b>${esc(p.title || '')}</b><span class="mut">${p.city ? esc(p.city) + ' · ' : ''}${ago(p.created_at)}</span>
-    <button class="btn sm lcbtn" onclick="openListing(${p.id})">${p.category === 'Önskas' ? 'Jag har en!' : p.category === 'Byta' ? 'Föreslå byte' : 'Jag vill ha!'}</button></div></div>`; }).join('')}</div>`;
+    return `<div class="lcard2"><button class="lcimg" onclick="openListing(${p.id})" aria-label="Öppna annonsen">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : '<span class="skel lcsk" aria-hidden="true"></span>'}</button><div class="lcb"><span class="ltag t-${p.category === 'Önskas' ? 'want' : p.category === 'Bytes' ? 'swap' : p.category === 'Säljes' ? 'sell' : 'give'}">${esc(p.category)}</span><b>${esc(p.title || '')}</b><span class="mut">${p.city ? esc(p.city) + ' · ' : ''}${ago(p.created_at)}</span>
+    <button class="btn sm lcbtn" onclick="openListing(${p.id})">${lCta(p)}</button></div></div>`; }).join('')}</div>`;
   return `<div class="sec cap2"><h2>${near.length ? 'Händer i ' + esc(S.city) : 'Händer nära dig'}</h2><button class="viewall" onclick="S.tab='comm';S.ctab='swap';S.post=null;render();loadFeed()">Visa alla</button></div>
   <div class="hscroll">${list.map(p => `<div class="localc lc2">${lThumb(p)}<div class="grow"><b>${esc(p.title || '')}</b><span class="mut">${esc(p.category)}${p.city ? ' · ' + esc(p.city) : ''} · ${ago(p.created_at)}</span>
-  <button class="btn sm cop" onclick="openListing(${p.id})">${p.category === 'Önskas' ? 'Jag har en!' : p.category === 'Byta' ? 'Föreslå byte' : 'Jag vill ha!'}</button></div></div>`).join('')}</div>`;
+  <button class="btn sm cop" onclick="openListing(${p.id})">${lCta(p)}</button></div></div>`).join('')}</div>`;
 }
 
 // --- Tillväxttidslinje: samma växt fotad över tid ---
@@ -8360,7 +8391,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'soilv' ? jordV() : S.modal === 'pmeas' ? pmeasV() : S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'mf' ? mfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'hvis' ? hvisV() : S.modal === 'soilv' ? jordV() : S.modal === 'pmeas' ? pmeasV() : S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'mf' ? mfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -8567,7 +8598,7 @@ function startListV() {
 }
 
 // Dagens tips: ett verktyg du inte har använt än, ett nytt varje dag
-const DTIPS = [['light', 'Mobilen kan mäta ljuset. Håll den där växten står, så ser du om den får tillräckligt.'], ['id', 'Fota en växt, så får du veta vad den heter.'], ['doc', 'Gula blad eller fläckar? Växtdoktorn hjälper dig att hitta orsaken.'], ['measure', 'Du kan mäta hur hög en växt är med kameran, och spara måtten på växten.'], ['learn', 'Under Lär dig mer finns guider om allt från jord och vattning till ljus och beskärning.'], ['sow', 'Såkalendern visar vad du kan så just nu i din odlingszon.'], ['sit', 'Ska du resa bort? Be en vän passa dina växter, med en lista över vad som ska göras.'], ['swap', 'Under Byt & ge bort kan du byta sticklingar och växter med andra.'], ['season', 'Säsongstips visar vad du kan göra i trädgården den här månaden.'], ['house', 'Rita upp ditt hem och se vilka fönster som ger mest ljus.'], ['ask', 'Snabbfråga ger dig svar direkt, gärna med en bild på växten.'], ['bed', 'Planera en rabatt och se när den blommar under året.']];
+const DTIPS = [['light', 'Mobilen kan mäta ljuset. Håll den där växten står, så ser du om den får tillräckligt.'], ['id', 'Fota en växt, så får du veta vad den heter.'], ['doc', 'Gula blad eller fläckar? Växtdoktorn hjälper dig att hitta orsaken.'], ['measure', 'Du kan mäta hur hög en växt är med kameran, och spara måtten på växten.'], ['learn', 'Under Lär dig mer finns guider om allt från jord och vattning till ljus och beskärning.'], ['sow', 'Såkalendern visar vad du kan så just nu i din odlingszon.'], ['sit', 'Ska du resa bort? Be en vän passa dina växter, med en lista över vad som ska göras.'], ['swap', 'Under Köp & sälj kan du köpa, sälja, byta och skänka växter och sticklingar.'], ['season', 'Säsongstips visar vad du kan göra i trädgården den här månaden.'], ['house', 'Rita upp ditt hem och se vilka fönster som ger mest ljus.'], ['ask', 'Snabbfråga ger dig svar direkt, gärna med en bild på växten.'], ['bed', 'Planera en rabatt och se när den blommar under året.']];
 function dayTipV() {
   if (!S.user || !store.get('focusDone', false)) return '';
   const today = new Date().toISOString().slice(0, 10); if (store.get('tipDay', '') === today) return '';
@@ -9550,7 +9581,7 @@ async function modFind(form) { S.modQ = form.mq.value.trim(); try { S.modRes = S
 const KIND_SV = { post: 'Inlägg', answer: 'Svar', photo: 'Foto' };
 // ===== Moderator: alla användare =====
 // Statistik: hur mycket varje funktion används och av vilka
-const FEAT_EXTRA = { 'hem': 'Start', 'samling': 'Min samling', 'profil': 'Profil', 'vaxt': 'Växtsida', 'comm-q': 'Gemenskap: Frågor', 'comm-forum': 'Gemenskap: Forum', 'comm-swap': 'Gemenskap: Byt & ge bort', 'comm-show': 'Gemenskap: Visa upp', 'comm-near': 'Gemenskap: Nära dig', 'comm-friends': 'Gemenskap: Vänner', experts: 'Fråga expert', user: 'Andras profiler', mod: 'Moderering', settings: 'Inställningar', msgs: 'Meddelanden', chat: 'Chatt', explore: 'Utforska', season: 'Säsongstips', notif: 'Notiser', learn: 'Lär dig' };
+const FEAT_EXTRA = { 'hem': 'Start', 'samling': 'Min samling', 'profil': 'Profil', 'vaxt': 'Växtsida', 'comm-q': 'Gemenskap: Frågor', 'comm-forum': 'Gemenskap: Forum', 'comm-swap': 'Gemenskap: Köp & sälj', 'comm-show': 'Gemenskap: Visa upp', 'comm-near': 'Gemenskap: Nära dig', 'comm-friends': 'Gemenskap: Vänner', experts: 'Fråga expert', user: 'Andras profiler', mod: 'Moderering', settings: 'Inställningar', msgs: 'Meddelanden', chat: 'Chatt', explore: 'Utforska', season: 'Säsongstips', notif: 'Notiser', learn: 'Lär dig' };
 function featName(f) { return FEAT_EXTRA[f] || (QPH[f] && QPH[f][1]) || TOOL_LABEL[f] || f; }
 async function msUserDays(id) {
   const P = msPer(); if (P.h || (S.msUD && S.msUD[id])) return;
@@ -9952,8 +9983,8 @@ function bedLayer(X, Y, z) {
   else if (a.br) { lab([bb[0], bb[1]], [bb[2], bb[1]], fmtM(a.br.L) + ' × ' + fmtM(a.br.D)); }
   else a.pts.forEach((q, i) => { const n = a.pts[(i + 1) % a.pts.length], L = Math.hypot(n[0] - q[0], n[1] - q[1]); if (L * z > 50) lab(q, n, fmtM(L)); });
   // växterna med cc-mått
-  (a.spots || []).forEach((s, i) => { const p = plantById(s.pid); if (!p) return; const [h, w, cc] = pSize(p), r = cc / 200 * z, hu = plantHue(p.id), bad = spotBad(a, i), on = P.ssel === i;
-    o += `<g data-k="spot" data-id="${a.id}" data-i="${i}" transform="translate(${X(s.x)},${Y(s.y)})"><circle r="${Math.max(10, r).toFixed(1)}" fill="transparent"/><circle r="${Math.max(2, r).toFixed(1)}" fill="${bad ? 'rgba(210,60,40,.28)' : `hsla(${hu},55%,58%,.42)`}" stroke="${bad ? '#C2412D' : `hsl(${hu},50%,32%)`}" stroke-width="${on ? 3 : 1.5}" stroke-dasharray="${on ? '' : '5 3'}"/><circle r="${Math.max(1.5, Math.min(4, r * 0.12)).toFixed(1)}" fill="hsl(${hu},50%,28%)"/>${r > 14 ? `<text y="${(-r * 0.3).toFixed(1)}" text-anchor="middle" font-size="${Math.min(12, r * 0.42).toFixed(1)}" font-weight="800" fill="hsl(${hu},55%,20%)" pointer-events="none">${esc(p.swedish_name.slice(0, r > 40 ? 12 : 3))}</text>` : ''}${r > 22 ? `<text y="${(r * 0.55).toFixed(1)}" text-anchor="middle" font-size="${Math.min(11, r * 0.34).toFixed(1)}" font-weight="700" fill="hsl(${hu},45%,24%)" pointer-events="none">cc ${cc}</text>` : ''}</g>`; });
+  (a.spots || []).forEach((s, i) => { const p = plantById(s.pid); if (!p || hvOffP(p)) return; const [h, w, cc] = pSize(p), r = cc / 200 * z, hu = plantHue(p.id), bad = spotBad(a, i), on = P.ssel === i;
+    o += `<g data-k="spot" data-id="${a.id}" data-i="${i}" transform="translate(${X(s.x)},${Y(s.y)})"><circle r="${Math.max(10, r).toFixed(1)}" fill="transparent"/><circle r="${Math.max(2, r).toFixed(1)}" fill="${bad ? 'rgba(210,60,40,.28)' : `hsla(${hu},55%,58%,.42)`}" stroke="${bad ? '#C2412D' : `hsl(${hu},50%,32%)`}" stroke-width="${on ? 3 : 1.5}" stroke-dasharray="${on ? '' : '5 3'}"/><circle r="${Math.max(1.5, Math.min(4, r * 0.12)).toFixed(1)}" fill="hsl(${hu},50%,28%)"/>${r > 14 && hvNameP(p) ? `<text y="${(-r * 0.3).toFixed(1)}" text-anchor="middle" font-size="${Math.min(12, r * 0.42).toFixed(1)}" font-weight="800" fill="hsl(${hu},55%,20%)" pointer-events="none">${esc(p.swedish_name.slice(0, r > 40 ? 12 : 3))}</text>` : ''}${r > 22 ? `<text y="${(r * 0.55).toFixed(1)}" text-anchor="middle" font-size="${Math.min(11, r * 0.34).toFixed(1)}" font-weight="700" fill="hsl(${hu},45%,24%)" pointer-events="none">cc ${cc}</text>` : ''}</g>`; });
   // avstånd till närmaste granne för vald växt
   if (P.ssel != null && a.spots[P.ssel]) { const s = a.spots[P.ssel], n = spotNear(a, P.ssel); if (n) { const t = a.spots[n.j], bad = n.d < n.need * 0.9; o += `<line x1="${X(s.x)}" y1="${Y(s.y)}" x2="${X(t.x)}" y2="${Y(t.y)}" stroke="${bad ? '#C2412D' : 'var(--pri)'}" stroke-width="2" pointer-events="none"/><text x="${((+X(s.x) + +X(t.x)) / 2).toFixed(1)}" y="${((+Y(s.y) + +Y(t.y)) / 2 - 6).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="800" fill="${bad ? '#C2412D' : 'var(--pri)'}" stroke="var(--bg)" stroke-width="3.5" paint-order="stroke" pointer-events="none">${Math.round(n.d * 100)} cm${bad ? ' (minst ' + Math.round(n.need * 100) + ')' : ''}</text>`; } }
   return o;
@@ -10171,8 +10202,8 @@ const plantHue = id => (id * 67) % 360;
 function bedSpotsSvg(a, X, Y, z) {
   if (PL().mode === 'bed') return '';
   if (!a.spots || !a.spots.length || z < 2) return '';
-  return a.spots.map(s => { const p = plantById(s.pid); if (!p) return ''; const r = pSize(p)[2] / 200 * z, h = plantHue(p.id);
-    return `<circle cx="${X(s.x)}" cy="${Y(s.y)}" r="${Math.max(1.5, r).toFixed(1)}" fill="hsla(${h},55%,55%,.55)" stroke="hsl(${h},50%,32%)" stroke-width="1" pointer-events="none"/>${r > 9 ? `<text x="${X(s.x)}" y="${(+Y(s.y) + 3.5).toFixed(1)}" text-anchor="middle" font-size="${Math.min(11, r * 0.8).toFixed(1)}" font-weight="800" fill="hsl(${h},55%,20%)" pointer-events="none">${esc(p.swedish_name.slice(0, 2))}</text>` : ''}`; }).join('');
+  return a.spots.map(s => { const p = plantById(s.pid); if (!p || hvOffP(p)) return ''; const r = pSize(p)[2] / 200 * z, h = plantHue(p.id);
+    return `<circle cx="${X(s.x)}" cy="${Y(s.y)}" r="${Math.max(1.5, r).toFixed(1)}" fill="hsla(${h},55%,55%,.55)" stroke="hsl(${h},50%,32%)" stroke-width="1" pointer-events="none"/>${r > 9 && hvNameP(p) ? `<text x="${X(s.x)}" y="${(+Y(s.y) + 3.5).toFixed(1)}" text-anchor="middle" font-size="${Math.min(11, r * 0.8).toFixed(1)}" font-weight="800" fill="hsl(${h},55%,20%)" pointer-events="none">${esc(p.swedish_name.slice(0, 2))}</text>` : ''}`; }).join('');
 }
 function bedTips(a) {
   const it = bedItems(a), out = []; if (!it.length) return out;
@@ -10629,7 +10660,7 @@ async function openUser(id, fromHash, asMod) {
 }
 function userBack() { const b = S.uBack; S.uid = null; if (b === 'mod') { S.uMod = false; S.tool = 'mod'; S.modTab = 'users'; render(); const y = S.modUScroll || 0; setTimeout(() => { const m = $('#main'); if (m) m.scrollTop = y; }, 0); return; } S.uMod = false; if (b === 'people') { S.tool = 'people'; render(); } else { S.tool = null; render(); } }
 const KIND_TAB = { question: 'q', thread: 'forum', listing: 'swap', mystery: 'detect' };
-const KIND_NAME = { question: 'Fråga', thread: 'Forumtråd', listing: 'Byt & ge bort', mystery: 'Vad är det för växt?' };
+const KIND_NAME = { question: 'Fråga', thread: 'Forumtråd', listing: 'Köp & sälj', mystery: 'Vad är det för växt?' };
 function openUserPost(id, kind, cat) { S.tool = null; S.tab = 'comm'; S.ctab = KIND_TAB[kind] || 'q'; S.forum = kind === 'thread' ? cat : null; S.post = id; S.newL = false; S.newCase = false; render(); loadFeed(); $('#main').scrollTop = 0; }
 function userV() {
   const c = S.ucard, back = 'userBack()';
@@ -10887,7 +10918,7 @@ const EXPI = 'ph-compass', SWAPI = 'ph-arrows-left-right', BELLI = I.bell, BEDI 
 // [nyckel, namn, ikon, färgklass, handling, pro]
 const QUICK = () => [
   ['ask', 'Snabbfråga', 'ph-sparkle', 'xp', 'openAsk()'], ['db', 'Växtbiblioteket', I.search, 'db', 'openDb()'], ['id', 'Identifiera', CAM, '', "openTool('id')", 1], ['doc', 'Växtdoktorn', DOCI, 'doc', 'openDoc()', 1],  ['house', 'Mitt hem', DOORI, 'house', 'openHouse()', 1], ['bed', 'Planera rabatt', BEDI, 'db', "openBedPlan()", 1], ['light', 'Ljusmätare', I.sun, 'sun', "openTool('light')", 1], ['measure', 'Mät växt med kameran', 'ph-ruler', 'sun', 'pmOpenFree()'], ['learn', 'Lär dig mer', 'ph-book-open', 'db', 'openLearnHub()'], ['aroider', 'Aroider', 'ph-leaf', 'inspo', "openLearn('aroider')", 1], ['soil', 'Jordart där du bor', 'ph-stack', 'db', 'openJord()'], ['nearby', 'Trädgårdar nära dig', 'ph-map-pin', 'inspo', 'openNearby()', 1], ['compass', 'Kompass', 'ph-compass', 'sun', 'openCompass()'], ['sunpath', 'Solbana', 'ph-sun-horizon', 'sun', 'openSunPath()'], ['elev', 'Marknivå', 'ph-mountains', 'sun', 'openElev()'], ['sit', 'Växtpassning', 'ph-hand-heart', 'house', 'openSit()'], ['rain', 'Regnvatten', 'ph-cloud-rain', 'xp', 'openRain()'], ['pets', 'Mina djur', I.paw, 'pets', 'openPets()', 1], ['smart', 'Smarta hemmet', HOMEI, 'smart', 'openSmart()', 1],
-  ['comm', 'Frågor', CHATI, 'db', "go('comm');setCtab('q')"], ['forum', 'Forum', CHATI, 'xp', "go('comm');setCtab('forum')"], ['swap', 'Byt & ge bort', SWAPI, 'inspo', "go('comm');setCtab('swap')"], ['detect', 'Växtdetektiver', I.search, 'sun', 'openDetect()', 1],
+  ['comm', 'Frågor', CHATI, 'db', "go('comm');setCtab('q')"], ['forum', 'Forum', CHATI, 'xp', "go('comm');setCtab('forum')"], ['swap', 'Köp & sälj', SWAPI, 'inspo', "go('comm');setCtab('swap')"], ['detect', 'Växtdetektiver', I.search, 'sun', 'openDetect()', 1],
   ['people', 'Hitta vänner', PEOPLEI, 'xp', 'openPeople()'], ['inspo', 'Odlare att följa', INSPI, 'inspo', 'openInspo()', 1], ['season', 'Säsongstips', I.leaf, 'sun', 'openSeason()', 1], ['sow', 'Såkalender', SOWI, 'db', 'openSow()', 1], ['perma', 'Permakultur', I.leaf, 'inspo', 'openPerma()', 1], ['jord', 'Jord och substrat', 'ph-shovel', 'db', "openLearn('jord')", 1], ['hydro', 'Hydroponi', 'ph-drop', 'xp', "openLearn('hydro')", 1], ['naring', 'Gödsel och näring', 'ph-flask', 'sun', "openLearn('naring')", 1], ['ljuslara', 'Ljus', I.sun, 'sun', "openLearn('ljus')", 1], ['rosor', 'Rosor', 'ph-flower', 'inspo', "openLearn('rosor')", 1], ['vatten', 'Vattning', 'ph-drop-half', 'xp', "openLearn('vatten')", 1], ['skadedjur', 'Skadedjur och sjukdomar', 'ph-bug', 'doc', "openLearn('skadedjur')", 1], ['forokning', 'Förökning', 'ph-plant', 'db', "openLearn('forokning')", 1], ['omplant', 'Omplantering och krukor', 'ph-potted-plant', 'db', "openLearn('omplant')", 1], ['klimat', 'Luftfuktighet och temperatur', 'ph-thermometer', 'sun', "openLearn('klimat')", 1], ['orkide', 'Orkidéer', 'ph-flower-lotus', 'inspo', "openLearn('orkide')", 1], ['kaktus', 'Kaktusar och suckulenter', 'ph-cactus', 'sun', "openLearn('kaktus')", 1], ['stod', 'Mosspålar och klätterstöd', 'ph-ladder', 'db', "openLearn('stod')", 1], ['beskarning', 'Beskärning', 'ph-scissors', 'db', "openLearn('beskarning')", 1], ['applen', 'Äpplen', 'ph-tree', 'inspo', "openLearn('applen')", 1], ['stenparti', 'Stenparti', 'ph-mountains', 'sun', "openLearn('stenparti')", 1], ['hallbar', 'Hållbar odling', 'ph-globe-hemisphere-west', 'xp', "openLearn('hallbar')", 1],
   ['mine', 'Min samling', I.plant || I.leaf, 'db', "S.mtab='mine';go('mine')"], ['care', 'Växtjournalen', CALI, 'sun', 'openCare()'], ['notif', 'Notiser', BELLI, 'house', 'openNotif()'], ['cfg', 'Anpassa Hem', PEN, 'smart', "go('home');openHomeCfg()"],
 ];
@@ -10952,7 +10983,7 @@ function quickV() {
 }
 function openExplore() { stopLight(); S.sel = null; S.modal = null; S.tool = 'explore'; S.favEdit = false; render(); $('#main').scrollTop = 0; }
 function togFav(k) { let f = favs(); if (f.includes(k)) f = f.filter(x => x !== k); else { if (f.length >= 7) return toast('Du kan ha högst 7 favoriter på Hem'); f = f.concat(k); } store.set('favQuick', f); if (S.modal) keepScroll(); else keepMain(); }
-const XDESC = { aroider: 'Monstera, filodendron, anthurium, alocasia och andra i kallafamiljen', learn: 'Guider om vattning, jord, ljus, skadedjur, beskärning och mycket mer', soil: 'Lera, sand eller morän? Vad marken består av där du bor, med tips', measure: 'Höjd och bredd från ett foto, eller trädets höjd genom att luta telefonen', sit: 'Be en vän passa dina växter, eller passa någon annans', elev: 'Höjdskillnader runt en adress', rain: 'Hur mycket regnvatten taket samlar', sunpath: 'Var solen går och hur många soltimmar en plats får', ask: 'Skriv en fråga och få svar direkt', detect: 'Experter tar reda på vad växten heter', jord: 'Krukjord, bark, leca, pon och trädgårdsjord', hydro: 'Odla i vatten, leca och pon', naring: 'När och hur du gödslar', ljuslara: 'Fönster, lux och växtlampor', rosor: 'Sorter, beskärning, vinterskydd och sjukdomar', vatten: 'Hur ofta, hur mycket och vilket vatten', skadedjur: 'Sorgmygg, spinnkvalster, löss och svamp', forokning: 'Sticklingar, delning, avläggare och frön', omplant: 'När du byter kruka och vilken du väljer', klimat: 'Torr vinterluft, drag och värme', orkide: 'Skötsel och omblomning av orkidéer inomhus', kaktus: 'Ljus, vattning och vintervila', stod: 'Mosspåle, kokospåle och andra stöd för klätterväxter', beskarning: 'Fruktträd, buskar, häckar och krukväxter', applen: 'Sorter, pollinering, plantering och skörd', stenparti: 'Anlägga, jord och växter som trivs', hallbar: 'Torvfritt, kompost, vatten och pollinerare', db: 'Hitta växter i växtbiblioteket', id: 'Ta ett foto och få reda på vad det är', care: 'Vattning, gödsling och anteckningar', doc: 'Felsök gula blad, skadedjur och mer', expert: 'Fråga en expert med foto', house: 'Rum, fönster och växter i ditt hem', light: 'Mät ljuset där växten står', nearby: 'Trädgårdar och handelsträdgårdar nära dig', compass: 'Hitta norr', pets: 'Husdjur, fåglar, fiskar och terrarier', smart: 'Sensorer, lampor och bevattning', season: 'Vad du kan göra just nu', sow: 'När du sår och förkultiverar', perma: 'Permakultur och zonplanering', inspo: 'Odlare att följa på YouTube och Instagram', comm: 'Frågor och svar', forum: 'Diskussioner i kategorier', swap: 'Ge bort, byt eller önska', detect: 'Fråga andra vad en växt heter', people: 'Vänner och meddelanden', mine: 'Dina växter och påminnelser', notif: 'Påminnelser och svar', cfg: 'Ändra ordning på startskärmen' };
+const XDESC = { aroider: 'Monstera, filodendron, anthurium, alocasia och andra i kallafamiljen', learn: 'Guider om vattning, jord, ljus, skadedjur, beskärning och mycket mer', soil: 'Lera, sand eller morän? Vad marken består av där du bor, med tips', measure: 'Höjd och bredd från ett foto, eller trädets höjd genom att luta telefonen', sit: 'Be en vän passa dina växter, eller passa någon annans', elev: 'Höjdskillnader runt en adress', rain: 'Hur mycket regnvatten taket samlar', sunpath: 'Var solen går och hur många soltimmar en plats får', ask: 'Skriv en fråga och få svar direkt', detect: 'Experter tar reda på vad växten heter', jord: 'Krukjord, bark, leca, pon och trädgårdsjord', hydro: 'Odla i vatten, leca och pon', naring: 'När och hur du gödslar', ljuslara: 'Fönster, lux och växtlampor', rosor: 'Sorter, beskärning, vinterskydd och sjukdomar', vatten: 'Hur ofta, hur mycket och vilket vatten', skadedjur: 'Sorgmygg, spinnkvalster, löss och svamp', forokning: 'Sticklingar, delning, avläggare och frön', omplant: 'När du byter kruka och vilken du väljer', klimat: 'Torr vinterluft, drag och värme', orkide: 'Skötsel och omblomning av orkidéer inomhus', kaktus: 'Ljus, vattning och vintervila', stod: 'Mosspåle, kokospåle och andra stöd för klätterväxter', beskarning: 'Fruktträd, buskar, häckar och krukväxter', applen: 'Sorter, pollinering, plantering och skörd', stenparti: 'Anlägga, jord och växter som trivs', hallbar: 'Torvfritt, kompost, vatten och pollinerare', db: 'Hitta växter i växtbiblioteket', id: 'Ta ett foto och få reda på vad det är', care: 'Vattning, gödsling och anteckningar', doc: 'Felsök gula blad, skadedjur och mer', expert: 'Fråga en expert med foto', house: 'Rum, fönster och växter i ditt hem', light: 'Mät ljuset där växten står', nearby: 'Trädgårdar och handelsträdgårdar nära dig', compass: 'Hitta norr', pets: 'Husdjur, fåglar, fiskar och terrarier', smart: 'Sensorer, lampor och bevattning', season: 'Vad du kan göra just nu', sow: 'När du sår och förkultiverar', perma: 'Permakultur och zonplanering', inspo: 'Odlare att följa på YouTube och Instagram', comm: 'Frågor och svar', forum: 'Diskussioner i kategorier', swap: 'Köp, sälj, byt, skänk eller önska växter och sticklingar', detect: 'Fråga andra vad en växt heter', people: 'Vänner och meddelanden', mine: 'Dina växter och påminnelser', notif: 'Påminnelser och svar', cfg: 'Ändra ordning på startskärmen' };
 function xRow(q, e) {
   const [k, n, , , act, pro] = q, [icn, lbl] = QPH[k] || ['ph-star', n], on = favs().includes(k);
   return `<button class="xrow" onclick="${e ? `togFav('${k}')` : act}"><span class="xic">${ic(icn, 'currentColor', 20)}</span><span class="grow"><b>${lbl}</b><small>${XDESC[k] || ''}</small></span>${e ? `<i class="fav ${on ? 'on' : ''}">${on ? '★' : '☆'}</i>` : ''}${pro && !S.pro ? '<em class="pro">PRO</em>' : ''}</button>`;
@@ -10966,7 +10997,7 @@ const TKEY = {
   sunpath: 'sol solbana skugga soltimmar solig', compass: 'kompass norr väderstreck', elev: 'höjd marknivå lutning sluttning', rain: 'regn regnvatten tak tunna',
   jord: 'jord substrat kruka omplantera leca pon bark', hydro: 'hydroponi vatten leca pon semihydro', naring: 'gödsel näring gödsla', ljuslara: 'ljus lux växtlampa lampa fönster',
   rosor: 'ros rosor', vatten: 'vattna vattning vatten övervattning bottenvattning', skadedjur: 'skadedjur sjukdom sorgmygg spinnkvalster ullöss bladlöss trips mögel', forokning: 'förökning stickling sticklingar dela frön avläggare', omplant: 'omplantera kruka krukor plantera om', klimat: 'luftfuktighet temperatur drag element värme kyla', orkide: 'orkidé orkidéer phalaenopsis', kaktus: 'kaktus kaktusar suckulent suckulenter', beskarning: 'beskärning beskära beskär klippa häck sekatör', applen: 'äpple äpplen äppelträd fruktträd apel', stenparti: 'stenparti stenpartiväxter sedum taklök', hallbar: 'hållbar hållbarhet miljö torvfri kompost regnvatten pollinerare invasiv', stod: 'mosspåle mosspålar kokospåle kokospålar påle stöd klätterstöd spaljé sphagnum', perma: 'permakultur trädgård planera', inspo: 'inspiration youtube instagram odlare följa', comm: 'gemenskap frågor fråga andra', forum: 'forum diskussion tråd',
-  swap: 'byt byta byter byten ge bort skänka stickling sälja annons', people: 'vänner vän hitta användare', nearby: 'handelsträdgård plantskola köpa nära trädgård', pets: 'husdjur katt hund giftig djur', smart: 'sensor smart bevattning automatisk',
+  swap: 'byt byta byter byten bytes ge bort skänka skänkes stickling sälja säljes köpa köp sälj pris annons', people: 'vänner vän hitta användare', nearby: 'handelsträdgård plantskola köpa nära trädgård', pets: 'husdjur katt hund giftig djur', smart: 'sensor smart bevattning automatisk',
 };
 function toolHits(q) {
   const toks = (q || '').toLowerCase().split(/[\s,.]+/).filter(t => t.length > 1 && !['vad', 'den', 'det', 'för', 'jag', 'vill', 'min', 'mina', 'mitt', 'och', 'på', 'hur', 'som', 'att', 'är', 'ska', 'kan', 'man', 'en', 'ett', 'av', 'med', 'till', 'om', 'växt', 'växter', 'växten', 'växterna'].includes(t)); if (!toks.length) return [];
@@ -11782,13 +11813,13 @@ const isDetect = () => S.ctab === 'detect';
 const curList = () => (isForum() ? S.threads : (isSwap() || isNear()) ? S.listings : isDetect() ? S.cases : S.feed) || [];
 async function refreshComm() {
   if (isDetect()) S.cases = await api.feed('mystery');
-  else if (isSwap() || isNear()) S.listings = await api.feed('listing');
+  else if (isSwap() || isNear()) S.listings = lFix(await api.feed('listing'));
   else if (isForum()) S.threads = await api.feed('thread');
   else S.feed = await api.feed('question');
 }
 async function loadFeed() {
   try { await refreshComm(); S.feedErr = null; }
-  catch (e) { S.feedErr = e.message === 'DETECT_NOT_READY' ? 'Artbestämning går inte att använda just nu.' : e.message === 'FORUM_NOT_READY' ? 'Forumet går inte att använda just nu.' : e.message === 'SWAP_NOT_READY' ? 'Byt & ge bort går inte att använda just nu.' : errMsg(e); }
+  catch (e) { S.feedErr = e.message === 'DETECT_NOT_READY' ? 'Artbestämning går inte att använda just nu.' : e.message === 'FORUM_NOT_READY' ? 'Forumet går inte att använda just nu.' : e.message === 'SWAP_NOT_READY' ? 'Köp & sälj går inte att använda just nu.' : errMsg(e); }
   render();
 }
 async function commRun(fn, ok) {
@@ -11797,7 +11828,7 @@ async function commRun(fn, ok) {
 }
 function helpCommV() { const sec = (t, items) => `<h3 style="margin:16px 0 6px;font-size:16px">${t}</h3><ul style="margin:0;padding-left:18px;font-size:15px;line-height:1.5">${items.map(x => `<li>${x}</li>`).join('')}</ul>`;
   return `<div class="mh"><h2>Så använder du Gemenskap</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div><div style="max-height:62vh;overflow:auto;padding-right:4px">
-  ${sec('Flikarna', ['Frågor: ställ frågor om växter och få svar från andra. Tryck på + Ställ en fråga överst.', 'Visa upp: bilder på växter som andra har visat upp.', 'Byt & ge bort: annonser för växter du vill ge bort, byta eller önska. Tryck på Nära mig för att bara se annonser i din ort eller odlingszon (lägg in din ort i Profil).', 'Forum: diskussioner om odling och växtvård. Visas när det finns några trådar.', 'Visa upp och Forum göms tills det finns några inlägg, så Gemenskap inte känns tomt. Okända växter kan du få hjälp med via Examensmössan.', 'Mina vänner: dina vänner och meddelanden till dem.'])}
+  ${sec('Flikarna', ['Frågor: ställ frågor om växter och få svar från andra. Tryck på + Ställ en fråga överst.', 'Visa upp: bilder på växter som andra har visat upp.', 'Köp & sälj: annonser för växter du vill ge bort, byta eller önska. Tryck på Nära mig för att bara se annonser i din ort eller odlingszon (lägg in din ort i Profil).', 'Forum: diskussioner om odling och växtvård. Visas när det finns några trådar.', 'Visa upp och Forum göms tills det finns några inlägg, så Gemenskap inte känns tomt. Okända växter kan du få hjälp med via Examensmössan.', 'Mina vänner: dina vänner och meddelanden till dem.'])}
   ${sec('Knapparna uppe till höger', ['Examensmössan: fråga en expert.', '?: den här guiden.', 'Förstoringsglaset: hitta användare.', 'Klockan: notiser.'])}
   ${sec('Tips', ['Skriv aldrig adress eller telefonnummer i en annons eller ett svar. Bestäm hellre en plats att ses på.', 'Svaren syns för alla.'])}
   </div><div class="cta" style="padding:12px 0 0"><button class="btn" onclick="closeModal()">Stäng</button></div>`; }
@@ -11944,8 +11975,8 @@ function moreBtn(k, id, mine) {
 }
 document.addEventListener('click', e => { if (S.more && !(e.target.closest && e.target.closest('.morew'))) { S.more = null; S.del = null; keepMain(); } });
 
-const CTABS = [['friends', 'Mina vänner'], ['q', 'Frågor'], ['show', 'Visa upp'], ['swap', 'Byt & ge bort'], ['forum', 'Forum']];
-const CTAB_HELP = { q: 'Ställ frågor om växter och få svar från andra odlare.', show: 'Bilder på växter som andra har visat upp.', swap: 'Ge bort, byt eller önska växter i din ort.', near: 'Annonser från andra i din ort.', detect: 'Hjälp varandra att räkna ut vilka okända växter det är.', forum: 'Diskussioner om odling och växtvård.', friends: 'Dina vänner och meddelanden till dem.' };
+const CTABS = [['friends', 'Mina vänner'], ['q', 'Frågor'], ['show', 'Visa upp'], ['swap', 'Köp & sälj'], ['forum', 'Forum']];
+const CTAB_HELP = { q: 'Ställ frågor om växter och få svar från andra odlare.', show: 'Bilder på växter som andra har visat upp.', swap: 'Köp, sälj, byt, skänk eller önska växter i din ort.', near: 'Annonser från andra i din ort.', detect: 'Hjälp varandra att räkna ut vilka okända växter det är.', forum: 'Diskussioner om odling och växtvård.', friends: 'Dina vänner och meddelanden till dem.' };
 // Städad: flikarna Händer nära dig och Forum tas bort (forumtrådarna ligger kvar i databasen).
 const CTABS_STAD_HIDE = ['near', 'forum'];
 const STAD_CLBL = { friends: 'Vänner', q: 'Frågor', show: 'Visa upp', swap: 'Byt & ge' };
@@ -12233,8 +12264,19 @@ function postV() {
 }
 
 // --- Byt & ge bort ---
-const LTYPES = [['Ge bort', 'var(--pri2)', 'Jag ger bort'], ['Byta', 'var(--wat)', 'Jag vill byta'], ['Önskas', 'var(--acc)', 'Jag letar efter']];
-const ltColor = t => (LTYPES.find(x => x[0] === t) || LTYPES[0])[1];
+const LTYPES = [['Säljes', 'var(--cop)', 'Jag säljer'], ['Bytes', 'var(--wat)', 'Jag vill byta'], ['Skänkes', 'var(--pri2)', 'Jag skänker'], ['Önskas', 'var(--acc)', 'Jag letar efter']];
+// Äldre annonser och äldre versioner av appen använder Byta och Ge bort
+function lFix(L) { (L || []).forEach(p => { if (p.category === 'Byta') p.category = 'Bytes'; else if (p.category === 'Ge bort') p.category = 'Skänkes'; }); return L; }
+const SHIP = { hamtas: 'Hämtas', skickas: 'Kan skickas', bada: 'Hämtas eller skickas' };
+const lPrice = p => p.category === 'Säljes' && p.price != null ? (+p.price === 0 ? 'Gratis' : String(p.price).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') + ' kr') : '';
+const lTaken = p => p.category === 'Säljes' ? 'Såld' : p.category === 'Önskas' ? 'Hittad' : 'Bortlovad';
+const lCta = p => p.category === 'Önskas' ? 'Jag har en!' : p.category === 'Bytes' ? 'Föreslå byte' : p.category === 'Säljes' ? 'Jag vill köpa!' : 'Jag vill ha!';
+// Invasiva främmande arter på EU:s förteckning som inte får säljas, bytas eller ges bort
+const INVASIVE = [['jättebalsamin', 'impatiens glandulifera'], ['jätteloka', 'heracleum mantegazzianum'], ['tromsöloka', 'heracleum persicum'], ['sosnowskys loka', 'heracleum sosnowskyi'], ['gul skunkkalla', 'lysichiton americanus'], ['sidenört', 'asclepias syriaca'], ['gudaträd', 'ailanthus altissima'], ['vattenhyacint', 'eichhornia crassipes'], ['papegojfjäder', 'myriophyllum aquaticum'], ['smal vattenpest', 'elodea nuttallii'], ['afrikansk vattenpest', 'lagarosiphon major'], ['kabomba', 'cabomba caroliniana'], ['fjädertoppgräs', 'pennisetum setaceum'], ['musselblomma', 'pistia stratiotes'], ['kudzu', 'pueraria']];
+function lInvasive(t) { t = (t || '').toLowerCase(); const h = INVASIVE.find(([sv, la]) => t.includes(sv) || t.includes(la)); return h ? h[0] : null; }
+const LRULES = 'Bara växter, sticklingar, frön, lökar, krukor och odlingsprylar. Inga djur, mediciner eller droger. Invasiva arter på EU:s lista, till exempel jättebalsamin och jätteloka, får inte säljas, bytas eller ges bort.';
+function lSafeV() { return `<div class="lsafe"><b>${ic('ph-shield-check', 'currentColor', 18)} Handla tryggt</b><ul><li>Träffas gärna och betala när du har sett växten.</li><li>Swisha bara till någon du har träffat eller litar på. Roothood hanterar inga betalningar.</li><li>Klicka inte på länkar som säljaren eller köparen skickar, och lämna aldrig ut BankID-koder.</li><li>Verkar något för bra för att vara sant? Rapportera annonsen.</li></ul></div>`; }
+const ltColor = t => (LTYPES.find(x => x[0] === t) || LTYPES[2])[1];
 const ltPill = p => `<span class="ltype" style="background:${ltColor(p.category)}">${esc(p.category)}</span>`;
 function lThumb(p) {
   if (p.photo_url) return `<span class="lthumb"><img src="${esc(p.photo_url)}" alt="" loading="lazy"></span>`;
@@ -12252,7 +12294,7 @@ function swapV() {
     .sort((a, b) => (a.taken - b.taken) || b.created_at.localeCompare(a.created_at));
   const body = st && (S.feedErr || !S.listings) ? st
     : !list.length ? `<div class="empty"><p>${S.listings.length ? 'Inga annonser matchar. Prova en annan ort eller "Alla".' : '<b>Inga annonser än.</b><br>Har du en stickling att ge bort?'}</p>${S.listings.length ? '' : `<button class="btn" onclick="startListing()">Lägg ut en annons</button>`}</div>`
-    : list.map(p => `<button class="lcard ${p.taken ? 'taken' : ''}" onclick="openPost(${p.id})">${lThumb(p)}<span class="grow">${ltPill(p)}${p.taken ? ' <span class="pill">Bortlovad</span>' : ''}<b>${esc(p.title || '')}</b><span class="mut">${p.city ? esc(p.city) + ' · ' : ''}${ulink(p.user_id, p.author)} · ${ago(p.created_at)}</span>${p.answers.length ? `<span class="mut" style="display:block">${p.answers.length} svar</span>` : ''}</span></button>`).join('');
+    : list.map(p => `<button class="lcard ${p.taken ? 'taken' : ''}" onclick="openPost(${p.id})">${lThumb(p)}<span class="grow">${ltPill(p)}${p.taken ? ` <span class="pill">${lTaken(p)}</span>` : ''}<b>${esc(p.title || '')}</b>${lPrice(p) ? `<span class="lprice">${lPrice(p)}${p.ship ? ` <small>· ${SHIP[p.ship] || ''}</small>` : ''}</span>` : ''}<span class="mut">${p.city ? esc(p.city) + ' · ' : ''}${ulink(p.user_id, p.author)} · ${ago(p.created_at)}</span>${p.answers.length ? `<span class="mut" style="display:block">${p.answers.length} svar</span>` : ''}</span></button>`).join('');
   return `${topbar('Gemenskap')}${segBar()}
   ${document.documentElement.getAttribute('data-ui') === 'stad' ? cityRowL() : ''}
   <div class="lfil"><div class="chips2">${['Alla'].concat(LTYPES.map(x => x[0])).map(t => `<button class="${S.lf === t ? 'on' : ''}" onclick="S.lf='${t}';render()">${t}</button>`).join('')}<button class="${S.lnear ? 'on' : ''}" aria-pressed="${!!S.lnear}" onclick="S.lnear=!S.lnear;render()">Nära mig</button></div></div>
@@ -12266,6 +12308,10 @@ function cityRowL() { return `<div class="lfil"><input type="search" placeholder
 function startListing() { if (needLogin()) return; S.newL = true; S.lstep = 1; S.lphoto = null; if (!S.lci) S.lci = (S.prof && S.prof.city) || ''; render(); $('#main').scrollTop = 0; }
 function pickLPhoto(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.lphoto = f; S.lphotoUrl = URL.createObjectURL(f); render(); }
 // Städad: "Ny annons" i tre steg: typ och foto, växt och beskrivning, ort och publicering. Samma fält och samma sendListing.
+function lSellV() { if (S.lt !== 'Säljes') return ''; const sh = S.lsh || 'hamtas';
+  return `<label class="fl" for="lpr">Pris (kr)</label><input id="lpr" type="text" inputmode="numeric" maxlength="7" placeholder="t.ex. 50" value="${esc(S.lpr || '')}" oninput="S.lpr=this.value.replace(/[^0-9]/g,'');if(this.value!==S.lpr)this.value=S.lpr">
+  <label class="fl">Hur får köparen växten?</label><div class="chips2">${Object.entries(SHIP).map(([k, n]) => `<button class="${sh === k ? 'on' : ''}" aria-pressed="${sh === k}" onclick="S.lsh='${k}';render()">${n}</button>`).join('')}</div>`; }
+function lRulesV() { const inv = lInvasive((S.lti || '') + ' ' + (S.lbo || '')); return `${inv ? `<p class="formmsg">${esc(inv[0].toUpperCase() + inv.slice(1))} är en invasiv art på EU:s lista. Den får inte säljas, bytas eller ges bort.</p>` : ''}<p class="lnote">${LRULES}</p>`; }
 function newListingStepV() {
   const n = S.lstep || 1, photo = S.lt !== 'Önskas';
   const photoHtml = photo ? `<label class="fl">Foto (valfritt)</label>${S.lphoto ? `<img class="lbig" src="${esc(S.lphotoUrl)}" alt="Valt foto"><button class="btn sm line" onclick="S.lphoto=null;render()">Ta bort foto</button>` : `<label onclick="photoPick(event,this)" class="btn sm line" style="display:inline-flex;gap:8px;align-items:center;cursor:pointer">${ic(CAM, 'currentColor', 18)} Ta eller välj foto<input type="file" accept="image/*" class="sr" onchange="pickLPhoto(this)"></label>`}` : '';
@@ -12276,10 +12322,10 @@ function newListingStepV() {
          <input id="lti" maxlength="120" autocomplete="off" placeholder="t.ex. Monstera-sticklingar" value="${esc(S.lti)}" oninput="S.lti=this.value;document.getElementById('lsug').innerHTML=lsugInner(this.value)">
          <div id="lsug" class="lsug">${lsugInner(S.lti)}</div>
          <label class="fl" for="lbo">Beskrivning</label>
-         <textarea id="lbo" rows="4" maxlength="2000" placeholder="${S.lt === 'Byta' ? 'Vad har du, och vad vill du ha i utbyte?' : S.lt === 'Önskas' ? 'Vad kan du erbjuda i utbyte?' : 'Storlek, skick, hur man hämtar…'}" oninput="S.lbo=this.value">${esc(S.lbo)}</textarea>`
+         <textarea id="lbo" rows="4" maxlength="2000" placeholder="${S.lt === 'Bytes' ? 'Vad har du, och vad vill du ha i utbyte?' : S.lt === 'Önskas' ? 'Vad kan du erbjuda i utbyte?' : 'Storlek, skick, hur man hämtar…'}" oninput="S.lbo=this.value">${esc(S.lbo)}</textarea>${lSellV()}`
       : `<label class="fl" for="lci" style="margin-top:0">Ort <span class="mut">(steg 3 av 3)</span></label>
          <input id="lci" maxlength="60" placeholder="t.ex. Uppsala" value="${esc(S.lci || '')}" oninput="S.lci=this.value">
-         <p class="lnote">Annonsen och svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>`;
+         ${lRulesV()}<p class="lnote">Annonsen och svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>`;
   const nav = `<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">${n > 1 ? `<button class="btn sm line" onclick="S.lstep=${n - 1};render()">Tillbaka</button>` : ''}${n < 3 ? `<button class="btn sm" onclick="${n === 2 ? `if(S.lti.trim().length<3){toast('Skriv vilken växt det gäller (minst 3 tecken).')}else{S.lstep=3;render()}` : `S.lstep=2;render()`}">Nästa</button>` : `<button class="btn sm" ${S.busy ? 'disabled' : ''} onclick="sendListing()">${S.busy ? 'Publicerar…' : 'Publicera annons'}</button>`}<button class="btn sm line" onclick="S.newL=false;S.lstep=1;render()">Avbryt</button></div>`;
   return `${topbar('Ny annons', 'S.newL=false;S.lstep=1;render()')}<div class="pad"><div class="setcard" style="margin-top:10px">${body}${nav}</div></div>`;
 }
@@ -12293,12 +12339,12 @@ function newListingV() {
     <input id="lti" maxlength="120" autocomplete="off" placeholder="t.ex. Monstera-sticklingar" value="${esc(S.lti)}" oninput="S.lti=this.value;document.getElementById('lsug').innerHTML=lsugInner(this.value)">
     <div id="lsug" class="lsug">${lsugInner(S.lti)}</div>
     <label class="fl" for="lbo">Beskrivning</label>
-    <textarea id="lbo" rows="4" maxlength="2000" placeholder="${S.lt === 'Byta' ? 'Vad har du, och vad vill du ha i utbyte?' : S.lt === 'Önskas' ? 'Vad kan du erbjuda i utbyte?' : 'Storlek, skick, hur man hämtar…'}" oninput="S.lbo=this.value">${esc(S.lbo)}</textarea>
-    <label class="fl" for="lci">Ort</label>
+    <textarea id="lbo" rows="4" maxlength="2000" placeholder="${S.lt === 'Bytes' ? 'Vad har du, och vad vill du ha i utbyte?' : S.lt === 'Önskas' ? 'Vad kan du erbjuda i utbyte?' : 'Storlek, skick, hur man hämtar…'}" oninput="S.lbo=this.value">${esc(S.lbo)}</textarea>
+    ${lSellV()}<label class="fl" for="lci">Ort</label>
     <input id="lci" maxlength="60" placeholder="t.ex. Uppsala" value="${esc(S.lci || '')}" oninput="S.lci=this.value">
     ${S.lt !== 'Önskas' ? `<label class="fl">Foto (valfritt)</label>
     ${S.lphoto ? `<img class="lbig" src="${esc(S.lphotoUrl)}" alt="Valt foto"><button class="btn sm line" onclick="S.lphoto=null;render()">Ta bort foto</button>` : `<label onclick="photoPick(event,this)" class="btn sm line" style="display:inline-flex;gap:8px;align-items:center;cursor:pointer">${ic(CAM, 'currentColor', 18)} Ta eller välj foto<input type="file" accept="image/*" class="sr" onchange="pickLPhoto(this)"></label>`}` : ''}
-    <p class="lnote">Annonsen och svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>
+    ${lRulesV()}<p class="lnote">Annonsen och svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>
     <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap"><button class="btn sm" ${S.busy ? 'disabled' : ''} onclick="sendListing()">${S.busy ? 'Publicerar…' : 'Publicera annons'}</button><button class="btn sm line" onclick="S.newL=false;render()">Avbryt</button></div>
   </div></div>`;
 }
@@ -12308,15 +12354,18 @@ async function sendListing() {
   if (ti.length < 3) return toast('Skriv vilken växt det gäller (minst 3 tecken).');
   if (bo.length < 5) return toast('Skriv en kort beskrivning (minst 5 tecken).');
   if (!ci) return toast('Skriv vilken ort du finns i.');
+  const inv = lInvasive(ti + ' ' + bo); if (inv && S.lt !== 'Önskas') return toast(inv[0].toUpperCase() + inv.slice(1) + ' är en invasiv art och får inte säljas, bytas eller ges bort.');
+  const sell = S.lt === 'Säljes', pr = sell ? parseInt(S.lpr || '', 10) : null;
+  if (sell && !(pr >= 0)) return toast('Skriv ett pris i kronor (0 om den är gratis).');
   S.busy = true; render();
   try {
-    await api.newListing(S.lt, ti, bo, ci, S.lt !== 'Önskas' ? S.lphoto : null);
-    S.lti = ''; S.lbo = ''; S.lphoto = null; S.newL = false; S.lf = 'Alla'; S.lcity = '';
+    await api.newListing(S.lt, ti, bo, ci, S.lt !== 'Önskas' ? S.lphoto : null, sell ? { price: Math.min(pr, 1000000), ship: S.lsh || 'hamtas' } : null);
+    S.lti = ''; S.lbo = ''; S.lpr = ''; S.lphoto = null; S.newL = false; S.lf = 'Alla'; S.lcity = '';
     await refreshComm(); toast('Din annons är publicerad');
   } catch (e) { toast(e.message === 'SWAP_NOT_READY' ? 'Byt & ge bort går inte att använda just nu.' : errMsg(e)); }
   S.busy = false; render();
 }
-function setTaken(id, on) { commRun(() => api.setTaken(id, on), on ? 'Markerad som bortlovad' : 'Annonsen är öppen igen'); }
+function setTaken(id, on) { const p = (S.listings || []).find(x => x.id === id) || {}; commRun(() => api.setTaken(id, on), on ? 'Markerad som ' + lTaken(p).toLowerCase() : 'Annonsen är öppen igen'); }
 // Meddelande till annonsens ägare. Själva annonsen är kopplad till meddelandet.
 function contactAd(id) { if (needLogin()) return; const p = (S.listings || []).find(x => x.id === id); if (!p) return; openChat(p.user_id, p.author || 'Annonsen', { id: p.id, title: p.title || p.category || 'Annons' }); }
 function listingV() {
@@ -12326,11 +12375,11 @@ function listingV() {
   return `${topbar(p.category, 'S.post=null;S.del=null;render()')}<div class="pad">
   <div class="post" style="margin-top:10px">${whoP(p, (p.city ? p.city + ' · ' : '') + ago(p.created_at), ltPill(p))}
   ${p.photo_url ? `<img class="lbig" src="${esc(p.photo_url)}" alt="${esc(p.title || '')}">` : ''}
-  <h2 style="font-size:21px;margin:8px 0">${esc(p.title || '')}${p.taken ? ' <span class="pill">Bortlovad</span>' : ''}</h2><p style="margin:0;white-space:pre-line">${esc(p.body)}</p>
-  <div class="prow">${mine ? `<button class="btn sm line" onclick="setTaken(${p.id},${!p.taken})">${p.taken ? 'Öppna igen' : 'Markera som bortlovad'}</button>` : (p.taken ? '' : `<button class="btn sm" onclick="contactAd(${p.id})">Skicka meddelande</button>`)}<span class="grow"></span>${moreBtn('p', p.id, mine)}</div></div>
-  <p class="lnote">Svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>
+  <h2 style="font-size:21px;margin:8px 0">${esc(p.title || '')}${p.taken ? ` <span class="pill">${lTaken(p)}</span>` : ''}</h2>${lPrice(p) ? `<p class="lprice big">${lPrice(p)}${p.ship ? ` <small>· ${SHIP[p.ship] || ''}</small>` : ''}</p>` : ''}<p style="margin:0;white-space:pre-line">${esc(p.body)}</p>
+  <div class="prow">${mine ? `<button class="btn sm line" onclick="setTaken(${p.id},${!p.taken})">${p.taken ? 'Öppna igen' : 'Markera som ' + lTaken(p).toLowerCase()}</button>` : (p.taken ? '' : `<button class="btn sm" onclick="contactAd(${p.id})">Skicka meddelande</button>`)}<span class="grow"></span>${moreBtn('p', p.id, mine)}</div></div>
+  ${p.category === 'Säljes' && !mine ? lSafeV() : ''}<p class="lnote">Svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
-  ${answersV(p, false)}${mine ? replyBox(p.id, 'Svara på frågor om din annons') : replyBox(p.id, p.category === 'Önskas' ? 'Har du växten? Skriv till ' + p.author : 'Intresserad? Skriv till ' + p.author)}</div>`;
+  ${answersV(p, false)}${mine ? replyBox(p.id, 'Svara på frågor om din annons') : replyBox(p.id, p.category === 'Önskas' ? 'Har du växten? Skriv till ' + p.author : p.category === 'Säljes' ? 'Vill du köpa? Skriv till ' + p.author : 'Intresserad? Skriv till ' + p.author)}</div>`;
 }
 
 // --- Detektiver ---
@@ -13355,6 +13404,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.436', '18 nov', ['Köp & sälj i Gemenskap: Säljes, Bytes, Skänkes och Önskas. Säljes-annonser har pris och hämtas eller skickas, och köpare får tips om att handla tryggt. Invasiva arter går inte att annonsera','Visa-meny i Mitt hem och rabatten: dölj växternas namn, eller hela grupper som träd, buskar och perenner, i ritningen och i 3D']],
   ['Beta 0.435', '18 nov', ['Sökruta på Start: skriv vad du vill göra, så visas verktyg, dina växter, växter i biblioteket och guider direkt','Vad är viktigt för dig? Svara på tre frågor så visar Start det som passar dig','Kom igång: en checklista för nya användare','Dagens tips: ett nytt verktyg att testa varje dag','Hjälp i verktygen: en kort förklaring första gången, sedan en ?-knapp']],
   ['Beta 0.434', '18 nov', ['Lär dig mer, Ljus: ett stort kapitel med 18 kort och egna bilder. Fotosyntes, klorofyll, vad som händer i bladens celler med och utan ljus, lux, PPFD och DLI, fönster, ljuset under året, växtlampor, rekommenderade lampor, avstånd, timer, förodling, myter och säkerhet']],
   ['Beta 0.433', '18 nov', ['Välj växt i Mät med kameran och Dagboken: egen lista grupperad per rum, med en bildknapp på varje växt så att du ser exakt vilken det är','Trycker du på en notis om en uppdatering hamnar du nu på Start i stället för Min samling. Vattningspåminnelser öppnar fortfarande Min samling']],
@@ -16364,7 +16414,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.435';
+const APP_VERSION = 'Beta 0.436';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
