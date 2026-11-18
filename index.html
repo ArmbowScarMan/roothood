@@ -16316,6 +16316,10 @@ function settingsFullV() {
   ${setSecV('gard', 'ph-plant', 'Trädgård', zone ? 'Zon ' + zone : 'Ingen zon vald', `<div class="setcard" id="szonesec">
     <p class="mut" style="margin:0 0 10px;font-size:13px">${zone ? 'Zon ' + zone + ' (' + SOWZN[zone] + ')' : 'Ingen zon vald ännu'}. Zon 1 är mildast och zon 8 kallast. Växtsidorna visar om en växt klarar vintern där du bor.</p>
     ${zoneEditV(zone)}</div>`)}
+  ${setSecV('langd', 'ph-person', 'Min längd', (+store.get('myHeight', 0) ? store.get('myHeight', 0) + ' cm · ' : 'Frivillig · ') + 'bara du ser den', `<div class="setcard">
+    <p class="mut" style="margin:0 0 10px;font-size:13.5px">Din längd används när du mäter växter med kameran. Ställ dig bredvid växten och be någon fota, så räknar appen ut växtens höjd och bredd med dig som jämförelse.</p>
+    <label class="fl" for="mylen" style="margin-top:0">Din längd (cm)</label><input id="mylen" type="number" inputmode="numeric" min="50" max="250" placeholder="t.ex. 175" value="${+store.get('myHeight', 0) || ''}" onchange="const v=Math.round(+this.value)||0;store.set('myHeight',v>=50&&v<=250?v:0);if(v&&(v<50||v>250))toast('Skriv en längd mellan 50 och 250 cm');keepMain()">
+    <p class="mut" style="margin:8px 0 0;font-size:12.5px">${ic('ph-lock', 'currentColor', 14)} Längden sparas bara i din telefon. Den syns inte för andra och skickas inte till oss.</p></div>`)}
   ${S.user ? setSecV('adr', 'ph-map-pin', 'Min adress', S.addr ? 'Sparad · bara du ser den' : 'Frivillig · bara du ser den', adrSecV()) : ''}
   <button class="setsech" onclick="S.notifSet=true;render()"><span class="tic">${ic(BELL, 'currentColor', 20)}</span><span class="grow"><b>Notifikationer</b><small>Påminnelser, tider och vilka notiser du får</small></span>${ic('ph-caret-right', 'var(--mut)', 18)}</button>
   ${S.user && !DEMO ? setSecV('konto', 'ph-key', 'Konto', esc(S.user.email || ''), account + setAdvV('konto', `${fam ? `<label class="fl" style="margin-top:4px">Familj</label>${noHead(fam)}` : ''}${ps ? `<label class="fl">Dela trädgårdsplan</label>${noHead(ps)}` : ''}
