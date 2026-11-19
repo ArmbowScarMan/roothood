@@ -1154,6 +1154,7 @@ button.pw{cursor:pointer}
 .hvrow .grow{flex:1}.hvrow{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:6px 2px;border-bottom:1px solid rgba(127,183,126,.15)}.hvic{width:36px;height:36px;border-radius:10px;background:rgba(127,183,126,.15);display:flex;align-items:center;justify-content:center;color:var(--pri);flex:0 0 auto}.hvsw{width:46px;height:28px;border-radius:14px;background:rgba(127,127,127,.35);position:relative;flex:0 0 auto;transition:background .15s}.hvsw i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .15s}.hvsw.on{background:var(--pri)}.hvsw.on i{left:21px}.hvbtn.on{border-color:var(--acc);color:var(--acc)}
 .lprice{display:block;font-weight:800;color:var(--cop,#C2643F);margin:2px 0}.lprice small{font-weight:600;color:var(--mut)}.lprice.big{font-size:20px;margin:0 0 8px}.lsafe{background:rgba(127,183,126,.12);border:1.5px solid rgba(127,183,126,.35);border-radius:16px;padding:12px 14px;margin:14px 0 4px}.lsafe b{display:flex;gap:8px;align-items:center}.lsafe ul{margin:6px 0 0;padding-left:20px}.lsafe li{margin:3px 0}:root[data-ui=stad] .ltag.t-sell{background:rgba(194,100,63,.16);color:#C2643F}
 .hvrow2{display:flex;align-items:center;gap:10px;min-height:56px;padding:6px 2px;border-bottom:1px solid rgba(127,183,126,.15)}.hvrow2 .grow{flex:1}.hvname{display:inline-flex;align-items:center;gap:4px;height:36px;padding:0 10px;border-radius:18px;border:1.5px solid rgba(127,183,126,.45);background:transparent;color:inherit;font:inherit;font-size:13px}.hvname.on{background:rgba(127,183,126,.22);border-color:var(--pri)}.hvname:disabled{opacity:.4}.hvswb{border:0;background:transparent;padding:6px 0;min-height:44px;display:flex;align-items:center}
+.qhrs{display:flex;align-items:center;gap:8px;margin:8px 0}.qhrs select{flex:1}.wrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(127,183,126,.15)}.wrow .grow{flex:1;display:flex;flex-direction:column}.mission{padding:16px;border-radius:20px}.mission .mhd{display:flex;justify-content:space-between;align-items:center;gap:8px}.mission small{font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.7}.mission p{margin:6px 0 10px}.mission .streak{font-weight:800;font-size:14px}.mission.done{opacity:.85}.mission .linkbtn{background:none;border:0;color:var(--pri);font:inherit;font-size:13px;padding:10px 0 0}
 .acc{background:var(--surf);border-radius:18px;box-shadow:var(--sh);margin-bottom:10px;overflow:hidden}
 .acc summary{display:flex;gap:12px;align-items:center;padding:14px 16px;cursor:pointer;list-style:none;font-size:15.5px}
 .acc summary::-webkit-details-marker{display:none}
@@ -2567,6 +2568,11 @@ const demoApi = {
   async othersPhotos() { return []; },
   async setShare(on) { store.set('share', on); },
   async saveNotifPrefs(p) { store.set('notifPrefs', p); },
+  async notifSeen() { return false; },
+  async watches() { return store.get('demoWatch', []); },
+  async addWatch(q, city) { const L = store.get('demoWatch', []); if (L.length >= 10) throw new Error('row-level'); L.push({ id: Date.now(), q, city }); store.set('demoWatch', L); },
+  async delWatch(id) { store.set('demoWatch', store.get('demoWatch', []).filter(w => w.id !== id)); },
+  async notifyListing() { },
   async log(upId) { return store.get('log', []).filter(x => x.user_plant_id === upId); },
   async addLog(upId, kind, date, note) { const l = store.get('log', []); l.push({ id: Date.now(), user_plant_id: upId, kind, done_on: date, note: note || null, created_at: new Date().toISOString() }); store.set('log', l); },
   async delLog(id) { store.set('log', store.get('log', []).filter(x => x.id !== id)); },
@@ -2833,6 +2839,11 @@ const sbApi = {
     const good = new Set(ok.data || []); return all.filter(x => good.has(x.url));
   },
   async setShare(on) { const { error } = await sb.from('profiles').update({ share_photos: on }).eq('id', S.user.id); if (error) throw error; },
+  async notifSeen() { const { data, error } = await sb.rpc('notif_seen'); if (error) throw error; return !!data; },
+  async watches() { const { data, error } = await sb.from('listing_watches').select('id,q,city').order('created_at', { ascending: false }); if (error) throw error; return data || []; },
+  async addWatch(q, city) { const { error } = await sb.from('listing_watches').insert({ user_id: S.user.id, q, city }); if (error) throw error; },
+  async delWatch(id) { const { error } = await sb.from('listing_watches').delete().eq('id', id); if (error) throw error; },
+  async notifyListing(id) { const { data } = await sb.auth.getSession(); await fetch(SUPABASE_URL + '/functions/v1/send-reminders', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + (data.session ? data.session.access_token : '') }, body: JSON.stringify({ event: 'listing', post: id }) }); },
   async saveNotifPrefs(p) { const { error } = await sb.from('profiles').update({ notif_prefs: p }).eq('id', S.user.id); if (error) throw /notif_prefs/.test(error.message || '') ? new Error('Notisinställningarna är inte påslagna än. Kör SQL-filen 087 i Supabase.') : error; },
   async log(upId) { const { data, error } = await sb.from('care_log').select('id,user_plant_id,kind,done_on,note,created_at').eq('user_plant_id', upId).order('done_on', { ascending: false }); if (error) throw error; return data; },
   async addLog(upId, kind, date, note) { const { error } = await sb.from('care_log').insert({ user_plant_id: upId, kind, done_on: date, note: note || null }); if (error) throw error; },
@@ -3024,7 +3035,8 @@ const sbApi = {
   async newThread(cat, title, body, photo) { const url = photo ? await uploadPhoto(photo) : null, row = { user_id: S.user.id, kind: 'thread', category: cat, title, body }; if (url) row.photo_url = url; const { error } = await sb.from('posts').insert(row); if (error) throw error; },
   async newListing(type, title, body, city, photo, sell) {
     const url = photo ? await uploadPhoto(photo) : null;
-    const { error } = await sb.from('posts').insert(Object.assign({ user_id: S.user.id, kind: 'listing', category: type, title, body, city: city || null, photo_url: url }, sell || {}));
+    const { data: row, error } = await sb.from('posts').insert(Object.assign({ user_id: S.user.id, kind: 'listing', category: type, title, body, city: city || null, photo_url: url }, sell || {})).select('id').single();
+    if (!error) return row && row.id;
     if (error) throw /kind_check|city|photo_url/.test(error.message || '') ? new Error('SWAP_NOT_READY') : error;
   },
   async setTaken(id, on) { const { error } = await sb.from('posts').update({ taken: on }).eq('id', id); if (error) throw error; },
@@ -8366,7 +8378,7 @@ const SCRX_SEL = '.tabs, .scrx, .chips2.qfilt, .gwrow, .mfilt, .qfilt, .mycards,
 function rowCenter() { document.querySelectorAll(SCRX_SEL).forEach(p => { const ov = p.scrollWidth > p.clientWidth + 2; p.classList.toggle('ovf', ov); if (!ov || p.dataset.c === (p.querySelector('.on') || {}).textContent) return; const on = p.querySelector('.on'); if (!on) return; p.dataset.c = on.textContent; const a = p.getBoundingClientRect(), b = on.getBoundingClientRect(); p.scrollLeft += (b.left + b.width / 2) - (a.left + a.width / 2); });
   document.querySelectorAll(SCRX_SEL.split(', ').map(x => x + '.ovf').join(', ')).forEach(p => { if (p.dataset.sl) return; p.dataset.sl = 1; p.addEventListener('scroll', () => p.classList.toggle('end', p.scrollLeft + p.clientWidth >= p.scrollWidth - 4), { passive: true }); }); }
 function render() {
-  try { markUsed(); } catch (e) { }
+  try { markUsed(); if (S.user && S.prof) notifSeenCheck(); } catch (e) { }
   if (S.modal !== 'pmeas') { if (pmStream) pmStop(); if (S.pmFree && S.modal !== 'pdet') S.pmFree = false; }
   applyGrowlight();
   requestAnimationFrame(rowCenter); requestAnimationFrame(uiIcons);
@@ -8391,7 +8403,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'hvis' ? hvisV() : S.modal === 'soilv' ? jordV() : S.modal === 'pmeas' ? pmeasV() : S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'mf' ? mfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'nbrake' ? nbrakeV() : S.modal === 'watch' ? watchV() : S.modal === 'hvis' ? hvisV() : S.modal === 'soilv' ? jordV() : S.modal === 'pmeas' ? pmeasV() : S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'mf' ? mfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -8640,7 +8652,7 @@ function home() {
   ${DEMO ? '<p style="text-align:center;margin:0 0 4px"><span class="badge" title="Ingen databas kopplad. Det du gör sparas bara i den här webbläsaren.">Demoläge</span></p>' : ''}
   ${S.user && due.length ? thirstyCard(due) : ''}
   ${S.user ? toxicBanner() : ''}
-  ${focusV()}${startListV()}${dayTipV()}
+  ${focusV()}${startListV()}${dayTipV()}${missionV()}
   ${homeBlocks(intro)}
   ${S.user ? `<div class="hcfgrow"><button class="hcfgb" onclick="openHomeCfg()">${ic(PEN, 'currentColor', 15)} Anpassa startsidan</button>${store.get('focusDone', false) ? `<button class="hcfgb" onclick="focusAgain()">${ic('ph-compass', 'currentColor', 15)} Vad är viktigt för dig?</button>` : ''}</div>` : ''}</div>`;
 }
@@ -9922,7 +9934,7 @@ function outHints(m, d) {
 }
 function outWeatherAlerts() { // till Hem: utomhusväxter som behöver något nu
   const out = []; S.mine.filter(isOutM).forEach(m => { const hs = outHints(m, m.details || {}).filter(x => x[0] === 'warn' && /Frost|Kallt|Torrt|Blåsigt|Värme/.test(x[1])); if (hs.length) out.push([m, hs[0][1]]); }); return out; }
-async function afterAdd(ok) { const m = S.mine[S.mine.length - 1]; if (!m) return; S.pdNew = true; openDetails(m.id); const out = isOutM(m); if (!S.pd.place) S.pd.place = out ? (m.category === 'Köksträdgård' ? 'Odlingsland' : 'I marken') : 'Kruka'; render(); }
+async function afterAdd(ok) { const m = S.mine[S.mine.length - 1]; if (!m) return; if (S.mine.length === 1 || !store.get('pushAskedPlant', false)) { store.set('pushAskedPlant', true); pushAskValue('plant', m.name); } S.pdNew = true; openDetails(m.id); const out = isOutM(m); if (!S.pd.place) S.pd.place = out ? (m.category === 'Köksträdgård' ? 'Odlingsland' : 'I marken') : 'Kruka'; render(); }
 
 // ===== Rabattläget i Mitt hem: placera rabatt, mått, sätt ut växter med cc-mått =====
 const zMax = () => PL().mode === 'bed' ? 320 : 120;
@@ -12300,7 +12312,7 @@ function swapV() {
   <div class="lfil"><div class="chips2">${['Alla'].concat(LTYPES.map(x => x[0])).map(t => `<button class="${S.lf === t ? 'on' : ''}" onclick="S.lf='${t}';render()">${t}</button>`).join('')}<button class="${S.lnear ? 'on' : ''}" aria-pressed="${!!S.lnear}" onclick="S.lnear=!S.lnear;render()">Nära mig</button></div></div>
   ${S.lnear && !S.post && !S.newL ? nearScopeHtml() : ''}
   ${document.documentElement.getAttribute('data-ui') === 'stad' ? '' : cityRowL()}
-  <div class="addbar" style="padding:14px 18px 4px"><button class="btn wide" onclick="startListing()">+ Ny annons</button></div>
+  <div class="addbar" style="padding:14px 18px 4px;display:flex;gap:8px"><button class="btn" style="flex:1" onclick="startListing()">+ Ny annons</button><button class="btn line" onclick="openWatch()">${ic('ph-bell-ringing', 'currentColor', 18)} Bevaka</button></div>
   <div class="pad" style="padding-top:8px">${body}</div>`;
 }
 // Filtret för ort i Byt & ge bort. I Städad ligger det överst, som en platsrad.
@@ -12359,7 +12371,9 @@ async function sendListing() {
   if (sell && !(pr >= 0)) return toast('Skriv ett pris i kronor (0 om den är gratis).');
   S.busy = true; render();
   try {
-    await api.newListing(S.lt, ti, bo, ci, S.lt !== 'Önskas' ? S.lphoto : null, sell ? { price: Math.min(pr, 1000000), ship: S.lsh || 'hamtas' } : null);
+    const newId = await api.newListing(S.lt, ti, bo, ci, S.lt !== 'Önskas' ? S.lphoto : null, sell ? { price: Math.min(pr, 1000000), ship: S.lsh || 'hamtas' } : null);
+    if (newId) api.notifyListing(newId).catch(e => console.warn('Roothood:', e));
+    pushAskValue('listing');
     S.lti = ''; S.lbo = ''; S.lpr = ''; S.lphoto = null; S.newL = false; S.lf = 'Alla'; S.lcity = '';
     await refreshComm(); toast('Din annons är publicerad');
   } catch (e) { toast(e.message === 'SWAP_NOT_READY' ? 'Byt & ge bort går inte att använda just nu.' : errMsg(e)); }
@@ -16889,7 +16903,10 @@ async function refreshPush() {
 }
 let pushAskDone = false;
 function pushAskMaybe(st) {
-  if (pushAskDone || !S.user) return;
+  // Frågar inte längre vid varje öppning. Bara en gång när man har växter, sedan efter nya värdefulla handlingar.
+  if (pushAskDone || !S.user) return; pushAskDone = true;
+  if (S.mine && S.mine.length && !store.get('pushAskedPlant', false)) { store.set('pushAskedPlant', true); const m = S.mine[S.mine.length - 1]; pushAskValue('plant', m && m.name); }
+  return;
   const ios = isIOS() && !isInstalled();
   if (!(st === 'off' || st === 'denied' || (st === 'unsupported' && ios))) return;
   pushAskDone = true;
@@ -16897,6 +16914,106 @@ function pushAskMaybe(st) {
   // Vänta tills andra rutor (t.ex. Nytt i versionen) är stängda, högst ca två minuter
   const t = () => { if (S.push === 'on') return; if (S.modal || S.sel) { if (++n < 60) setTimeout(t, 2000); return; } S.pushAskSt = ios && st === 'unsupported' ? 'ios' : st; openModal('pushask'); };
   setTimeout(t, 1500);
+}
+// ===== Notiser som hjälper, inte tjatar (Beta 0.439) =====
+// 1. Frågan om notiser kommer efter något värdefullt: första växten, en annons eller en bevakning. "Inte nu" = 7 dagars paus.
+function pushAskValue(kind, name) {
+  if (!S.user || S.push === 'on') return;
+  if (Date.now() < store.get('pushNoUntil', 0)) return;
+  if (store.get('pushHour', null) == null) store.set('pushHour', 18);
+  const ios = isIOS() && !isInstalled(), st = S.push;
+  if (!(st === 'off' || st === 'denied' || (st === 'unsupported' && ios))) return;
+  let n = 0;
+  const t = () => { if (S.push === 'on') return; if (S.modal || S.sel || S.pdNew) { if (++n < 90) setTimeout(t, 2000); return; } S.pushAskSt = ios && st === 'unsupported' ? 'ios' : st; S.pushAskKind = kind; S.pushAskName = name || ''; openModal('pushask'); };
+  setTimeout(t, 1200);
+}
+function pushAskNo() { store.set('pushNoUntil', Date.now() + 7 * 864e5); closeModal(); }
+function pushAskTitle() {
+  const n = S.pushAskName, k = S.pushAskKind;
+  if (k === 'plant' && n) return 'Vill du ha koll på din ' + esc(n) + '?';
+  if (k === 'listing') return 'Vill du få svar direkt?';
+  if (k === 'watch' && n) return 'Vill du få veta när ' + esc(n) + ' läggs ut?';
+  return 'Slå på notiser';
+}
+function pushAskLead() {
+  const k = S.pushAskKind;
+  if (k === 'listing') return 'Du får en notis när någon skriver om din annons. Inget annat skickas mitt i natten.';
+  if (k === 'watch') return 'Du får en notis när någon lägger ut en annons som matchar din bevakning.';
+  return 'Vi påminner dig när det är dags att vattna, högst en gång om dagen och aldrig reklam.';
+}
+function pushHourSel() { const h = store.get('pushHour', 18); return `<label class="fl" for="pah" style="text-align:left">Vilken tid passar bäst?</label><select id="pah" onchange="store.set('pushHour',+this.value)">${Array.from({ length: 17 }, (_, i) => i + 6).map(x => `<option value="${x}" ${h === x ? 'selected' : ''}>kl ${String(x).padStart(2, '0')}.00</option>`).join('')}</select>`; }
+
+// 2–3. Notisgrupper och tysta timmar, sparas i profilen (notif_prefs) och följs av servern
+const NGROUPS = [['g_crit', 'Viktiga', 'Meddelanden och svar på dina annonser. Kommer även under tysta timmar om du vill.'], ['g_rout', 'Skötsel', 'En samlad påminnelse om vattning, skörd och väder, vid den tid du valt.'], ['g_soc', 'Gemenskap och fynd', 'Svar, vänner, bevakningar i Köp & sälj och nya versioner av appen.']];
+const nPref = (k, d) => { const p = (S.prof && S.prof.notif_prefs) || {}; return p[k] === undefined ? d : p[k]; };
+function notifGroupsV() {
+  if (!S.user) return '';
+  const sw = (k, on, n, d) => `<button class="hvrow" role="switch" aria-checked="${on}" onclick="notifPrefSet('${k}', ${!on})"><span class="grow"><b>${n}</b><small class="mut" style="display:block;font-size:12.5px">${d}</small></span><span class="hvsw ${on ? 'on' : ''}"><i></i></span></button>`;
+  const hr = (k, d) => `<select onchange="notifPrefSet('${k}', +this.value)" aria-label="${k === 'quiet_start' ? 'Tysta timmar börjar' : 'Tysta timmar slutar'}">${Array.from({ length: 24 }, (_, i) => `<option value="${i}" ${+nPref(k, d) === i ? 'selected' : ''}>${String(i).padStart(2, '0')}.00</option>`).join('')}</select>`;
+  const qOn = nPref('quiet_on', true), weekly = nPref('weekly', false);
+  return `<div class="setcard" style="padding:12px 14px;margin-top:12px"><p style="margin:0 0 4px"><b>Vilka notiser vill du ha?</b></p>${NGROUPS.map(([k, n, d]) => sw(k, nPref(k, true) !== false, n, d)).join('')}
+  <label class="fl">Hur ofta kommer skötselpåminnelsen?</label><div class="chips2"><button class="${!weekly ? 'on' : ''}" aria-pressed="${!weekly}" onclick="notifPrefSet('weekly', false)">Varje dag</button><button class="${weekly ? 'on' : ''}" aria-pressed="${weekly}" onclick="notifPrefSet('weekly', true)">En gång i veckan (söndag)</button></div></div>
+  <div class="setcard" style="padding:12px 14px;margin-top:12px">${sw('quiet_on', qOn, 'Tysta timmar', 'Inga notiser om gemenskap och fynd under natten. De väntar under klockan i appen.')}
+  ${qOn ? `<div class="qhrs"><span>Från</span>${hr('quiet_start', 22)}<span>till</span>${hr('quiet_end', 8)}</div>${sw('quiet_crit', nPref('quiet_crit', true) !== false, 'Släpp igenom viktiga', 'Meddelanden och svar på annonser kommer även under tysta timmar.')}` : ''}</div>`;
+}
+
+// 5. Automatisk broms: när appen öppnas nollställs räknaren. Var bromsen på, berätta det.
+let notifSeenDone = false;
+async function notifSeenCheck() {
+  if (notifSeenDone || !S.user || DEMO) return; notifSeenDone = true;
+  try { const was = await api.notifSeen(); if (was) setTimeout(() => { if (!S.modal) openModal('nbrake'); }, 2500); } catch (e) { console.warn('Roothood:', e); }
+}
+function nbrakeV() {
+  return `<div class="mh"><h2>Färre notiser</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <p>Du hade inte öppnat appen efter de senaste påminnelserna. Därför fick du bara en sammanfattning i veckan, för att vi inte vill tjata.</p>
+  <p>Nu när du är tillbaka får du påminnelsen varje dag igen. Vill du hellre ha den en gång i veckan?</p>
+  <button class="btn wide" onclick="closeModal()">Varje dag är bra</button><button class="btn wide line" style="margin-top:8px" onclick="closeModal();notifPrefSet('weekly', true)">En gång i veckan</button>`;
+}
+
+// 6. Bevakningar i Köp & sälj
+async function loadWatches() { try { S.watches = await api.watches(); } catch (e) { S.watches = []; } if (S.modal === 'watch') render(); }
+function openWatch() { if (needLogin()) return; S.wq = S.wq || ''; if (S.wci == null) S.wci = (S.prof && S.prof.city) || ''; S.wall = false; openModal('watch'); loadWatches(); }
+function watchV() {
+  const L = S.watches;
+  return `<div class="mh"><h2>Bevaka</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <p class="mut" style="margin:0 0 6px">Få en notis när någon lägger ut en växt du letar efter i Köp & sälj.</p>
+  <label class="fl" for="wq">Vilken växt?</label><input id="wq" maxlength="60" autocomplete="off" placeholder="t.ex. Anthurium" value="${esc(S.wq || '')}" oninput="S.wq=this.value">
+  <label class="fl" for="wci">Var?</label>${S.wall ? '' : `<input id="wci" maxlength="60" placeholder="t.ex. Piteå" value="${esc(S.wci || '')}" oninput="S.wci=this.value">`}
+  <label class="remrow" style="margin-top:6px"><input type="checkbox" ${S.wall ? 'checked' : ''} onchange="S.wall=this.checked;render()"><span><b>Hela Sverige</b><small>Även annonser som kan skickas från andra orter</small></span></label>
+  <button class="btn wide" style="margin-top:12px" ${S.busy || (L && L.length >= 10) ? 'disabled' : ''} onclick="addWatch()">${ic('ph-bell-ringing', 'currentColor', 18)} Bevaka</button>
+  ${L && L.length >= 10 ? '<p class="mut" style="font-size:13px">Du har 10 bevakningar, som är max. Ta bort en för att lägga till en ny.</p>' : ''}
+  <label class="fl">Dina bevakningar</label>${L == null ? '<p class="mut">Laddar…</p>' : L.length ? L.map(w => `<div class="wrow"><span class="grow"><b>${esc(w.q)}</b><small class="mut">${w.city ? esc(w.city) : 'Hela Sverige'}</small></span><button class="btn sm line" onclick="delWatch(${w.id})" aria-label="Ta bort bevakningen ${esc(w.q)}">Ta bort</button></div>`).join('') : '<p class="mut" style="margin:0">Inga bevakningar än.</p>'}`;
+}
+async function addWatch() {
+  const q = (S.wq || '').trim(), ci = S.wall ? null : (S.wci || '').trim() || null;
+  if (q.length < 2) return toast('Skriv vilken växt du vill bevaka.');
+  S.busy = true; render();
+  try { await api.addWatch(q, ci); S.wq = ''; toast('Du bevakar nu ' + q); await loadWatches(); pushAskValue('watch', q); }
+  catch (e) { toast(/row-level|policy/i.test(e.message || '') ? 'Du kan ha högst 10 bevakningar.' : errMsg(e)); }
+  S.busy = false; render();
+}
+async function delWatch(id) { try { await api.delWatch(id); await loadWatches(); toast('Bevakningen är borttagen'); } catch (e) { toast(errMsg(e)); } }
+
+// 7. Dagens uppdrag och svit
+const MISSIONS = ['Vänd på ett blad på din {p} och kolla undersidan efter skadedjur.', 'Torka damm av bladen på din {p} med en fuktig trasa.', 'Vrid krukan med din {p} en kvarts varv, så växer den jämnt.', 'Stick ner ett finger två centimeter i jorden hos din {p}. Är den torr?', 'Ta en bild på din {p} till tidslinjen.', 'Titta under krukan till din {p}. Sticker det ut rötter?', 'Plocka bort vissna eller gula blad på din {p}.', 'Kolla om din {p} lutar mot fönstret. Den kanske vill ha mer ljus.', 'Känn på krukan till din {p}. Är den lätt behöver den nog vatten.'];
+const dayKey = () => new Date().toLocaleDateString('sv-SE');
+function missionToday() {
+  const L = (S.mine || []).filter(m => !isOutM(m)), A = L.length ? L : (S.mine || []); if (!A.length) return null;
+  const d = Math.floor(Date.now() / 864e5), m = A[d % A.length];
+  return { text: MISSIONS[(d * 7 + m.id) % MISSIONS.length].replace('{p}', m.name || 'växt'), id: m.id };
+}
+function streakNow() { const s = store.get('mStreak', { n: 0, last: '' }), y = new Date(Date.now() - 864e5).toLocaleDateString('sv-SE'); return s.last === dayKey() || s.last === y ? s.n : 0; }
+function missionV() {
+  if (!S.user || !store.get('focusDone', false) || store.get('missionOff', false)) return '';
+  const mi = missionToday(); if (!mi) return '';
+  const done = store.get('mStreak', { last: '' }).last === dayKey(), n = streakNow();
+  return `<div class="pad"><div class="card mission${done ? ' done' : ''}"><div class="mhd"><small>Dagens uppdrag</small>${n ? `<span class="streak" aria-label="${n} dagar i rad">🔥 ${n} ${n === 1 ? 'dag' : 'dagar i rad'}</span>` : ''}</div>
+  <p>${esc(mi.text)}</p>${done ? `<p class="mut" style="margin:0">Klart för idag! Nytt uppdrag i morgon.</p>` : `<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="missionDone()">${ic('ph-check', 'currentColor', 16)} Klart!</button><button class="btn sm line" onclick="openMine(${mi.id})">Visa växten</button></div>`}
+  <button class="linkbtn" onclick="store.set('missionOff',true);render()">Dölj uppdragen</button></div></div>`;
+}
+function missionDone() {
+  const n = streakNow() + 1; store.set('mStreak', { n, last: dayKey() });
+  toast(n >= 3 ? '🔥 ' + n + ' dagar i rad! Bra jobbat.' : 'Bra jobbat! Kom tillbaka i morgon för ett nytt uppdrag.'); render();
 }
 function openNotifSet() { closeModal(); openSettings(); S.notifSet = true; render(); $('#main').scrollTop = 0; }
 function pushAskV() {
@@ -16911,13 +17028,13 @@ function pushAskV() {
   else if (k === 'ios') main = `<p>På iPhone fungerar notiser bara när Roothood ligger på hemskärmen.</p>
     <ol style="text-align:left;padding-left:20px;line-height:1.5"><li>Tryck på <b>Dela</b> i Safari (rutan med pilen uppåt).</li><li>Välj <b>Lägg till på hemskärmen</b>.</li><li>Öppna Roothood från hemskärmen. Då kommer den här frågan igen och du kan slå på notiser.</li></ol>
     <button class="btn wide" onclick="closeModal()">Jag förstår</button>`;
-  else main = `<button class="btn wide" onclick="closeModal();enablePush()">Ja, slå på notiser</button>`;
-  return `<div class="mh"><h2>Slå på notiser</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  else main = `${S.pushAskKind === 'plant' || !S.pushAskKind ? pushHourSel() : ''}<button class="btn wide" style="margin-top:12px" onclick="closeModal();enablePush()">${S.pushAskKind === 'plant' ? 'Aktivera påminnelser' : 'Ja, slå på notiser'}</button>`;
+  return `<div class="mh"><h2>${pushAskTitle()}</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
   <div class="pushask"><span class="tic">${ic(BELL, 'currentColor', 30)}</span>
-  <p>Med notiser missar du inget. Roothood meddelar dig när</p><ul><li>en växt behöver vattnas</li><li>någon skickar ett meddelande, svarar dig eller vill bli din vän</li><li>Nyckelpigan har svarat på din felrapport</li><li>det kommer en ny uppdatering av appen</li></ul>
-  ${main}${how}
-  <button class="link3" style="display:block;margin:10px auto 0" onclick="openNotifSet()">Öppna notisinställningar</button>
-  <button class="link3" style="display:block;margin:10px auto 0" onclick="closeModal()">Inte nu</button></div>`;
+  <p>${pushAskLead()}</p>
+  ${main}
+  <button class="link3" style="display:block;margin:14px auto 0" onclick="pushAskNo()">Inte nu</button>
+  <button class="link3" style="display:block;margin:6px auto 0;font-size:13px" onclick="openNotifSet()">Välj vilka notiser du vill ha</button></div>`;
 }
 async function enablePush() {
   if (!S.user) return openModal('login');
@@ -16997,7 +17114,8 @@ function notifSetV() {
   <div class="sec"><h2>Notifikations-inställningar</h2></div>
   <div class="pad"><p class="mut" style="margin:0 0 10px;font-size:13.5px">Här väljer du vilka notiser du vill få i mobilen, även när appen är stängd.</p>
   <div class="setcard" style="padding:12px 14px"><p style="margin:0 0 8px"><b>Vattning och skötsel</b></p>${pushCard()}</div>
-  <div class="setcard" style="padding:12px 14px;margin-top:12px"><p style="margin:0 0 8px"><b>Övriga notiser</b></p>${S.user ? NOTIF_KINDS.map(([k, n, d]) => `<label class="remrow"><input type="checkbox" ${notifPrefOn(k) ? 'checked' : ''} onchange="notifPrefSet('${k}', this.checked)" aria-label="${n}"><span><b>${n}</b><small>${d}</small></span></label>`).join('') : '<p class="mut" style="margin:0">Logga in för att välja notiser.</p>'}
+  ${notifGroupsV()}
+  <div class="setcard" style="padding:12px 14px;margin-top:12px"><p style="margin:0 0 8px"><b>Detaljerade val</b></p>${S.user ? NOTIF_KINDS.map(([k, n, d]) => `<label class="remrow"><input type="checkbox" ${notifPrefOn(k) ? 'checked' : ''} onchange="notifPrefSet('${k}', this.checked)" aria-label="${n}"><span><b>${n}</b><small>${d}</small></span></label>`).join('') : '<p class="mut" style="margin:0">Logga in för att välja notiser.</p>'}
   <p class="mut" style="margin:10px 0 0;font-size:12.5px">Taggning och nya inlägg om en växt finns inte i appen än. Då går de inte att välja här.</p></div></div>`;
 }
 function pushCard() {
@@ -17017,7 +17135,7 @@ function pushCard() {
   <label class="remrow" style="margin-top:10px"><input type="checkbox" ${def ? 'checked' : ''} onchange="store.set('remindDefault', this.checked);toast(this.checked ? 'Nya växter får påminnelser' : 'Nya växter får inga påminnelser')"><span><b>Påminnelser för nya växter</b><span class="mut">Bocka ur om du vill sköta vattningen själv. Du kan ändra för varje växt i skötseldagboken.</span></span></label>`;
 }
 // Notisen öppnar Min samling
-if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.tool === 'msgs') openMsgs(); else if (e.data && e.data.tool === 'notif') openNotif(); else if (e.data && e.data.tab) go(e.data.tab); });
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.listing) openListing(+e.data.listing); else if (e.data && e.data.tool === 'msgs') openMsgs(); else if (e.data && e.data.tool === 'notif') openNotif(); else if (e.data && e.data.tab) go(e.data.tab); });
 
 // ===== Välj kamera eller galleri =====
 // Android öppnar annars bara kameran (med capture) eller bara galleriet (utan). Vi frågar själva.
@@ -17120,6 +17238,7 @@ async function init() {
   { const fc = (new URLSearchParams(location.search).get('fam') || '').trim(); if (/^[A-Za-z0-9-]{4,24}$/.test(fc)) { try { store.set('famPending', fc); history.replaceState(null, '', location.pathname + location.hash); } catch (e) { console.warn('Roothood:', e); } } }
   const startTab = new URLSearchParams(location.search).get('tab');
   if (startTab === 'mine') { S.tab = 'mine'; try { history.replaceState(null, '', location.pathname); } catch (e) { console.warn('Roothood:', e); } }
+  { const lp = +(new URLSearchParams(location.search).get('listing') || 0); if (lp) { try { history.replaceState(null, '', location.pathname); } catch (e) { } setTimeout(() => openListing(lp), 700); } }
   const startTool = new URLSearchParams(location.search).get('tool');
   if (startTool === 'msgs' || startTool === 'notif') { try { history.replaceState(null, '', location.pathname); } catch (e) { console.warn('Roothood:', e); } setTimeout(() => { if (S.user) startTool === 'msgs' ? openMsgs() : openNotif(); }, 600); }
   if (startTool === 'id') { try { history.replaceState(null, '', location.pathname); } catch (e) { console.warn('Roothood:', e); } setTimeout(() => { openTool('id'); if (S.tool === 'id') startIdCam(); }); }

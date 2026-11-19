@@ -1,5 +1,5 @@
 // Roothood service worker: hämtar alltid senaste versionen när nätet finns, annars sparad kopia.
-const CACHE = 'roothood-v11';
+const CACHE = 'roothood-v12';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './maskable-192.png', './maskable-512.png', './badge-96.png', './phosphor/style.css', './phosphor/Phosphor.woff2', './supabase.js']; // en.js hämtas bara när engelska väljs
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
@@ -33,7 +33,7 @@ self.addEventListener('notificationclick', e => {
   e.notification.close();
   const url = new URL((e.notification.data && e.notification.data.url) || './', self.registration.scope).href;
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-    for (const c of list) if (c.url.startsWith(self.registration.scope) && 'focus' in c) { c.postMessage((e.notification.data && e.notification.data.tool) ? { tool: e.notification.data.tool } : { tab: new URL(url).searchParams.get('tab') || 'home' }); return c.focus(); }
+    for (const c of list) if (c.url.startsWith(self.registration.scope) && 'focus' in c) { { const sp = new URL(url).searchParams; c.postMessage((e.notification.data && e.notification.data.tool) ? { tool: e.notification.data.tool } : sp.get('listing') ? { listing: +sp.get('listing') } : { tab: sp.get('tab') || 'home' }); } return c.focus(); }
     return self.clients.openWindow(url);
   }));
 });

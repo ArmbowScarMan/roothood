@@ -77,6 +77,31 @@ function namesText(names: string[]) {
   return names.slice(0, 2).join(", ") + " och " + (names.length - 2) + " växter till";
 }
 
+// Notisgrupper och tysta timmar (profiles.notif_prefs). Standard: alla grupper på, tysta timmar 22–08 där bara viktiga notiser släpps igenom.
+type Prefs = Record<string, unknown>;
+function stockholmHour() { return Number(new Intl.DateTimeFormat("sv-SE", { hour: "numeric", hourCycle: "h23", timeZone: "Europe/Stockholm" }).format(new Date())); }
+function inQuiet(p: Prefs, h: number) {
+  if (p.quiet_on === false) return false;
+  const a = Number(p.quiet_start ?? 22), b = Number(p.quiet_end ?? 8);
+  return a === b ? false : a < b ? (h >= a && h < b) : (h >= a || h < b);
+}
+// group: "crit" (viktiga), "soc" (gemenskap och fynd). Returnerar true om notisen får skickas nu.
+function allowed(p: Prefs, group: "crit" | "soc") {
+  if (group === "crit" && p.g_crit === false) return false;
+  if (group === "soc" && p.g_soc === false) return false;
+  if (inQuiet(p, stockholmHour())) return group === "crit" && p.quiet_crit !== false;
+  return true;
+}
+async function pushTo(db: ReturnType<typeof createClient>, userId: string, payload: unknown) {
+  const { data: subs } = await db.from("push_subscriptions").select("id,endpoint,p256dh,auth").eq("user_id", userId);
+  let ok = 0;
+  for (const s of subs || []) {
+    try { await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payload), { TTL: 24 * 3600 }); ok++; }
+    catch (e) { const code = (e as { statusCode?: number }).statusCode; if (code === 404 || code === 410) await db.from("push_subscriptions").delete().eq("id", s.id); }
+  }
+  return ok;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
@@ -92,6 +117,8 @@ Deno.serve(async (req) => {
   const cronSecret = Deno.env.get("CRON_SECRET");
   const isCron = !!cronSecret && req.headers.get("x-cron-secret") === cronSecret;
   let onlyUser: string | null = null;
+  let body: { event?: string; to?: string; from?: string; text?: string; post?: number } = {};
+  try { body = await req.json(); } catch (_) { /* tom kropp */ }
   if (!isCron) {
     const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     const { data, error } = await db.auth.getUser(token);
@@ -99,15 +126,42 @@ Deno.serve(async (req) => {
     onlyUser = data.user.id;
   }
 
+  // Ny annons i Köp & sälj: notis till dem som bevakar växten (inte till den som lade ut annonsen).
+  if (onlyUser && body.event === "listing" && body.post) {
+    const { data: post } = await db.from("posts").select("id,user_id,kind,category,title,body,city,hidden").eq("id", body.post).maybeSingle();
+    if (!post || post.user_id !== onlyUser || post.kind !== "listing" || post.hidden || !["Säljes", "Bytes", "Skänkes"].includes(post.category)) return json({ sent: 0 });
+    const hay = ((post.title || "") + " " + (post.body || "")).toLowerCase(), pc = (post.city || "").toLowerCase();
+    const { data: ws } = await db.from("listing_watches").select("user_id,q,city").neq("user_id", onlyUser).limit(2000);
+    const hit = new Map<string, string>();
+    for (const w of ws || []) {
+      const q = String(w.q || "").trim().toLowerCase();
+      if (q.length < 2 || !hay.includes(q)) continue;
+      if (w.city && !pc.includes(String(w.city).trim().toLowerCase())) continue;
+      if (!hit.has(w.user_id)) hit.set(w.user_id, w.q);
+    }
+    if (!hit.size) return json({ sent: 0 });
+    const { data: prs } = await db.from("profiles").select("id,notif_prefs").in("id", [...hit.keys()]);
+    let ok = 0;
+    for (const pr of prs || []) {
+      if (!allowed((pr.notif_prefs || {}) as Prefs, "soc")) continue;
+      ok += await pushTo(db, pr.id, { title: "Ny annons: " + (post.title || hit.get(pr.id)), body: post.category + (post.city ? " i " + post.city : "") + ". Tryck för att se annonsen.", url: APP_URL + "?listing=" + post.id, tag: "roothood-watch-" + post.id });
+    }
+    return json({ sent: ok });
+  }
+
   // Direkta notiser: nytt meddelande, vänförfrågan eller accepterad vän (kommer från databasen).
-  let body: { event?: string; to?: string; from?: string; text?: string } = {};
-  try { body = await req.json(); } catch (_) { /* tom kropp */ }
   if (isCron && body.event && body.to) {
     const { data: who } = await db.from("profiles").select("display_name").eq("id", body.from || "").maybeSingle();
     const name = who?.display_name || "Någon";
     // Mottagaren kan ha stängt av den här typen av notis under Notifikations-inställningar. Då skickas ingen.
     const notifKey = body.event === "message" ? "msg" : (body.event === "friend_req" || body.event === "friend_ok" || (body.event || "").startsWith("sit_")) ? "friend" : body.event === "follow_q" ? "follow" : (body.event === "answer" || body.event === "answer_reply") ? "answer" : null;
-    if (notifKey) { const { data: pr } = await db.from("profiles").select("notif_prefs").eq("id", body.to).maybeSingle(); if ((pr?.notif_prefs || {})[notifKey] === false) return json({ sent: 0, off: true }); }
+    if (notifKey) {
+      const { data: pr } = await db.from("profiles").select("notif_prefs").eq("id", body.to).maybeSingle();
+      const p = (pr?.notif_prefs || {}) as Prefs;
+      if (p[notifKey] === false) return json({ sent: 0, off: true });
+      // Meddelanden är viktiga, resten hör till gemenskap. Under tysta timmar väntar de i appen.
+      if (!allowed(p, notifKey === "msg" ? "crit" : "soc")) return json({ sent: 0, quiet: true });
+    }
     let title = "Roothood", text = body.text || "", url = APP_URL + "?tool=notif", tag = "roothood-social";
     if (body.event === "message") { title = name; url = APP_URL + "?tool=msgs"; tag = "roothood-msg-" + (body.from || ""); }
     else if (body.event === "friend_req") { title = "Ny vänförfrågan 🌿"; text = name + " vill bli din vän" + (body.text ? ": " + body.text : ""); }
@@ -182,9 +236,12 @@ Deno.serve(async (req) => {
   }
 
   // Väder på användarens ort. Hämtas bara för dem som ska få notis nu, en gång per ort.
-  const { data: profs } = await db.from("profiles").select("id,city").in("id", users);
+  const { data: profs } = await db.from("profiles").select("id,city,notif_prefs,notif_ignored,notif_auto_weekly").in("id", users);
   const cityOf: Record<string, string> = {};
-  for (const p of profs || []) if (p.city && String(p.city).trim()) cityOf[p.id] = String(p.city).trim();
+  const prefOf: Record<string, Prefs> = {}, ignOf: Record<string, number> = {}, autoWk: Record<string, boolean> = {};
+  for (const p of profs || []) { if (p.city && String(p.city).trim()) cityOf[p.id] = String(p.city).trim(); prefOf[p.id] = (p.notif_prefs || {}) as Prefs; ignOf[p.id] = p.notif_ignored || 0; autoWk[p.id] = !!p.notif_auto_weekly; }
+  const sunday = new Date(todayStr + "T12:00:00Z").getUTCDay() === 0;
+  const countedToday = new Set<string>();
   const wxCache: Record<string, Wx | null> = {};
   async function wxFor(city: string): Promise<Wx | null> {
     const k = city.toLowerCase();
@@ -219,11 +276,12 @@ Deno.serve(async (req) => {
     if (ver) {
       // Mottagare som stängt av "Ny uppdatering" under Notifikations-inställningar får ingen notis
       const { data: upm } = await db.from("profiles").select("id,notif_prefs").in("id", users);
-      const pmap: Record<string, Record<string, boolean>> = {};
+      const pmap: Record<string, Record<string, unknown>> = {};
       for (const x of upm || []) pmap[x.id] = (x.notif_prefs || {});
       for (const s of subs) {
         if (s.last_version === ver.v) continue;
-        if (pmap[s.user_id]?.update === false) { await db.from("push_subscriptions").update({ last_version: ver.v }).eq("id", s.id); continue; }
+        if (pmap[s.user_id]?.update === false || pmap[s.user_id]?.g_soc === false) { await db.from("push_subscriptions").update({ last_version: ver.v }).eq("id", s.id); continue; }
+        if (!allowed((pmap[s.user_id] || {}) as Prefs, "soc")) continue; // tysta timmar: försök igen nästa timme
         if (s.last_version == null) { await db.from("push_subscriptions").update({ last_version: ver.v }).eq("id", s.id); continue; }
         try {
           await webpush.sendNotification(
@@ -244,6 +302,10 @@ Deno.serve(async (req) => {
   let sent = 0, removed = 0;
   for (const s of subs) {
     if (!onlyUser && ((s.notify_hour ?? 8) !== hourNow || s.last_sent === todayStr)) continue;
+    // Skötselnotiser avstängda, eller veckovis (eget val eller automatisk broms): bara på söndagar
+    const pf = prefOf[s.user_id] || {};
+    if (!onlyUser && pf.g_rout === false) continue;
+    if (!onlyUser && (pf.weekly === true || autoWk[s.user_id]) && !sunday) continue;
     const city = cityOf[s.user_id];
     const wx = city ? await wxFor(city) : null;
     const tip = wxTip(wx, !!outdoor[s.user_id], winPlants[s.user_id] || [], monthNow, s.pref_window !== false);
@@ -262,7 +324,8 @@ Deno.serve(async (req) => {
       const where = city && wx ? "I " + city + " idag: högst " + Math.round(wx.maxToday) + " °C." : "";
       const harv = s.pref_harvest === false ? [] : harvestToday((s.harvest as { c?: string; d?: string }[]) || [], todayStr, yesterdayStr, s.last_sent);
       const tipTitle: Record<string, string> = { heat: "Varmt väder på väg ☀️", frost: "Frostvarning ❄️", rain: "Regn idag 🌧️", spring: "Köldfall på väg 🥶", cold: "Sträng kyla ❄️", uv: "Stark sol ☀️" };
-      title = names.length ? "Dags att vattna 💧" : harv.length ? "Skördeklart 🧺" : tip ? (tipTitle[tip.kind] || "Dagens tips 🌿") : "Dagens tips 🌿";
+      const parts = [names.length ? (names.length === 1 ? names[0] + " behöver vatten" : names.length + " vattningar") : "", harv.length ? (harv.length === 1 ? harv[0] + " är skördeklar" : harv.length + " skördar") : ""].filter(Boolean);
+      title = parts.length ? parts.join(" + ") + " idag" + (names.length ? " 💧" : " 🧺") : tip ? (tipTitle[tip.kind] || "Dagens tips 🌿") : "Dagens tips 🌿";
       // Färre notiser: inget skickas en dag då det varken finns något att vattna, skörda eller varna för.
       if (!names.length && !harv.length && !tip) continue;
       body = [names.length ? "Dags att ge " + namesText(names) + " vatten." : "", harv.length ? namesText(harv) + " är redo att skördas." : "", tip ? tip.text : "", where, plantTip].filter(Boolean).join(" ");
@@ -276,6 +339,12 @@ Deno.serve(async (req) => {
       sent++;
       await db.from("notification_log").insert({ user_id: s.user_id, kind: onlyUser ? "test" : "daily" });
       if (!onlyUser) await db.from("push_subscriptions").update({ last_sent: todayStr }).eq("id", s.id);
+      // Automatisk broms: tre dagliga notiser i rad utan att appen öppnas ger veckovis sammanfattning (nollställs när appen öppnas)
+      if (!onlyUser && !countedToday.has(s.user_id) && !autoWk[s.user_id] && pf.weekly !== true) {
+        countedToday.add(s.user_id);
+        const n = (ignOf[s.user_id] || 0) + 1;
+        await db.from("profiles").update(n >= 3 ? { notif_ignored: n, notif_auto_weekly: true } : { notif_ignored: n }).eq("id", s.user_id);
+      }
     } catch (e) {
       const code = (e as { statusCode?: number }).statusCode;
       if (code === 404 || code === 410) {
