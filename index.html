@@ -4033,14 +4033,14 @@ const lightIc = l => (WZ_LIGHT.find(x => x[0] === l) || WZ_LIGHT[1])[2];
 const dirName = d => (DIRS.find(x => x[0] === d) || [0, ''])[1];
 function wzStart(tpl, editId) {
   const ex = S.home || [], data = {};
-  ex.forEach(r => { data[r.name] = { id: r.id, dir: (r.dirs || [])[0] || null, light: r.lightPick || null, plants: plantsIn(r.id).map(m => m.id), hang: plantsIn(r.id).filter(m => ['Ampel', 'Upp och ner'].includes((m.details || {}).place)).map(m => m.id), furn: [...new Set((S.hplan && S.hplan.furn || []).filter(f => furnInRoom(r, f)).map(f => f.t))], skipF: false }; });
+  ex.forEach(r => { data[r.name] = { id: r.id, dirs: (r.dirs || []).slice(), light: r.lightPick || null, plants: plantsIn(r.id).map(m => m.id), hang: plantsIn(r.id).filter(m => ['Ampel', 'Upp och ner'].includes((m.details || {}).place)).map(m => m.id), furn: [...new Set((S.hplan && S.hplan.furn || []).filter(f => furnInRoom(r, f)).map(f => f.t))], skipF: false }; });
   let sel = ex.map(r => r.name); if (tpl) sel = [...new Set(sel.concat(tpl))];
   S.wz = { step: editId ? 2 : 1, sel, cur: 0, data, other: null, only: null };
   if (editId) { const r = ex.find(x => x.id === editId); S.wz.only = r ? r.name : null; S.wz.sel = r ? [r.name] : sel; }
   if (S.wz.only && /^Trädgård( |$)/.test(S.wz.only)) S.wz.step = 3;
   render(); $('#main').scrollTop = 0;
 }
-const wzD = n => (S.wz.data[n] = S.wz.data[n] || { id: null, dir: null, light: null, plants: [], hang: [], furn: [...(FURN_PRESET[roomKind(n)] || [])], skipF: false });
+const wzD = n => (S.wz.data[n] = S.wz.data[n] || { id: null, dirs: [], light: null, plants: [], hang: [], furn: [...(FURN_PRESET[roomKind(n)] || [])], skipF: false });
 // Möbler man kan välja i varje rumstyp, och det som är förvalt för nya rum
 const FURN_CHOICES = { Vardagsrum: ['sofa', 'chair2', 'table', 'tv', 'shelf', 'etag', 'sbench', 'pstand'], Kök: ['ksink', 'hobc', 'counter', 'ucab', 'tallcab', 'fridge', 'freezer', 'stove', 'dishw', 'hood', 'dtable', 'chair'], Sovrum: ['bed2', 'bed1', 'dresser', 'ward', 'desk', 'chair'], Badrum: ['bath', 'shower', 'wc', 'sink'], Hall: ['ward', 'shelf'], Arbetsrum: ['desk', 'chair', 'shelf'], Barnrum: ['bed1', 'dresser', 'shelf', 'desk', 'chair'], Balkong: ['obench', 'otable', 'pstand'], Trädgård: ['obench', 'otable', 'grill', 'pergola'], Uterum: ['sofa', 'chair2', 'table', 'pstand'] };
 const FURN_PRESET = { Vardagsrum: ['sofa', 'table', 'tv', 'shelf'], Kök: ['ksink', 'hobc', 'ucab', 'fridge', 'stove', 'dishw'], Sovrum: ['bed2', 'dresser'], Badrum: ['bath', 'wc', 'sink'], Hall: ['ward'], Arbetsrum: ['desk', 'chair'], Balkong: ['obench', 'otable'], Trädgård: ['obench', 'otable'] };
@@ -4080,6 +4080,9 @@ function wzNext() { const W = S.wz; if (W.step === 1) { if (!W.sel.length) retur
   else return wzSave();
   render(); $('#main').scrollTop = 0; }
 function wzBack() { const W = S.wz; if (W.step === 1 || (W.only && (W.step === 2 || (W.step === 3 && isGarden())))) { S.wz = null; return render(); } if (W.step === 2 && W.cur > 0) { W.cur--; W.step = 5; } else W.step--; if (W.step === 2 && isGarden()) W.step = 1; if (W.step === 4 && WZ_OUT.includes(roomKind(wzName()))) W.step = 3; render(); $('#main').scrollTop = 0; }
+// Väderstreck i guiden: ett rum kan ha fönster åt flera håll
+const wzDirs = D => (D.dirs = Array.isArray(D.dirs) ? D.dirs : (D.dir ? [D.dir] : []));
+function wzDir(d) { const D = wzD(wzName()), L = wzDirs(D); D.dirs = L.includes(d) ? L.filter(x => x !== d) : L.concat(d); delete D.dir; keepScroll(); }
 function wzSet(k, v) { wzD(wzName())[k] = wzD(wzName())[k] === v ? null : v; keepScroll(); }
 function wzPlant(id) { const d = wzD(wzName()); d.plants = d.plants.includes(id) ? d.plants.filter(x => x !== id) : d.plants.concat(id); if (!d.plants.includes(id)) d.hang = d.hang.filter(x => x !== id); keepScroll(); }
 function wzHang(id) { const d = wzD(wzName()); d.hang = d.hang.includes(id) ? d.hang.filter(x => x !== id) : d.hang.concat(id); keepScroll(); }
@@ -4089,7 +4092,7 @@ async function wzCompass() {
   toast('Håll telefonen mot fönstret…');
   const ev = 'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';
   const h = e => { let hd = e.webkitCompassHeading != null ? e.webkitCompassHeading : e.alpha != null ? 360 - e.alpha : null; if (hd == null) return; window.removeEventListener(ev, h); clearTimeout(t);
-    const d = ['N', 'O', 'S', 'V'][Math.round(((hd % 360) + 360) % 360 / 90) % 4]; wzD(wzName()).dir = d; toast('Fönstret vetter mot ' + dirName(d).toLowerCase()); render(); };
+    const d = ['N', 'O', 'S', 'V'][Math.round(((hd % 360) + 360) % 360 / 90) % 4]; { const D = wzD(wzName()), L = wzDirs(D); if (!L.includes(d)) L.push(d); delete D.dir; } toast('Fönstret vetter mot ' + dirName(d).toLowerCase() + '. Har rummet fler fönster? Tryck på fler väderstreck.'); render(); };
   const t = setTimeout(() => { window.removeEventListener(ev, h); toast('Kompassen svarade inte. Välj håll själv.'); }, 6000);
   window.addEventListener(ev, h);
 }
@@ -4117,7 +4120,7 @@ async function wzSave() {
   const W = S.wz, rooms = S.home = S.home || []; S.busy = true; render();
   W.sel.forEach((n, i) => { const D = wzD(n); let r = rooms.find(x => x.id === D.id) || rooms.find(x => x.name === n);
     if (!r) { const t = roomKind(n) || ''; r = { id: 'r' + Date.now().toString(36) + i, name: n, type: t, dirs: [], lamp: false, temp: 'Normalt', hum: t === 'Badrum' ? 'Fuktig' : 'Normal' }; rooms.push(r); }
-    if (D.dir) r.dirs = [D.dir]; if (D.light) r.lightPick = D.light; else delete r.lightPick; D.id = r.id; });
+    if (wzDirs(D).length) r.dirs = D.dirs.slice(); if (D.light) r.lightPick = D.light; else delete r.lightPick; D.id = r.id; });
   wzLayout(rooms);
   let skipped = 0;
   S.hplan = S.hplan || {}; let furn = (S.hplan.furn || []).slice();
@@ -4152,11 +4155,11 @@ function wizardV() {
     ${W.other === null ? `<button class="wzc add" onclick="S.wz.other='';keepScroll();setTimeout(()=>{const i=$('#wzo');if(i)i.focus()},50)">+ Annat rum</button>` : `<div class="wzother"><input id="wzo" class="inp" placeholder="Till exempel Arbetsrum" onkeydown="if(event.key==='Enter')wzOther()"><button class="btn" onclick="wzOther()">Lägg till</button></div>`}</div>
     <p class="wzlbl">Eller börja från en mall</p><div class="wzrow">${WZ_TPL.map((t, i) => `<button class="btn line" onclick="wzTpl(${i})">${t[0]}</button>`).join('')}</div>
     <button class="btn wide wznext" onclick="wzNext()">Nästa</button></div>`; }
-  if (W.step === 2) { const q = kind === 'Trädgård' ? 'Åt vilket håll ligger trädgården?' : kind === 'Balkong' ? 'Åt vilket håll vetter balkongen?' : 'Åt vilket håll vetter fönstret?', b = d => `<button class="wzd ${D.dir === d ? 'on' : ''}" aria-pressed="${D.dir === d}" onclick="wzSet('dir','${d}')">${dirName(d)}</button>`;
-    return `${wzHead(0, n)}<div class="wz"><h1>${q}</h1><p class="mut">Gäller ${esc(n.toLowerCase())}. Välj det håll du tittar ut mot.</p>
+  if (W.step === 2) { const q = kind === 'Trädgård' ? 'Åt vilket håll ligger trädgården?' : kind === 'Balkong' ? 'Åt vilket håll vetter balkongen?' : 'Åt vilket håll vetter fönstren?', b = d => `<button class="wzd ${wzDirs(D).includes(d) ? 'on' : ''}" aria-pressed="${wzDirs(D).includes(d)}" onclick="wzDir('${d}')">${dirName(d)}</button>`;
+    return `${wzHead(0, n)}<div class="wz"><h1>${q}</h1><p class="mut">Gäller ${esc(n.toLowerCase())}. Välj det håll du tittar ut mot.${kind === 'Trädgård' || kind === 'Balkong' ? '' : ' Har rummet fönster åt flera håll? Tryck på alla.'}</p>
     <div class="wzcomp"><span></span>${b('N')}<span></span>${b('V')}<span class="wzmid">${ic('ph-frame-corners', 'currentColor', 26)}</span>${b('O')}<span></span>${b('S')}<span></span></div>
     <button class="btn wide line" onclick="wzCompass()">${ic('ph-compass', 'currentColor', 18)} Använd telefonens kompass</button><p class="mut" style="text-align:center;font-size:14px">Ställ dig vid fönstret och håll telefonen mot det.</p>
-    <button class="btn wide wznext" onclick="wzNext()">Nästa</button><button class="btn wide line" onclick="wzD(wzName()).dir=null;wzNext()">Vet inte, hoppa över</button></div>`; }
+    <button class="btn wide wznext" onclick="wzNext()">Nästa</button><button class="btn wide line" onclick="wzD(wzName()).dirs=[];wzNext()">Vet inte, hoppa över</button></div>`; }
   if (W.step === 3) return `${wzHead(0, n)}<div class="wz"><h1>${isGarden() ? 'Hur mycket sol får trädgården?' : 'Hur ljust är det?'}</h1><p class="mut">${isGarden() ? 'Solen beräknas från din ort och årstid. Se skuggorna i 3D-vyn för var solen når.' : 'Tänk på platsen där växterna står.'}</p>
     <div class="wzlist">${WZ_LIGHT.map(([l, t, icn]) => `<button class="wzl ${D.light === l ? 'on' : ''}" aria-pressed="${D.light === l}" onclick="wzSet('light','${l}')">${ic(icn, 'currentColor', 26)}<span class="grow"><b>${l}</b><span>${t}</span></span></button>`).join('')}</div>
     ${S.pro ? `<button class="btn wide line" onclick="openTool('light')">${ic(I.sun, 'currentColor', 18)} Mät med ljusmätaren</button>` : ''}
