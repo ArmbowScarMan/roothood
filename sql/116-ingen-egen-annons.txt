@@ -1,0 +1,27 @@
+-- 116: (1) man ska inte kunna skicka annonsmeddelande till sig själv (intresseanmälan på sin egen annons).
+--      (2) rättar ett fel i regeln från 048: i "vidare samtal" jämfördes m.from_user med sig själv, så villkoret
+--          blev sant så fort någon alls hade skickat ett annonsmeddelande. Nu jämförs raden som skickas in
+--          (messages.from_user / messages.to_user) med de tidigare meddelandena (m).
+-- Kör i Supabase SQL Editor. Ändrar bara vem som får skicka meddelanden.
+
+drop policy if exists "Skicka till vän" on public.messages;
+create policy "Skicka till vän" on public.messages for insert with check (
+  auth.uid() = from_user and from_user <> to_user and (
+    public.are_friends(from_user, to_user)
+    or (
+      -- Första meddelandet: en öppen annons som ägs av mottagaren
+      post_id is not null and exists (
+        select 1 from public.posts p
+        where p.id = messages.post_id and p.user_id = messages.to_user and p.kind = 'listing' and p.taken is not true
+      )
+    )
+    or (
+      -- Vidare samtal: någon av er har redan skrivit om en annons till den andra
+      exists (
+        select 1 from public.messages m
+        where m.post_id is not null
+          and ((m.from_user = messages.from_user and m.to_user = messages.to_user) or (m.from_user = messages.to_user and m.to_user = messages.from_user))
+      )
+    )
+  )
+);

@@ -12337,7 +12337,7 @@ function lFix(L) { (L || []).forEach(p => { if (p.category === 'Byta') p.categor
 const SHIP = { hamtas: 'Hämtas', skickas: 'Kan skickas', bada: 'Hämtas eller skickas' };
 const lPrice = p => p.category === 'Säljes' && p.price != null ? (+p.price === 0 ? 'Gratis' : String(p.price).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') + ' kr') : '';
 const lTaken = p => p.category === 'Säljes' ? 'Såld' : p.category === 'Önskas' ? 'Hittad' : 'Bortlovad';
-const lCta = p => p.category === 'Önskas' ? 'Jag har en!' : p.category === 'Bytes' ? 'Föreslå byte' : p.category === 'Säljes' ? 'Jag vill köpa!' : 'Jag vill ha!';
+const lCta = p => S.user && p.user_id === S.user.id ? 'Din annons' : p.category === 'Önskas' ? 'Jag har en!' : p.category === 'Bytes' ? 'Föreslå byte' : p.category === 'Säljes' ? 'Jag vill köpa!' : 'Jag vill ha!';
 // Invasiva främmande arter på EU:s förteckning som inte får säljas, bytas eller ges bort
 const INVASIVE = [['jättebalsamin', 'impatiens glandulifera'], ['jätteloka', 'heracleum mantegazzianum'], ['tromsöloka', 'heracleum persicum'], ['sosnowskys loka', 'heracleum sosnowskyi'], ['gul skunkkalla', 'lysichiton americanus'], ['sidenört', 'asclepias syriaca'], ['gudaträd', 'ailanthus altissima'], ['vattenhyacint', 'eichhornia crassipes'], ['papegojfjäder', 'myriophyllum aquaticum'], ['smal vattenpest', 'elodea nuttallii'], ['afrikansk vattenpest', 'lagarosiphon major'], ['kabomba', 'cabomba caroliniana'], ['fjädertoppgräs', 'pennisetum setaceum'], ['musselblomma', 'pistia stratiotes'], ['kudzu', 'pueraria']];
 function lInvasive(t) { t = (t || '').toLowerCase(); const h = INVASIVE.find(([sv, la]) => t.includes(sv) || t.includes(la)); return h ? h[0] : null; }
