@@ -8414,7 +8414,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'nbrake' ? nbrakeV() : S.modal === 'watch' ? watchV() : S.modal === 'hvis' ? hvisV() : S.modal === 'soilv' ? jordV() : S.modal === 'pmeas' ? pmeasV() : S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'mf' ? mfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'nbrake' ? nbrakeV() : S.modal === 'shareplant' ? sharePlantV() : S.modal === 'watch' ? watchV() : S.modal === 'hvis' ? hvisV() : S.modal === 'soilv' ? jordV() : S.modal === 'pmeas' ? pmeasV() : S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'mf' ? mfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -9505,6 +9505,37 @@ async function sendChat() {
   catch (e) { toast(e.message === 'FR_DENIED' ? 'Det gick inte att skicka svaret.' : e.message === 'FR_NOT_READY' ? 'Svar är inte påslagna än.' : e.message === 'BLOCKED' ? 'Du kan inte skriva till den här personen.' : e.message === 'MSG_DENIED' ? 'Ni måste vara vänner för att skriva till varandra. Meddelanden går inte att använda just nu.' : e.message === 'PHOTO_UPLOAD' ? 'Bilden gick inte att ladda upp. Försök igen.' : /photo_url|messages_body_or_photo/.test(e.message || '') ? 'Bilder i meddelanden är inte påslagna än.' : errMsg(e)); }
   S.chatBusy = false;
   if (ok) await loadChat(true); else if (S.tool === 'chat') render();
+}
+// ===== Visa en växt för en vän: skickas som ett vanligt meddelande (namn, växtbild-ikon och din text) =====
+// Bara vänner kan väljas. Din egen bild följer bara med om du själv bockar i det.
+async function shareOpen(myId) {
+  if (needLogin()) return; const m = (S.mine || []).find(x => x.id === myId); if (!m) return;
+  S.shr = { id: myId, to: null, text: '', photo: false, busy: false };
+  openModal('shareplant');
+  if (S.friends == null) { try { S.friends = await api.myFriends(); } catch (e) { S.friends = []; } if (S.modal === 'shareplant') render(); }
+}
+function sharePlantV() {
+  const s = S.shr || {}, m = (S.mine || []).find(x => x.id === s.id), F = S.friends;
+  if (!m) return `<div class="mh"><h2>Visa för vän</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div><p class="mut">Växten finns inte kvar.</p>`;
+  return `<div class="mh"><h2>Visa för vän</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <p class="mut" style="margin:0 0 12px">Din <b>${esc(m.name)}</b> skickas som ett meddelande till en vän. Bara namnet och din text skickas, aldrig din adress eller dina andra växter.</p>
+  <h3 style="margin:0 0 6px;font-size:15px">Välj vän</h3>
+  ${F == null ? '<p class="mut">Hämtar dina vänner…</p>' : F.length ? `<div class="chips2 sm">${F.map(f => `<button class="${s.to === f.id ? 'on' : ''}" aria-pressed="${s.to === f.id}" onclick="S.shr.to=${jsArg(f.id)};S.shr.toName=${jsArg(f.display_name || '')};sharePlantRe()">${esc(f.display_name || 'Okänd')}</button>`).join('')}</div>` : '<p class="mut">Du har inga vänner än. Lägg till en vän under Gemenskap, så kan du visa dina växter för hen.</p>'}
+  <h3 style="margin:14px 0 6px;font-size:15px">Skriv något (valfritt)</h3>
+  <textarea id="shrt" rows="3" maxlength="500" placeholder="Kolla min nya växt!" style="width:100%;box-sizing:border-box" oninput="S.shr.text=this.value">${esc(s.text || '')}</textarea>
+  ${m.photo ? `<label class="check" style="margin-top:8px"><input type="checkbox" ${s.photo ? 'checked' : ''} onchange="S.shr.photo=this.checked"><span>Skicka med min bild på växten</span></label>` : ''}
+  <button class="btn wide formbtn" ${s.to && !s.busy ? '' : 'disabled'} onclick="sharePlantSend()">${s.busy ? 'Skickar…' : s.to ? 'Skicka till ' + esc(s.toName || 'vännen') : 'Välj en vän först'}</button>`;
+}
+function sharePlantRe() { const t = $('#shrt'); if (t) S.shr.text = t.value; render(); }
+async function sharePlantSend() {
+  const s = S.shr, m = s && (S.mine || []).find(x => x.id === s.id); if (!s || !m || !s.to || s.busy) return;
+  const t = $('#shrt'); if (t) s.text = t.value;
+  s.busy = true; render();
+  try {
+    const tag = `[[v:${encodeURIComponent(m.name)}|${encodeURIComponent(m.category || '')}]]`, txt = (s.text || '').trim();
+    await api.sendMsg(s.to, (tag + ' ' + (txt || 'Kolla in min ' + m.name + '!')).slice(0, 1000), null, s.photo && m.photo ? m.photo : null);
+    const nm = s.toName; S.shr = null; closeModal(); toast('Skickat till ' + (nm || 'din vän') + '. Du hittar det under Meddelanden.');
+  } catch (e) { s.busy = false; toast(e.message === 'BLOCKED' ? 'Du kan inte skriva till den här personen.' : e.message === 'MSG_DENIED' ? 'Ni måste vara vänner för att kunna skicka. Meddelanden går inte att använda just nu.' : /photo_url|messages_body_or_photo/.test(e.message || '') ? 'Bilder i meddelanden är inte påslagna än. Skicka utan bild.' : errMsg(e)); if (S.modal === 'shareplant') render(); }
 }
 function dmPhoto(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.dph = f; S.dphUrl = URL.createObjectURL(f); keepMain(); }
 function dmPhotoBtn() { return S.dph ? `<span class="dmph"><img src="${esc(S.dphUrl)}" alt="Vald bild"><button type="button" onclick="S.dph=null;S.dphUrl=null;keepMain()" aria-label="Ta bort bilden">×</button></span>` : `<label onclick="photoPick(event,this)" class="circ dmphb" style="width:40px;height:40px;font-size:18px;margin:0" aria-label="Skicka bild">${ic('ph-image', 'currentColor', 18)}<input type="file" accept="image/*" class="sr" onchange="dmPhoto(this)"></label>`; }
@@ -11349,7 +11380,7 @@ function detail() {
   const fv = `<button class="btn line" onclick="heart(${p.id})" aria-pressed="${isFav(p.id)}">${isFav(p.id) ? '♥ Favorit' : '♡ Favorit'}</button>`;
   const wv = `<button class="btn line" onclick="toggleWish(${p.id})" aria-pressed="${isWish(p.id)}">${isWish(p.id) ? '★ På önskelistan' : '☆ Önskelista'}</button>`;
   const cta = !my ? `<button class="btn" onclick="addPlant(${p.id})">Lägg till i min samling</button>${fv}${wv}`
-    : (my.interval ? `<button class="btn" onclick="water(${my.id})">Markera som vattnad</button>` : '') + `<button class="btn line" onclick="addAnother(${p.id})">+ En till</button>${fv}${S.delAsk === my.id ? `<p class="mut" style="margin:4px 0 0;font-size:14px;text-align:center">Är du säker att du vill ta bort ${esc(my.name)}?</p><button class="btn danger" onclick="S.delAsk=null;S.del=${my.id};removeMine(${my.id})">Ja, ta bort</button><button class="btn line" onclick="S.delAsk=null;render()">Avbryt</button>` : `<button class="btn danger" onclick="S.delAsk=${my.id};render()">Ta bort från samlingen</button>`}`;
+    : (my.interval ? `<button class="btn" onclick="water(${my.id})">Markera som vattnad</button>` : '') + `<button class="btn line" onclick="addAnother(${p.id})">+ En till</button><button class="btn line" onclick="shareOpen(${my.id})">Visa för vän</button>${fv}${S.delAsk === my.id ? `<p class="mut" style="margin:4px 0 0;font-size:14px;text-align:center">Är du säker att du vill ta bort ${esc(my.name)}?</p><button class="btn danger" onclick="S.delAsk=null;S.del=${my.id};removeMine(${my.id})">Ja, ta bort</button><button class="btn line" onclick="S.delAsk=null;render()">Avbryt</button>` : `<button class="btn danger" onclick="S.delAsk=${my.id};render()">Ta bort från samlingen</button>`}`;
   return `${topbar(p.category, 'S.sel=null;render()')}
   <div class="dtop">${my && my.photo ? `<div class="phwrap">${myPh(my)}<div style="display:flex;align-items:center;flex-wrap:wrap">${imgSearchBtn(p, 'margin-top:6px;font-size:13px')}</div></div>` : plantPhD(p)}<div class="dstats">
     <div><small>Ljus</small><b>${LIGHT[p.light_level - 1]}</b></div>
@@ -13442,6 +13473,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.445', '20 nov', ['Ny knapp "Visa för vän" på dina växter. Välj en vän, skriv en rad och skicka, så får hen din växt som ett meddelande. Din bild följer bara med om du bockar i det']],
   ['Beta 0.444', '20 nov', ['Markhöjd i Mitt hem, Solbana och markens lutning hämtas nu från Lantmäteriet. Den är mycket mer exakt än förut och ger bättre sol- och skuggberäkningar. Om Lantmäteriet inte svarar används den gamla höjddatan']],
   ['Beta 0.443', '20 nov', ['Meddelanden: skrivrutan växer nu när du skriver längre meddelanden, så du ser mer innan du skickar']],
   ['Beta 0.442', '20 nov', ['Moderering: uppdateringsloggen visar inte längre ändringar i Moderering för vanliga användare']],
@@ -16460,7 +16492,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.444';
+const APP_VERSION = 'Beta 0.445';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
