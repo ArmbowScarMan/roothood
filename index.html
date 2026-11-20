@@ -12337,7 +12337,7 @@ function lFix(L) { (L || []).forEach(p => { if (p.category === 'Byta') p.categor
 const SHIP = { hamtas: 'Hämtas', skickas: 'Kan skickas', bada: 'Hämtas eller skickas' };
 const lPrice = p => p.category === 'Säljes' && p.price != null ? (+p.price === 0 ? 'Gratis' : String(p.price).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') + ' kr') : '';
 const lTaken = p => p.category === 'Säljes' ? 'Såld' : p.category === 'Önskas' ? 'Hittad' : 'Bortlovad';
-const lCta = p => p.category === 'Önskas' ? 'Jag har en!' : p.category === 'Bytes' ? 'Föreslå byte' : p.category === 'Säljes' ? 'Jag vill köpa!' : 'Jag vill ha!';
+const lCta = p => S.user && p.user_id === S.user.id ? 'Din annons' : p.category === 'Önskas' ? 'Jag har en!' : p.category === 'Bytes' ? 'Föreslå byte' : p.category === 'Säljes' ? 'Jag vill köpa!' : 'Jag vill ha!';
 // Invasiva främmande arter på EU:s förteckning som inte får säljas, bytas eller ges bort
 const INVASIVE = [['jättebalsamin', 'impatiens glandulifera'], ['jätteloka', 'heracleum mantegazzianum'], ['tromsöloka', 'heracleum persicum'], ['sosnowskys loka', 'heracleum sosnowskyi'], ['gul skunkkalla', 'lysichiton americanus'], ['sidenört', 'asclepias syriaca'], ['gudaträd', 'ailanthus altissima'], ['vattenhyacint', 'eichhornia crassipes'], ['papegojfjäder', 'myriophyllum aquaticum'], ['smal vattenpest', 'elodea nuttallii'], ['afrikansk vattenpest', 'lagarosiphon major'], ['kabomba', 'cabomba caroliniana'], ['fjädertoppgräs', 'pennisetum setaceum'], ['musselblomma', 'pistia stratiotes'], ['kudzu', 'pueraria']];
 function lInvasive(t) { t = (t || '').toLowerCase(); const h = INVASIVE.find(([sv, la]) => t.includes(sv) || t.includes(la)); return h ? h[0] : null; }
@@ -13473,6 +13473,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.446', '20 nov', ['Du kan inte längre anmäla intresse för din egen annons. På dina egna annonser står det nu "Din annons"']],
   ['Beta 0.445', '20 nov', ['Ny knapp "Visa för vän" på dina växter. Välj en vän, skriv en rad och skicka, så får hen din växt som ett meddelande. Din bild följer bara med om du bockar i det']],
   ['Beta 0.444', '20 nov', ['Markhöjd i Mitt hem, Solbana och markens lutning hämtas nu från Lantmäteriet. Den är mycket mer exakt än förut och ger bättre sol- och skuggberäkningar. Om Lantmäteriet inte svarar används den gamla höjddatan']],
   ['Beta 0.443', '20 nov', ['Meddelanden: skrivrutan växer nu när du skriver längre meddelanden, så du ser mer innan du skickar']],
@@ -16492,7 +16493,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.445';
+const APP_VERSION = 'Beta 0.446';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
