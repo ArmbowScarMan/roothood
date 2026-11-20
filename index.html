@@ -5933,8 +5933,16 @@ function gRel(x, y) { if (!hasGround()) return 0; const r = houseRefXY(); const 
 // Alla markpunkter: dina egna (väger tungt) och de från nätet (väger lätt). Höjden är meter relativt huset.
 function groundPts() { const out = elevPts().map(p => ({ x: p.x, y: p.y, z: p.h || 0, w: 25 })); const A = S.hplan && S.hplan.elevAuto; if (A && A.pts) { const R = houseRefXY(); A.pts.forEach(([dx, dy, z]) => out.push({ x: R.x + dx, y: R.y + dy, z, w: 1 })); } return out; }
 function hasGround() { return groundPts().length > 0; }
-// Höjder för en lista punkter från OpenTopoData (EU-DEM 25 m). Högst 100 punkter per anrop.
+// Höjder för en lista punkter. Först Lantmäteriets Markhöjd Direkt (via vår serverfunktion markhojd, mycket exakt),
+// annars OpenTopoData (EU-DEM 25 m). Högst 100 punkter per anrop.
 async function elevFetchPts(pts) {
+  if (SUPABASE_URL) {
+    try {
+      const r = await fetch(SUPABASE_URL + '/functions/v1/markhojd', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY }, body: JSON.stringify({ pts: pts.map(p => ({ lat: p.lat, lon: p.lon })) }) });
+      const j = await r.json();
+      if (r.ok && j.ok && Array.isArray(j.e) && j.e.length === pts.length && j.e.every(v => v != null)) return { e: j.e, src: 'Lantmäteriet, Markhöjd Direkt' };
+    } catch (e) { /* reserv nedan */ }
+  }
   try { const r = await fetch('https://api.opentopodata.org/v1/eudem25m?locations=' + pts.map(p => p.lat.toFixed(6) + ',' + p.lon.toFixed(6)).join('|')), j = await r.json(); if (j.status === 'OK' && j.results && j.results.length === pts.length) return { e: j.results.map(x => x.elevation), src: 'EU-DEM 25 m' }; } catch (e) {}
   return null;
 }
@@ -13434,6 +13442,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.444', '20 nov', ['Markhöjd i Mitt hem, Solbana och markens lutning hämtas nu från Lantmäteriet. Den är mycket mer exakt än förut och ger bättre sol- och skuggberäkningar. Om Lantmäteriet inte svarar används den gamla höjddatan']],
   ['Beta 0.443', '20 nov', ['Meddelanden: skrivrutan växer nu när du skriver längre meddelanden, så du ser mer innan du skickar']],
   ['Beta 0.442', '20 nov', ['Moderering: uppdateringsloggen visar inte längre ändringar i Moderering för vanliga användare']],
   ['Beta 0.441', '20 nov', ['Moderering: under Mest aktiva användare syns nu om personen använder Android, iPhone/iPad eller dator']],
@@ -16451,7 +16460,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.443';
+const APP_VERSION = 'Beta 0.444';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
