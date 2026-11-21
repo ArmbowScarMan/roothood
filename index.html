@@ -179,6 +179,7 @@ html[data-simple] .btn.sm,#tourcard .btn.sm{min-height:46px}html[data-simple] #t
 .bar{height:7px;border-radius:9px;background:var(--line);margin:8px 0 5px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--pri2);border-radius:9px}
 .bar.due i{background:var(--wat)}
+.wbtn .wgauge{display:block}.wgf{fill:var(--wat)}.wgo{stroke:var(--onpri)}.wbtn.due .wgo{stroke:var(--onpri)}
 .due-t{color:var(--wat);font-weight:700;font-size:14px}
 .note{font-size:13px;color:var(--mut);margin-top:3px}
 .mini{display:inline-block;background:var(--soft);color:var(--pri);border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;margin-top:3px}
@@ -7684,7 +7685,7 @@ function sitReqCard() {
 function sitNotifV() {
   const N = (S.notifs || []).filter(n => /^sit/.test(n.t)); if (!N.length) return '';
   const row = n => n.t === 'sit' ? `<div class="nrow new frow"><span class="nic">🪴</span><span class="grow"><b>${ulink(n.from, n.who, 'En vän')} ber dig passa sina växter</b><span>${esc(sitSpan(n))}</span>${sitReqBtns(n)}</span><small>${ago(n.at)}</small></div>`
-    : `<button class="nrow old" onclick="openSit()"><span class="nic">${n.t === 'sit_ans' ? (n.ok ? '🤝' : '🙅') : '🛑'}</span><span class="grow"><b>${esc(n.who || 'Någon')} ${n.t === 'sit_ans' ? (n.ok ? 'passar dina växter' : 'tackade nej till att passa dina växter') : n.owner ? 'avslutade passningen av dina växter' : 'avslutade passningen av sina växter'}</b><span>${esc(sitSpan(n))}</span></span><small>${ago(n.at)}</small></button>`;
+    : `<button class="nrow old" onclick="notifOpen(${jsArg(NKEY(n))});openSit()"><span class="nic">${n.t === 'sit_ans' ? (n.ok ? '🤝' : '🙅') : '🛑'}</span><span class="grow"><b>${esc(n.who || 'Någon')} ${n.t === 'sit_ans' ? (n.ok ? 'passar dina växter' : 'tackade nej till att passa dina växter') : n.owner ? 'avslutade passningen av dina växter' : 'avslutade passningen av sina växter'}</b><span>${esc(sitSpan(n))}</span></span><small>${ago(n.at)}</small></button>`;
   return `<div class="sec"><h2>Växtpassning</h2></div><div class="pad nlist">${N.map(row).join('')}</div>`;
 }
 function openSit() { stopLight(); S.sel = null; S.modal = null; S.tool = 'sit'; S.sitIn = S.sitIn || null; render(); $('#main').scrollTop = 0; sitRefresh(); }
@@ -7699,7 +7700,7 @@ function sitV() {
   <p class="mut" style="margin:0 18px 6px;font-size:14px">Be en vän passa dina växter när du är bortrest, eller passa någon annans. Den som passar ser vad som behöver vattnas och får skötselråd för varje växt.</p>
   ${L === null ? '<p class="formmsg" style="margin:10px 18px">Passningsförfrågningar är inte påslagna i databasen än.</p>' : L === undefined ? '<p class="mut" style="margin:10px 18px">Hämtar…</p>' : ''}
   ${inc.length ? `<div class="sec"><h2>Förfrågningar till dig</h2></div><div class="pad">${inc.map(r => card(r, r.owner_name, r.owner_id, `<p style="margin:8px 0 0;font-size:14px">${ulink(r.owner_id, r.owner_name, 'En vän')} ber dig passa sina växter.</p>${sitReqBtns({ req: r.id, from: r.owner_id })}`)).join('')}</div>` : ''}
-  <div class="sec"><h2>Du passar åt</h2></div><div class="pad">${act.length ? act.map(r => card(r, r.owner_name, r.owner_id, `<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="S.tool=null;S.tab='home';render()">Se växterna och vad som ska göras</button>${endB(r)}</div>`)).join('') : '<p class="mut" style="margin:0;font-size:14px">Du passar inte åt någon just nu.</p>'}</div>
+  <div class="sec"><h2>Du passar åt</h2></div><div class="pad">${act.length ? act.map(r => card(r, r.owner_name, r.owner_id, `${r.starts_on > sitToday() ? `<p class="mut" style="margin:8px 0 0;font-size:14px">Passningen börjar ${esc(sitDate(r.starts_on))}. Då syns växterna på startsidan.</p>` : ''}<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="S.tool=null;S.tab='home';render()">Se växterna och vad som ska göras</button>${endB(r)}</div>`)).join('') : '<p class="mut" style="margin:0;font-size:14px">Du passar inte åt någon just nu.</p>'}</div>
   <div class="sec"><h2>Dina växter</h2></div><div class="pad">${mine.filter(r => r.status === 'pending' || r.status === 'accepted').map(r => card(r, r.sitter_name, r.sitter_id, `<div style="margin-top:10px">${endB(r)}</div>`)).join('')}${mine.filter(r => r.status === 'declined' || r.status === 'ended').slice(0, 5).map(r => card(r, r.sitter_name, r.sitter_id)).join('')}</div>
   ${sitterOwnerV(true)}`;
 }
@@ -8295,7 +8296,14 @@ function ulink(id, name, fb) { const n = esc(name || fb || 'Växtvän'); return 
 // Växt i en passning: öppnar växtens sida i växtbiblioteket med skötselråd
 function sitPlantOpen(pid, name) { const p = (pid && S.plants.find(x => x.id === pid)) || S.plants.find(x => (x.swedish_name || '').toLowerCase() === String(name || '').toLowerCase()); if (!p) return toast('Hittar inte ' + (name || 'växten') + ' i växtbiblioteket'); openPlant(p.id); }
 const sitDate = d => d ? new Date(d + 'T12:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' }) : '';
-function sitterTasksHtml() {
+// Passning som är accepterad men inte har börjat än
+const sitToday = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+function sitUpHtml() {
+  const U = (S.sitIn || []).filter(r => !r.me_owner && r.status === 'accepted' && r.starts_on > sitToday()); if (!U.length) return '';
+  return `<div class="sec"><h2>Passar för andra</h2></div><div class="pad">${U.map(r => `<div class="card" style="padding:14px;margin-bottom:10px"><b>${ulink(r.owner_id, r.owner_name, 'Vän')}s växter</b><small class="mut" style="display:block">Du ska passa dem från ${esc(sitDate(r.starts_on))}. Då dyker växterna upp här på startsidan.</small></div>`).join('')}</div>`;
+}
+function sitterTasksHtml() { return sitUpHtml() + sitterTasksHtml0(); }
+function sitterTasksHtml0() {
   const T = S.sitTasks || [], B = S.sitBeds || []; if (!T.length && !B.length) return '';
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const byO = {};
@@ -11439,7 +11447,7 @@ function mrowS(m) {
   const pill = d === 0 ? '<span class="mpill due">Vattna idag</span>' : d === null ? `<span class="mpill">${m.remind === false && m.interval ? 'Ingen påminnelse' : 'Vid torka'}</span>` : `<span class="mpill">Om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
   if (!S.mAnimDone && !S.mAnimT) S.mAnimT = setTimeout(() => { S.mAnimDone = true; S.mAnimT = null; }, 700);
   return `<div class="mrs${S.mAnimDone ? '' : ' mfirst'}" data-mid="${m.id}"><div class="msbg" aria-hidden="true"><span class="mzl">${ic(I.check, 'currentColor', 18)} Vattnad</span><span class="mzr">Skjut upp ${ic('ph-clock', 'currentColor', 18)}</span></div>
-  <div class="mfg"><button class="mopen2" onclick="openMine(${m.id})" aria-label="Visa ${esc(nm)}">${mPhoto(m)}<span class="grow"><span class="mname">${esc(nm)}</span>${lat ? `<span class="mlat">${sciHtml(lat)}</span>` : ''}${pill}</span></button>
+  <div class="mfg"><button class="mopen2" onclick="openMine(${m.id})" aria-label="Visa ${esc(nm)}">${mPhoto(m)}<span class="grow"><span class="mname">${esc(nm)}</span>${lat ? `<span class="mlat">${sciHtml(lat)}</span>` : ''}${pill}${wStyle() === 'meter' && d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${waterPct(m)}%"></i></span>` : ''}</span></button>
   ${d === 0 ? `<button class="wbtn2" onclick="waterS(${m.id},this)" aria-label="Vattna ${esc(nm)}"><span class="wfill"></span>${ic('ph-drop', 'currentColor', 20)}</button>` : ''}</div></div>`;
 }
 function waterS(id, b) { b.classList.add('go'); b.disabled = true; const r = b.closest('.mrs'), p = r && r.querySelector('.mpill');
@@ -11460,6 +11468,12 @@ function waterS(id, b) { b.classList.add('go'); b.disabled = true; const r = b.c
     f.style.transform = `translateX(${d < 0 ? -100 : 100}%)`; try { if (navigator.vibrate) navigator.vibrate(10); } catch (x) { }
     setTimeout(() => { if (custom) { f.style.transition = 'none'; f.style.transform = ''; r.classList.remove('swl', 'swr'); try { (new Function(custom))(); } catch (e) { console.warn('Roothood:', e); } } else if (d > 0) water(id); else snooze(id); }, 250); }, { passive: true });
 })();
+// Vattenmätare: droppen töms när det närmar sig vattning. Valet "Mätare" eller "Ikon" sparas på telefonen.
+const wStyle = () => S.wstyle || store.get('waterStyle', 'meter');
+function setWstyle(v) { S.wstyle = v; try { store.set('waterStyle', v); } catch (e) {} render(); }
+const waterPct = m => { const d = left(m), iv = ivOf(m); return d === null || !iv ? 0 : Math.max(0, Math.min(100, Math.round(d / iv * 100))); };
+function dropGauge(m, size) { const p = waterPct(m), h = 19.5 * p / 100, id = 'wg' + m.id; return `<svg class="wgauge" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true"><defs><clipPath id="${id}"><path d="M12 2.5C12 2.5 5 10 5 15a7 7 0 0 0 14 0c0-5-7-12.5-7-12.5z"/></clipPath></defs><rect class="wgf" x="0" y="${(22 - h).toFixed(1)}" width="24" height="${h.toFixed(1)}" clip-path="url(#${id})"/><path class="wgo" d="M12 2.5C12 2.5 5 10 5 15a7 7 0 0 0 14 0c0-5-7-12.5-7-12.5z" fill="none" stroke-width="1.8" stroke-linejoin="round"/></svg>`; }
+function wStyleV() { const w = wStyle(); return `<div class="seg2 mview" role="tablist" aria-label="Vattning visas som">${[['meter', 'Vattenmätare'], ['icon', 'Ikon']].map(([k, t]) => `<button class="${w === k ? 'on' : ''}" role="tab" aria-selected="${w === k}" onclick="setWstyle('${k}')">${t}</button>`).join('')}</div>`; }
 function setMview(v) { S.mview = v; try { store.set('mineView', v); } catch (e) {} render(); }
 // ===== Filter i Min samling =====
 const mfS = () => (S.mf = S.mf || { q: '', cat: [], grp: [], light: 0, due: false, tox: false, own: false, rem: false });
@@ -11514,14 +11528,14 @@ function mineV() {
   const view = S.mview || store.get('mineView', 'compact'), det = view === 'detail';
   const rows = shown.map(m => {
     if (stadM) return mrowS(m);
-    const d = left(m), pct = m.interval ? Math.round((ivOf(m) - d) / ivOf(m) * 100) : 0;
+    const d = left(m), pct = m.interval ? (wStyle() === 'meter' ? waterPct(m) : Math.round((ivOf(m) - d) / ivOf(m) * 100)) : 0;
     const status = d === null ? `<span class="mut">${m.remind === false ? 'Ingen påminnelse, du sköter vattningen' : 'Växer ute, vattna vid torka'}</span>` : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
     const fd = m.details || {}, potTxt = [fd.cm ? 'Ø' + fd.cm + ' cm' : '', fd.ph ? fd.ph + ' cm hög' : '', fd.mat || ''].filter(Boolean).join(', ');
     const rmName = roomOf(m) && !S.mroom ? roomOf(m).name : '';
     const facts = [['Kruka', potTxt], ['Jord', fd.soil && fd.soil.length ? fd.soil.join(', ') : ''], ['Höjd', fd.h ? fd.h + ' cm' : ''], ['Plats', rmName || fd.light || fd.place || ''], ['Sol', mineSun(m)]].filter(([, v]) => v);
     const factsHtml = facts.length ? `<dl class="mfacts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : '';
     return `<div class="mrow${det ? ' det' : ''}"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${nameHtml(m)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${m.details && +m.details.count > 1 ? `<span class="mini">× ${+m.details.count} samplanterade i samma kruka</span>` : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${det ? factsHtml : ''}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
-      <div class="side"><label class="camb" onclick="photoPick(event,this)" aria-label="Ta foto på ${esc(m.name)}" title="Ta foto" style="display:inline-flex;width:36px;height:36px;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:var(--pri);background:var(--card2,transparent)">${ic(CAM, 'currentColor', 18)}<input type="file" accept="image/*" capture="environment" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad"><span class="wdrop" aria-hidden="true">💧</span></button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
+      <div class="side"><label class="camb" onclick="photoPick(event,this)" aria-label="Ta foto på ${esc(m.name)}" title="Ta foto" style="display:inline-flex;width:36px;height:36px;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:var(--pri);background:var(--card2,transparent)">${ic(CAM, 'currentColor', 18)}<input type="file" accept="image/*" capture="environment" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${wStyle() === 'meter' ? dropGauge(m, 28) : '<span class="wdrop" aria-hidden="true">💧</span>'}</button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
   }).join('');
   return `${topbar('Min samling')}${mtabBar()}
   ${S.mine.length && stadM ? `<p class="sumline"><span>${S.mine.length} ${S.mine.length === 1 ? 'växt' : 'växter'}</span> · ${due ? `<button class="sumdue" onclick="S.mdue=!S.mdue;S.mAnimDone=false;render()">${due} behöver vatten idag</button>` : '<span>Alla har vatten just nu</span>'}</p>` : ''}
@@ -11532,6 +11546,7 @@ function mineV() {
   ${S.pro && rooms.length && S.mine.length ? `<div class="roomchips">${[[null, 'Alla']].concat(rooms.map(r => [r.id, r.name]), [['-', 'Utan rum']]).filter(([id]) => id === null || S.mroom === id || S.mine.some(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id)).map(([id, n]) => `<button class="${S.mroom === id ? 'on' : ''}" onclick="S.mroom=${id ? `'${id}'` : 'null'};render()">${esc(n)}<small>${id === null ? S.mine.length : S.mine.filter(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id).length}</small></button>`).join('')}</div>` : ''}
   ${S.mine.length > 3 ? mfBarV() : ''}
   ${stadM ? '' : `<div class="seg2 mview" role="tablist" aria-label="Visa som">${[['compact', 'Kompakt'], ['detail', 'Detaljerad']].map(([k, t]) => `<button class="${view === k ? 'on' : ''}" role="tab" aria-selected="${view === k}" onclick="setMview('${k}')">${t}</button>`).join('')}</div>`}
+  ${S.mine.length ? wStyleV() : ''}
   <div class="list" style="padding-top:0">${!rows && S.mine.length && mfN() ? `<div class="empty"><p>Inga växter matchar filtret.</p><button class="btn sm line" onclick="mfClear()">Rensa filtret</button></div>` : S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p><b>Du har inga växter här än.</b><br>Lägg till en växt så får du påminnelser om när den ska vattnas.</p><button class="btn" onclick="openQAdd()">Lägg till din första växt</button></div>`}</div>`;
 }
 // ===== Badges (punkt 12). Beräknas lokalt från samlingen och loggen. Sparas per konto på telefonen tills tabellen user_badges finns. =====
@@ -13474,6 +13489,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.449', '21 nov', ['Notisen om växtpassning markeras nu som läst när du öppnar den, så den röda bubblan försvinner. Innan en passning har börjat visas ett kort med startdatum, så du vet när växterna dyker upp', 'Min samling: nytt val för vattning. Vattenmätare visar en droppe och en stapel som töms ju närmare vattning det är, med antal dagar kvar som förut. Du kan också välja den vanliga ikonen']],
   ['Beta 0.448', '21 nov', ['I chatten syns nu vilken annons ett meddelande gäller, även för den som äger annonsen']],
   ['Beta 0.447', '20 nov', ['Inställningar går inte längre att dra i sidled på smala telefoner']],
   ['Beta 0.446', '20 nov', ['Du kan inte längre anmäla intresse för din egen annons. På dina egna annonser står det nu "Din annons"']],
@@ -16496,7 +16512,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.448';
+const APP_VERSION = 'Beta 0.449';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
