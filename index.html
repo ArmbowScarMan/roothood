@@ -7684,7 +7684,7 @@ function sitReqCard() {
 function sitNotifV() {
   const N = (S.notifs || []).filter(n => /^sit/.test(n.t)); if (!N.length) return '';
   const row = n => n.t === 'sit' ? `<div class="nrow new frow"><span class="nic">🪴</span><span class="grow"><b>${ulink(n.from, n.who, 'En vän')} ber dig passa sina växter</b><span>${esc(sitSpan(n))}</span>${sitReqBtns(n)}</span><small>${ago(n.at)}</small></div>`
-    : `<button class="nrow old" onclick="openSit()"><span class="nic">${n.t === 'sit_ans' ? (n.ok ? '🤝' : '🙅') : '🛑'}</span><span class="grow"><b>${esc(n.who || 'Någon')} ${n.t === 'sit_ans' ? (n.ok ? 'passar dina växter' : 'tackade nej till att passa dina växter') : n.owner ? 'avslutade passningen av dina växter' : 'avslutade passningen av sina växter'}</b><span>${esc(sitSpan(n))}</span></span><small>${ago(n.at)}</small></button>`;
+    : `<button class="nrow old" onclick="notifOpen(${jsArg(NKEY(n))});openSit()"><span class="nic">${n.t === 'sit_ans' ? (n.ok ? '🤝' : '🙅') : '🛑'}</span><span class="grow"><b>${esc(n.who || 'Någon')} ${n.t === 'sit_ans' ? (n.ok ? 'passar dina växter' : 'tackade nej till att passa dina växter') : n.owner ? 'avslutade passningen av dina växter' : 'avslutade passningen av sina växter'}</b><span>${esc(sitSpan(n))}</span></span><small>${ago(n.at)}</small></button>`;
   return `<div class="sec"><h2>Växtpassning</h2></div><div class="pad nlist">${N.map(row).join('')}</div>`;
 }
 function openSit() { stopLight(); S.sel = null; S.modal = null; S.tool = 'sit'; S.sitIn = S.sitIn || null; render(); $('#main').scrollTop = 0; sitRefresh(); }
@@ -7699,7 +7699,7 @@ function sitV() {
   <p class="mut" style="margin:0 18px 6px;font-size:14px">Be en vän passa dina växter när du är bortrest, eller passa någon annans. Den som passar ser vad som behöver vattnas och får skötselråd för varje växt.</p>
   ${L === null ? '<p class="formmsg" style="margin:10px 18px">Passningsförfrågningar är inte påslagna i databasen än.</p>' : L === undefined ? '<p class="mut" style="margin:10px 18px">Hämtar…</p>' : ''}
   ${inc.length ? `<div class="sec"><h2>Förfrågningar till dig</h2></div><div class="pad">${inc.map(r => card(r, r.owner_name, r.owner_id, `<p style="margin:8px 0 0;font-size:14px">${ulink(r.owner_id, r.owner_name, 'En vän')} ber dig passa sina växter.</p>${sitReqBtns({ req: r.id, from: r.owner_id })}`)).join('')}</div>` : ''}
-  <div class="sec"><h2>Du passar åt</h2></div><div class="pad">${act.length ? act.map(r => card(r, r.owner_name, r.owner_id, `<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="S.tool=null;S.tab='home';render()">Se växterna och vad som ska göras</button>${endB(r)}</div>`)).join('') : '<p class="mut" style="margin:0;font-size:14px">Du passar inte åt någon just nu.</p>'}</div>
+  <div class="sec"><h2>Du passar åt</h2></div><div class="pad">${act.length ? act.map(r => card(r, r.owner_name, r.owner_id, `${r.starts_on > sitToday() ? `<p class="mut" style="margin:8px 0 0;font-size:14px">Passningen börjar ${esc(sitDate(r.starts_on))}. Då syns växterna på startsidan.</p>` : ''}<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="S.tool=null;S.tab='home';render()">Se växterna och vad som ska göras</button>${endB(r)}</div>`)).join('') : '<p class="mut" style="margin:0;font-size:14px">Du passar inte åt någon just nu.</p>'}</div>
   <div class="sec"><h2>Dina växter</h2></div><div class="pad">${mine.filter(r => r.status === 'pending' || r.status === 'accepted').map(r => card(r, r.sitter_name, r.sitter_id, `<div style="margin-top:10px">${endB(r)}</div>`)).join('')}${mine.filter(r => r.status === 'declined' || r.status === 'ended').slice(0, 5).map(r => card(r, r.sitter_name, r.sitter_id)).join('')}</div>
   ${sitterOwnerV(true)}`;
 }
@@ -8295,7 +8295,14 @@ function ulink(id, name, fb) { const n = esc(name || fb || 'Växtvän'); return 
 // Växt i en passning: öppnar växtens sida i växtbiblioteket med skötselråd
 function sitPlantOpen(pid, name) { const p = (pid && S.plants.find(x => x.id === pid)) || S.plants.find(x => (x.swedish_name || '').toLowerCase() === String(name || '').toLowerCase()); if (!p) return toast('Hittar inte ' + (name || 'växten') + ' i växtbiblioteket'); openPlant(p.id); }
 const sitDate = d => d ? new Date(d + 'T12:00').toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' }) : '';
-function sitterTasksHtml() {
+// Passning som är accepterad men inte har börjat än
+const sitToday = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+function sitUpHtml() {
+  const U = (S.sitIn || []).filter(r => !r.me_owner && r.status === 'accepted' && r.starts_on > sitToday()); if (!U.length) return '';
+  return `<div class="sec"><h2>Passar för andra</h2></div><div class="pad">${U.map(r => `<div class="card" style="padding:14px;margin-bottom:10px"><b>${ulink(r.owner_id, r.owner_name, 'Vän')}s växter</b><small class="mut" style="display:block">Du ska passa dem från ${esc(sitDate(r.starts_on))}. Då dyker växterna upp här på startsidan.</small></div>`).join('')}</div>`;
+}
+function sitterTasksHtml() { return sitUpHtml() + sitterTasksHtml0(); }
+function sitterTasksHtml0() {
   const T = S.sitTasks || [], B = S.sitBeds || []; if (!T.length && !B.length) return '';
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const byO = {};
@@ -13474,6 +13481,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.449', '21 nov', ['Notisen om växtpassning markeras nu som läst när du öppnar den, så den röda bubblan försvinner. Innan en passning har börjat visas ett kort med startdatum, så du vet när växterna dyker upp']],
   ['Beta 0.448', '21 nov', ['I chatten syns nu vilken annons ett meddelande gäller, även för den som äger annonsen']],
   ['Beta 0.447', '20 nov', ['Inställningar går inte längre att dra i sidled på smala telefoner']],
   ['Beta 0.446', '20 nov', ['Du kan inte längre anmäla intresse för din egen annons. På dina egna annonser står det nu "Din annons"']],
