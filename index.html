@@ -179,6 +179,7 @@ html[data-simple] .btn.sm,#tourcard .btn.sm{min-height:46px}html[data-simple] #t
 .bar{height:7px;border-radius:9px;background:var(--line);margin:8px 0 5px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--pri2);border-radius:9px}
 .bar.due i{background:var(--wat)}
+.wbtn .wgauge{display:block}.wgf{fill:var(--wat)}.wgo{stroke:var(--onpri)}.wbtn.due .wgo{stroke:var(--onpri)}
 .due-t{color:var(--wat);font-weight:700;font-size:14px}
 .note{font-size:13px;color:var(--mut);margin-top:3px}
 .mini{display:inline-block;background:var(--soft);color:var(--pri);border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;margin-top:3px}
@@ -11439,7 +11440,7 @@ function mrowS(m) {
   const pill = d === 0 ? '<span class="mpill due">Vattna idag</span>' : d === null ? `<span class="mpill">${m.remind === false && m.interval ? 'Ingen påminnelse' : 'Vid torka'}</span>` : `<span class="mpill">Om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
   if (!S.mAnimDone && !S.mAnimT) S.mAnimT = setTimeout(() => { S.mAnimDone = true; S.mAnimT = null; }, 700);
   return `<div class="mrs${S.mAnimDone ? '' : ' mfirst'}" data-mid="${m.id}"><div class="msbg" aria-hidden="true"><span class="mzl">${ic(I.check, 'currentColor', 18)} Vattnad</span><span class="mzr">Skjut upp ${ic('ph-clock', 'currentColor', 18)}</span></div>
-  <div class="mfg"><button class="mopen2" onclick="openMine(${m.id})" aria-label="Visa ${esc(nm)}">${mPhoto(m)}<span class="grow"><span class="mname">${esc(nm)}</span>${lat ? `<span class="mlat">${sciHtml(lat)}</span>` : ''}${pill}</span></button>
+  <div class="mfg"><button class="mopen2" onclick="openMine(${m.id})" aria-label="Visa ${esc(nm)}">${mPhoto(m)}<span class="grow"><span class="mname">${esc(nm)}</span>${lat ? `<span class="mlat">${sciHtml(lat)}</span>` : ''}${pill}${wStyle() === 'meter' && d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${waterPct(m)}%"></i></span>` : ''}</span></button>
   ${d === 0 ? `<button class="wbtn2" onclick="waterS(${m.id},this)" aria-label="Vattna ${esc(nm)}"><span class="wfill"></span>${ic('ph-drop', 'currentColor', 20)}</button>` : ''}</div></div>`;
 }
 function waterS(id, b) { b.classList.add('go'); b.disabled = true; const r = b.closest('.mrs'), p = r && r.querySelector('.mpill');
@@ -11460,6 +11461,12 @@ function waterS(id, b) { b.classList.add('go'); b.disabled = true; const r = b.c
     f.style.transform = `translateX(${d < 0 ? -100 : 100}%)`; try { if (navigator.vibrate) navigator.vibrate(10); } catch (x) { }
     setTimeout(() => { if (custom) { f.style.transition = 'none'; f.style.transform = ''; r.classList.remove('swl', 'swr'); try { (new Function(custom))(); } catch (e) { console.warn('Roothood:', e); } } else if (d > 0) water(id); else snooze(id); }, 250); }, { passive: true });
 })();
+// Vattenmätare: droppen töms när det närmar sig vattning. Valet "Mätare" eller "Ikon" sparas på telefonen.
+const wStyle = () => S.wstyle || store.get('waterStyle', 'meter');
+function setWstyle(v) { S.wstyle = v; try { store.set('waterStyle', v); } catch (e) {} render(); }
+const waterPct = m => { const d = left(m), iv = ivOf(m); return d === null || !iv ? 0 : Math.max(0, Math.min(100, Math.round(d / iv * 100))); };
+function dropGauge(m, size) { const p = waterPct(m), h = 19.5 * p / 100, id = 'wg' + m.id; return `<svg class="wgauge" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true"><defs><clipPath id="${id}"><path d="M12 2.5C12 2.5 5 10 5 15a7 7 0 0 0 14 0c0-5-7-12.5-7-12.5z"/></clipPath></defs><rect class="wgf" x="0" y="${(22 - h).toFixed(1)}" width="24" height="${h.toFixed(1)}" clip-path="url(#${id})"/><path class="wgo" d="M12 2.5C12 2.5 5 10 5 15a7 7 0 0 0 14 0c0-5-7-12.5-7-12.5z" fill="none" stroke-width="1.8" stroke-linejoin="round"/></svg>`; }
+function wStyleV() { const w = wStyle(); return `<div class="seg2 mview" role="tablist" aria-label="Vattning visas som">${[['meter', 'Vattenmätare'], ['icon', 'Ikon']].map(([k, t]) => `<button class="${w === k ? 'on' : ''}" role="tab" aria-selected="${w === k}" onclick="setWstyle('${k}')">${t}</button>`).join('')}</div>`; }
 function setMview(v) { S.mview = v; try { store.set('mineView', v); } catch (e) {} render(); }
 // ===== Filter i Min samling =====
 const mfS = () => (S.mf = S.mf || { q: '', cat: [], grp: [], light: 0, due: false, tox: false, own: false, rem: false });
@@ -11514,14 +11521,14 @@ function mineV() {
   const view = S.mview || store.get('mineView', 'compact'), det = view === 'detail';
   const rows = shown.map(m => {
     if (stadM) return mrowS(m);
-    const d = left(m), pct = m.interval ? Math.round((ivOf(m) - d) / ivOf(m) * 100) : 0;
+    const d = left(m), pct = m.interval ? (wStyle() === 'meter' ? waterPct(m) : Math.round((ivOf(m) - d) / ivOf(m) * 100)) : 0;
     const status = d === null ? `<span class="mut">${m.remind === false ? 'Ingen påminnelse, du sköter vattningen' : 'Växer ute, vattna vid torka'}</span>` : d === 0 ? '<span class="due-t">Vattna idag</span>' : `<span class="mut">Vattnas om ${d} ${d === 1 ? 'dag' : 'dagar'}</span>`;
     const fd = m.details || {}, potTxt = [fd.cm ? 'Ø' + fd.cm + ' cm' : '', fd.ph ? fd.ph + ' cm hög' : '', fd.mat || ''].filter(Boolean).join(', ');
     const rmName = roomOf(m) && !S.mroom ? roomOf(m).name : '';
     const facts = [['Kruka', potTxt], ['Jord', fd.soil && fd.soil.length ? fd.soil.join(', ') : ''], ['Höjd', fd.h ? fd.h + ' cm' : ''], ['Plats', rmName || fd.light || fd.place || ''], ['Sol', mineSun(m)]].filter(([, v]) => v);
     const factsHtml = facts.length ? `<dl class="mfacts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : '';
     return `<div class="mrow${det ? ' det' : ''}"><button class="mopen" onclick="openMine(${m.id})" aria-label="Visa ${esc(m.name)}">${myPh(m)}<span class="grow"><span class="mname">${nameHtml(m)}</span>${m.custom ? '<span class="mini">Egen växt</span>' : ''}${m.details && +m.details.count > 1 ? `<span class="mini">× ${+m.details.count} samplanterade i samma kruka</span>` : ''}${d !== null ? `<span class="bar ${d === 0 ? 'due' : ''}"><i style="width:${pct}%"></i></span>` : '<span style="display:block;height:6px"></span>'}${status}${det ? factsHtml : ''}${m.notes ? `<span class="note">${esc(m.notes)}</span>` : ''}</span></button>
-      <div class="side"><label class="camb" onclick="photoPick(event,this)" aria-label="Ta foto på ${esc(m.name)}" title="Ta foto" style="display:inline-flex;width:36px;height:36px;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:var(--pri);background:var(--card2,transparent)">${ic(CAM, 'currentColor', 18)}<input type="file" accept="image/*" capture="environment" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad"><span class="wdrop" aria-hidden="true">💧</span></button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
+      <div class="side"><label class="camb" onclick="photoPick(event,this)" aria-label="Ta foto på ${esc(m.name)}" title="Ta foto" style="display:inline-flex;width:36px;height:36px;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:var(--pri);background:var(--card2,transparent)">${ic(CAM, 'currentColor', 18)}<input type="file" accept="image/*" capture="environment" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${wStyle() === 'meter' ? dropGauge(m, 28) : '<span class="wdrop" aria-hidden="true">💧</span>'}</button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
   }).join('');
   return `${topbar('Min samling')}${mtabBar()}
   ${S.mine.length && stadM ? `<p class="sumline"><span>${S.mine.length} ${S.mine.length === 1 ? 'växt' : 'växter'}</span> · ${due ? `<button class="sumdue" onclick="S.mdue=!S.mdue;S.mAnimDone=false;render()">${due} behöver vatten idag</button>` : '<span>Alla har vatten just nu</span>'}</p>` : ''}
@@ -11532,6 +11539,7 @@ function mineV() {
   ${S.pro && rooms.length && S.mine.length ? `<div class="roomchips">${[[null, 'Alla']].concat(rooms.map(r => [r.id, r.name]), [['-', 'Utan rum']]).filter(([id]) => id === null || S.mroom === id || S.mine.some(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id)).map(([id, n]) => `<button class="${S.mroom === id ? 'on' : ''}" onclick="S.mroom=${id ? `'${id}'` : 'null'};render()">${esc(n)}<small>${id === null ? S.mine.length : S.mine.filter(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id).length}</small></button>`).join('')}</div>` : ''}
   ${S.mine.length > 3 ? mfBarV() : ''}
   ${stadM ? '' : `<div class="seg2 mview" role="tablist" aria-label="Visa som">${[['compact', 'Kompakt'], ['detail', 'Detaljerad']].map(([k, t]) => `<button class="${view === k ? 'on' : ''}" role="tab" aria-selected="${view === k}" onclick="setMview('${k}')">${t}</button>`).join('')}</div>`}
+  ${S.mine.length ? wStyleV() : ''}
   <div class="list" style="padding-top:0">${!rows && S.mine.length && mfN() ? `<div class="empty"><p>Inga växter matchar filtret.</p><button class="btn sm line" onclick="mfClear()">Rensa filtret</button></div>` : S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p><b>Du har inga växter här än.</b><br>Lägg till en växt så får du påminnelser om när den ska vattnas.</p><button class="btn" onclick="openQAdd()">Lägg till din första växt</button></div>`}</div>`;
 }
 // ===== Badges (punkt 12). Beräknas lokalt från samlingen och loggen. Sparas per konto på telefonen tills tabellen user_badges finns. =====
@@ -13474,6 +13482,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.450', '21 nov', ['Min samling: nytt val för vattning. Vattenmätare visar en droppe och en stapel som töms ju närmare vattning det är, med antal dagar kvar som förut. Du kan också välja den vanliga ikonen']],
   ['Beta 0.448', '21 nov', ['I chatten syns nu vilken annons ett meddelande gäller, även för den som äger annonsen']],
   ['Beta 0.447', '20 nov', ['Inställningar går inte längre att dra i sidled på smala telefoner']],
   ['Beta 0.446', '20 nov', ['Du kan inte längre anmäla intresse för din egen annons. På dina egna annonser står det nu "Din annons"']],
