@@ -549,12 +549,13 @@ button,[role=tab],.nrow,.prow,.setrow,.upl,label.tog{-webkit-user-select:none;us
 .shin{position:relative;display:flex;gap:0;align-items:flex-start;padding:6px 12px 10px;min-width:100%;width:max-content;box-sizing:border-box;transition:padding .2s}
 .shelf.open .shin{padding-bottom:168px}
 .shin::after{content:'';position:absolute;left:0;right:0;top:134px;height:11px;background:linear-gradient(#e6cb9e,#c99f6a 55%,#a97f4e);box-shadow:0 12px 16px -8px rgba(0,0,0,.45);z-index:0}
-.sitem{flex:none;position:relative;z-index:1;width:100px;height:150px;background:none;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .18s}
+.sitem{flex:none;position:relative;z-index:1;width:100px;height:174px;background:none;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .18s}
 .sitem .pv{display:block;width:100px;height:150px;overflow:visible;filter:drop-shadow(0 3px 3px rgba(0,0,0,.2))}
-.sitem.on{transform:translateY(-6px)}
+.sitem.on .pv{transform:translateY(-6px)}.sitem .pv{transition:transform .18s}
+.sname{position:absolute;left:4px;right:4px;top:151px;font-size:12.5px;font-weight:600;line-height:1.2;color:var(--ink);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sitem.on .sname{color:var(--pri)}
 .sit-tag{position:absolute;top:0;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--pri);color:var(--onpri);font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .sit-due{position:absolute;top:18px;right:4px;width:22px;height:22px;border-radius:50%;background:var(--wat);color:#fff;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.3)}
-.spol{position:absolute;top:150px;z-index:2;width:134px;box-sizing:border-box;background:#fbf8f2;color:#1f2a22;border-radius:6px;padding:8px 8px 10px;box-shadow:0 10px 22px rgba(0,0,0,.35);transform:rotate(-5deg);cursor:pointer;animation:spol .22s ease-out}
+.spol{position:absolute;top:176px;z-index:2;width:134px;box-sizing:border-box;background:#fbf8f2;color:#1f2a22;border-radius:6px;padding:8px 8px 10px;box-shadow:0 10px 22px rgba(0,0,0,.35);transform:rotate(-5deg);cursor:pointer;animation:spol .22s ease-out}
 .spol img,.spol .spi{display:block;width:118px;height:98px;object-fit:cover;border-radius:3px;background:#ece5d6}
 .spol .spi svg{display:block;width:100%;height:100%}
 .spol b{display:block;font-size:14px;margin-top:7px;line-height:1.2}
@@ -11063,7 +11064,7 @@ function shelfItems(sz) {
 }
 function shelfPol(it, i) { return `<div class="spol" role="button" tabindex="0" style="left:${Math.max(4, 6 + i * 100)}px" onclick="event.stopPropagation();${it.open}">${it.img ? `<img src="${esc(it.img)}" alt="">` : `<span class="spi">${plantSVG(it.type, it.v, it.out)}</span>`}<b>${esc(it.name)}</b>${it.tag ? `<small>Du passar ${esc(it.tag)} växt</small>` : ''}<small>${ic(I.drop, 'currentColor', 12)} ${shTxt(it.d)}</small></div>`; }
 function shelfHtml() { const L = S.shelfList || [], si = L.findIndex(it => it.key === S.shelfSel);
-  return `<div class="shelf${si >= 0 ? ' open' : ''}"><div class="shin">${L.map(it => `<button class="sitem${S.shelfSel === it.key ? ' on' : ''}" data-k="${esc(it.key)}" onclick="shelfPick(this.dataset.k)" aria-label="${esc(it.name)}">${plantSVG(it.type, it.v, it.out)}${it.tag ? `<span class="sit-tag">${esc(it.tag)}</span>` : ''}${it.d !== null && it.d <= 0 ? `<span class="sit-due" aria-hidden="true">${ic(I.drop, 'currentColor', 12)}</span>` : ''}</button>`).join('')}${si >= 0 ? shelfPol(L[si], si) : ''}</div></div>`; }
+  return `<div class="shelf${si >= 0 ? ' open' : ''}"><div class="shin">${L.map(it => `<button class="sitem${S.shelfSel === it.key ? ' on' : ''}" data-k="${esc(it.key)}" onclick="shelfPick(this.dataset.k)" aria-label="${esc(it.name)}">${plantSVG(it.type, it.v, it.out)}<span class="sname">${esc(it.name)}</span>${it.tag ? `<span class="sit-tag">${esc(it.tag)}</span>` : ''}${it.d !== null && it.d <= 0 ? `<span class="sit-due" aria-hidden="true">${ic(I.drop, 'currentColor', 12)}</span>` : ''}</button>`).join('')}${si >= 0 ? shelfPol(L[si], si) : ''}</div></div>`; }
 function shelfPick(key) { S.shelfSel = S.shelfSel === key ? null : key; const el = document.querySelector('.shelf'); if (!el) return; const x = el.scrollLeft; el.outerHTML = shelfHtml(); const n = document.querySelector('.shelf'); if (n) n.scrollLeft = x; }
 function mineStrip(sz) { S.shelfList = shelfItems(sz); if (S.shelfSel && !S.shelfList.some(it => it.key === S.shelfSel)) S.shelfSel = null;
   const head = stadUI() ? `<div class="sec cap2"><h2>Min samling</h2><button class="viewall" onclick="go('mine')">Visa alla ›</button></div>` : `<div class="sec cap2"><h2>Min samling</h2><button class="viewall" onclick="go('mine')">Alla ${S.mine.length}</button></div>`;
@@ -13540,6 +13541,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.453', '22 nov', ['Hyllan på Start visar nu namnet under varje växt']],
   ['Beta 0.452', '22 nov', ['Hyllan på Start har fått tecknade växter i krukor. Tryck på en växt så kommer ett kort med ditt foto, namnet och när den ska vattnas']],
   ['Beta 0.451', '22 nov', ['Start: dina växter står nu på en hylla du kan svepa i sidled. Tryck på en växt för att se namn och när den ska vattnas. Växter du passar åt någon annan syns tillfälligt på hyllan med en etikett, och utomhusväxter står i gräs']],
   ['Beta 0.450', '22 nov', ['Vattenmätaren är nu det enda sättet att visa vattning i Min samling, så valet Ikon är borttaget. Påminnelsen om vatten har fått en tydligare text']],
