@@ -549,13 +549,13 @@ button,[role=tab],.nrow,.prow,.setrow,.upl,label.tog{-webkit-user-select:none;us
 .shin{position:relative;display:flex;gap:0;align-items:flex-start;padding:6px 12px 10px;min-width:100%;width:max-content;box-sizing:border-box;transition:padding .2s}
 .shelf.open .shin{padding-bottom:168px}
 .shin::after{content:'';position:absolute;left:0;right:0;top:134px;height:11px;background:linear-gradient(#e6cb9e,#c99f6a 55%,#a97f4e);box-shadow:0 12px 16px -8px rgba(0,0,0,.45);z-index:0}
-.sitem{flex:none;position:relative;z-index:1;width:100px;height:174px;background:none;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .18s}
+.sitem{flex:none;position:relative;z-index:1;width:100px;height:190px;background:none;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .18s}
 .sitem .pv{display:block;width:100px;height:150px;overflow:visible;filter:drop-shadow(0 3px 3px rgba(0,0,0,.2))}
 .sitem.on .pv{transform:translateY(-6px)}.sitem .pv{transition:transform .18s}
-.sname{position:absolute;left:4px;right:4px;top:153px;font-size:12px;font-weight:600;line-height:1.2;color:var(--ink);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sitem.on .sname{color:var(--pri)}
+.sname{position:absolute;left:4px;right:4px;top:157px;font-size:12px;font-weight:600;line-height:1.25;color:var(--ink);text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}.sitem.on .sname{color:var(--pri)}
 .sit-tag{position:absolute;top:0;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--pri);color:var(--onpri);font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .sit-due{position:absolute;top:18px;right:4px;width:22px;height:22px;border-radius:50%;background:var(--wat);color:#fff;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.3)}
-.spol{position:absolute;top:176px;z-index:2;width:134px;box-sizing:border-box;background:#fbf8f2;color:#1f2a22;border-radius:6px;padding:8px 8px 10px;box-shadow:0 10px 22px rgba(0,0,0,.35);transform:rotate(-5deg);cursor:pointer;animation:spol .22s ease-out}
+.spol{position:absolute;top:192px;z-index:2;width:134px;box-sizing:border-box;background:#fbf8f2;color:#1f2a22;border-radius:6px;padding:8px 8px 10px;box-shadow:0 10px 22px rgba(0,0,0,.35);transform:rotate(-5deg);cursor:pointer;animation:spol .22s ease-out}
 .spol img,.spol .spi{display:block;width:118px;height:98px;object-fit:cover;border-radius:3px;background:#ece5d6}
 .spol .spi svg{display:block;width:100%;height:100%}
 .spol b{display:block;font-size:14px;margin-top:7px;line-height:1.2}
@@ -11056,7 +11056,7 @@ function pvPlant(t, v) {
 function plantSVG(t, v, out) { const p = pvPlant(t, v), w = s => out ? `<g transform="translate(0 9)">${s}</g>` : s; return `<svg class="pv" viewBox="0 0 100 150" aria-hidden="true">${w(p.back)}${out ? pvMoss() : pvPot(v)}${w(p.front)}</svg>`; }
 function shelfItems(sz) {
   const n = { s: 6, m: 12, l: 20 }[sz || 'm'], L = S.mine.slice().sort((a, b) => { const x = left(a), y = left(b); return (x === null ? 99 : x) - (y === null ? 99 : y); }).slice(0, n);
-  const own = L.map(m => { const p = plantById(m.plant_id) || {}, nm = (m.details && m.details.nick) || m.sv || m.name, cat = m.category || p.category, out = OUTDOOR.includes(cat) && !['Kruka', 'Ampel', 'Upp och ner'].includes((m.details || {}).place);
+  const own = L.map(m => { const p = plantById(m.plant_id) || {}, so = ((m.details || {}).sort || '').trim(), nm = ((m.details && m.details.nick) || m.sv || m.baseName || m.name) + (so ? ` '${so}'` : ''), cat = m.category || p.category, out = OUTDOOR.includes(cat) && !['Kruka', 'Ampel', 'Upp och ner'].includes((m.details || {}).place);
     return { key: 'm' + m.id, name: nm, d: left(m), img: m.photo || p.photo_url || '', type: plantType([m.name, m.sv, p.sv, p.name].join(' '), cat, m.id), v: m.id || 0, out, tag: '', open: `openMine(${m.id})` }; });
   const sit = (S.sitTasks || []).map(t => { const p = plantById(+t.plant_id) || {}, on = (t.owner_name || 'Vän').split(' ')[0];
     return { key: 's' + t.plant_id + '_' + t.owner_id, name: t.plant_name || 'Växt', d: sitLeft(t), img: p.photo_url || '', type: plantType([t.plant_name, p.sv, p.name].join(' '), p.category, +t.plant_id), v: +t.plant_id || 0, out: OUTDOOR.includes(p.category), tag: on + 's', open: `sitPlantOpen(${+t.plant_id || 0},${jsArg(t.plant_name || '')})` }; });
@@ -13541,7 +13541,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
-  ['Beta 0.453', '22 nov', ['Hyllan på Start visar nu namnet under varje växt']],
+  ['Beta 0.453', '22 nov', ['Hyllan på Start visar nu namnet och sorten under varje växt']],
   ['Beta 0.452', '22 nov', ['Hyllan på Start har fått tecknade växter i krukor. Tryck på en växt så kommer ett kort med ditt foto, namnet och när den ska vattnas']],
   ['Beta 0.451', '22 nov', ['Start: dina växter står nu på en hylla du kan svepa i sidled. Tryck på en växt för att se namn och när den ska vattnas. Växter du passar åt någon annan syns tillfälligt på hyllan med en etikett, och utomhusväxter står i gräs']],
   ['Beta 0.450', '22 nov', ['Vattenmätaren är nu det enda sättet att visa vattning i Min samling, så valet Ikon är borttaget. Påminnelsen om vatten har fått en tydligare text']],
