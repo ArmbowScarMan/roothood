@@ -545,6 +545,19 @@ button,[role=tab],.nrow,.prow,.setrow,.upl,label.tog{-webkit-user-select:none;us
 .pfopts{padding:4px 2px 2px}.pftog{display:flex!important;align-items:center;gap:10px;justify-content:flex-start}.pftog input{margin:0;flex:none!important;width:20px!important;height:20px}.pftog span{flex:1;text-align:left}.pfopt{margin-top:8px}.pfopt small{display:block;font-size:12px;font-weight:700;color:var(--mut);margin:0 0 4px}
 .seg2.pl-view{flex:none;width:auto}.seg2.pl-view button{flex:none;padding:7px 11px;font-size:13px;white-space:nowrap}
 .adctx{align-self:center;text-align:center;font-size:12.5px;color:var(--mut);background:var(--surf);border:1px solid var(--line);border-radius:10px;padding:5px 10px;margin:8px auto 2px;max-width:90%}
+.shelf{overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:14px 0 30px}.shelf::-webkit-scrollbar{display:none}
+.shin{display:flex;gap:18px;align-items:flex-end;padding:0 24px;position:relative;min-width:max-content}
+.shin::after{content:'';position:absolute;left:0;right:0;bottom:-16px;height:16px;background:linear-gradient(#cfa36b,#a9794a);border-radius:3px;box-shadow:0 8px 14px rgba(0,0,0,.28),inset 0 2px 0 rgba(255,255,255,.25)}
+.sitem{flex:none;width:88px;background:none;border:0;padding:0;margin:0;position:relative;scroll-snap-align:center;transition:transform .15s;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sitem .si{display:block;width:88px;height:88px;border-radius:26px 26px 8px 8px;overflow:hidden;border:3px solid var(--surf);box-shadow:0 4px 10px rgba(0,0,0,.28);background:var(--surf)}
+.sitem .si img{width:100%;height:100%;object-fit:cover;display:block}
+.sitem .sini{display:grid;place-items:center;width:100%;height:100%;font:700 32px/1 system-ui,sans-serif;background:hsl(var(--h) 35% 38%);color:#fff}
+.sitem.on{transform:translateY(-10px)}.sitem.on .si{border-color:var(--pri)}
+.sitem .grass{position:absolute;left:-6px;right:-6px;bottom:-5px;width:calc(100% + 12px);height:20px;pointer-events:none}
+.sit-tag{position:absolute;top:-8px;left:-4px;background:var(--pri);color:var(--onpri);font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.sit-due{position:absolute;top:-8px;right:-6px;width:26px;height:26px;border-radius:50%;background:var(--wat);color:#fff;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.shcard{margin:0 20px;min-height:58px;display:flex;align-items:center}
+.shc{display:flex;width:100%;justify-content:space-between;align-items:center;gap:10px;text-align:left;background:var(--surf);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:11px 14px;box-shadow:0 4px 12px rgba(0,0,0,.18);transform:rotate(-1.2deg);cursor:pointer}
 .setlist{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:8px 16px 24px}.setsech{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;width:100%;background:var(--surf);border-radius:18px;padding:14px 16px;box-shadow:var(--sh);cursor:pointer}.setsech .grow{flex:1;min-width:0}.setsech .grow b{display:block;font-size:16px}.setadv .linkbtn{all:unset;cursor:pointer;color:var(--pri);font-weight:600;font-size:14px;padding:6px 0}.setsech small{display:block;color:var(--mut);font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.setsec.on .setsech{border-radius:18px 18px 6px 6px}.setbody{padding:10px 0 4px}.setadv{margin-top:14px}.setout{justify-content:center;color:var(--danger,#e07a6a);margin-top:8px}.setrow{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;width:100%;background:var(--surf);border-radius:22px;padding:14px;box-shadow:var(--sh);cursor:pointer}
 .setrow:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
 .setrow .grow{flex:1;display:flex;flex-direction:column;min-width:0}
@@ -11007,13 +11020,27 @@ const SEEDLING = '<path d="M12 21v-9"/><path d="M12 12c0-4 3-6.5 7.5-6.5 0 4.5-3
 const WATER_CAN = '<path d="M3 10h12v7a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M15 13l5-7"/><path d="M7 10V7a3 3 0 0 1 6 0"/><path d="M19.5 4.5l1.5-1.5"/><path d="M6 21.5v.5M10 21.5v.5"/>';
 const QPH = { aroider: ['ph-leaf', 'Aroider'], learn: ['ph-book-open', 'Lär dig mer'], sit: ['ph-hand-heart', 'Växtpassning'], measure: ['ph-ruler', 'Mät växt med kameran'], soil: ['ph-stack', 'Jordart där du bor'], elev: ['ph-mountains', 'Marknivå'], rain: ['ph-cloud-rain', 'Regnvatten'], sunpath: ['ph-sun-horizon', 'Solbana'], jord: ['ph-shovel', 'Jord och substrat'], hydro: ['ph-drop', 'Hydroponi'], naring: ['ph-flask', 'Gödsel och näring'], ljuslara: ['ph-sun', 'Ljus'], rosor: ['ph-flower', 'Rosor'], vatten: ['ph-drop-half', 'Vattning'], skadedjur: ['ph-bug', 'Skadedjur och sjukdomar'], forokning: ['ph-plant', 'Förökning'], omplant: ['ph-potted-plant', 'Omplantering och krukor'], klimat: ['ph-thermometer', 'Luftfuktighet och temperatur'], orkide: ['ph-flower-lotus', 'Orkidéer'], kaktus: ['ph-cactus', 'Kaktusar och suckulenter'], stod: ['ph-ladder', 'Mosspålar och klätterstöd'], beskarning: ['ph-scissors', 'Beskärning'], applen: ['ph-tree', 'Äpplen'], stenparti: ['ph-mountains', 'Stenparti'], hallbar: ['ph-globe-hemisphere-west', 'Hållbar odling'], ask: ['ph-sparkle', 'Snabbfråga'], bed: ['ph-flower-tulip', 'Planera rabatt'], db: ['ph-magnifying-glass', 'Växtbiblioteket'], id: ['ph-camera', 'Identifiera'], care: ['ph-notebook', 'Växtjournalen'], doc: ['ph-first-aid-kit', 'Växtdoktorn'], expert: ['ph-seal-check', 'Experter'], house: ['ph-house-line', 'Mitt hem'], light: ['ph-sun', 'Ljus'], nearby: ['ph-map-pin', 'Nära dig'], compass: ['ph-compass', 'Kompass'], pets: ['ph-paw-print', 'Mina djur'], smart: ['ph-lightbulb', 'Smart'], season: ['ph-leaf', 'Säsong'], sow: ['ph-plant', 'Såkalender'], perma: ['ph-recycle', 'Permakultur'], inspo: ['ph-user-circle', 'Odlare'], comm: ['ph-chats', 'Frågor'], forum: ['ph-chat-text', 'Forum'], swap: ['ph-arrows-left-right', 'Byten'], detect: ['ph-binoculars', 'Vad är det för växt?'], people: ['ph-users', 'Vänner'], mine: ['ph-plant', 'Min samling'], notif: ['ph-bell', 'Notiser'], cfg: ['ph-pencil-simple', 'Anpassa'] };
 // Mina växter på Hem: kort med bild, de som behöver vatten först
-function mineStrip(sz) { const n = { s: 4, m: 8, l: 14 }[sz || 'm'], L = S.mine.slice().sort((a, b) => { const x = left(a), y = left(b); return (x === null ? 99 : x) - (y === null ? 99 : y); }).slice(0, n);
-  // Städad (109): karusell med kort på ca 42 % bredd, alltid riktigt foto eller initial med "Lägg till foto", status som pill och "Visa alla ›"
-  if (stadUI()) return `<div class="sec cap2"><h2>Min samling</h2><button class="viewall" onclick="go('mine')">Visa alla ›</button></div><div class="hcar">${L.map(m => { const d = left(m), p = plantById(m.plant_id), u = m.photo || (p && p.photo_url), nm = (m.details && m.details.nick) || m.sv || m.name;
-    return `<div class="hcard"><button class="hcimg" onclick="openMine(${m.id})" aria-label="Visa ${esc(nm)}">${u ? `<img src="${esc(u)}" alt="" loading="lazy">` : `<span class="hcini" style="--h:${hueOf(m.name)}">${esc(((nm || '?').trim()[0] || '?').toUpperCase())}</span>`}</button>${u ? '' : `<label class="hcadd" onclick="photoPick(event,this)">${ic('ph-camera', 'currentColor', 14)} Lägg till foto<input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>`}
-    <button class="hcname" onclick="openMine(${m.id})">${esc(nm)}</button><span class="mpill${d === 0 ? ' due' : ''}">${d === null ? 'Vid torka' : d <= 0 ? 'Vattna idag' : d === 1 ? 'I morgon' : 'Om ' + d + ' dagar'}</span></div>`; }).join('')}</div>`;
-  return `<div class="sec cap2"><h2>Min samling</h2><button class="viewall" onclick="go('mine')">Alla ${S.mine.length}</button></div><div class="hscroll">${L.map(m => { const d = left(m), w = d === null ? 'Vid torka' : d <= 0 ? 'Vattna idag' : d === 1 ? 'I morgon' : 'Om ' + d + ' dagar';
-    return `<button class="hmc" onclick="openMine(${m.id})"><span class="hmimg">${myPh(m)}</span><b>${esc((m.details && m.details.nick) || m.name)}</b><small class="${d !== null && d <= 0 ? 'due' : ''}">${ic(I.drop, 'currentColor', 13)} ${w}</small></button>`; }).join('')}</div>`; }
+// Växthylla på Start: dina växter står på en hylla du sveper i sidled. Tryck på en växt visar ett litet kort. Växter du passar åt andra står där med en etikett, utomhusväxter står i gräs.
+const shTxt = d => d === null ? 'Vid torka' : d <= 0 ? 'Vattna idag' : d === 1 ? 'I morgon' : 'Om ' + d + ' dagar';
+function sitLeft(t) { if (!t.last_watered || !t.water_interval_days) return null; const today = new Date(); today.setHours(0, 0, 0, 0); const due = new Date(t.last_watered + 'T00:00:00'); due.setDate(due.getDate() + t.water_interval_days); return Math.round((due - today) / 864e5); }
+function shelfItems(sz) {
+  const n = { s: 6, m: 12, l: 20 }[sz || 'm'], L = S.mine.slice().sort((a, b) => { const x = left(a), y = left(b); return (x === null ? 99 : x) - (y === null ? 99 : y); }).slice(0, n);
+  const own = L.map(m => { const p = plantById(m.plant_id), nm = (m.details && m.details.nick) || m.sv || m.name, out = OUTDOOR.includes(m.category || (p || {}).category) && !['Kruka', 'Ampel', 'Upp och ner'].includes((m.details || {}).place);
+    return { key: 'm' + m.id, name: nm, d: left(m), img: m.photo || (p && p.photo_url) || '', hue: hueOf(m.name), out, tag: '', open: `openMine(${m.id})` }; });
+  const sit = (S.sitTasks || []).map(t => { const p = plantById(+t.plant_id), on = (t.owner_name || 'Vän').split(' ')[0];
+    return { key: 's' + t.plant_id + '_' + t.owner_id, name: t.plant_name || 'Växt', d: sitLeft(t), img: (p && p.photo_url) || '', hue: hueOf(t.plant_name || ''), out: !!p && OUTDOOR.includes(p.category), tag: on + 's', open: `sitPlantOpen(${+t.plant_id || 0},${jsArg(t.plant_name || '')})` }; });
+  return sit.concat(own);
+}
+const GRASS = '<svg class="grass" viewBox="0 0 90 18" preserveAspectRatio="none" aria-hidden="true"><path d="M0 18 4 6 8 18 12 4 17 18 22 8 27 18 32 3 37 18 42 7 47 18 52 4 57 18 62 8 67 18 72 5 77 18 82 7 86 18 90 10 90 18Z" fill="#5f9e45"/><path d="M0 18 2 11 6 18 10 9 15 18 20 12 26 18 31 10 36 18 41 12 46 18 51 9 56 18 61 12 66 18 71 10 76 18 81 12 86 18 90 14 90 18Z" fill="#48823a"/></svg>';
+function shelfPick(key) {
+  const it = (S.shelfItems || {})[key], card = document.getElementById('shcard'); if (!it || !card) return;
+  const was = S.shelfSel === key; S.shelfSel = was ? null : key;
+  document.querySelectorAll('.sitem').forEach(b => b.classList.toggle('on', !was && b.dataset.k === key));
+  card.innerHTML = was ? '<small class="mut">Tryck på en växt för att se namn och vattning</small>' : `<button class="shc" onclick="${it.open}"><span><b>${esc(it.name)}</b>${it.tag ? `<small class="mut" style="display:block">Du passar ${esc(it.tag)} växt</small>` : ''}</span><span class="mpill${it.d !== null && it.d <= 0 ? ' due' : ''}">${ic(I.drop, 'currentColor', 13)} ${shTxt(it.d)}</span></button>`;
+}
+function mineStrip(sz) { const items = shelfItems(sz); S.shelfItems = {}; items.forEach(it => { S.shelfItems[it.key] = it; });
+  const head = stadUI() ? `<div class="sec cap2"><h2>Min samling</h2><button class="viewall" onclick="go('mine')">Visa alla ›</button></div>` : `<div class="sec cap2"><h2>Min samling</h2><button class="viewall" onclick="go('mine')">Alla ${S.mine.length}</button></div>`;
+  return `${head}<div class="shelf"><div class="shin">${items.map(it => `<button class="sitem${S.shelfSel === it.key ? ' on' : ''}" data-k="${esc(it.key)}" onclick="shelfPick(this.dataset.k)" aria-label="${esc(it.name)}"><span class="si">${it.img ? `<img src="${esc(it.img)}" alt="" loading="lazy">` : `<span class="sini" style="--h:${it.hue}">${esc(((it.name || '?').trim()[0] || '?').toUpperCase())}</span>`}</span>${it.out ? GRASS : ''}${it.tag ? `<span class="sit-tag">${esc(it.tag)}</span>` : ''}${it.d !== null && it.d <= 0 ? `<span class="sit-due" aria-hidden="true">${ic(I.drop, 'currentColor', 13)}</span>` : ''}</button>`).join('')}</div></div><div id="shcard" class="shcard"><small class="mut">Tryck på en växt för att se namn och vattning</small></div>`; }
 
 function qcard(q) {
   const [k, n, , cls, act, pro] = q, [icn, lbl] = QPH[k] || ['ph-star', n];
@@ -13486,6 +13513,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.451', '22 nov', ['Start: dina växter står nu på en hylla du kan svepa i sidled. Tryck på en växt för att se namn och när den ska vattnas. Växter du passar åt någon annan syns tillfälligt på hyllan med en etikett, och utomhusväxter står i gräs']],
   ['Beta 0.450', '22 nov', ['Vattenmätaren är nu det enda sättet att visa vattning i Min samling, så valet Ikon är borttaget. Påminnelsen om vatten har fått en tydligare text']],
   ['Beta 0.449', '21 nov', ['Notisen om växtpassning markeras nu som läst när du öppnar den, så den röda bubblan försvinner. Innan en passning har börjat visas ett kort med startdatum, så du vet när växterna dyker upp', 'Min samling: nytt val för vattning. Vattenmätare visar en droppe och en stapel som töms ju närmare vattning det är, med antal dagar kvar som förut. Du kan också välja den vanliga ikonen']],
   ['Beta 0.448', '21 nov', ['I chatten syns nu vilken annons ett meddelande gäller, även för den som äger annonsen']],
@@ -16510,7 +16538,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.450';
+const APP_VERSION = 'Beta 0.451';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
