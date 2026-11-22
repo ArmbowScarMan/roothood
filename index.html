@@ -11468,12 +11468,10 @@ function waterS(id, b) { b.classList.add('go'); b.disabled = true; const r = b.c
     f.style.transform = `translateX(${d < 0 ? -100 : 100}%)`; try { if (navigator.vibrate) navigator.vibrate(10); } catch (x) { }
     setTimeout(() => { if (custom) { f.style.transition = 'none'; f.style.transform = ''; r.classList.remove('swl', 'swr'); try { (new Function(custom))(); } catch (e) { console.warn('Roothood:', e); } } else if (d > 0) water(id); else snooze(id); }, 250); }, { passive: true });
 })();
-// Vattenmätare: droppen töms när det närmar sig vattning. Valet "Mätare" eller "Ikon" sparas på telefonen.
-const wStyle = () => S.wstyle || store.get('waterStyle', 'meter');
-function setWstyle(v) { S.wstyle = v; try { store.set('waterStyle', v); } catch (e) {} render(); }
+// Vattenmätare: droppen töms när det närmar sig vattning.
+const wStyle = () => 'meter';
 const waterPct = m => { const d = left(m), iv = ivOf(m); return d === null || !iv ? 0 : Math.max(0, Math.min(100, Math.round(d / iv * 100))); };
 function dropGauge(m, size) { const p = waterPct(m), h = 19.5 * p / 100, id = 'wg' + m.id; return `<svg class="wgauge" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true"><defs><clipPath id="${id}"><path d="M12 2.5C12 2.5 5 10 5 15a7 7 0 0 0 14 0c0-5-7-12.5-7-12.5z"/></clipPath></defs><rect class="wgf" x="0" y="${(22 - h).toFixed(1)}" width="24" height="${h.toFixed(1)}" clip-path="url(#${id})"/><path class="wgo" d="M12 2.5C12 2.5 5 10 5 15a7 7 0 0 0 14 0c0-5-7-12.5-7-12.5z" fill="none" stroke-width="1.8" stroke-linejoin="round"/></svg>`; }
-function wStyleV() { const w = wStyle(); return `<div class="seg2 mview" role="tablist" aria-label="Vattning visas som">${[['meter', 'Vattenmätare'], ['icon', 'Ikon']].map(([k, t]) => `<button class="${w === k ? 'on' : ''}" role="tab" aria-selected="${w === k}" onclick="setWstyle('${k}')">${t}</button>`).join('')}</div>`; }
 function setMview(v) { S.mview = v; try { store.set('mineView', v); } catch (e) {} render(); }
 // ===== Filter i Min samling =====
 const mfS = () => (S.mf = S.mf || { q: '', cat: [], grp: [], light: 0, due: false, tox: false, own: false, rem: false });
@@ -11546,7 +11544,6 @@ function mineV() {
   ${S.pro && rooms.length && S.mine.length ? `<div class="roomchips">${[[null, 'Alla']].concat(rooms.map(r => [r.id, r.name]), [['-', 'Utan rum']]).filter(([id]) => id === null || S.mroom === id || S.mine.some(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id)).map(([id, n]) => `<button class="${S.mroom === id ? 'on' : ''}" onclick="S.mroom=${id ? `'${id}'` : 'null'};render()">${esc(n)}<small>${id === null ? S.mine.length : S.mine.filter(m => id === '-' ? !roomOf(m) : (m.details || {}).room === id).length}</small></button>`).join('')}</div>` : ''}
   ${S.mine.length > 3 ? mfBarV() : ''}
   ${stadM ? '' : `<div class="seg2 mview" role="tablist" aria-label="Visa som">${[['compact', 'Kompakt'], ['detail', 'Detaljerad']].map(([k, t]) => `<button class="${view === k ? 'on' : ''}" role="tab" aria-selected="${view === k}" onclick="setMview('${k}')">${t}</button>`).join('')}</div>`}
-  ${S.mine.length ? wStyleV() : ''}
   <div class="list" style="padding-top:0">${!rows && S.mine.length && mfN() ? `<div class="empty"><p>Inga växter matchar filtret.</p><button class="btn sm line" onclick="mfClear()">Rensa filtret</button></div>` : S.mroom && !rows && S.mine.length ? `<div class="empty"><p>Inga växter här än.</p>${S.mroom !== '-' ? `<button class="btn sm" onclick="openHouse('${S.mroom}')">Flytta hit växter</button>` : ''}</div>` : rows || `<div class="empty"><p><b>Du har inga växter här än.</b><br>Lägg till en växt så får du påminnelser om när den ska vattnas.</p><button class="btn" onclick="openQAdd()">Lägg till din första växt</button></div>`}</div>`;
 }
 // ===== Badges (punkt 12). Beräknas lokalt från samlingen och loggen. Sparas per konto på telefonen tills tabellen user_badges finns. =====
@@ -13489,6 +13486,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.450', '22 nov', ['Vattenmätaren är nu det enda sättet att visa vattning i Min samling, så valet Ikon är borttaget. Påminnelsen om vatten har fått en tydligare text']],
   ['Beta 0.449', '21 nov', ['Notisen om växtpassning markeras nu som läst när du öppnar den, så den röda bubblan försvinner. Innan en passning har börjat visas ett kort med startdatum, så du vet när växterna dyker upp', 'Min samling: nytt val för vattning. Vattenmätare visar en droppe och en stapel som töms ju närmare vattning det är, med antal dagar kvar som förut. Du kan också välja den vanliga ikonen']],
   ['Beta 0.448', '21 nov', ['I chatten syns nu vilken annons ett meddelande gäller, även för den som äger annonsen']],
   ['Beta 0.447', '20 nov', ['Inställningar går inte längre att dra i sidled på smala telefoner']],
