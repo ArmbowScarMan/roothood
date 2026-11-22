@@ -11093,7 +11093,7 @@ function pvPlantMore(t, v) {
 }
 function plantSVG(t, v, out) { const p = pvPlant(t, v), w = s => out ? `<g transform="translate(0 9)">${s}</g>` : s; return `<svg class="pv" viewBox="0 0 100 150" aria-hidden="true">${w(p.back)}${out ? pvMoss() : pvPot(v)}${w(p.front)}</svg>`; }
 function shelfItems(sz) {
-  const n = { s: 6, m: 12, l: 20 }[sz || 'm'], L = S.mine.slice().sort((a, b) => { const x = left(a), y = left(b); return (x === null ? 99 : x) - (y === null ? 99 : y); }).slice(0, n);
+  const L = S.mine.slice().sort((a, b) => { const x = left(a), y = left(b); return (x === null ? 99 : x) - (y === null ? 99 : y); });
   const own = L.map(m => { const p = plantById(m.plant_id) || {}, so = ((m.details || {}).sort || '').trim(), nm = ((m.details && m.details.nick) || m.sv || m.baseName || m.name) + (so ? ` '${so}'` : ''), cat = m.category || p.category, out = OUTDOOR.includes(cat) && !['Kruka', 'Ampel', 'Upp och ner'].includes((m.details || {}).place);
     return { key: 'm' + m.id, name: nm, d: left(m), img: m.photo || p.photo_url || '', type: plantType([m.name, m.sv, p.sv, p.name].join(' '), cat, m.id), v: m.id || 0, out, tag: '', open: `openMine(${m.id})` }; });
   const sit = (S.sitTasks || []).map(t => { const p = plantById(+t.plant_id) || {}, on = (t.owner_name || 'Vän').split(' ')[0];
@@ -13579,6 +13579,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.454', '22 nov', ['Hyllan på Start visar nu alla dina växter. Svep i sidled för att se dem alla']],
   ['Beta 0.453', '22 nov', ['Hyllan på Start visar nu namn och sort under varje växt, och fler tecknade växter: monstera, monstera albo, alocasia, fiolfikus, gummifikus, skedblad, orkidé, aloe, palm, zz-växt, pilea och calathea']],
   ['Beta 0.452', '22 nov', ['Hyllan på Start har fått tecknade växter i krukor. Tryck på en växt så kommer ett kort med ditt foto, namnet och när den ska vattnas']],
   ['Beta 0.451', '22 nov', ['Start: dina växter står nu på en hylla du kan svepa i sidled. Tryck på en växt för att se namn och när den ska vattnas. Växter du passar åt någon annan syns tillfälligt på hyllan med en etikett, och utomhusväxter står i gräs']],
