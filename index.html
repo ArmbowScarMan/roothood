@@ -1384,6 +1384,7 @@ button.pw{cursor:pointer}
 .dact{display:flex;gap:8px;padding:14px 18px 0}.dact .btn{flex:1}.dact .btn.ico{flex:none;width:52px;padding:0;font-size:20px}
 .ptabs{display:flex;gap:4px;margin:16px 18px 2px;background:var(--bg);border-radius:999px;padding:4px;overflow-x:auto;scrollbar-width:none}
 .ptabs button{flex:1;white-space:nowrap;border:0;background:none;color:var(--ink);font:inherit;font-size:13.5px;font-weight:700;padding:9px 10px;border-radius:999px;cursor:pointer}
+.ptabs.p5 button{padding:9px 6px;font-size:12.5px}
 .ptabs button.on{background:var(--pri);color:var(--onpri)}
 .ptbody{min-height:200px}
 .tiles.tsm{gap:8px;margin-top:6px}.tiles.tsm .ti{min-height:0;padding:11px 12px 10px;border-radius:18px;cursor:pointer}
@@ -1395,6 +1396,13 @@ button.pw{cursor:pointer}
 .smcard.shut>:not(h3){display:none!important}.smcard>h3[role=button]{cursor:pointer;display:flex;align-items:center;gap:8px;margin:0}
 .smcard>h3[role=button]::after{content:'';margin-left:auto;width:9px;height:9px;border-right:2px solid var(--mut);border-bottom:2px solid var(--mut);transform:rotate(45deg);transition:transform .2s}
 .smcard:not(.shut)>h3[role=button]{margin-bottom:8px}.smcard:not(.shut)>h3[role=button]::after{transform:rotate(-135deg)}
+.ptoolsi{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:14px 12px 0}
+.ptoolsi button{border:0;background:none;color:var(--ink);font:inherit;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;padding:0}
+.ptoolsi span{width:48px;height:48px;border-radius:50%;background:var(--bg);color:var(--pri);display:flex;align-items:center;justify-content:center;box-shadow:var(--sh)}
+.ptoolsi small{font-size:11.5px;font-weight:700;text-align:center;line-height:1.2}
+.mymore{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:18px 18px 0}
+.dellink{border:0;background:none;color:var(--acc,#d9534f);font:inherit;font-size:13.5px;font-weight:700;text-decoration:underline;cursor:pointer;padding:6px}
+.petline{display:flex;align-items:center;gap:8px;width:calc(100% - 0px);border:0;border-radius:14px;background:rgba(217,120,70,.16);color:var(--ink);font:inherit;font-size:14px;padding:10px 14px;cursor:pointer;text-align:left}.petline b{flex:1}
 .roomchips{display:flex;gap:8px;overflow-x:auto;padding:2px 18px 12px;scrollbar-width:none}
 .roomchips::-webkit-scrollbar{display:none}
 .roomchips button{flex:none;border:0;background:var(--surf);color:var(--ink);font:inherit;font-size:14px;font-weight:700;border-radius:999px;padding:8px 14px;cursor:pointer;box-shadow:var(--sh);display:flex;gap:6px;align-items:center}
@@ -3455,7 +3463,8 @@ function waterHowV(p, my) { const k = substOf(my);
   if (!k) return `<div class="sec"><h2>Så vattnar du</h2></div><p class="howto">${esc(p.water_text)}.${p.soil ? ' Jord: ' + esc(p.soil.charAt(0).toLowerCase() + p.soil.slice(1)) + '.' : ''}</p>`;
   const [n, w, f, c] = SUBST[k];
   return `<div class="sec"><h2>Så vattnar du ${n}</h2></div><div class="howto subst"><p>${esc(w)}</p><p><b>Näring:</b> ${esc(f)}</p>${c ? `<p><b>Skötsel:</b> ${esc(c)}</p>` : ''}<p class="mut" style="font-size:13px">Gäller ditt substrat. Byt under Redigera uppgifter.</p></div>`; }
-function detailsV(m, inModal) {
+function pdHintsV(m) { const d = m.details || {}, h = isOutM(m) ? outHints(m, d) : pdHints(m, d); return h.length ? `<div class="sec"><h2>Tips för din växt</h2></div><div class="pad" style="padding-top:0">${h.map(x => `<div class="pdhint ${x[0]}"><span class="ck">${x[0] === 'warn' ? '⚠️' : '💡'}</span><span>${esc(x[1])}</span></div>`).join('')}</div>` : ''; }
+function detailsV(m, inModal, compact) {
   const d = m.details || {}, out = isOutM(m), items = [];
   if (d.sort) items.push(['Sort', d.sort]); if (d.nick) items.push(['Svenskt namn', d.nick]);
   if (out) outItems(m, d).forEach(x => items.push(x));
@@ -3476,12 +3485,14 @@ function detailsV(m, inModal) {
   if (d.since) items.push(['Har haft sedan', whenTxt(d.since)]);
   if (d.from) items.push(['Kommer från', d.from]);
   }
-  const hints = out ? outHints(m, d) : pdHints(m, d);
+  const allN = items.length; let more = '';
+  if (compact && !S.pdAll && items.length > 4) { const K = ['Rum', 'Plats', 'Kruka', 'Jord', 'Planterad'], pick = items.filter(i => K.includes(i[0])).slice(0, 4); items.length = 0; (pick.length ? pick : []).forEach(x => items.push(x)); more = `<button class="link3" style="margin-top:8px" onclick="S.pdAll=1;keepMain()">Visa alla uppgifter (${allN}) ›</button>`; }
+  const hints = compact ? [] : out ? outHints(m, d) : pdHints(m, d);
   const head = inModal ? '<h3>Om min växt</h3>' : '';
   return `${inModal ? '' : `<div class="sec"><h2>Om min växt</h2>${items.length ? `<button class="link3" onclick="openDetails(${m.id})">Redigera uppgifter</button>` : ''}</div>`}<div class="pdbox ${inModal ? 'inm' : ''}">${head}
   ${items.length ? `<div class="pdgrid">${items.map(i => `<div><small>${i[0]}</small><b>${esc(i[1])}</b>${i[2] ? `<em>${esc(i[2])}</em>` : ''}</div>`).join('')}</div>`
     : `<p class="mut" style="margin:0 0 10px;font-size:14px">${out ? 'Spara var den växer, sol, jord och höjd, så får du råd utifrån vädret där du bor.' : 'Spara rum, krukstorlek, jord och höjd, så får du tips för just din växt.'}</p>`}
-  ${hints.map(x => `<div class="pdhint ${x[0]}"><span class="ck">${x[0] === 'warn' ? '⚠️' : '💡'}</span><span>${esc(x[1])}</span></div>`).join('')}
+  ${more}${hints.map(x => `<div class="pdhint ${x[0]}"><span class="ck">${x[0] === 'warn' ? '⚠️' : '💡'}</span><span>${esc(x[1])}</span></div>`).join('')}
   ${!items.length || inModal ? `<button class="btn sm ${items.length ? 'line' : ''}" style="margin-top:10px" onclick="openDetails(${m.id})">${items.length ? 'Redigera uppgifter' : '+ Lägg till uppgifter'}</button>` : ''}</div>`;
 }
 // ===== Mät växten med kameran: 1) foto med ett föremål man vet storleken på, 2) luta telefonen (som en trädhöjdsmätare) =====
@@ -3874,7 +3885,7 @@ function homeFit(p) {
 function homeFitV(p) {
   const L = homeFit(p); if (!L.length) return '';
   const ic2 = { s: '✅', w: '⚠️', d: '⛔' };
-  return `<div class="sec"><h2>Var i ditt hem?</h2></div><div class="aqchk">${L.slice(0, 5).map(x => `<div class="ac ${x.tone}"><span>${ic2[x.tone]}</span><span><b>${esc(x.r.name)}</b> · ${x.word}. ${esc(x.tip)}.</span></div>`).join('')}</div>`;
+  return `<div class="sec"><h2>Var i ditt hem?</h2>${L.length > 1 ? `<button class="link3" onclick="S.fitAll=!S.fitAll;keepMain()">${S.fitAll ? 'Visa färre' : 'Visa alla rum ›'}</button>` : ''}</div><div class="aqchk">${L.slice(0, S.fitAll ? 5 : 1).map(x => `<div class="ac ${x.tone}"><span>${ic2[x.tone]}</span><span><b>${esc(x.r.name)}</b> · ${x.word}. ${esc(x.tip)}.</span></div>`).join('')}</div>`;
 }
 // Egen växtbelysning: hur mycket ljus den ger beroende på avståndet
 function lampLv(d) { if (!d || !d.lamp) return 0; const c = +d.lampcm; return !c ? 2.6 : c <= 30 ? 3.0 : c <= 60 ? 2.6 : c <= 90 ? 2.0 : 1.4; }
@@ -8178,9 +8189,9 @@ function diaryV(m, inModal) {
   return `${inModal ? '' : '<div class="sec"><h2>Växtjournalen</h2></div>'}<div class="diary journal ${inModal ? 'inm' : ''}">${inModal ? '<h3>Växtjournalen</h3>' : ''}
   <div class="dsum"><div><small>Vattnad</small><b>${agoTxt(lw)}</b></div><div><small>Gödslad</small><b>${agoTxt(last('feed'))}</b></div><div><small>Omplanterad</small><b>${agoTxt(last('repot'))}</b></div>${d.h ? `<div><small>Höjd</small><b>${d.h} cm</b>${g ? `<span class="mut" style="font-size:11px">${g}</span>` : ''}</div>` : ''}${d.leaf ? `<div><small>Största blad</small><b>${d.leaf} cm</b></div>` : ''}${d.since ? `<div><small>Hos dig sedan</small><b>${whenTxt(d.since)}</b></div>` : ''}</div>
   <div class="jquick"><span class="mut">Idag:</span>${['water', 'feed', 'repot', 'prune'].map(k => `<button onclick="jQuick(${m.id},'${k}')">${ic(LOGK[k][1], 'currentColor', 16)} ${LOGK[k][0]}</button>`).join('')}</div>
-  <div class="jnote"><textarea id="jn${m.id}" rows="2" maxlength="480" placeholder="Skriv en anteckning, t.ex. nytt blad på gång" oninput="S.jdraft=S.jdraft||{};S.jdraft[${m.id}]=this.value">${esc(draft)}</textarea>
+  ${!inModal && !draft && !(S.jopen || {})[m.id] ? `<button class="btn sm line" style="margin-top:10px" onclick="S.jopen=S.jopen||{};S.jopen[${m.id}]=1;keepMain();setTimeout(()=>{const t=document.getElementById('jn${m.id}');if(t)t.focus()},50)">+ Skriv anteckning</button>` : `<div class="jnote"><textarea id="jn${m.id}" rows="2" maxlength="480" placeholder="Skriv en anteckning, t.ex. nytt blad på gång" oninput="S.jdraft=S.jdraft||{};S.jdraft[${m.id}]=this.value">${esc(draft)}</textarea>
     <div class="chips2 sm jtags">${JTAGS.map(([k, n]) => `<button class="${tag === k ? 'on' : ''}" aria-pressed="${tag === k}" onclick="jTag(${m.id},'${k}')">${n}</button>`).join('')}</div>
-    <div class="jrow"><input id="jd${m.id}" type="date" value="${today()}" max="${today()}" aria-label="Datum">${speechOk() ? `<button class="btn sm line" onclick="jVoice(${m.id})" aria-label="Diktera">${ic('ph-microphone', 'currentColor', 16)}</button>` : ''}<button class="btn sm" onclick="jNote(${m.id})">Spara</button></div></div>
+    <div class="jrow"><input id="jd${m.id}" type="date" value="${today()}" max="${today()}" aria-label="Datum">${speechOk() ? `<button class="btn sm line" onclick="jVoice(${m.id})" aria-label="Diktera">${ic('ph-microphone', 'currentColor', 16)}</button>` : ''}<button class="btn sm" onclick="jNote(${m.id})">Spara</button></div></div>`}
   ${m.interval ? `<label class="remrow"><input type="checkbox" ${m.remind !== false ? 'checked' : ''} onchange="setRemind(${m.id}, this.checked)"><span><b>Påminn mig när den behöver vatten</b><span class="mut">${m.remind !== false ? 'Var ' + m.interval + ':e dag, i appen och som notis' : 'Av. Du sköter vattningen själv'}</span></span></label>` : ''}
   ${nextStepsV(m)}
   <div class="chips2 sm jfilt scrx" role="tablist">${(all.length ? [['all', 'Allt'], ['care', 'Skötsel'], ['note', 'Anteckningar'], ['mat', 'Mått']] : []).map(([k, n]) => `<button class="${f === k ? 'on' : ''}" role="tab" aria-selected="${f === k}" onclick="S.jf=S.jf||{};S.jf[${m.id}]='${k}';keepMain()">${n}</button>`).join('')}<button onclick="openDetails(${m.id},'pdh')">${ic('ph-ruler', 'currentColor', 14)} Mät höjd</button></div>
@@ -11223,9 +11234,10 @@ function allToolsModalV() { const Q = QUICK();
   return `<div class="mh2"><h2>Alla verktyg</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
   <div class="atgrid">${ALL_TOOLS.map(k => Q.find(q => q[0] === k)).filter(Boolean).map(q => qtileS(q[0], q[1], `S.modal=null;${q[4]}`)).join('')}</div>`; }
 // Verktyg där de behövs: genvägar för just den här växten på växtens sida
-function plantToolsV(p, my) {
+function plantToolsV(p, my, compact) {
   const out = OUTDOOR.includes(p.category), nm = (my.name || p.swedish_name || '').replace(/'/g, '');
   const B = [['ph-first-aid-kit', 'Växtdoktorn', `openDoc(${my.id})`], ['ph-ruler', 'Mät höjd', `openDetails(${my.id},'pdh')`], out ? ['ph-stack', 'Jordart', 'openJord()'] : ['ph-sun', 'Mät ljuset', "openTool('light')"], ['ph-sparkle', 'Fråga om växten', `openAsk('Om min ${esc(nm)}: ')`]];
+  if (compact) return `<div class="ptoolsi">${B.map(([i, n, a]) => `<button onclick="${a}"><span>${ic(i, 'currentColor', 22)}</span><small>${n}</small></button>`).join('')}</div>`;
   return `<div class="sec cap2"><h2>Verktyg för växten</h2></div><div class="ptools">${B.map(([i, n, a]) => `<button class="btn sm line" onclick="${a}">${ic(i, 'currentColor', 16)} ${n}</button>`).join('')}</div>`;
 }
 function plantswipeS() { const n = dsRight().length, P = S.plants.filter(p => p.photo_url).slice(0, 3);
@@ -11578,14 +11590,15 @@ function detail() {
   const wv = `<button class="btn line" onclick="toggleWish(${p.id})" aria-pressed="${isWish(p.id)}">${isWish(p.id) ? '★ På önskelistan' : '☆ Önskelista'}</button>`;
   const cta = !my ? `<button class="btn" onclick="addPlant(${p.id})">Lägg till i min samling</button>${fv}${wv}`
     : (my.interval ? `<button class="btn" onclick="water(${my.id})">Markera som vattnad</button>` : '') + `<button class="btn line" onclick="addAnother(${p.id})">+ En till</button><button class="btn line" onclick="shareOpen(${my.id})">Visa för vän</button>${fv}${S.delAsk === my.id ? `<p class="mut" style="margin:4px 0 0;font-size:14px;text-align:center">Är du säker att du vill ta bort ${esc(my.name)}?</p><button class="btn danger" onclick="S.delAsk=null;S.del=${my.id};removeMine(${my.id})">Ja, ta bort</button><button class="btn line" onclick="S.delAsk=null;render()">Avbryt</button>` : `<button class="btn danger" onclick="S.delAsk=${my.id};render()">Ta bort från samlingen</button>`}`;
-  const tabs = (my ? [['min', 'Min växt']] : []).concat([['sk', 'Skötsel'], ['om', 'Om växten'], ['ge', 'Gemenskap']]);
+  const tabs = (my ? [['min', 'Min växt'], ['jo', 'Journal']] : []).concat([['sk', 'Skötsel'], ['om', my ? 'Om' : 'Om växten'], ['ge', 'Gemenskap']]);
   const pt = tabs.some(t => t[0] === S.ptab) ? S.ptab : tabs[0][0];
-  const petBad = petWord(p) === 'Giftig' && animals().length ? plantPetNote(p) : petWord(p) === 'Giftig' ? `<div class="petwarn"><div class="pw w"><span>🐾</span><div><b>Giftig för husdjur</b><span>${esc(p.toxicity_text || '')}</span></div></div></div>` : '';
+  const petL = animals().filter(a => { const r = toxPet(p, a); return r && (r[0] === 'd' || r[0] === 'w'); }), petBad = petWord(p) === 'Giftig' && animals().length ? (petL.length ? `<button class="petline" aria-expanded="${!!S.petOpen}" onclick="S.petOpen=!S.petOpen;keepMain()">⚠️ <b>Giftig för ${petL.map(a => esc(a.name)).join(' och ').replace(/ och (?=.* och )/g, ', ')}</b><span>${S.petOpen ? '▴' : '▾'}</span></button>${S.petOpen ? plantPetNote(p) : ''}` : '') : petWord(p) === 'Giftig' ? `<div class="petwarn"><div class="pw w"><span>🐾</span><div><b>Giftig för husdjur</b><span>${esc(p.toxicity_text || '')}</span></div></div></div>` : '';
   const topAct = !my ? `<div class="dact"><button class="btn" onclick="addPlant(${p.id})">Lägg till i min samling</button><button class="btn line ico" onclick="heart(${p.id})" aria-pressed="${isFav(p.id)}" aria-label="Favorit">${isFav(p.id) ? '♥' : '♡'}</button><button class="btn line ico" onclick="toggleWish(${p.id})" aria-pressed="${isWish(p.id)}" aria-label="Önskelista">${isWish(p.id) ? '★' : '☆'}</button></div>`
     : my.interval ? `<div class="dact"><button class="btn" onclick="water(${my.id})">Markera som vattnad</button></div>` : '';
-  const myMore = my ? `<button class="btn line" onclick="addAnother(${p.id})">+ En till</button><button class="btn line" onclick="shareOpen(${my.id})">Visa för vän</button>${fv}${S.delAsk === my.id ? `<p class="mut" style="margin:4px 0 0;font-size:14px;text-align:center">Är du säker att du vill ta bort ${esc(my.name)}?</p><button class="btn danger" onclick="S.delAsk=null;S.del=${my.id};removeMine(${my.id})">Ja, ta bort</button><button class="btn line" onclick="S.delAsk=null;render()">Avbryt</button>` : `<button class="btn danger" onclick="S.delAsk=${my.id};render()">Ta bort från samlingen</button>`}` : '';
-  const body = pt === 'min' ? `${galleryV(my)}${my && d === 0 ? `<div class="snooze">Är jorden fortfarande blöt? Skjut upp, så påminner vi dig om 2 dagar.<br><button onclick="snooze(${my.id})">Skjut upp 2 dagar</button></div>` : ''}${sensorCard(my)}${plantToolsV(p, my)}${detailsV(my)}${sensorLink(my)}${diaryV(my)}<div class="cta ctastack">${myMore}</div>`
-    : pt === 'sk' ? `${waterHowV(p, my)}${homeFitV(p)}
+  const myMore = my ? `<div class="mymore"><button class="btn sm line" onclick="addAnother(${p.id})">+ En till</button><button class="btn sm line" onclick="shareOpen(${my.id})">Visa för vän</button><button class="btn sm line" onclick="heart(${p.id})" aria-pressed="${isFav(p.id)}">${isFav(p.id) ? '♥ Favorit' : '♡ Favorit'}</button></div><div class="pad" style="text-align:center;padding-top:14px">${S.delAsk === my.id ? `<p class="mut" style="margin:4px 0 0;font-size:14px;text-align:center">Är du säker att du vill ta bort ${esc(my.name)}?</p><button class="btn danger" onclick="S.delAsk=null;S.del=${my.id};removeMine(${my.id})">Ja, ta bort</button><button class="btn line" onclick="S.delAsk=null;render()">Avbryt</button>` : `<button class="dellink" onclick="S.delAsk=${my.id};render()">Ta bort från samlingen</button>`}</div>` : '';
+  const body = pt === 'min' ? `${my && d === 0 ? `<div class="snooze">Är jorden fortfarande blöt? Skjut upp, så påminner vi dig om 2 dagar.<br><button onclick="snooze(${my.id})">Skjut upp 2 dagar</button></div>` : ''}${plantToolsV(p, my, true)}${galleryV(my)}${sensorCard(my)}${detailsV(my, false, true)}${sensorLink(my)}${myMore}`
+    : pt === 'jo' ? diaryV(my)
+    : pt === 'sk' ? `${waterHowV(p, my)}${my ? pdHintsV(my) : ''}${homeFitV(p)}
   <div class="tiles tsm">
   ${tile('Ljus', LIGHT[p.light_level - 1], p.light_text, I.sun, 'var(--sun)')}
   ${tile('Vatten', water, p.water_text, I.drop, 'var(--wat)')}
@@ -11608,7 +11621,7 @@ function detail() {
   <div class="dname"><h1>${esc(p.swedish_name)}</h1>${my && my.name !== p.swedish_name ? `<span class="myname">Din: ${nameHtml(my)}</span>` : ''}<i>${esc(p.latin_name)}</i>${(p.alt_names || []).length ? `<span class="taxline">Även kallad: ${p.alt_names.map(esc).join(', ')}</span>` : ''}${p.family || p.genus ? `<span class="taxline">${[p.family && 'Familj ' + p.family, p.genus && 'Släkte ' + p.genus, p.cultivar && "Sort '" + p.cultivar + "'"].filter(Boolean).map(esc).join(' · ')}</span>` : ''}<i style="display:none"></i><div class="tags">${status}<span class="tag lime">${esc(p.category)}</span>${zoneTag(p)}${p.status === 'pending' ? '<span class="tag">Väntar på granskning</span>' : ''}</div></div>
   ${petBad ? `<div class="pad" style="padding-top:4px">${petBad}</div>` : ''}
   ${topAct}
-  <div class="ptabs" role="tablist">${tabs.map(([k, n]) => `<button role="tab" class="${pt === k ? 'on' : ''}" aria-selected="${pt === k}" onclick="S.ptab='${k}';keepMain()">${n}</button>`).join('')}</div>
+  <div class="ptabs${tabs.length > 4 ? ' p5' : ''}" role="tablist">${tabs.map(([k, n]) => `<button role="tab" class="${pt === k ? 'on' : ''}" aria-selected="${pt === k}" onclick="S.ptab='${k}';keepMain()">${n}</button>`).join('')}</div>
   <div class="ptbody">${body}</div>
   <div style="height:16px"></div>
   </div>`;
@@ -13673,6 +13686,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.464', '23 nov', ['Din växts sida är kortare: ny flik Journal för vattning, anteckningar och historik, och Min växt visar bara det viktigaste','Verktygen för växten är runda knappar på en rad','Tips för just din växt finns under Skötsel','Giftvarningen är en rad som du trycker på för mer','Var i ditt hem visar bästa rummet först']],
   ['Beta 0.463', '23 nov', ['Växtsidan är omgjord: knappen Lägg till i min samling ligger högst upp, och allt är sorterat i flikarna Skötsel, Om växten och Gemenskap. Har du växten finns också fliken Min växt','Tryck på en växtbild så visas den stort','Profil: Vägg, Inlägg, Djur, Hem och Märken ligger i flikar, och alla inställningar finns under en rad längst ner','Växtdoktorn: välj först var på växten du ser problemet, så visas bara de tecknen','Smarta hemmet: varje del öppnas för sig','Min samling: Lägg till växt är en liten länk','Kortare text överst i verktygen']],
   ['Beta 0.462', '23 nov', ['Hyllan ligger nu överst på Start, under Väder. Du kan flytta den under Anpassa startskärmen']],
   ['Beta 0.461', '23 nov', ['Fem nya hyllor: Björk, Svart, Rustik, Marmor och Mässing med glas. Välj under Inställningar, Utseende','Min samling tar mindre plats: Dela som bild är en liten länk ovanför hyllan, rumsknapparna är mindre och sök, filter och vyknapp sitter på en rad','Växtlistan är lägre: ingen grön mätare och ingen text om du sköter vattningen själv','Start: Hyllan ligger överst som standard och heter Hyllan i Anpassa startskärmen']],
@@ -16710,7 +16724,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.463';
+const APP_VERSION = 'Beta 0.464';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
