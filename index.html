@@ -545,6 +545,7 @@ button,[role=tab],.nrow,.prow,.setrow,.upl,label.tog{-webkit-user-select:none;us
 .pfopts{padding:4px 2px 2px}.pftog{display:flex!important;align-items:center;gap:10px;justify-content:flex-start}.pftog input{margin:0;flex:none!important;width:20px!important;height:20px}.pftog span{flex:1;text-align:left}.pfopt{margin-top:8px}.pfopt small{display:block;font-size:12px;font-weight:700;color:var(--mut);margin:0 0 4px}
 .seg2.pl-view{flex:none;width:auto}.seg2.pl-view button{flex:none;padding:7px 11px;font-size:13px;white-space:nowrap}
 .adctx{align-self:center;text-align:center;font-size:12.5px;color:var(--mut);background:var(--surf);border:1px solid var(--line);border-radius:10px;padding:5px 10px;margin:8px auto 2px;max-width:90%}
+.sumline2{margin:2px 16px 8px;font-size:13.5px;color:var(--mut)}.sumline2 b{color:var(--ink)}
 .shelf{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}.shelf::-webkit-scrollbar{display:none}
 .shin{position:relative;display:flex;gap:0;align-items:flex-start;padding:6px 12px 10px;min-width:100%;width:max-content;box-sizing:border-box;transition:padding .2s}
 .shelf.open .shin{padding-bottom:168px}
@@ -11653,7 +11654,8 @@ function mineV() {
   }).join('');
   return `${topbar('Min samling')}${mtabBar()}
   ${S.mine.length && stadM ? `<p class="sumline"><span>${S.mine.length} ${S.mine.length === 1 ? 'växt' : 'växter'}</span> · ${due ? `<button class="sumdue" onclick="S.mdue=!S.mdue;S.mAnimDone=false;render()">${due} behöver vatten idag</button>` : '<span>Alla har vatten just nu</span>'}</p>` : ''}
-  ${S.mine.length && !stadM ? `<div class="summary"><b>${S.mine.length}</b><span>${S.mine.length === 1 ? 'växt' : 'växter'} i samlingen${S.pro ? '' : ' (max ' + FREE_LIMIT + ' gratis)'}<br>${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span></div>` : ''}
+  ${S.mine.length && !stadM ? `<p class="sumline2"><b>${S.mine.length}</b> ${S.mine.length === 1 ? 'växt' : 'växter'}${S.pro ? '' : ' av max ' + FREE_LIMIT} · ${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</p>` : ''}
+  ${S.mine.length ? (S.shelfList = shelfItems(), (S.shelfSel && !S.shelfList.some(it => it.key === S.shelfSel) ? (S.shelfSel = null) : 0), shelfHtml()) : ''}
   ${S.mine.length && S.mine.length < 3 && !stadM ? `<div class="addnudge"><span>Lägg till din nästa växt</span><button class="btn sm" onclick="openDb(true)">Sök växter</button></div>` : ''}
   ${S.mine.length && S.push === 'off' && !store.get('pushNudgeHidden', false) ? `<div class="instc pushnudge"><span class="tic">${ic(BELL, 'currentColor', 22)}</span><div><b>Få påminnelser i mobilen</b><span>En notis när något behöver vattnas, på tiden du väljer.</span></div><button class="btn sm" onclick="enablePush()">Slå på</button><button class="x" aria-label="Dölj" onclick="store.set('pushNudgeHidden', true); render()">✕</button></div>` : ''}
   ${stadM ? '' : `<div class="sec"><h2>Dina växter</h2><span style="display:flex;gap:8px"><button class="btn sm line" onclick="addCustomStart()">+ Egen växt</button></span></div>`}
@@ -13604,6 +13606,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.459', '23 nov', ['Min samling: hyllan med dina växter ligger högst upp, och rutan med antal växter är nu en liten rad','Du kan välja hylla under Inställningar, Utseende (ek, valnöt, vit, sten eller trä)']],
   ['Beta 0.458', '23 nov', ['Hyllan i Min samling: hyllplanets ändar syns nu hela vägen, hängande växter står med krukan på hyllan och rankorna hänger framför, och svarta streck vid foten av några växter är borta']],
   ['Beta 0.457', '23 nov', ['Hyllan i Min samling är nu en ekhylla från start. Vill du ha den gamla träplankan väljer du Trä under Inställningar, Utseende']],
   ['Beta 0.456', '23 nov', ['Växterna på hyllan i Min samling har fått nya, realistiska bilder','Välj hylla till Min samling under Inställningar, Utseende: trä, ek, valnöt, vit eller sten', 'Nytt märke: FelanmälarN till dig som skickat in 5 eller fler rapporter via nyckelpigan']],
@@ -16636,7 +16639,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.458';
+const APP_VERSION = 'Beta 0.459';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -17041,6 +17044,7 @@ function settingsFullV() {
   ${setSecV('utse', 'ph-palette', 'Utseende', thN + (ts > 1 ? ' · större text' : ''), `<div class="setcard">
     <label class="fl" style="margin-top:0">Tema</label>${seg3([['system', 'Auto'], ['light', 'Ljust'], ['dark', 'Mörkt']], th, "(v=>setPref('theme',v))")}
     <label class="fl" style="margin-top:14px">Textstorlek</label>${seg3([[1, 'Normal'], [1.1, 'Större'], [1.2, 'Störst']], ts, "(v=>setPref('textsize',v))")}
+    <label class="fl" style="margin-top:14px">Hylla i Min samling</label>${seg3(SHELVES, store.get('shelf', 'ek'), "(v=>setPref('shelf',v))")}
     ${setAdvV('utse', `<label class="fl" style="margin-top:4px">Språk / Language</label><div data-notr>${langPick()}</div>
     <label class="fl" style="margin-top:14px">Färgtema</label>
     <div class="palrow">${[['', 'Roothood', '#1F4D3A']].concat(PALS).map(([k, n, c]) => `<button class="pal ${store.get('pal', '') === k ? 'on' : ''}" aria-pressed="${store.get('pal', '') === k}" onclick="setPref('pal','${k}')"><i style="background:${c}"></i><span>${n}</span></button>`).join('')}</div>
