@@ -549,6 +549,7 @@ button,[role=tab],.nrow,.prow,.setrow,.upl,label.tog{-webkit-user-select:none;us
 .shin{position:relative;display:flex;gap:0;align-items:flex-start;padding:6px 12px 10px;min-width:100%;width:max-content;box-sizing:border-box;transition:padding .2s}
 .shelf.open .shin{padding-bottom:168px}
 .shin::after{content:'';position:absolute;left:0;right:0;top:132px;height:11px;background:linear-gradient(#e6cb9e,#c99f6a 55%,#a97f4e);box-shadow:0 12px 16px -8px rgba(0,0,0,.45);z-index:0}
+.shin.cs::after{top:118px;height:34px;background:var(--shimg) 0 0/100% 100% no-repeat;box-shadow:none;filter:drop-shadow(0 8px 6px rgba(0,0,0,.35))}
 .sitem{flex:none;position:relative;z-index:1;display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-start;width:100px;height:184px;background:none;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .18s}
 .sitem .pv{display:block;width:100px;height:150px;overflow:visible;filter:drop-shadow(0 3px 3px rgba(0,0,0,.2))}
 .sitem.on .pv{transform:translateY(-6px)}.sitem .pv{transition:transform .18s}
@@ -558,6 +559,8 @@ button,[role=tab],.nrow,.prow,.setrow,.upl,label.tog{-webkit-user-select:none;us
 .spol{position:absolute;top:186px;z-index:2;width:134px;box-sizing:border-box;background:#fbf8f2;color:#1f2a22;border-radius:6px;padding:8px 8px 10px;box-shadow:0 10px 22px rgba(0,0,0,.35);transform:rotate(-5deg);cursor:pointer;animation:spol .22s ease-out}
 .spol img,.spol .spi{display:block;width:118px;height:98px;object-fit:cover;border-radius:3px;background:#ece5d6}
 .spol .spi svg{display:block;width:100%;height:100%}
+.sitem .pvi{position:relative}.pvi img{position:absolute;bottom:17px;left:50%;transform:translateX(-50%);max-width:112px;max-height:128px;width:auto;height:auto}.pvi .pvf svg{display:block;width:100px;height:150px;overflow:visible}
+.spol img.spr{object-fit:contain;background:#ece5d6;padding:4px;box-sizing:border-box}
 .spol b{display:block;font-size:14px;margin-top:7px;line-height:1.2}
 .spol small{display:flex;align-items:center;gap:4px;font-size:12px;color:#5c5447;margin-top:2px}
 @keyframes spol{from{opacity:0;transform:rotate(-5deg) translateY(-8px)}}
@@ -11104,17 +11107,23 @@ function pvPlantMore(t, v) {
   return { back: [[-58, 44, 15, G[0]], [-28, 54, 16, G[1]], [2, 58, 17, G[0]], [30, 52, 16, G[1]], [58, 44, 15, G[0]], [-76, 34, 12, G[2]], [78, 34, 12, G[2]], [-12, 42, 14, G[3]], [16, 40, 14, G[3]]].map(([r, l, w, f]) => pvLeaf(50, 99, l, w, r, f)).join(''), front: '' };
 }
 function plantSVG(t, v, out) { const p = pvPlant(t, v), w = s => out ? `<g transform="translate(0 9)">${s}</g>` : s; return `<svg class="pv" viewBox="0 0 100 150" aria-hidden="true">${w(p.back)}${out ? pvMoss() : pvPot(v)}${w(p.front)}</svg>`; }
+// Realistiska hyllbilder per växt-id (plantimg/*.webp). Saknas bild eller går den inte att ladda visas den ritade SVG-växten.
+const SHELF_IMG = {"3":"gullranka","16":"aloe","59":"amaryllis","2942":"blabar-ute","3074":"appletrad-ute","56":"citrus","1663":"ficus-ginseng","13":"orkide","115":"funkia-ute","3855":"hibiskus","74":"kalanchoe","642":"hedera","81":"euphorbia-trigona","3858":"penningtrad","62":"schefflera","9":"pelargon","6":"pilea","223":"vinbar-ute","3857":"streptocarpus","2":"sansevieria","170":"oxalis","11":"hoya","67":"dionaea","226":"prunus-domestica","558":"ribes-uva-crispa-hinnonmaki-rod","563":"ribes-nidigrolaria-josta","392":"geum-rivale","397":"heuchera","419":"pulmonaria-officinalis","434":"galium-odoratum","3261":"hosta-night-before-christmas","371":"symphyotrichum-novi-belgii","373":"astrantia-major","375":"brunnera-macrophylla","386":"echinops-bannaticus","388":"eryngium-planum","341":"ribes-alpinum","350":"actinidia-kolomikta","354":"athyrium-filix-femina","358":"molinia-caerulea","370":"symphyotrichum-novae-angliae","310":"amelanchier-lamarckii","311":"euonymus-europaeus","323":"spiraea-betulifolia","339":"hippophae-rhamnoides","340":"salix-purpurea-nana","241":"alchemilla-mollis","246":"convallaria-majalis","248":"festuca-glauca","305":"malus-baccata","309":"amelanchier-alnifolia","123":"lamprocapnos-spectabilis","121":"aquilegia-vulgaris","124":"bergenia-cordifolia","125":"hylotelephium-spectabile","130":"acer-palmatum","2116":"brachychiton-rupestris","1169":"ledebouria-socialis","1813":"espostoa-lanata","2110":"pelargonium-graveolens","3856":"tradescantia-spathacea","4":"spathiphyllum","144":"epipremnum-lime","204":"kalanchoe-tomentosa","640":"thunbergia-alata","643":"aloe-perfoliata","1165":"anthurium-silver-blush","597":"cordyline-australis","592":"dracaena-hyacinthoides","482":"hoya-linearis","3854":"hoya-pubicalyx-silver-spots","589":"oncidium-titanium-treasure","146":"philodendron-gloriosum","147":"philodendron-esmeraldense-narrow","594":"philodendron-esmeraldense-narrow","593":"philodendron-florida-ghost","1166":"philodendron-ring-of-fire","1170":"philodendron-brenesii","1167":"adelonema-camouflage","275":"alocasia-sanderiana","591":"alocasia-jacklyn","1168":"alocasia-zebrina","145":"philodendron-red-anderson","461":"monstera-acuminata","52":"monstera-adansonii","477":"monstera-adansonii-albo-variegata","478":"monstera-adansonii-aurea-variegata","479":"monstera-adansonii-mint","1171":"monstera-adansonii-mint","1":"monstera","468":"monstera-deliciosa-albo-variegata","470":"monstera-deliciosa-aurea-variegata","467":"monstera-deliciosa-thai-constellation","471":"monstera-deliciosa-mint","473":"monstera-deliciosa-yellow-marilyn","451":"monstera-deliciosa-borsigiana","459":"monstera-dubia","462":"monstera-esqueleto","460":"monstera-karstenianum-peru","463":"monstera-lechleriana","454":"monstera-obliqua","458":"monstera-pinnatipartita","455":"monstera-siltepecana","464":"monstera-burle-marx-flame","480":"monstera-standleyana-albo-variegata","481":"monstera-standleyana-aurea-variegata","465":"monstera-subpinnata"};
+function shelfImg(it) { const f = SHELF_IMG[it.pid]; return f ? `plantimg/${f}.webp` : ''; }
+function shelfArt(it) { const u = shelfImg(it); if (!u) return plantSVG(it.type, it.v, it.out); return `<span class="pv pvi"><img src="${u}" alt="" loading="lazy" onerror="this.nextElementSibling.hidden=false;this.remove()"><span class="pvf" hidden>${plantSVG(it.type, it.v, it.out)}</span></span>`; }
 function shelfItems(sz) {
   const L = S.mine.slice().sort((a, b) => { const x = left(a), y = left(b); return (x === null ? 99 : x) - (y === null ? 99 : y); });
   const own = L.map(m => { const p = plantById(m.plant_id) || {}, so = ((m.details || {}).sort || '').trim(), nm = ((m.details && m.details.nick) || m.sv || m.baseName || m.name) + (so ? ` '${so}'` : ''), cat = m.category || p.category, out = OUTDOOR.includes(cat) && !['Kruka', 'Ampel', 'Upp och ner'].includes((m.details || {}).place);
-    return { key: 'm' + m.id, name: nm, d: left(m), img: m.photo || p.photo_url || '', type: plantType([m.name, m.sv, p.sv, p.name].join(' '), cat, m.id), v: m.id || 0, out, tag: '', open: `openMine(${m.id})` }; });
+    return { key: 'm' + m.id, name: nm, d: left(m), img: m.photo || p.photo_url || '', type: plantType([m.name, m.sv, p.sv, p.name].join(' '), cat, m.id), v: m.id || 0, pid: m.plant_id, out, tag: '', open: `openMine(${m.id})` }; });
   const sit = (S.sitTasks || []).map(t => { const p = plantById(+t.plant_id) || {}, on = (t.owner_name || 'Vän').split(' ')[0];
-    return { key: 's' + t.plant_id + '_' + t.owner_id, name: t.plant_name || 'Växt', d: sitLeft(t), img: p.photo_url || '', type: plantType([t.plant_name, p.sv, p.name].join(' '), p.category, +t.plant_id), v: +t.plant_id || 0, out: OUTDOOR.includes(p.category), tag: on + 's', open: `sitPlantOpen(${+t.plant_id || 0},${jsArg(t.plant_name || '')})` }; });
+    return { key: 's' + t.plant_id + '_' + t.owner_id, name: t.plant_name || 'Växt', d: sitLeft(t), img: p.photo_url || '', type: plantType([t.plant_name, p.sv, p.name].join(' '), p.category, +t.plant_id), v: +t.plant_id || 0, pid: +t.plant_id, out: OUTDOOR.includes(p.category), tag: on + 's', open: `sitPlantOpen(${+t.plant_id || 0},${jsArg(t.plant_name || '')})` }; });
   return sit.concat(own);
 }
-function shelfPol(it, i) { return `<div class="spol" role="button" tabindex="0" style="left:${Math.max(4, 6 + i * 100)}px" onclick="event.stopPropagation();${it.open}">${it.img ? `<img src="${esc(it.img)}" alt="">` : `<span class="spi">${plantSVG(it.type, it.v, it.out)}</span>`}<b>${esc(it.name)}</b>${it.tag ? `<small>Du passar ${esc(it.tag)} växt</small>` : ''}<small>${ic(I.drop, 'currentColor', 12)} ${shTxt(it.d)}</small></div>`; }
+const SHELVES = [['', 'Trä'], ['ek', 'Ek'], ['valnot', 'Valnöt'], ['vit', 'Vit'], ['sten', 'Sten']];
+function shelfPol(it, i) { return `<div class="spol" role="button" tabindex="0" style="left:${Math.max(4, 6 + i * 100)}px" onclick="event.stopPropagation();${it.open}">${it.img ? `<img src="${esc(it.img)}" alt="">` : shelfImg(it) ? `<img class="spr" src="${shelfImg(it)}" alt="">` : `<span class="spi">${plantSVG(it.type, it.v, it.out)}</span>`}<b>${esc(it.name)}</b>${it.tag ? `<small>Du passar ${esc(it.tag)} växt</small>` : ''}<small>${ic(I.drop, 'currentColor', 12)} ${shTxt(it.d)}</small></div>`; }
 function shelfHtml() { const L = S.shelfList || [], si = L.findIndex(it => it.key === S.shelfSel);
-  return `<div class="shelf${si >= 0 ? ' open' : ''}"><div class="shin">${L.map(it => `<button class="sitem${S.shelfSel === it.key ? ' on' : ''}" data-k="${esc(it.key)}" onclick="shelfPick(this.dataset.k)" aria-label="${esc(it.name)}">${plantSVG(it.type, it.v, it.out)}<span class="sname">${esc(it.name)}</span>${it.tag ? `<span class="sit-tag">${esc(it.tag)}</span>` : ''}${it.d !== null && it.d <= 0 ? `<span class="sit-due" aria-hidden="true">${ic(I.drop, 'currentColor', 12)}</span>` : ''}</button>`).join('')}${si >= 0 ? shelfPol(L[si], si) : ''}</div></div>`; }
+  const shk = store.get('shelf', ''), shs = SHELVES.some(x => x[0] === shk && shk) ? shk : '';
+  return `<div class="shelf${si >= 0 ? ' open' : ''}"><div class="shin${shs ? ' cs' : ''}"${shs ? ` style="--shimg:url(shelfimg/${shs}.webp)"` : ''}>${L.map(it => `<button class="sitem${S.shelfSel === it.key ? ' on' : ''}" data-k="${esc(it.key)}" onclick="shelfPick(this.dataset.k)" aria-label="${esc(it.name)}">${shelfArt(it)}<span class="sname">${esc(it.name)}</span>${it.tag ? `<span class="sit-tag">${esc(it.tag)}</span>` : ''}${it.d !== null && it.d <= 0 ? `<span class="sit-due" aria-hidden="true">${ic(I.drop, 'currentColor', 12)}</span>` : ''}</button>`).join('')}${si >= 0 ? shelfPol(L[si], si) : ''}</div></div>`; }
 function shelfPick(key) { S.shelfSel = S.shelfSel === key ? null : key; const el = document.querySelector('.shelf'); if (!el) return; const x = el.scrollLeft; el.outerHTML = shelfHtml(); const n = document.querySelector('.shelf'); if (n) n.scrollLeft = x; }
 function mineStrip(sz) { S.shelfList = shelfItems(sz); if (S.shelfSel && !S.shelfList.some(it => it.key === S.shelfSel)) S.shelfSel = null;
   const head = stadUI() ? `<div class="sec cap2"><h2>Min samling</h2><button class="viewall" onclick="go('mine')">Visa alla ›</button></div>` : `<div class="sec cap2"><h2>Min samling</h2><button class="viewall" onclick="go('mine')">Alla ${S.mine.length}</button></div>`;
@@ -12124,13 +12133,15 @@ function sendReport(form) {
   if (S.rep.kind === 'photo') return sendPhotoReport(r);
   commRun(() => api.report(S.rep.kind, S.rep.id, r), 'Tack! Rapporten är skickad.');
 }
-// Förtjänade märken i stället för Pro: Växtexpert, Moderator, Hjälpt N
+// Förtjänade märken i stället för Pro: Växtexpert, Moderator, Hjälpt N, FelanmälarN (5+ nyckelpigerapporter)
 function badgeOf(b) {
   if (!b) return null;
   if (b.expert) return ['ph-graduation-cap', 'Växtexpert'];
   if (b.moderator) return ['ph-shield-check', 'Moderator'];
   const h = +b.helped || 0, tier = [100, 50, 25, 10, 5].find(t => h >= t);
-  return tier ? ['ph-hand-heart', 'Hjälpt ' + tier] : h >= 1 ? ['ph-hand-heart', 'Hjälpsam'] : null;
+  if (tier) return ['ph-hand-heart', 'Hjälpt ' + tier];
+  if (h >= 1) return ['ph-hand-heart', 'Hjälpsam'];
+  return (+b.reports || 0) >= 5 ? ['ph-bug', 'FelanmälarN'] : null;
 }
 function whoP(o, sub, pill) { const b = o.author_badge || (DEMO && o.author_pro ? ['ph-hand-heart', 'Hjälpt 10'] : null); return who(o.author, sub, pill, b, o.user_id); }
 function shortName(n) { const s = String(n || '').trim().replace(/\s+/g, ' '); if (s.length <= 18) return s; const p = s.split(' '); return p.length > 1 ? p[0] + ' ' + p[p.length - 1][0].toUpperCase() + '.' : s.slice(0, 16) + '…'; }
@@ -13591,6 +13602,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.456', '23 nov', ['Växterna på hyllan i Min samling har fått nya, realistiska bilder','Välj hylla till Min samling under Inställningar, Utseende: trä, ek, valnöt, vit eller sten', 'Nytt märke: FelanmälarN till dig som skickat in 5 eller fler rapporter via nyckelpigan']],
   ['Beta 0.455', '23 nov', ['Växtpassning: välj vilka växter passaren ska ta hand om', 'Chatten: växtväljaren ligger nu vid skrivfältet och skickade växter går att trycka på', 'Aviseringar för meddelanden visar växtnamn i stället för kod', 'Tillbaka från en växt i biblioteket hamnar du där du var']],
   ['Beta 0.454', '22 nov', ['Hyllan på Start visar nu alla dina växter. Svep i sidled för att se dem alla']],
   ['Beta 0.453', '22 nov', ['Hyllan på Start visar nu namn och sort under varje växt, och fler tecknade växter: monstera, monstera albo, alocasia, fiolfikus, gummifikus, skedblad, orkidé, aloe, palm, zz-växt, pilea och calathea']],
@@ -16620,7 +16632,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.455';
+const APP_VERSION = 'Beta 0.456';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -16965,6 +16977,7 @@ const STAD_SUBV = {
     <label class="fl">Tema</label>${seg3([['system', 'Auto'], ['light', 'Ljust'], ['dark', 'Mörkt']], th, "(v=>setPref('theme',v))")}
     <label class="fl">Textstorlek</label>${seg3([[1, 'Normal'], [1.1, 'Större'], [1.2, 'Störst']], ts, "(v=>setPref('textsize',v))")}
     <label class="fl" style="margin-top:14px">Vy</label>${seg3([[0, 'Vanlig'], [1, 'Enkel']], simpleOn() ? 1 : 0, "(v=>setSimple(!!v))")}<p class="mut" style="margin:6px 0 0;font-size:13px">Enkel vy har stor text och stora knappar. Alla funktioner finns kvar under Alla verktyg.</p>
+    <label class="fl">Hylla i Min samling</label>${seg3(SHELVES, store.get('shelf', ''), "(v=>setPref('shelf',v))")}
     <label class="fl">Färgtema</label><div class="pdots">${[['', 'Roothood', '#1F4D3A']].concat(PALS).map(([k, n, c]) => `<button class="pdot${pal === k ? ' on' : ''}" aria-pressed="${pal === k}" aria-label="${n}" onclick="setPref('pal','${k}')"><i style="background:${c}"></i><span>${pal === k ? n : ''}</span></button>`).join('')}</div></div>
     ${sgroup('', [sswitch(store.get('growlight', false), 'setGrowlight(this.checked)', 'Högkontrast för växtlampor')])}
     ${isMod() ? sgroup('Designvariant (utvecklare)', UI_VARS.map(([k, n]) => `<button class="srow" onclick="setPref('ui','${k}')"><span class="st">${n}</span>${store.get('ui', '') === k ? ic('ph-check', 'var(--pri)', 20) : ''}</button>`)) : ''}`; },

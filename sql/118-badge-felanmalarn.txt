@@ -1,0 +1,16 @@
+-- 118: Märket "FelanmälarN" till alla som skickat 5 eller fler rapporter via nyckelpigan.
+drop function if exists public.user_badges(uuid[]);
+create function public.user_badges(p_ids uuid[])
+returns table(user_id uuid, expert boolean, moderator boolean, helped int, reports int)
+language sql stable security definer set search_path = public
+as $$
+  select p.id,
+         coalesce(p.is_expert, false),
+         coalesce(p.role, 'user') in ('moderator', 'admin'),
+         (select count(*)::int from posts po join answers a on a.id = po.best_answer_id
+           where a.user_id = p.id and po.user_id <> p.id),
+         (select count(*)::int from feedback f where f.user_id = p.id)
+  from profiles p
+  where p.id = any(p_ids);
+$$;
+grant execute on function public.user_badges(uuid[]) to anon, authenticated;
