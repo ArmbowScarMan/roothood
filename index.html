@@ -10995,6 +10995,7 @@ function homeLayout() {
   L = L.map(x => x.k === 'plants' ? { k: 'db', on: x.on, w: 'w' } : x).filter((x, i, a) => HB_M[x.k] && a.findIndex(y => y.k === x.k) === i);
   HB.forEach((b, i) => { if (L.some(x => x.k === b[0])) return; let at = 0; for (let j = i - 1; j >= 0; j--) { const k = L.findIndex(x => x.k === HB[j][0]); if (k >= 0) { at = k + 1; break; } } L.splice(at, 0, { k: b[0], on: !['home3d', 'local', 'season'].includes(b[0]) && b[3] !== 'tool', w: HB_DEF[b[0]] }); });
   if (!store.get('wxTopMig', false)) { const wi = L.findIndex(x => x.k === 'weather'); if (wi > 0) L.unshift(L.splice(wi, 1)[0]); store.set('wxTopMig', true); store.set('homeLayout', L); }
+  if (!store.get('hyllanTopMig', false)) { const mi = L.findIndex(x => x.k === 'mine'), wi2 = L.findIndex(x => x.k === 'weather'); if (mi >= 0) { const it = L.splice(mi, 1)[0]; const at = L.findIndex(x => x.k === 'weather') + 1; L.splice(Math.max(at, 0), 0, it); if (S.user || true) it.on = true; } store.set('hyllanTopMig', true); store.set('homeLayout', L); }
   if (!store.get('quickMig', false)) { L.forEach(x => { if (HB_M[x.k] && HB_M[x.k][3] === 'tool') x.on = false; if (x.k === 'quick') x.on = true; }); store.set('quickMig', true); store.set('homeLayout', L); }
   // Städa Start (18 nov): bara det viktigaste som standard. Mitt hem i 3D, Händer nära dig och Säsongstips går att slå på i Anpassa.
   if (!store.get('cleanMig', false)) { L.forEach(x => { if (['home3d', 'local', 'season'].includes(x.k) || (HB_M[x.k] && HB_M[x.k][3] === 'tool')) x.on = false; if (['weather', 'todo', 'alerts', 'quick', 'mine'].includes(x.k)) x.on = true; }); store.set('cleanMig', true); store.set('homeLayout', L); }
@@ -13654,6 +13655,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.462', '23 nov', ['Hyllan ligger nu överst på Start, under Väder. Du kan flytta den under Anpassa startskärmen']],
   ['Beta 0.461', '23 nov', ['Fem nya hyllor: Björk, Svart, Rustik, Marmor och Mässing med glas. Välj under Inställningar, Utseende','Min samling tar mindre plats: Dela som bild är en liten länk ovanför hyllan, rumsknapparna är mindre och sök, filter och vyknapp sitter på en rad','Växtlistan är lägre: ingen grön mätare och ingen text om du sköter vattningen själv','Start: Hyllan ligger överst som standard och heter Hyllan i Anpassa startskärmen']],
   ['Beta 0.460', '23 nov', ['Växter som saknar foto visar nu en realistisk bild av växten i listor och i Växtbiblioteket','Andras profiler visar nu deras samling som en hylla','Dela hyllan som bild: knappen finns under hyllan i Min samling','Önskelistan visar nu en bild på varje växt','Inställningar, Utseende: förhandsvisning av hyllan du väljer']],
   ['Beta 0.459', '23 nov', ['Min samling: hyllan med dina växter ligger högst upp, och rutan med antal växter är nu en liten rad','Du kan välja hylla under Inställningar, Utseende (ek, valnöt, vit, sten eller trä)']],
@@ -16689,7 +16691,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.461';
+const APP_VERSION = 'Beta 0.462';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
