@@ -11775,7 +11775,7 @@ function meV() {
   if (stadUI()) return `${topbar('Profil', null, gearBtn())}${userBody(meCardNow(), S.meCard ? S.meCard.posts : null, true)}${meMenuV()}<div style="height:24px"></div>`;
   return `${topbar('Profil', null, (isMod() ? modBtn() : '') + gearBtn())}${userBody(meCardNow(), S.meCard ? S.meCard.posts : null, true)}${DEMO ? '<p class="mut" style="margin:0 18px">Demoläge: allt sparas bara i den här webbläsaren.</p>' : ''}
   ${meMenuV()}
-  <p class="about">Roothood: växtfolk som hjälper varandra.<br><a class="plink-about" href="integritetspolicy.html" target="_blank" rel="noopener">Integritetspolicy</a> · <a class="plink-about" href="licenser.html" target="_blank" rel="noopener">Källor och licenser</a></p>`;
+  <p class="about">Roothood: växtfolk som hjälper varandra.<br><a class="plink-about" href="integritetspolicy.html" target="_blank" rel="noopener">Integritetspolicy</a> · <a class="plink-about" href="villkor.html" target="_blank" rel="noopener">Användarvillkor</a> · <a class="plink-about" href="licenser.html" target="_blank" rel="noopener">Källor och licenser</a></p>`;
 }
 function loginV() {
   const up = S.authMode === 'up';
@@ -13686,6 +13686,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.465', '23 nov', ['Nytt: Användarvillkor. Du hittar dem under Inställningar, Om, bredvid Integritetspolicy']],
   ['Beta 0.464', '23 nov', ['Din växts sida är kortare: ny flik Journal för vattning, anteckningar och historik, och Min växt visar bara det viktigaste','Verktygen för växten är runda knappar på en rad','Tips för just din växt finns under Skötsel','Giftvarningen är en rad som du trycker på för mer','Var i ditt hem visar bästa rummet först']],
   ['Beta 0.463', '23 nov', ['Växtsidan är omgjord: knappen Lägg till i min samling ligger högst upp, och allt är sorterat i flikarna Skötsel, Om växten och Gemenskap. Har du växten finns också fliken Min växt','Tryck på en växtbild så visas den stort','Profil: Vägg, Inlägg, Djur, Hem och Märken ligger i flikar, och alla inställningar finns under en rad längst ner','Växtdoktorn: välj först var på växten du ser problemet, så visas bara de tecknen','Smarta hemmet: varje del öppnas för sig','Min samling: Lägg till växt är en liten länk','Kortare text överst i verktygen']],
   ['Beta 0.462', '23 nov', ['Hyllan ligger nu överst på Start, under Väder. Du kan flytta den under Anpassa startskärmen']],
@@ -16724,7 +16725,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.464';
+const APP_VERSION = 'Beta 0.465';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -17027,7 +17028,7 @@ function stadSetHome() {
     ])}
   ${sgroup('Om', [srow('ph-sparkle', 'Nytt i appen', APP_VERSION, 'openNews()'), srow('ph-info', 'Om Roothood', '', "S.setSub='om';render()")])}
   ${S.user && !DEMO ? `<div class="sgroup" style="margin-top:24px"><button class="srow sdanger" onclick="signOut().then(() => { S.tool = null; render(); })"><span class="st">Logga ut</span></button></div>` : ''}
-  <p class="sabout">Roothood: växtfolk som hjälper varandra.<br><a href="integritetspolicy.html" target="_blank" rel="noopener">Integritetspolicy</a> · <a href="licenser.html" target="_blank" rel="noopener">Källor och licenser</a></p>`;
+  <p class="sabout">Roothood: växtfolk som hjälper varandra.<br><a href="integritetspolicy.html" target="_blank" rel="noopener">Integritetspolicy</a> · <a href="villkor.html" target="_blank" rel="noopener">Användarvillkor</a> · <a href="licenser.html" target="_blank" rel="noopener">Källor och licenser</a></p>`;
 }
 // Ort i profilen ger förslag på odlingszon. Användaren bekräftar själv.
 function czSugV(city) {
@@ -17092,7 +17093,7 @@ const STAD_SUBV = {
     if (f.none) return `<p class="mut sexpl">Har fler i hushållet eget konto? Skapa en familjekod och skicka den till dem, så delar ni hem och växter.</p>${sgroup('', [srow('ph-plus-circle', 'Skapa familjekod', '', 'famCreate()'), srow('ph-sign-in', 'Gå med med kod', '', 'S.famSheet=true;render()')])}${msg}`;
     return `${sgroup('', [`<div class="srow sstatic"><span class="st">Familjekod</span><span class="sv fcode">${esc(f.code)}</span></div>`, `<div class="srow sstatic"><span class="st">I hushållet</span><span class="sv">${f.n} ${f.n === 1 ? 'person' : 'personer'}</span></div>`, srow('ph-copy', 'Kopiera koden', '', `navigator.clipboard && navigator.clipboard.writeText(${jsArg(f.code)}).then(() => toast('Koden är kopierad'))`), srow('ph-sign-out', 'Lämna hushållet', '', 'famLeave()', 'sdanger')])}${msg}`; },
   block: () => S.blockedL == null ? (loadBlocked(), '<p class="mut sexpl">Hämtar…</p>') : S.blockedL.length ? sgroup('', S.blockedL.map(u => `<div class="srow sstatic"><span class="st">${esc(u.display_name || 'Okänd')}</span><button class="btn sm line" onclick="blockUser(${jsArg(u.id)},false)">Avblockera</button></div>`)) : '<p class="sempty">Du har inte blockerat någon.</p>',
-  om: () => `${sgroup('', [srow('ph-sparkle', 'Nytt i appen', APP_VERSION, 'openNews()'), `<a class="srow" href="licenser.html" target="_blank" rel="noopener"><span class="st">Källor och licenser</span>${schev()}</a>`, `<a class="srow" href="integritetspolicy.html" target="_blank" rel="noopener"><span class="st">Integritetspolicy</span>${schev()}</a>`])}
+  om: () => `${sgroup('', [srow('ph-sparkle', 'Nytt i appen', APP_VERSION, 'openNews()'), `<a class="srow" href="licenser.html" target="_blank" rel="noopener"><span class="st">Källor och licenser</span>${schev()}</a>`, `<a class="srow" href="integritetspolicy.html" target="_blank" rel="noopener"><span class="st">Integritetspolicy</span>${schev()}</a>`, `<a class="srow" href="villkor.html" target="_blank" rel="noopener"><span class="st">Användarvillkor</span>${schev()}</a>`])}
     <div class="sexpl"><div class="setcard about2"><img src="${LOGO}" alt="" width="56" height="56"><div><b>Roothood ${APP_VERSION}</b><span>Växtfolk som hjälper varandra.</span><span>Foton: Wikipedia. Identifiering: Pl@ntNet.</span></div></div>${digitalGoodsRow()}
     ${DEMO ? `<button class="btn wide line" style="margin-top:12px" onclick="resetDemo()">${S.del === 'reset' ? 'Tryck igen för att börja om' : 'Återställ demodata'}</button>` : ''}</div>`,
 };
