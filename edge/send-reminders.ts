@@ -102,6 +102,11 @@ async function pushTo(db: ReturnType<typeof createClient>, userId: string, paylo
   return ok;
 }
 
+// Gör om [[v:Namn|kat]] / [[d:Namn|art]] i meddelanden till läsbar text i notisen.
+function pushText(t: string) {
+  return String(t || "").replace(/\[\[([vd]):([^\]|]*)(?:\|[^\]]*)?\]\]?/g, (_m, k, n) => { let x = n; try { x = decodeURIComponent(n); } catch (_) { /* behåll */ } return (k === "v" ? "🌿 " : "🐾 ") + x; }).replace(/\[\[[^\]]*$/, "").trim();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
@@ -163,7 +168,7 @@ Deno.serve(async (req) => {
       if (!allowed(p, notifKey === "msg" ? "crit" : "soc")) return json({ sent: 0, quiet: true });
     }
     let title = "Roothood", text = body.text || "", url = APP_URL + "?tool=notif", tag = "roothood-social";
-    if (body.event === "message") { title = name; url = APP_URL + "?tool=msgs"; tag = "roothood-msg-" + (body.from || ""); }
+    if (body.event === "message") { text = pushText(text); title = name; url = APP_URL + "?tool=msgs"; tag = "roothood-msg-" + (body.from || ""); }
     else if (body.event === "friend_req") { title = "Ny vänförfrågan 🌿"; text = name + " vill bli din vän" + (body.text ? ": " + body.text : ""); }
     else if (body.event === "friend_ok") { title = "Ny vän 🌱"; text = name + " accepterade din vänförfrågan"; }
     // Växtpassning: förfrågan till passaren, svar och avslut till den andra
