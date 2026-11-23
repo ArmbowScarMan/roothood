@@ -11119,10 +11119,10 @@ function shelfItems(sz) {
     return { key: 's' + t.plant_id + '_' + t.owner_id, name: t.plant_name || 'Växt', d: sitLeft(t), img: p.photo_url || '', type: plantType([t.plant_name, p.sv, p.name].join(' '), p.category, +t.plant_id), v: +t.plant_id || 0, pid: +t.plant_id, out: OUTDOOR.includes(p.category), tag: on + 's', open: `sitPlantOpen(${+t.plant_id || 0},${jsArg(t.plant_name || '')})` }; });
   return sit.concat(own);
 }
-const SHELVES = [['', 'Trä'], ['ek', 'Ek'], ['valnot', 'Valnöt'], ['vit', 'Vit'], ['sten', 'Sten']];
+const SHELVES = [['ek', 'Ek'], ['valnot', 'Valnöt'], ['vit', 'Vit'], ['sten', 'Sten'], ['tra', 'Trä']];
 function shelfPol(it, i) { return `<div class="spol" role="button" tabindex="0" style="left:${Math.max(4, 6 + i * 100)}px" onclick="event.stopPropagation();${it.open}">${it.img ? `<img src="${esc(it.img)}" alt="">` : shelfImg(it) ? `<img class="spr" src="${shelfImg(it)}" alt="">` : `<span class="spi">${plantSVG(it.type, it.v, it.out)}</span>`}<b>${esc(it.name)}</b>${it.tag ? `<small>Du passar ${esc(it.tag)} växt</small>` : ''}<small>${ic(I.drop, 'currentColor', 12)} ${shTxt(it.d)}</small></div>`; }
 function shelfHtml() { const L = S.shelfList || [], si = L.findIndex(it => it.key === S.shelfSel);
-  const shk = store.get('shelf', ''), shs = SHELVES.some(x => x[0] === shk && shk) ? shk : '';
+  const shk = store.get('shelf', 'ek'), shs = shk !== 'tra' && SHELVES.some(x => x[0] === shk) ? shk : (shk === 'tra' ? '' : 'ek');
   return `<div class="shelf${si >= 0 ? ' open' : ''}"><div class="shin${shs ? ' cs' : ''}"${shs ? ` style="--shimg:url(shelfimg/${shs}.webp)"` : ''}>${L.map(it => `<button class="sitem${S.shelfSel === it.key ? ' on' : ''}" data-k="${esc(it.key)}" onclick="shelfPick(this.dataset.k)" aria-label="${esc(it.name)}">${shelfArt(it)}<span class="sname">${esc(it.name)}</span>${it.tag ? `<span class="sit-tag">${esc(it.tag)}</span>` : ''}${it.d !== null && it.d <= 0 ? `<span class="sit-due" aria-hidden="true">${ic(I.drop, 'currentColor', 12)}</span>` : ''}</button>`).join('')}${si >= 0 ? shelfPol(L[si], si) : ''}</div></div>`; }
 function shelfPick(key) { S.shelfSel = S.shelfSel === key ? null : key; const el = document.querySelector('.shelf'); if (!el) return; const x = el.scrollLeft; el.outerHTML = shelfHtml(); const n = document.querySelector('.shelf'); if (n) n.scrollLeft = x; }
 function mineStrip(sz) { S.shelfList = shelfItems(sz); if (S.shelfSel && !S.shelfList.some(it => it.key === S.shelfSel)) S.shelfSel = null;
@@ -13602,6 +13602,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.457', '23 nov', ['Hyllan i Min samling är nu en ekhylla från start. Vill du ha den gamla träplankan väljer du Trä under Inställningar, Utseende']],
   ['Beta 0.456', '23 nov', ['Växterna på hyllan i Min samling har fått nya, realistiska bilder','Välj hylla till Min samling under Inställningar, Utseende: trä, ek, valnöt, vit eller sten', 'Nytt märke: FelanmälarN till dig som skickat in 5 eller fler rapporter via nyckelpigan']],
   ['Beta 0.455', '23 nov', ['Växtpassning: välj vilka växter passaren ska ta hand om', 'Chatten: växtväljaren ligger nu vid skrivfältet och skickade växter går att trycka på', 'Aviseringar för meddelanden visar växtnamn i stället för kod', 'Tillbaka från en växt i biblioteket hamnar du där du var']],
   ['Beta 0.454', '22 nov', ['Hyllan på Start visar nu alla dina växter. Svep i sidled för att se dem alla']],
@@ -16632,7 +16633,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.456';
+const APP_VERSION = 'Beta 0.457';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -16977,7 +16978,7 @@ const STAD_SUBV = {
     <label class="fl">Tema</label>${seg3([['system', 'Auto'], ['light', 'Ljust'], ['dark', 'Mörkt']], th, "(v=>setPref('theme',v))")}
     <label class="fl">Textstorlek</label>${seg3([[1, 'Normal'], [1.1, 'Större'], [1.2, 'Störst']], ts, "(v=>setPref('textsize',v))")}
     <label class="fl" style="margin-top:14px">Vy</label>${seg3([[0, 'Vanlig'], [1, 'Enkel']], simpleOn() ? 1 : 0, "(v=>setSimple(!!v))")}<p class="mut" style="margin:6px 0 0;font-size:13px">Enkel vy har stor text och stora knappar. Alla funktioner finns kvar under Alla verktyg.</p>
-    <label class="fl">Hylla i Min samling</label>${seg3(SHELVES, store.get('shelf', ''), "(v=>setPref('shelf',v))")}
+    <label class="fl">Hylla i Min samling</label>${seg3(SHELVES, store.get('shelf', 'ek'), "(v=>setPref('shelf',v))")}
     <label class="fl">Färgtema</label><div class="pdots">${[['', 'Roothood', '#1F4D3A']].concat(PALS).map(([k, n, c]) => `<button class="pdot${pal === k ? ' on' : ''}" aria-pressed="${pal === k}" aria-label="${n}" onclick="setPref('pal','${k}')"><i style="background:${c}"></i><span>${pal === k ? n : ''}</span></button>`).join('')}</div></div>
     ${sgroup('', [sswitch(store.get('growlight', false), 'setGrowlight(this.checked)', 'Högkontrast för växtlampor')])}
     ${isMod() ? sgroup('Designvariant (utvecklare)', UI_VARS.map(([k, n]) => `<button class="srow" onclick="setPref('ui','${k}')"><span class="st">${n}</span>${store.get('ui', '') === k ? ic('ph-check', 'var(--pri)', 20) : ''}</button>`)) : ''}`; },
