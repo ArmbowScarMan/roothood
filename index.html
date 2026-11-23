@@ -3929,7 +3929,7 @@ function roomHints(p, r, win, pd) {
 }
 async function loadRole() { if (!S.user) return; try { S.role = await api.myRole(); applyUI(); S.blocks = await api.myBlocks(); if (isMod()) S.modOpen = await api.modOpen(); } catch (e) { console.warn('Roothood:', e); } try { S.pfol = await api.myPlantFollows(); } catch (e) { S.pfol = S.pfol || []; } }
 // Enkel vy: ett val vid första start, och en inställning. Samma funktioner som Vanlig, men enklare startsida och större text och knappar.
-const simpleOn = () => !!store.get('simple', false);
+const simpleOn = () => false; // Enkel vy är borttagen: alla har Vanlig vy
 function simpleKey() { return 'simpleAsked_' + (S.user ? S.user.id : 'anon'); }
 function simplePickV() {
   return `<div class="simplepick"><div class="mh"><h2>Hur vill du ha appen?</h2></div>
@@ -3939,7 +3939,7 @@ function simplePickV() {
 }
 function simpleChoose(on) { try { store.set(simpleKey(), true); } catch (e) {} setSimple(on); S.modal = null; render(); toast(on ? 'Enkel vy är på' : 'Vanlig vy är på'); }
 function setSimple(on) { store.set('simple', !!on); if (on && (store.get('textsize', 1) || 1) < 1.1) store.set('textsize', 1.1); applyPrefs(); S.ctab = on && !['friends', 'q', 'swap'].includes(S.ctab) ? 'q' : S.ctab; render(); }
-function simpleAskWhenFree() { if (!S.user || DEMO || store.get(simpleKey(), false)) return; if (S.modal || S.tool) return; try { store.set(simpleKey(), true); } catch (e) {} openModal('simplepick'); }
+function simpleAskWhenFree() { if (!S.user || DEMO || store.get(simpleKey(), false)) return; try { store.set(simpleKey(), true); } catch (e) {} }
 // Hjälp mig: en knapp som alltid finns på Start. Fråga andra om skärmen man står på, se rundturen igen eller be någon hjälpa till.
 const HELP_SCREEN = { home: 'Start', mine: 'Min samling', comm: 'Gemenskap', me: 'Profil' };
 function helpBtnV() { return `<div class="pad" style="margin-top:12px"><button class="btn wide line" onclick="openModal('helpme')">${ic('ph-lifebuoy', 'currentColor', 20)} Hjälp mig</button></div>`; }
@@ -3974,7 +3974,7 @@ function glossD(terms, label) { return `<details class="faq gloss"><summary>${es
 const SUPPORT_FAQ = [
   ['Hur lägger jag till en växt?', 'Gå till Start och tryck Växtbiblioteket. Sök på namnet och tryck Lägg till i min samling.'],
   ['Jag får inga påminnelser', 'Öppna Inställningar och slå på notiser och välj vilken tid du vill ha dem. Tillåt också notiser för Roothood i telefonens inställningar.'],
-  ['Hur gör jag appen enklare?', 'Öppna Inställningar, välj Vy och tryck Enkel. Där kan du också göra texten större.'],
+  ['Hur gör jag appen enklare?', 'Öppna Inställningar, Utseende. Där kan du göra texten större.'],
   ['Hur raderar jag mitt konto?', 'Öppna Inställningar och välj Konto. Där kan du radera kontot och allt som hör till det.'],
   ['Appen strular', 'Stäng appen helt och öppna den igen. Hjälper det inte, tryck på Rapportera fel nedan så ser vi det.']];
 function supportV() {
@@ -13686,6 +13686,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.466', '24 nov', ['Enkel vy är borttagen. Alla har nu den vanliga vyn med alla funktioner. Vill du ha större text finns det under Inställningar, Utseende']],
   ['Beta 0.465', '23 nov', ['Nytt: Användarvillkor. Du hittar dem under Inställningar, Om, bredvid Integritetspolicy']],
   ['Beta 0.464', '23 nov', ['Din växts sida är kortare: ny flik Journal för vattning, anteckningar och historik, och Min växt visar bara det viktigaste','Verktygen för växten är runda knappar på en rad','Tips för just din växt finns under Skötsel','Giftvarningen är en rad som du trycker på för mer','Var i ditt hem visar bästa rummet först']],
   ['Beta 0.463', '23 nov', ['Växtsidan är omgjord: knappen Lägg till i min samling ligger högst upp, och allt är sorterat i flikarna Skötsel, Om växten och Gemenskap. Har du växten finns också fliken Min växt','Tryck på en växtbild så visas den stort','Profil: Vägg, Inlägg, Djur, Hem och Märken ligger i flikar, och alla inställningar finns under en rad längst ner','Växtdoktorn: välj först var på växten du ser problemet, så visas bara de tecknen','Smarta hemmet: varje del öppnas för sig','Min samling: Lägg till växt är en liten länk','Kortare text överst i verktygen']],
@@ -16725,7 +16726,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.465';
+const APP_VERSION = 'Beta 0.466';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -16800,7 +16801,6 @@ function fbDisplayInfo() {
   try {
     const d = document.documentElement, ts = +store.get('textsize', 1) || 1, th = store.get('theme', 'dark'), pal = store.get('pal', ''), rf = parseFloat(getComputedStyle(d).fontSize) || 16;
     return [
-      'Vy: ' + (d.dataset.simple ? 'Enkel' : 'Vanlig'),
       'Textstorlek: ' + Math.round(ts * 100) + ' %',
       'Tema: ' + ({ dark: 'mörkt', light: 'ljust', system: 'enhetens' }[th] || th),
       pal ? 'Palett: ' + pal : '',
@@ -16814,7 +16814,7 @@ function applyPrefs() {
   if (th === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = th;
   const pal = store.get('pal', ''); if (pal) document.documentElement.dataset.pal = pal; else delete document.documentElement.dataset.pal;
   const app = $('#app'); if (app) app.style.zoom = ts;
-  if (store.get('simple', false)) document.documentElement.dataset.simple = '1'; else delete document.documentElement.dataset.simple;
+  delete document.documentElement.dataset.simple; if (store.get('simple', false)) store.set('simple', false);
   applyUI();
 }
 function applyInterests(list) {
@@ -17069,7 +17069,6 @@ const STAD_SUBV = {
     return `<div class="sform"><label class="fl">Språk</label><div data-notr>${langPick()}</div>
     <label class="fl">Tema</label>${seg3([['system', 'Auto'], ['light', 'Ljust'], ['dark', 'Mörkt']], th, "(v=>setPref('theme',v))")}
     <label class="fl">Textstorlek</label>${seg3([[1, 'Normal'], [1.1, 'Större'], [1.2, 'Störst']], ts, "(v=>setPref('textsize',v))")}
-    <label class="fl" style="margin-top:14px">Vy</label>${seg3([[0, 'Vanlig'], [1, 'Enkel']], simpleOn() ? 1 : 0, "(v=>setSimple(!!v))")}<p class="mut" style="margin:6px 0 0;font-size:13px">Enkel vy har stor text och stora knappar. Alla funktioner finns kvar under Alla verktyg.</p>
     <label class="fl">Hylla i Min samling</label>${shelfPicker()}${shelfPreview()}
     <label class="fl">Färgtema</label><div class="pdots">${[['', 'Roothood', '#1F4D3A']].concat(PALS).map(([k, n, c]) => `<button class="pdot${pal === k ? ' on' : ''}" aria-pressed="${pal === k}" aria-label="${n}" onclick="setPref('pal','${k}')"><i style="background:${c}"></i><span>${pal === k ? n : ''}</span></button>`).join('')}</div></div>
     ${sgroup('', [sswitch(store.get('growlight', false), 'setGrowlight(this.checked)', 'Högkontrast för växtlampor')])}
@@ -17135,7 +17134,6 @@ function settingsFullV() {
     <label class="fl" style="margin-top:14px">Färgtema</label>
     <div class="palrow">${[['', 'Roothood', '#1F4D3A']].concat(PALS).map(([k, n, c]) => `<button class="pal ${store.get('pal', '') === k ? 'on' : ''}" aria-pressed="${store.get('pal', '') === k}" onclick="setPref('pal','${k}')"><i style="background:${c}"></i><span>${n}</span></button>`).join('')}</div>
     <label class="remrow" style="margin-top:14px"><input type="checkbox" ${store.get('growlight', false) ? 'checked' : ''} onchange="setGrowlight(this.checked)"><span><b>Högkontrast för växtlampor</b><span class="mut">Svart bakgrund och vit text, med tydliga former i stället för färger</span></span></label>
-    <label class="fl" style="margin-top:14px">Vy</label>${seg3([[0, 'Vanlig'], [1, 'Enkel']], simpleOn() ? 1 : 0, "(v=>setSimple(!!v))")}<p class="mut" style="margin:6px 0 0;font-size:13px">Enkel vy har stor text och stora knappar. Alla funktioner finns kvar under Alla verktyg.</p>
     ${isMod() ? `<label class="fl" style="margin-top:14px">Designvariant (test)</label><div class="chips2 sm">${UI_VARS.map(([k, n]) => `<button class="${store.get('ui', '') === k ? 'on' : ''}" aria-pressed="${store.get('ui', '') === k}" onclick="setPref('ui','${k}')">${n}</button>`).join('')}</div>` : ''}`)}</div>`)}
   ${setSecV('gard', 'ph-plant', 'Trädgård', zone ? 'Zon ' + zone : 'Ingen zon vald', `<div class="setcard" id="szonesec">
     <p class="mut" style="margin:0 0 10px;font-size:13px">${zone ? 'Zon ' + zone + ' (' + SOWZN[zone] + ')' : 'Ingen zon vald ännu'}. Zon 1 är mildast och zon 8 kallast. Växtsidorna visar om en växt klarar vintern där du bor.</p>
