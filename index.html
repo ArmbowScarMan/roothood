@@ -1287,14 +1287,25 @@ button.pw{cursor:pointer}
 .tic.house{background:#F3E6CF;color:#7A5520}.tic.smart{background:#E7E1F2;color:#4F4377}
 .hcfgrow{display:flex;justify-content:center;padding:18px 18px 26px}
 .hcfgb{border:0;background:var(--surf);color:var(--mut);font:inherit;font-size:13.5px;font-weight:700;border-radius:999px;padding:10px 16px;display:flex;gap:7px;align-items:center;box-shadow:var(--sh);cursor:pointer}
-.hclist{display:flex;flex-direction:column;gap:8px}
-.hcrow{display:flex;gap:10px;align-items:center;background:var(--surf);border-radius:18px;padding:10px 12px;box-shadow:0 1px 2px rgba(70,52,28,.05),0 4px 12px rgba(70,52,28,.05);transition:opacity .2s,background .4s}
+.hclist{display:flex;flex-direction:column;gap:6px}
+.hcrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--surf);border-radius:14px;padding:6px 10px;box-shadow:0 1px 2px rgba(70,52,28,.05);transition:opacity .2s,background .4s}
 .hcrow.off{opacity:.55}.hcrow.flash{background:var(--soft)}
-.hcrow .grow{flex:1;display:flex;flex-direction:column;min-width:0}.hcrow b{font-size:15px}.hcrow .grow>span{font-size:12.5px;color:var(--mut)}
-.hcarr{display:flex;flex-direction:column;gap:4px}
-.hcarr button{border:0;background:var(--bg);color:var(--ink);width:34px;height:28px;border-radius:9px;font-size:11px;cursor:pointer}
+.hcname{all:unset;box-sizing:border-box;flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;padding:8px 2px;cursor:pointer;color:var(--ink)}
+.hcname b{font-size:15px}.hcname small{font-size:12px;color:var(--mut)}.hcname:disabled{cursor:default}
+.hcmore{flex-basis:100%;display:flex;flex-direction:column;gap:8px;padding:2px 2px 8px}.hcmore>span{font-size:12.5px;color:var(--mut)}
+.hcarr{display:flex;gap:4px}
+.hcarr button{border:0;background:var(--bg);color:var(--ink);width:30px;height:30px;border-radius:9px;font-size:11px;cursor:pointer}
 .hcarr button:disabled{opacity:.3;cursor:default}
-.hcsz{margin-top:7px;max-width:170px}
+.hcsz{max-width:220px}
+.hcchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.hcchip{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:var(--soft);color:var(--pri);font-size:13px;font-weight:700;cursor:pointer}.hcchip i{font-style:normal;opacity:.7;font-size:15px}
+.hcgroups{display:flex;flex-direction:column;gap:6px}
+.hcg{background:var(--surf);border-radius:14px;overflow:hidden}
+.hcgh{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:8px;padding:13px 14px;font-size:14.5px;font-weight:700;color:var(--ink);cursor:pointer}.hcgh span{flex:1}.hcgh em{font-style:normal;font-size:12px;background:var(--pri);color:#fff;border-radius:99px;padding:1px 8px}.hcgh i{font-style:normal;color:var(--mut);font-size:12px}
+.hcgl{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 10px 10px}
+.hcit{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:8px;border-radius:12px;background:var(--bg);cursor:pointer;color:var(--ink);min-width:0}
+.hcit b{flex:1;font-size:13px;line-height:1.2}.hcit .xic{width:30px;height:30px}.hcit i{font-style:normal;color:var(--gold);font-size:17px}.hcit.on{background:var(--soft)}
+.hcbar{position:sticky;bottom:-1px;display:flex;gap:10px;margin-top:14px;padding:10px 0 4px;background:var(--bg)}
 .sw{position:relative;flex:none;width:48px;height:28px;cursor:pointer}
 .sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
 .sw span{position:absolute;inset:0;border-radius:999px;background:var(--line);transition:background .2s}
@@ -11319,18 +11330,28 @@ function openHomeCfg() { homeLayout(); openModal('homecfg'); }
 function hcMove(i, d) { const L = S.layout, j = i + d; if (j < 0 || j >= L.length) return; [L[i], L[j]] = [L[j], L[i]]; S.hcFlash = L[j].k; saveLayout(); keepScroll(); }
 function hcSet(i, k, v) { S.layout[i][k] = v; saveLayout(); keepScroll(); }
 function hcReset() { S.layout = null; store.set('homeLayout', null); homeLayout(); saveLayout(); keepScroll(); toast('Startskärmen är som från början'); }
+function hcToggleRow(k) { S.hcOpen = S.hcOpen === k ? null : k; keepScroll(); }
+function hcToggleGrp(g) { S.hcGrp = S.hcGrp === g ? null : g; keepScroll(); }
 function homeCfgV() {
-  const L = homeLayout();
-  return `<div class="mh"><h2>Anpassa startskärmen</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
-  <p class="mut" style="margin:0 0 12px;font-size:14px">Flytta upp och ner med pilarna, välj storlek och stäng av det du inte vill se. Du ser ändringen direkt bakom.</p>
-  <div class="hclist">${L.map((x, i) => { const b = HB_M[x.k]; return `<div class="hcrow ${x.on ? '' : 'off'} ${S.hcFlash === x.k ? 'flash' : ''}">
+  const L = homeLayout(), Q = QUICK(), by = k => Q.find(q => q[0] === k), fv = favs();
+  const szName = x => (SZN.find(([k]) => k === sizeOf(x)) || [0, ''])[1];
+  const rows = L.map((x, i) => { const b = HB_M[x.k], open = S.hcOpen === x.k && x.on; return `<div class="hcrow ${x.on ? '' : 'off'} ${S.hcFlash === x.k ? 'flash' : ''} ${open ? 'open' : ''}">
     <div class="hcarr"><button onclick="hcMove(${i},-1)" ${i === 0 ? 'disabled' : ''} aria-label="Flytta upp ${b[1]}">▲</button><button onclick="hcMove(${i},1)" ${i === L.length - 1 ? 'disabled' : ''} aria-label="Flytta ner ${b[1]}">▼</button></div>
-    <div class="grow"><b>${b[1]}</b><span>${b[2]}</span>${x.on ? `<div class="wk2 hcsz">${SZN.map(([k, n]) => `<button class="${sizeOf(x) === k ? 'on' : ''}" onclick="hcSet(${i},'sz','${k}')">${n}</button>`).join('')}</div>` : ''}</div>
-    <label class="sw" aria-label="Visa ${b[1]}"><input type="checkbox" ${x.on ? 'checked' : ''} onchange="hcSet(${i},'on',this.checked)"><span></span></label></div>`; }).join('')}</div>
-  <h3 style="margin:18px 0 4px;font-size:16px">Genvägar på Hem</h3>
-  <p class="mut" style="margin:0 0 8px;font-size:13px">Tryck på en rad för att lägga till eller ta bort en genväg. Högst 7 visas på Hem.</p>
-  ${(() => { const Q = QUICK(), by = k => Q.find(q => q[0] === k); return QGROUPS.concat([['Lär dig mer', ['learn'].concat(LEARN_KEYS)], ['Fler verktyg', QMORE]]).map(([g, ks]) => `<div class="hcg"><small>${g}</small><div class="xlist">${ks.map(by).filter(Boolean).map(q => xRow(q, true)).join('')}</div></div>`).join(''); })()}
-  <div style="display:flex;gap:10px;margin-top:14px"><button class="btn wide" onclick="closeModal()">Klar</button><button class="btn sm line" onclick="hcReset()">Återställ</button></div>`;
+    <button class="hcname" onclick="hcToggleRow('${x.k}')" ${x.on ? '' : 'disabled'} aria-expanded="${open}"><b>${b[1]}</b>${x.on ? `<small>${szName(x)} ${open ? '▴' : '▾'}</small>` : '<small>Av</small>'}</button>
+    <label class="sw" aria-label="Visa ${b[1]}"><input type="checkbox" ${x.on ? 'checked' : ''} onchange="hcSet(${i},'on',this.checked)"><span></span></label>
+    ${open ? `<div class="hcmore"><span>${b[2]}</span><div class="wk2 hcsz">${SZN.map(([k, n]) => `<button class="${sizeOf(x) === k ? 'on' : ''}" onclick="hcSet(${i},'sz','${k}')">${n}</button>`).join('')}</div></div>` : ''}</div>`; }).join('');
+  const chips = fv.map(by).filter(Boolean).map(q => { const [icn, lbl] = QPH[q[0]] || ['ph-star', q[1]]; return `<button class="hcchip" onclick="togFav('${q[0]}')" aria-label="Ta bort ${lbl}">${ic(icn, 'currentColor', 16)}<span>${lbl}</span><i>×</i></button>`; }).join('');
+  const groups = QGROUPS.concat([['Lär dig mer', ['learn'].concat(LEARN_KEYS)], ['Fler verktyg', QMORE]]).map(([g, ks]) => {
+    const items = ks.map(by).filter(Boolean), n = items.filter(q => fv.includes(q[0])).length, open = S.hcGrp === g;
+    return `<div class="hcg ${open ? 'open' : ''}"><button class="hcgh" onclick="hcToggleGrp(${jsArg(g)})" aria-expanded="${open}"><span>${g}</span>${n ? `<em>${n}</em>` : ''}<i>${open ? '▴' : '▾'}</i></button>${open ? `<div class="hcgl">${items.map(q => { const [icn, lbl] = QPH[q[0]] || ['ph-star', q[1]], on = fv.includes(q[0]); return `<button class="hcit ${on ? 'on' : ''}" onclick="togFav('${q[0]}')" aria-pressed="${on}"><span class="xic">${ic(icn, 'currentColor', 18)}</span><b>${lbl}</b><i>${on ? '★' : '☆'}</i></button>`; }).join('')}</div>` : ''}</div>`; }).join('');
+  return `<div class="mh"><h2>Anpassa startskärmen</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
+  <p class="mut" style="margin:0 0 10px;font-size:13.5px">Flytta med pilarna och stäng av det du inte vill se. Tryck på ett namn för att ändra storlek. Du ser ändringen direkt bakom.</p>
+  <div class="hclist">${rows}</div>
+  <h3 style="margin:18px 0 4px;font-size:16px">Genvägar på Hem <span class="mut" style="font-weight:600;font-size:13px">${fv.length} av 7</span></h3>
+  ${chips ? `<div class="hcchips">${chips}</div>` : '<p class="mut" style="margin:0 0 8px;font-size:13px">Inga genvägar valda än.</p>'}
+  <p class="mut" style="margin:6px 0 8px;font-size:13px">Öppna en grupp och tryck på stjärnan för att lägga till eller ta bort.</p>
+  <div class="hcgroups">${groups}</div>
+  <div class="hcbar"><button class="btn wide" onclick="closeModal()">Klar</button><button class="btn sm line" onclick="hcReset()">Återställ</button></div>`;
 }
 
 const TYPE_G = { trad: 'Träd', frukt: 'Fruktträd', barr: 'Barrväxter', buske: 'Buskar', ros: 'Rosor', bar: 'Bär och bärbuskar', perenn: 'Perenner', lok: 'Lökar och knölar', gras: 'Gräs', klatter: 'Klätterväxter', marktack: 'Marktäckare', ormbunke: 'Ormbunkar', sommar: 'Sommarblommor', gron: 'Grönsaker', rot: 'Rotfrukter', krydda: 'Kryddor' };
@@ -13686,6 +13707,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.467', '24 nov', ['Anpassa startskärmen är mindre och lättare att använda: en rad per del, tryck på namnet för att ändra storlek, och genvägarna ligger i grupper du kan öppna']],
   ['Beta 0.466', '24 nov', ['Enkel vy är borttagen. Alla har nu den vanliga vyn med alla funktioner. Vill du ha större text finns det under Inställningar, Utseende']],
   ['Beta 0.465', '23 nov', ['Nytt: Användarvillkor. Du hittar dem under Inställningar, Om, bredvid Integritetspolicy']],
   ['Beta 0.464', '23 nov', ['Din växts sida är kortare: ny flik Journal för vattning, anteckningar och historik, och Min växt visar bara det viktigaste','Verktygen för växten är runda knappar på en rad','Tips för just din växt finns under Skötsel','Giftvarningen är en rad som du trycker på för mer','Var i ditt hem visar bästa rummet först']],
@@ -16726,7 +16748,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.466';
+const APP_VERSION = 'Beta 0.467';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
