@@ -2751,9 +2751,10 @@ const demoApi = {
       { id: 204, kind: 'listing', user_id: 'sara', author: 'Sara', category: 'Ge bort', title: 'Stor svärmors tunga', body: 'Har blivit för stor för min lägenhet, ca 80 cm hög.', city: 'Malmö', taken: true, created_at: t(120), best_answer_id: null, likers: [], answers: [] });
     this._save(f); store.set('swapSeeded', true);
   },
-  async newListing(type, title, body, city, photo, sell) {
+  async motherGet(post, up) { const m = (S.mine || []).find(x => x.id === up); if (!m) return null; const f = this._feed().find(x => x.id === post), e = ((f && f.mothers) || []).find(x => x.id === up) || {}; return { id: m.id, plant_id: m.plant_id, name: m.name, latin: m.latin, owner: 'demo', photos: e.photos ? (m.photos || []) : [], notes: e.notes ? m.notes : null, details: e.details ? motherDet(m.details || {}) : {} }; },
+  async newListing(type, title, body, city, photo, sell, extra) {
     const f = this._feed(), url = photo ? await fileShrink(photo, 720, true) : null;
-    f.unshift({ id: Date.now(), kind: 'listing', user_id: 'demo', author: 'Du', category: type, title, body, city: city || null, photo_url: url, price: sell ? sell.price : null, ship: sell ? sell.ship : null, taken: false, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f);
+    f.unshift({ id: Date.now(), kind: 'listing', user_id: 'demo', author: 'Du', category: type, title, body, city: city || null, photo_url: url, price: sell ? sell.price : null, price_max: extra && extra.price_max || null, mothers: extra && extra.mothers || null, ship: sell ? sell.ship : null, taken: false, created_at: new Date().toISOString(), best_answer_id: null, likers: [], answers: [] }); this._save(f);
   },
   async setTaken(id, on) { const f = this._feed(); f.find(p => p.id === id).taken = on; this._save(f); },
   _caseSeed(f) {
@@ -3112,9 +3113,10 @@ const sbApi = {
   },
   async ask(cat, body, photo, title) { const url = photo ? await uploadPhoto(photo) : null, row = { user_id: S.user.id, category: cat, body }; if (title) row.title = title; if (url) row.photo_url = url; const { error } = await sb.from('posts').insert(row); if (error) throw error; },
   async newThread(cat, title, body, photo) { const url = photo ? await uploadPhoto(photo) : null, row = { user_id: S.user.id, kind: 'thread', category: cat, title, body }; if (url) row.photo_url = url; const { error } = await sb.from('posts').insert(row); if (error) throw error; },
-  async newListing(type, title, body, city, photo, sell) {
+  async motherGet(post, up) { const { data, error } = await sb.rpc('listing_mother', { p_post: post, p_up: up }); if (error) throw error; return data; },
+  async newListing(type, title, body, city, photo, sell, extra) {
     const url = photo ? await uploadPhoto(photo) : null;
-    const { data: row, error } = await sb.from('posts').insert(Object.assign({ user_id: S.user.id, kind: 'listing', category: type, title, body, city: city || null, photo_url: url }, sell || {})).select('id').single();
+    const { data: row, error } = await sb.from('posts').insert(Object.assign({ user_id: S.user.id, kind: 'listing', category: type, title, body, city: city || null, photo_url: url }, sell || {}, extra || {})).select('id').single();
     if (!error) return row && row.id;
     if (error) throw /kind_check|city|photo_url/.test(error.message || '') ? new Error('SWAP_NOT_READY') : error;
   },
@@ -12622,7 +12624,8 @@ const LTYPES = [['Säljes', 'var(--cop)', 'Jag säljer'], ['Bytes', 'var(--wat)'
 // Äldre annonser och äldre versioner av appen använder Byta och Ge bort
 function lFix(L) { (L || []).forEach(p => { if (p.category === 'Byta') p.category = 'Bytes'; else if (p.category === 'Ge bort') p.category = 'Skänkes'; }); return L; }
 const SHIP = { hamtas: 'Hämtas', skickas: 'Kan skickas', bada: 'Hämtas eller skickas' };
-const lPrice = p => p.category === 'Säljes' && p.price != null ? (+p.price === 0 ? 'Gratis' : String(p.price).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') + ' kr') : '';
+const lNum = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+const lPrice = p => p.category === 'Säljes' && p.price != null ? (p.price_max != null && +p.price_max > +p.price ? lNum(p.price) + '–' + lNum(p.price_max) + ' kr' : +p.price === 0 ? 'Gratis' : lNum(p.price) + ' kr') : '';
 const lTaken = p => p.category === 'Säljes' ? 'Såld' : p.category === 'Önskas' ? 'Hittad' : 'Bortlovad';
 const lCta = p => S.user && p.user_id === S.user.id ? 'Din annons' : p.category === 'Önskas' ? 'Jag har en!' : p.category === 'Bytes' ? 'Föreslå byte' : p.category === 'Säljes' ? 'Jag vill köpa!' : 'Jag vill ha!';
 // Invasiva främmande arter på EU:s förteckning som inte får säljas, bytas eller ges bort
@@ -12638,6 +12641,7 @@ function lThumb(p) {
   return pl ? `<span class="lthumb">${plantPh(pl)}</span>` : `<span class="lthumb">${ic(I.leaf, 'currentColor', 30)}</span>`;
 }
 function swapV() {
+  if (S.mother && S.post && S.mother.post === S.post) return motherV();
   if (S.post) return listingV();
   if (S.newL) return newListingV();
   if (S.lcity === null) S.lcity = (S.prof && S.prof.city) || '';
@@ -12648,7 +12652,7 @@ function swapV() {
     .sort((a, b) => (a.taken - b.taken) || b.created_at.localeCompare(a.created_at));
   const body = st && (S.feedErr || !S.listings) ? st
     : !list.length ? `<div class="empty"><p>${S.listings.length ? 'Inga annonser matchar. Prova en annan ort eller "Alla".' : '<b>Inga annonser än.</b><br>Har du en stickling att ge bort?'}</p>${S.listings.length ? '' : `<button class="btn" onclick="startListing()">Lägg ut en annons</button>`}</div>`
-    : list.map(p => `<button class="lcard ${p.taken ? 'taken' : ''}" onclick="openPost(${p.id})">${lThumb(p)}<span class="grow">${ltPill(p)}${p.taken ? ` <span class="pill">${lTaken(p)}</span>` : ''}<b>${esc(p.title || '')}</b>${lPrice(p) ? `<span class="lprice">${lPrice(p)}${p.ship ? ` <small>· ${SHIP[p.ship] || ''}</small>` : ''}</span>` : ''}<span class="mut">${p.city ? esc(p.city) + ' · ' : ''}${ulink(p.user_id, p.author)} · ${ago(p.created_at)}</span>${p.answers.length ? `<span class="mut" style="display:block">${p.answers.length} svar</span>` : ''}</span></button>`).join('');
+    : list.map(p => `<button class="lcard ${p.taken ? 'taken' : ''}" onclick="openPost(${p.id})">${lThumb(p)}<span class="grow">${ltPill(p)}${p.taken ? ` <span class="pill">${lTaken(p)}</span>` : ''}<b>${esc(p.title || '')}</b>${lPrice(p) ? `<span class="lprice">${lPrice(p)}${p.ship ? ` <small>· ${SHIP[p.ship] || ''}</small>` : ''}</span>` : ''}<span class="mut">${p.city ? esc(p.city) + ' · ' : ''}${ulink(p.user_id, p.author)} · ${ago(p.created_at)}</span>${Array.isArray(p.mothers) && p.mothers.length ? `<span class="mut" style="display:block">🌱 ${p.mothers.length === 1 ? 'Moderplanta' : p.mothers.length + ' moderplantor'}: ${esc(p.mothers.map(x => x.name).join(', '))}</span>` : ''}${p.answers.length ? `<span class="mut" style="display:block">${p.answers.length} svar</span>` : ''}</span></button>`).join('');
   return `${topbar('Gemenskap')}${segBar()}
   ${document.documentElement.getAttribute('data-ui') === 'stad' ? cityRowL() : ''}
   <div class="lfil"><div class="chips2">${['Alla'].concat(LTYPES.map(x => x[0])).map(t => `<button class="${S.lf === t ? 'on' : ''}" onclick="S.lf='${t}';render()">${t}</button>`).join('')}<button class="${S.lnear ? 'on' : ''}" aria-pressed="${!!S.lnear}" onclick="S.lnear=!S.lnear;render()">Nära mig</button></div></div>
@@ -12662,9 +12666,31 @@ function cityRowL() { return `<div class="lfil"><input type="search" placeholder
 function startListing() { if (needLogin()) return; S.newL = true; S.lstep = 1; S.lphoto = null; if (!S.lci) S.lci = (S.prof && S.prof.city) || ''; render(); $('#main').scrollTop = 0; }
 function pickLPhoto(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.lphoto = f; S.lphotoUrl = URL.createObjectURL(f); render(); }
 // Städad: "Ny annons" i tre steg: typ och foto, växt och beskrivning, ort och publicering. Samma fält och samma sendListing.
-function lSellV() { if (S.lt !== 'Säljes') return ''; const sh = S.lsh || 'hamtas';
-  return `<label class="fl" for="lpr">Pris (kr)</label><input id="lpr" type="text" inputmode="numeric" maxlength="7" placeholder="t.ex. 50" value="${esc(S.lpr || '')}" oninput="S.lpr=this.value.replace(/[^0-9]/g,'');if(this.value!==S.lpr)this.value=S.lpr">
+function lSellV() { if (S.lt !== 'Säljes') return ''; const sh = S.lsh || 'hamtas', rg = !!S.lpm, num = id => `oninput="S.${id}=this.value.replace(/[^0-9]/g,'');if(this.value!==S.${id})this.value=S.${id};lprUpd()"`;
+  return `<label class="fl" for="lpr">Pris (kr)</label><div class="chips2 sm" style="margin:2px 0 8px"><button class="${rg ? '' : 'on'}" aria-pressed="${!rg}" onclick="S.lpm=0;render()">Ett pris</button><button class="${rg ? 'on' : ''}" aria-pressed="${rg}" onclick="S.lpm=1;render()">Intervall (från–till)</button></div>
+  ${rg ? `<div style="display:flex;gap:10px;align-items:center"><input id="lpr" type="text" inputmode="numeric" maxlength="7" placeholder="Från" aria-label="Lägsta pris" value="${esc(S.lpr || '')}" ${num('lpr')} style="flex:1"><span>–</span><input id="lpr2" type="text" inputmode="numeric" maxlength="7" placeholder="Till" aria-label="Högsta pris" value="${esc(S.lpr2 || '')}" ${num('lpr2')} style="flex:1"></div><div id="lprn" class="mut" style="font-size:12.5px;margin-top:6px">${lprNote()}</div>` : `<input id="lpr" type="text" inputmode="numeric" maxlength="7" placeholder="t.ex. 50" value="${esc(S.lpr || '')}" ${num('lpr')}>`}
   <label class="fl">Hur får köparen växten?</label><div class="chips2">${Object.entries(SHIP).map(([k, n]) => `<button class="${sh === k ? 'on' : ''}" aria-pressed="${sh === k}" onclick="S.lsh='${k}';render()">${n}</button>`).join('')}</div>`; }
+function lprNote() { const a = parseInt(S.lpr || '', 10), b = parseInt(S.lpr2 || '', 10); return a >= 0 && b > a ? `Visas på annonsen som <b>${lNum(a)}–${lNum(b)} kr</b>` : 'Skriv lägsta och högsta pris.'; }
+function lprUpd() { const x = $('#lprn'); if (x) x.innerHTML = lprNote(); }
+// Snabbtaggar: ett tryck lägger till eller tar bort en mening i beskrivningen
+const LTAGS = ['Rotad i vatten', 'Rotad i jord', 'Oroterad', 'Swish vid hämtning', 'Kan skickas'];
+function lTagsIn() { return `<div class="mut" style="width:100%;font-size:12px">Tryck för att lägga till i beskrivningen</div>` + LTAGS.filter(t => t !== 'Swish vid hämtning' || S.lt === 'Säljes').map(t => `<button type="button" class="${(S.lbo || '').includes(t) ? 'on' : ''}" aria-pressed="${(S.lbo || '').includes(t)}" onclick="lTag(${jsArg(t)})">+ ${t}</button>`).join(''); }
+function lTagsV() { return S.lt === 'Önskas' ? '' : `<div id="ltags" class="chips2 sm" style="margin:8px 0 0">${lTagsIn()}</div>`; }
+function lTag(t) { let b = (S.lbo || '').trim();
+  if (b.includes(t)) b = b.replace(new RegExp('\\s*' + t + '\\.?'), '').trim(); else b = (b && !/[.!?]$/.test(b) ? b + '.' : b) + (b ? ' ' : '') + t + '.';
+  S.lbo = b; const ta = $('#lbo'); if (ta) ta.value = b; const x = $('#ltags'); if (x) x.innerHTML = lTagsIn(); }
+// Moderplantor: plantor ur din samling som köparen kan trycka sig vidare till. Du väljer själv vad som visas.
+const MOTHER_KEYS = ['sort', 'nick', 'place', 'cm', 'ph', 'mat', 'self', 'lamp', 'lampcm', 'drain', 'soil', 'h', 'w', 'leaf', 'light', 'since', 'from'];
+function motherDet(d) { const o = {}; MOTHER_KEYS.forEach(k => { if (d && d[k] != null && d[k] !== '') o[k] = d[k]; }); return o; }
+function lMotherIn() { const L = S.lmo || [], sel = id => L.find(x => x.id === id);
+  return `<div class="chips2 sm" style="max-height:176px;overflow:auto">${(S.mine || []).map(m => `<button type="button" class="${sel(m.id) ? 'on' : ''}" aria-pressed="${!!sel(m.id)}" onclick="lmToggle(${m.id})">${esc(m.name)}</button>`).join('')}</div>`
+    + L.map(x => `<div style="margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.05)"><b>${esc(x.name)}</b><div class="mut" style="font-size:12.5px;margin:2px 0 6px">Vad ska andra få se? Namnet visas alltid.</div><div class="chips2 sm">${[['photos', 'Bilder'], ['details', 'Uppgifter'], ['notes', 'Anteckningar']].map(([k, n]) => `<button type="button" class="${x[k] ? 'on' : ''}" aria-pressed="${!!x[k]}" onclick="lmOpt(${x.id},'${k}')">${n}</button>`).join('')}</div></div>`).join(''); }
+function lMotherV() { if (S.lt === 'Önskas' || !(S.mine || []).length) return '';
+  return `<label class="fl">Moderplantor (valfritt)</label><p class="mut" style="margin:0 0 6px;font-size:13px">Välj plantor ur din samling. Den som tittar på annonsen kan trycka på dem och se plantan.</p><div id="lmo">${lMotherIn()}</div>`; }
+function lmToggle(id) { const L = S.lmo = S.lmo || [], i = L.findIndex(x => x.id === id);
+  if (i >= 0) L.splice(i, 1); else { if (L.length >= 5) return toast('Du kan ange högst 5 moderplantor.'); const m = (S.mine || []).find(x => x.id === id); if (!m) return; L.push({ id, name: m.name, photos: true, details: true, notes: false }); }
+  const x = $('#lmo'); if (x) x.innerHTML = lMotherIn(); }
+function lmOpt(id, k) { const e = (S.lmo || []).find(x => x.id === id); if (!e) return; e[k] = !e[k]; const x = $('#lmo'); if (x) x.innerHTML = lMotherIn(); }
 function lRulesV() { const inv = lInvasive((S.lti || '') + ' ' + (S.lbo || '')); return `${inv ? `<p class="formmsg">${esc(inv[0].toUpperCase() + inv.slice(1))} är en invasiv art på EU:s lista. Den får inte säljas, bytas eller ges bort.</p>` : ''}<p class="lnote">${LRULES}</p>`; }
 function newListingStepV() {
   const n = S.lstep || 1, photo = S.lt !== 'Önskas';
@@ -12676,7 +12702,7 @@ function newListingStepV() {
          <input id="lti" maxlength="120" autocomplete="off" placeholder="t.ex. Monstera-sticklingar" value="${esc(S.lti)}" oninput="S.lti=this.value;document.getElementById('lsug').innerHTML=lsugInner(this.value)">
          <div id="lsug" class="lsug">${lsugInner(S.lti)}</div>
          <label class="fl" for="lbo">Beskrivning</label>
-         <textarea id="lbo" rows="4" maxlength="2000" placeholder="${S.lt === 'Bytes' ? 'Vad har du, och vad vill du ha i utbyte?' : S.lt === 'Önskas' ? 'Vad kan du erbjuda i utbyte?' : 'Storlek, skick, hur man hämtar…'}" oninput="S.lbo=this.value">${esc(S.lbo)}</textarea>${lSellV()}`
+         <textarea id="lbo" rows="4" maxlength="2000" placeholder="${S.lt === 'Bytes' ? 'Vad har du, och vad vill du ha i utbyte?' : S.lt === 'Önskas' ? 'Vad kan du erbjuda i utbyte?' : 'Storlek, skick, hur man hämtar…'}" oninput="S.lbo=this.value">${esc(S.lbo)}</textarea>${lTagsV()}${lMotherV()}${lSellV()}`
       : `<label class="fl" for="lci" style="margin-top:0">Ort <span class="mut">(steg 3 av 3)</span></label>
          <input id="lci" maxlength="60" placeholder="t.ex. Uppsala" value="${esc(S.lci || '')}" oninput="S.lci=this.value">
          ${lRulesV()}<p class="lnote">Annonsen och svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>`;
@@ -12694,7 +12720,7 @@ function newListingV() {
     <div id="lsug" class="lsug">${lsugInner(S.lti)}</div>
     <label class="fl" for="lbo">Beskrivning</label>
     <textarea id="lbo" rows="4" maxlength="2000" placeholder="${S.lt === 'Bytes' ? 'Vad har du, och vad vill du ha i utbyte?' : S.lt === 'Önskas' ? 'Vad kan du erbjuda i utbyte?' : 'Storlek, skick, hur man hämtar…'}" oninput="S.lbo=this.value">${esc(S.lbo)}</textarea>
-    ${lSellV()}<label class="fl" for="lci">Ort</label>
+    ${lTagsV()}${lMotherV()}${lSellV()}<label class="fl" for="lci">Ort</label>
     <input id="lci" maxlength="60" placeholder="t.ex. Uppsala" value="${esc(S.lci || '')}" oninput="S.lci=this.value">
     ${S.lt !== 'Önskas' ? `<label class="fl">Foto (valfritt)</label>
     ${S.lphoto ? `<img class="lbig" src="${esc(S.lphotoUrl)}" alt="Valt foto"><button class="btn sm line" onclick="S.lphoto=null;render()">Ta bort foto</button>` : `<label onclick="photoPick(event,this)" class="btn sm line" style="display:inline-flex;gap:8px;align-items:center;cursor:pointer">${ic(CAM, 'currentColor', 18)} Ta eller välj foto<input type="file" accept="image/*" class="sr" onchange="pickLPhoto(this)"></label>`}` : ''}
@@ -12709,14 +12735,16 @@ async function sendListing() {
   if (bo.length < 5) return toast('Skriv en kort beskrivning (minst 5 tecken).');
   if (!ci) return toast('Skriv vilken ort du finns i.');
   const inv = lInvasive(ti + ' ' + bo); if (inv && S.lt !== 'Önskas') return toast(inv[0].toUpperCase() + inv.slice(1) + ' är en invasiv art och får inte säljas, bytas eller ges bort.');
-  const sell = S.lt === 'Säljes', pr = sell ? parseInt(S.lpr || '', 10) : null;
-  if (sell && !(pr >= 0)) return toast('Skriv ett pris i kronor (0 om den är gratis).');
+  const sell = S.lt === 'Säljes', pr = sell ? parseInt(S.lpr || '', 10) : null, pr2 = sell && S.lpm ? parseInt(S.lpr2 || '', 10) : null;
+  if (sell && !(pr >= 0)) return toast(S.lpm ? 'Skriv lägsta priset i kronor.' : 'Skriv ett pris i kronor (0 om den är gratis).');
+  if (sell && S.lpm && !(pr2 > pr)) return toast('Det högsta priset måste vara större än det lägsta.');
+  const mo = S.lt !== 'Önskas' ? (S.lmo || []).filter(x => (S.mine || []).some(m => m.id === x.id)) : [];
   S.busy = true; render();
   try {
-    const newId = await api.newListing(S.lt, ti, bo, ci, S.lt !== 'Önskas' ? S.lphoto : null, sell ? { price: Math.min(pr, 1000000), ship: S.lsh || 'hamtas' } : null);
+    const newId = await api.newListing(S.lt, ti, bo, ci, S.lt !== 'Önskas' ? S.lphoto : null, sell ? { price: Math.min(pr, 1000000), ship: S.lsh || 'hamtas' } : null, { price_max: sell && S.lpm ? Math.min(pr2, 1000000) : null, mothers: mo.length ? mo : null });
     if (newId) api.notifyListing(newId).catch(e => console.warn('Roothood:', e));
     pushAskValue('listing');
-    S.lti = ''; S.lbo = ''; S.lpr = ''; S.lphoto = null; S.newL = false; S.lf = 'Alla'; S.lcity = '';
+    S.lti = ''; S.lbo = ''; S.lpr = ''; S.lpr2 = ''; S.lpm = 0; S.lmo = []; S.lphoto = null; S.newL = false; S.lf = 'Alla'; S.lcity = '';
     await refreshComm(); toast('Din annons är publicerad');
   } catch (e) { toast(e.message === 'SWAP_NOT_READY' ? 'Byt & ge bort går inte att använda just nu.' : errMsg(e)); }
   S.busy = false; render();
@@ -12724,6 +12752,44 @@ async function sendListing() {
 function setTaken(id, on) { const p = (S.listings || []).find(x => x.id === id) || {}; commRun(() => api.setTaken(id, on), on ? 'Markerad som ' + lTaken(p).toLowerCase() : 'Annonsen är öppen igen'); }
 // Meddelande till annonsens ägare. Själva annonsen är kopplad till meddelandet.
 function contactAd(id) { if (needLogin()) return; const p = (S.listings || []).find(x => x.id === id); if (!p) return; openChat(p.user_id, p.author || 'Annonsen', { id: p.id, title: p.title || p.category || 'Annons' }); }
+// --- Moderplantans sida: dina bilder och uppgifter (som ägaren valt att visa) + allmänt om arten ---
+function motherListV(p) { const L = Array.isArray(p.mothers) ? p.mothers : []; if (!L.length) return '';
+  return `<div class="sec" style="margin-top:14px"><h2>${L.length === 1 ? 'Moderplanta' : 'Moderplantor'}</h2></div><div class="norm">${L.map(x => `<button class="nrow" onclick="openMother(${p.id},${+x.id})"><span class="grow"><small class="mut">Tryck för att se plantan</small>${esc(x.name || 'Moderplanta')}</span>${ic(I.back, 'var(--mut)', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button>`).join('')}</div>`; }
+async function openMother(post, up) { S.mother = { post, up, d: undefined }; render(); $('#main').scrollTop = 0;
+  try { const d = await api.motherGet(post, up); if (S.mother && S.mother.up === up) { S.mother.d = d || null; render(); } } catch (e) { console.warn('Roothood:', e); if (S.mother && S.mother.up === up) { S.mother.d = null; render(); } } }
+function motherItems(d) { const o = [];
+  if (d.sort) o.push(['Sort', d.sort]); if (d.nick) o.push(['Svenskt namn', d.nick]);
+  if (placesOf(d).length) o.push(['Planterad', placesOf(d).map(x => x === 'Ampel' ? 'Ampel i taket' : x === 'Upp och ner' ? 'Upp och ner i taket' : x).join(' + ')]);
+  if (d.cm || d.ph || d.mat) o.push(['Kruka', [d.cm ? 'Ø' + d.cm + ' cm' : '', d.ph ? d.ph + ' cm hög' : '', d.mat || ''].filter(Boolean).join(', ')]);
+  if (d.self) o.push(['Självvattnande', 'Ja']); if (d.lamp) o.push(['Växtbelysning', d.lampcm ? d.lampcm + ' cm från växten' : 'Ja']);
+  if (d.drain && !d.self) o.push(['Dräneringshål', d.drain]); if (d.soil && d.soil.length) o.push(['Jord', [].concat(d.soil).join(', ')]);
+  if (d.h) o.push(['Höjd/längd', d.h + ' cm']); if (d.w) o.push(['Bredd', d.w + ' cm']); if (d.leaf) o.push(['Största bladet', d.leaf + ' cm']);
+  if (d.light) o.push(['Plats', d.light]); if (d.since) o.push(['Har haft sedan', whenTxt(d.since)]); if (d.from) o.push(['Kommer från', d.from]);
+  return o; }
+function motherV() {
+  const M = S.mother, back = "S.mother=null;render()", d = M.d;
+  if (d === undefined) return `${topbar('Moderplanta', back)}<div class="center mut" style="padding:40px 0">Hämtar…</div>`;
+  if (!d) return `${topbar('Moderplanta', back)}<div class="pad"><p class="mut">Den här moderplantan går inte att visa längre. Annonsen kan ha ändrats.</p></div>`;
+  const p = d.plant_id ? S.plants.find(x => x.id === d.plant_id) : null, ph = d.photos || [], it = motherItems(d.details || {});
+  const water = p ? (p.water_interval_days ? `Var ${p.water_interval_days}${ord(p.water_interval_days)} dag` : WATER[p.water_level - 1]) : '';
+  const tips = p ? [['Tips', p.tips], ['Vanliga problem', p.common_problems], ['Förökning', p.propagation]].filter(t => t[1]) : [];
+  return `${topbar('Moderplanta', back)}<div class="pad">
+  ${ph.length ? `<img class="lbig" src="${esc(ph[0])}" alt="${esc(d.name)}" style="margin-top:10px">${ph.length > 1 ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px">${ph.slice(1).map(u => `<img src="${esc(u)}" alt="" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px">`).join('')}</div>` : ''}` : ''}
+  <h1 style="font-size:24px;margin:${ph.length ? 14 : 10}px 0 2px">${esc(d.name || 'Moderplanta')}</h1>${d.latin ? `<i class="mut">${esc(d.latin)}</i>` : ''}
+  <p class="mut" style="margin:6px 0 0;font-size:13.5px">Moderplanta hos ${d.owner ? ulink(d.owner, (((S.listings || []).find(x => x.id === M.post) || {}).author) || 'säljaren') : 'säljaren'}</p>
+  ${it.length ? `<div class="sec"><h2>Om plantan</h2></div><div class="pdbox"><div class="pdgrid">${it.map(i => `<div><small>${i[0]}</small><b>${esc(i[1])}</b></div>`).join('')}</div></div>` : ''}
+  ${d.notes ? `<div class="sec"><h2>Anteckningar</h2></div><p style="white-space:pre-line;margin:0">${esc(d.notes)}</p>` : ''}
+  ${p ? `<div class="sec"><h2>Allmänt om ${esc(p.swedish_name)}</h2></div><div class="tiles tsm">
+  ${tile('Ljus', LIGHT[p.light_level - 1], p.light_text, I.sun, 'var(--sun)')}
+  ${tile('Vatten', water, p.water_text, I.drop, 'var(--wat)')}
+  ${tile('Temperatur', p.temperature ? shortTemp(p.temperature) : null, p.temperature, I.temp, 'var(--acc)')}
+  ${tile('Luftfukt', p.humidity || null, '', I.mist, 'var(--pri2)')}
+  ${tile('Jord', p.soil ? p.soil.split(',')[0] : null, p.soil, I.soil, '#A0703F')}
+  ${tile('Husdjur', petWord(p), p.toxicity_text, I.paw, p.pet_safe ? 'var(--pri2)' : petWord(p) === 'Okänt' ? 'var(--mut)' : 'var(--acc)', petWord(p) === 'Giftig')}
+  </div>${tips.length ? `<div class="tips" style="margin-top:10px">${tips.map(t => `<div class="tipr"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>${t[0]}</b><span>${esc(t[1])}</span></div></div>`).join('')}</div>` : ''}
+  <button class="btn line" style="margin-top:14px" onclick="S.mother=null;openPlant(${p.id})">Öppna hela växtsidan för ${esc(p.swedish_name)}</button>` : ''}
+  <div style="height:20px"></div></div>`;
+}
 function listingV() {
   const p = (S.listings || []).find(x => x.id === S.post);
   if (!p) { S.post = null; return swapV(); }
@@ -12731,7 +12797,7 @@ function listingV() {
   return `${topbar(p.category, 'S.post=null;S.del=null;render()')}<div class="pad">
   <div class="post" style="margin-top:10px">${whoP(p, (p.city ? p.city + ' · ' : '') + ago(p.created_at), ltPill(p))}
   ${p.photo_url ? `<img class="lbig" src="${esc(p.photo_url)}" alt="${esc(p.title || '')}">` : ''}
-  <h2 style="font-size:21px;margin:8px 0">${esc(p.title || '')}${p.taken ? ` <span class="pill">${lTaken(p)}</span>` : ''}</h2>${lPrice(p) ? `<p class="lprice big">${lPrice(p)}${p.ship ? ` <small>· ${SHIP[p.ship] || ''}</small>` : ''}</p>` : ''}<p style="margin:0;white-space:pre-line">${esc(p.body)}</p>
+  <h2 style="font-size:21px;margin:8px 0">${esc(p.title || '')}${p.taken ? ` <span class="pill">${lTaken(p)}</span>` : ''}</h2>${lPrice(p) ? `<p class="lprice big">${lPrice(p)}${p.ship ? ` <small>· ${SHIP[p.ship] || ''}</small>` : ''}</p>` : ''}<p style="margin:0;white-space:pre-line">${esc(p.body)}</p>${motherListV(p)}
   <div class="prow">${mine ? `<button class="btn sm line" onclick="setTaken(${p.id},${!p.taken})">${p.taken ? 'Öppna igen' : 'Markera som ' + lTaken(p).toLowerCase()}</button>` : (p.taken ? '' : `<button class="btn sm" onclick="contactAd(${p.id})">Skicka meddelande</button>`)}<span class="grow"></span>${moreBtn('p', p.id, mine)}</div></div>
   ${p.category === 'Säljes' && !mine ? lSafeV() : ''}<p class="lnote">Svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
@@ -13761,6 +13827,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.472', '24 nov', ['Ny annons: du kan ange ett prisintervall, till exempel 70–350 kr', 'Ny annons: snabbtaggar som Rotad i vatten och Swish vid hämtning lägger till text i beskrivningen med ett tryck', 'Ny annons: välj moderplantor ur din samling. Den som läser annonsen kan trycka på dem och se bilder och uppgifter som du valt att visa, plus allmän information om arten']],
   ['Beta 0.471', '24 nov', ['Moderering: Nyckeltal visar nu hur ofta identifieringen inte hittar växten i databasen, och Pro-siffrorna räknar inte med moderatorer','Integritetspolicyn har en ny rad om växtidentifiering']],
   ['Beta 0.470', '24 nov', ['Moderering: ny startsida med knappar efter vad som ska göras, sökfält och antal som väntar','Moderering: ny flik Nyckeltal med behåll av användare, Play-testet, rapporter, växter, gemenskap, identifiering och Pro','Moderering: sortering efter det mest brådskande i rapporter och felrapporter, och fler sorteringar bland användare']],
   ['Beta 0.469', '24 nov', ['Pelargonium helmsii har fått en egen bild på hyllan i Min samling','Uppdateringsloggen är städad och visar bara sådant som rör dig']],
@@ -16809,7 +16876,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.471';
+const APP_VERSION = 'Beta 0.472';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
