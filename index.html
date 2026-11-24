@@ -12758,8 +12758,18 @@ function setTaken(id, on) { const p = (S.listings || []).find(x => x.id === id) 
 // Meddelande till annonsens ägare. Själva annonsen är kopplad till meddelandet.
 function contactAd(id) { if (needLogin()) return; const p = (S.listings || []).find(x => x.id === id); if (!p) return; openChat(p.user_id, p.author || 'Annonsen', { id: p.id, title: p.title || p.category || 'Annons' }); }
 // --- Moderplantans sida: dina bilder och uppgifter (som ägaren valt att visa) + allmänt om arten ---
+// Lång annonstext med rubriker (rader som slutar på kolon): snabbknappar som hoppar till varje del
+function lSecs(body) { const L = String(body || '').split('\n'), out = [];
+  L.forEach((ln, i) => { if (/^[^-–•*\d\s][^:]{1,40}:\s*$/.test(ln.trim()) && !/^\s*[-–•*]/.test(ln)) { let n = 0; for (let j = i + 1; j < L.length && L[j].trim() !== ''; j++) if (/^\s*[-–•*]\s/.test(L[j])) n++; out.push({ i, t: ln.trim().replace(/:\s*$/, ''), n }); } });
+  return out; }
+function lBodyV(p) { const secs = lSecs(p.body), pid = 'ls' + (+p.id || 0);
+  if (secs.length < 2) return `<p style="margin:0;white-space:pre-line">${esc(p.body)}</p>`;
+  const L = String(p.body).split('\n'), html = L.map((ln, i) => { const k = secs.findIndex(x => x.i === i); return k >= 0 ? `<b id="${pid}-${k}" style="scroll-margin-top:70px">${esc(ln)}</b>` : esc(ln); }).join('\n');
+  const chips = secs.map((x, k) => `<button type="button" onclick="lJump('${pid}-${k}')">${esc(x.t)}${x.n ? ' (' + x.n + ' st)' : ''}</button>`).join('') + (Array.isArray(p.mothers) && p.mothers.length ? `<button type="button" onclick="lJump('${pid}-m')">Moderplantor</button>` : '');
+  return `<div class="chips2 sm" style="margin:0 0 10px">${chips}</div><p style="margin:0;white-space:pre-line">${html}</p>`; }
+function lJump(id) { const e = document.getElementById(id); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 function motherListV(p) { const L = Array.isArray(p.mothers) ? p.mothers : []; if (!L.length) return '';
-  return `<div class="sec" style="margin-top:14px"><h2>${L.length === 1 ? 'Moderplanta' : 'Moderplantor'}</h2></div><div class="norm">${L.map(x => `<button class="nrow" onclick="openMother(${p.id},${+x.id})"><span class="grow"><small class="mut">Tryck för att se plantan</small>${esc(x.name || 'Moderplanta')}</span>${ic(I.back, 'var(--mut)', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button>`).join('')}</div>`; }
+  return `<div class="sec" id="ls${+p.id || 0}-m" style="margin-top:14px;scroll-margin-top:70px"><h2>${L.length === 1 ? 'Moderplanta' : 'Moderplantor'}</h2></div><div class="norm">${L.map(x => `<button class="nrow" onclick="openMother(${p.id},${+x.id})"><span style="display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:rgba(150,210,110,.18);color:var(--pri);margin-right:12px;flex:none">${ic('ph-plant', 'currentColor', 20)}</span><span class="grow"><small class="mut">Tryck för att se plantan</small>${esc(x.name || 'Moderplanta')}</span>${ic(I.back, 'var(--mut)', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button>`).join('')}</div>`; }
 async function openMother(post, up) { S.mother = { post, up, d: undefined }; render(); $('#main').scrollTop = 0;
   try { const d = await api.motherGet(post, up); if (S.mother && S.mother.up === up) { S.mother.d = d || null; render(); } } catch (e) { console.warn('Roothood:', e); if (S.mother && S.mother.up === up) { S.mother.d = null; render(); } } }
 function motherItems(d) { const o = [];
@@ -12802,7 +12812,7 @@ function listingV() {
   return `${topbar(p.category, 'S.post=null;S.del=null;render()')}<div class="pad">
   <div class="post" style="margin-top:10px">${whoP(p, (p.city ? p.city + ' · ' : '') + ago(p.created_at), ltPill(p))}
   ${p.photo_url ? `<img class="lbig" src="${esc(p.photo_url)}" alt="${esc(p.title || '')}">` : ''}
-  <h2 style="font-size:21px;margin:8px 0">${esc(p.title || '')}${p.taken ? ` <span class="pill">${lTaken(p)}</span>` : ''}</h2>${lPrice(p) ? `<p class="lprice big">${lPrice(p)}${p.ship ? ` <small>· ${SHIP[p.ship] || ''}</small>` : ''}</p>` : ''}<p style="margin:0;white-space:pre-line">${esc(p.body)}</p>${motherListV(p)}
+  <h2 style="font-size:21px;margin:8px 0">${esc(p.title || '')}${p.taken ? ` <span class="pill">${lTaken(p)}</span>` : ''}</h2>${lPrice(p) ? `<p class="lprice big">${lPrice(p)}${p.ship ? ` <small>· ${SHIP[p.ship] || ''}</small>` : ''}</p>` : ''}${lBodyV(p)}${motherListV(p)}
   <div class="prow">${mine ? `<button class="btn sm line" onclick="setTaken(${p.id},${!p.taken})">${p.taken ? 'Öppna igen' : 'Markera som ' + lTaken(p).toLowerCase()}</button>` : (p.taken ? '' : `<button class="btn sm" onclick="contactAd(${p.id})">Skicka meddelande</button>`)}<span class="grow"></span>${moreBtn('p', p.id, mine)}</div></div>
   ${p.category === 'Säljes' && !mine ? lSafeV() : ''}<p class="lnote">Svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
@@ -13832,6 +13842,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.475', '24 nov', ['Annonser med långa texter får snabbknappar som hoppar direkt till varje del, till exempel Toppsticklingar och Stamsticklingar', 'Moderplantor på annonser har en liten växtikon så det syns att de går att trycka på']],
   ['Beta 0.474', '24 nov', ['Ny annons: knapparna ligger i två kolumner, valda moderplantor har en tydligare markering och felrapportknappen skymmer inte längre Publicera annons']],
   ['Beta 0.473', '24 nov', ['Ny annons: moderplantlistan visar de senast tillagda plantorna, med sökruta och Visa alla', 'Ny annons: nya snabbtaggar Toppstickling och Stamstickling']],
   ['Beta 0.472', '24 nov', ['Ny annons: du kan ange ett prisintervall, till exempel 70–350 kr', 'Ny annons: snabbtaggar som Rotad i vatten och Swish vid hämtning lägger till text i beskrivningen med ett tryck', 'Ny annons: välj moderplantor ur din samling. Den som läser annonsen kan trycka på dem och se bilder och uppgifter som du valt att visa, plus allmän information om arten']],
@@ -16883,7 +16894,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.474';
+const APP_VERSION = 'Beta 0.475';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
