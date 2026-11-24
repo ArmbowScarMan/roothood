@@ -449,7 +449,7 @@ button.shot{cursor:pointer}
 .shot>span:not(.tic){font-size:13.5px;color:var(--mut)}
 .shot.has{padding:0;border-style:solid;min-height:0}
 .shot img{width:100%;max-height:340px;object-fit:cover;display:block}
-.chips2{display:flex;gap:8px;flex-wrap:wrap}
+.chips2{display:flex;gap:8px;flex-wrap:wrap}.chips2.grid2{display:grid;grid-template-columns:1fr 1fr}.chips2.grid2 button{width:100%;justify-content:center;text-align:center}.chips2.grid2 button:last-child:nth-child(odd){grid-column:1/-1}.chips2 button.lmsel{box-shadow:0 0 0 2px var(--pri) inset;font-weight:800}
 .chips2 button{border:0;background:var(--surf);color:var(--ink);font:inherit;font-size:14px;font-weight:600;border-radius:999px;padding:8px 14px;cursor:pointer;box-shadow:var(--sh)}
 .chips2 button.on{background:var(--pri);color:var(--onpri)}
 .chips2 .sw{display:inline-block;width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.25);margin-right:6px;vertical-align:-2px}
@@ -8495,7 +8495,7 @@ function render() {
   requestAnimationFrame(rowCenter); requestAnimationFrame(uiIcons);
   HV = otherHome();
   { const fb = $('#fab'); if (fb) fb.hidden = true; }
-  { const bb = $('#bugb'); if (bb) bb.hidden = !S.user || S.tool === 'chat' || S.tool === 'house' || !!S.modal; }
+  { const bb = $('#bugb'); if (bb) bb.hidden = !S.user || S.tool === 'chat' || S.tool === 'house' || !!S.modal || (S.newL && S.tab === 'comm' && !S.post); }
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tab));
   document.getElementById('app').classList.toggle('nochat', S.tool === 'chat');
   document.body.classList.toggle('hadv', S.tool === 'house' && !S.room && !S.wz && hMode() === 'adv');
@@ -12669,7 +12669,7 @@ function pickLPhoto(inp) { const f = inp.files && inp.files[0]; if (!f) return; 
 function lSellV() { if (S.lt !== 'Säljes') return ''; const sh = S.lsh || 'hamtas', rg = !!S.lpm, num = id => `oninput="S.${id}=this.value.replace(/[^0-9]/g,'');if(this.value!==S.${id})this.value=S.${id};lprUpd()"`;
   return `<label class="fl" for="lpr">Pris (kr)</label><div class="chips2 sm" style="margin:2px 0 8px"><button class="${rg ? '' : 'on'}" aria-pressed="${!rg}" onclick="S.lpm=0;render()">Ett pris</button><button class="${rg ? 'on' : ''}" aria-pressed="${rg}" onclick="S.lpm=1;render()">Intervall (från–till)</button></div>
   ${rg ? `<div style="display:flex;gap:10px;align-items:center"><input id="lpr" type="text" inputmode="numeric" maxlength="7" placeholder="Från" aria-label="Lägsta pris" value="${esc(S.lpr || '')}" ${num('lpr')} style="flex:1"><span>–</span><input id="lpr2" type="text" inputmode="numeric" maxlength="7" placeholder="Till" aria-label="Högsta pris" value="${esc(S.lpr2 || '')}" ${num('lpr2')} style="flex:1"></div><div id="lprn" class="mut" style="font-size:12.5px;margin-top:6px">${lprNote()}</div>` : `<input id="lpr" type="text" inputmode="numeric" maxlength="7" placeholder="t.ex. 50" value="${esc(S.lpr || '')}" ${num('lpr')}>`}
-  <label class="fl">Hur får köparen växten?</label><div class="chips2">${Object.entries(SHIP).map(([k, n]) => `<button class="${sh === k ? 'on' : ''}" aria-pressed="${sh === k}" onclick="S.lsh='${k}';render()">${n}</button>`).join('')}</div>`; }
+  <label class="fl">Hur får köparen växten?</label><div class="chips2 grid2">${Object.entries(SHIP).map(([k, n]) => `<button class="${sh === k ? 'on' : ''}" aria-pressed="${sh === k}" onclick="S.lsh='${k}';render()">${n}</button>`).join('')}</div>`; }
 function lprNote() { const a = parseInt(S.lpr || '', 10), b = parseInt(S.lpr2 || '', 10); return a >= 0 && b > a ? `Visas på annonsen som <b>${lNum(a)}–${lNum(b)} kr</b>` : 'Skriv lägsta och högsta pris.'; }
 function lprUpd() { const x = $('#lprn'); if (x) x.innerHTML = lprNote(); }
 // Snabbtaggar: ett tryck lägger till eller tar bort en mening i beskrivningen
@@ -12687,7 +12687,7 @@ function lMotherList() { const L = S.lmo || [], q = (S.lmq || '').trim().toLower
   if (S.lmall || all.length <= 8) return all;
   const top = all.slice(0, 8), ex = all.slice(8).filter(m => L.some(x => x.id === m.id)); return top.concat(ex); }
 function lMotherIn() { const L = S.lmo || [], sel = id => L.find(x => x.id === id), N = (S.mine || []).length, shown = lMotherList();
-  return `<div class="chips2 sm">${shown.map(m => `<button type="button" class="${sel(m.id) ? 'on' : ''}" aria-pressed="${!!sel(m.id)}" onclick="lmToggle(${m.id})">${esc(m.name)}</button>`).join('') || '<span class="mut" style="font-size:13px">Ingen planta matchar.</span>'}${N > 8 && !S.lmall && !(S.lmq || '').trim() ? `<button type="button" class="link3" onclick="S.lmall=1;lmRef()">Visa alla (${N})</button>` : ''}</div>`
+  return `<div class="chips2 sm">${shown.map(m => `<button type="button" class="${sel(m.id) ? 'on lmsel' : ''}" aria-pressed="${!!sel(m.id)}" onclick="lmToggle(${m.id})">${sel(m.id) ? '✓ ' : ''}${esc(m.name)}</button>`).join('') || '<span class="mut" style="font-size:13px">Ingen planta matchar.</span>'}${N > 8 && !S.lmall && !(S.lmq || '').trim() ? `<button type="button" class="link3" onclick="S.lmall=1;lmRef()">Visa alla (${N})</button>` : ''}</div>`
     + L.map(x => `<div style="margin-top:8px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.05)"><b>${esc(x.name)}</b><div class="mut" style="font-size:12.5px;margin:2px 0 6px">Vad ska andra få se? Namnet visas alltid.</div><div class="chips2 sm">${[['photos', 'Bilder'], ['details', 'Uppgifter'], ['notes', 'Anteckningar']].map(([k, n]) => `<button type="button" class="${x[k] ? 'on' : ''}" aria-pressed="${!!x[k]}" onclick="lmOpt(${x.id},'${k}')">${n}</button>`).join('')}</div></div>`).join(''); }
 function lMotherV() { if (S.lt === 'Önskas' || !(S.mine || []).length) return '';
   return `<label class="fl">Moderplantor (valfritt)</label><p class="mut" style="margin:0 0 6px;font-size:13px">Välj plantor ur din samling. Den som tittar på annonsen kan trycka på dem och se plantan.</p>${(S.mine || []).length > 8 ? `<input type="search" id="lmq" placeholder="Sök i din samling" autocomplete="off" aria-label="Sök moderplanta" value="${esc(S.lmq || '')}" oninput="S.lmq=this.value;lmRef()" style="margin-bottom:8px">` : ''}<div id="lmo">${lMotherIn()}</div>`; }
@@ -12701,7 +12701,7 @@ function newListingStepV() {
   const n = S.lstep || 1, photo = S.lt !== 'Önskas';
   const photoHtml = photo ? `<label class="fl">Foto (valfritt)</label>${S.lphoto ? `<img class="lbig" src="${esc(S.lphotoUrl)}" alt="Valt foto"><button class="btn sm line" onclick="S.lphoto=null;render()">Ta bort foto</button>` : `<label onclick="photoPick(event,this)" class="btn sm line" style="display:inline-flex;gap:8px;align-items:center;cursor:pointer">${ic(CAM, 'currentColor', 18)} Ta eller välj foto<input type="file" accept="image/*" class="sr" onchange="pickLPhoto(this)"></label>`}` : '';
   const body = n === 1
-    ? `<label class="fl" style="margin-top:0">Vad vill du göra? <span class="mut">(steg 1 av 3)</span></label><div class="chips2">${LTYPES.map(x => `<button class="${S.lt === x[0] ? 'on' : ''}" onclick="S.lt='${x[0]}';render()">${x[2]}</button>`).join('')}</div>${photoHtml}`
+    ? `<label class="fl" style="margin-top:0">Vad vill du göra? <span class="mut">(steg 1 av 3)</span></label><div class="chips2 grid2">${LTYPES.map(x => `<button class="${S.lt === x[0] ? 'on' : ''}" onclick="S.lt='${x[0]}';render()">${x[2]}</button>`).join('')}</div>${photoHtml}`
     : n === 2
       ? `<label class="fl" for="lti" style="margin-top:0">${S.lt === 'Önskas' ? 'Vilken växt letar du efter?' : 'Vilken växt?'} <span class="mut">(steg 2 av 3)</span></label>
          <input id="lti" maxlength="120" autocomplete="off" placeholder="t.ex. Monstera-sticklingar" value="${esc(S.lti)}" oninput="S.lti=this.value;document.getElementById('lsug').innerHTML=lsugInner(this.value)">
@@ -12719,7 +12719,7 @@ function newListingV() {
   const t = LTYPES.find(x => x[0] === S.lt) || LTYPES[0];
   return `${topbar('Ny annons', 'S.newL=false;render()')}<div class="pad"><div class="setcard" style="margin-top:10px">
     <label class="fl" style="margin-top:0">Vad vill du göra?</label>
-    <div class="chips2">${LTYPES.map(x => `<button class="${S.lt === x[0] ? 'on' : ''}" onclick="S.lt='${x[0]}';render()">${x[2]}</button>`).join('')}</div>
+    <div class="chips2 grid2">${LTYPES.map(x => `<button class="${S.lt === x[0] ? 'on' : ''}" onclick="S.lt='${x[0]}';render()">${x[2]}</button>`).join('')}</div>
     <label class="fl" for="lti">${S.lt === 'Önskas' ? 'Vilken växt letar du efter?' : 'Vilken växt?'}</label>
     <input id="lti" maxlength="120" autocomplete="off" placeholder="t.ex. Monstera-sticklingar" value="${esc(S.lti)}" oninput="S.lti=this.value;document.getElementById('lsug').innerHTML=lsugInner(this.value)">
     <div id="lsug" class="lsug">${lsugInner(S.lti)}</div>
@@ -13832,6 +13832,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.474', '24 nov', ['Ny annons: knapparna ligger i två kolumner, valda moderplantor har en tydligare markering och felrapportknappen skymmer inte längre Publicera annons']],
   ['Beta 0.473', '24 nov', ['Ny annons: moderplantlistan visar de senast tillagda plantorna, med sökruta och Visa alla', 'Ny annons: nya snabbtaggar Toppstickling och Stamstickling']],
   ['Beta 0.472', '24 nov', ['Ny annons: du kan ange ett prisintervall, till exempel 70–350 kr', 'Ny annons: snabbtaggar som Rotad i vatten och Swish vid hämtning lägger till text i beskrivningen med ett tryck', 'Ny annons: välj moderplantor ur din samling. Den som läser annonsen kan trycka på dem och se bilder och uppgifter som du valt att visa, plus allmän information om arten']],
   ['Beta 0.471', '24 nov', ['Moderering: Nyckeltal visar nu hur ofta identifieringen inte hittar växten i databasen, och Pro-siffrorna räknar inte med moderatorer','Integritetspolicyn har en ny rad om växtidentifiering']],
@@ -16882,7 +16883,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.473';
+const APP_VERSION = 'Beta 0.474';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
