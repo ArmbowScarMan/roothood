@@ -2751,6 +2751,11 @@ const demoApi = {
       { id: 204, kind: 'listing', user_id: 'sara', author: 'Sara', category: 'Ge bort', title: 'Stor svärmors tunga', body: 'Har blivit för stor för min lägenhet, ca 80 cm hög.', city: 'Malmö', taken: true, created_at: t(120), best_answer_id: null, likers: [], answers: [] });
     this._save(f); store.set('swapSeeded', true);
   },
+  async updateListing(id, type, title, body, city, photo, sell, extra) {
+    const f = this._feed(), p = f.find(x => x.id === id); if (!p) return;
+    const url = photo === 'keep' ? p.photo_url : photo ? await fileShrink(photo, 720, true) : null;
+    Object.assign(p, { category: type, title, body, city: city || null, photo_url: url, price: sell ? sell.price : null, ship: sell ? sell.ship : null, price_max: extra && extra.price_max || null, mothers: extra && extra.mothers || null }); this._save(f);
+  },
   async motherGet(post, up) { const m = (S.mine || []).find(x => x.id === up); if (!m) return null; const f = this._feed().find(x => x.id === post), e = ((f && f.mothers) || []).find(x => x.id === up) || {}; return { id: m.id, plant_id: m.plant_id, name: m.name, latin: m.latin, owner: 'demo', photos: e.photos ? (m.photos || []) : [], notes: e.notes ? m.notes : null, details: e.details ? motherDet(m.details || {}) : {} }; },
   async newListing(type, title, body, city, photo, sell, extra) {
     const f = this._feed(), url = photo ? await fileShrink(photo, 720, true) : null;
@@ -3113,6 +3118,11 @@ const sbApi = {
   },
   async ask(cat, body, photo, title) { const url = photo ? await uploadPhoto(photo) : null, row = { user_id: S.user.id, category: cat, body }; if (title) row.title = title; if (url) row.photo_url = url; const { error } = await sb.from('posts').insert(row); if (error) throw error; },
   async newThread(cat, title, body, photo) { const url = photo ? await uploadPhoto(photo) : null, row = { user_id: S.user.id, kind: 'thread', category: cat, title, body }; if (url) row.photo_url = url; const { error } = await sb.from('posts').insert(row); if (error) throw error; },
+  async updateListing(id, type, title, body, city, photo, sell, extra) {
+    const row = Object.assign({ category: type, title, body, city: city || null, price: null, ship: null }, sell || {}, extra || {});
+    if (photo !== 'keep') row.photo_url = photo ? await uploadPhoto(photo) : null;
+    const { error } = await sb.from('posts').update(row).eq('id', id); if (error) throw error;
+  },
   async motherGet(post, up) { const { data, error } = await sb.rpc('listing_mother', { p_post: post, p_up: up }); if (error) throw error; return data; },
   async newListing(type, title, body, city, photo, sell, extra) {
     const url = photo ? await uploadPhoto(photo) : null;
@@ -8489,6 +8499,7 @@ const SCRX_SEL = '.tabs, .scrx, .chips2.qfilt, .gwrow, .mfilt, .qfilt, .mycards,
 function rowCenter() { document.querySelectorAll(SCRX_SEL).forEach(p => { const ov = p.scrollWidth > p.clientWidth + 2; p.classList.toggle('ovf', ov); if (!ov || p.dataset.c === (p.querySelector('.on') || {}).textContent) return; const on = p.querySelector('.on'); if (!on) return; p.dataset.c = on.textContent; const a = p.getBoundingClientRect(), b = on.getBoundingClientRect(); p.scrollLeft += (b.left + b.width / 2) - (a.left + a.width / 2); });
   document.querySelectorAll(SCRX_SEL.split(', ').map(x => x + '.ovf').join(', ')).forEach(p => { if (p.dataset.sl) return; p.dataset.sl = 1; p.addEventListener('scroll', () => p.classList.toggle('end', p.scrollLeft + p.clientWidth >= p.scrollWidth - 4), { passive: true }); }); }
 function render() {
+  if (!S.newL && S.ledit) { S.ledit = null; S.lti = ''; S.lbo = ''; S.lpr = ''; S.lpr2 = ''; S.lpm = 0; S.lmo = []; S.lmq = ''; S.lmall = 0; S.lphoto = null; S.lsh = null; }
   try { markUsed(); if (S.user && S.prof) notifSeenCheck(); } catch (e) { }
   if (S.modal !== 'pmeas') { if (pmStream) pmStop(); if (S.pmFree && S.modal !== 'pdet') S.pmFree = false; }
   applyGrowlight();
@@ -12663,7 +12674,10 @@ function swapV() {
 }
 // Filtret för ort i Byt & ge bort. I Städad ligger det överst, som en platsrad.
 function cityRowL() { return `<div class="lfil"><input type="search" placeholder="Plats, t.ex. Uppsala" aria-label="Ort" value="${esc(S.lcity)}" oninput="S.lcity=this.value;clearTimeout(window.__lct);window.__lct=setTimeout(()=>{render();const i=document.querySelector('.lfil input');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},350)"></div>`; }
-function startListing() { if (needLogin()) return; S.newL = true; S.lstep = 1; S.lphoto = null; if (!S.lci) S.lci = (S.prof && S.prof.city) || ''; render(); $('#main').scrollTop = 0; }
+function editListing(id) { const p = (S.listings || []).find(x => x.id === id); if (!p || !S.user || p.user_id !== S.user.id) return;
+  S.ledit = id; S.lt = p.category; S.lti = p.title || ''; S.lbo = p.body || ''; S.lci = p.city || ''; S.lpr = p.price != null ? String(p.price) : ''; S.lpm = p.price_max != null && +p.price_max > +p.price ? 1 : 0; S.lpr2 = S.lpm ? String(p.price_max) : '';
+  S.lsh = p.ship || 'hamtas'; S.lmo = (Array.isArray(p.mothers) ? p.mothers : []).map(x => Object.assign({}, x)); S.lmq = ''; S.lmall = 0; S.lphoto = p.photo_url ? 'keep' : null; S.lphotoUrl = p.photo_url || ''; S.lstep = 1; S.newL = true; render(); $('#main').scrollTop = 0; }
+function startListing() { S.ledit = null; if (needLogin()) return; S.newL = true; S.lstep = 1; S.lphoto = null; if (!S.lci) S.lci = (S.prof && S.prof.city) || ''; render(); $('#main').scrollTop = 0; }
 function pickLPhoto(inp) { const f = inp.files && inp.files[0]; if (!f) return; S.lphoto = f; S.lphotoUrl = URL.createObjectURL(f); render(); }
 // Städad: "Ny annons" i tre steg: typ och foto, växt och beskrivning, ort och publicering. Samma fält och samma sendListing.
 function lSellV() { if (S.lt !== 'Säljes') return ''; const sh = S.lsh || 'hamtas', rg = !!S.lpm, num = id => `oninput="S.${id}=this.value.replace(/[^0-9]/g,'');if(this.value!==S.${id})this.value=S.${id};lprUpd()"`;
@@ -12711,13 +12725,13 @@ function newListingStepV() {
       : `<label class="fl" for="lci" style="margin-top:0">Ort <span class="mut">(steg 3 av 3)</span></label>
          <input id="lci" maxlength="60" placeholder="t.ex. Uppsala" value="${esc(S.lci || '')}" oninput="S.lci=this.value">
          ${lRulesV()}<p class="lnote">Annonsen och svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>`;
-  const nav = `<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">${n > 1 ? `<button class="btn sm line" onclick="S.lstep=${n - 1};render()">Tillbaka</button>` : ''}${n < 3 ? `<button class="btn sm" onclick="${n === 2 ? `if(S.lti.trim().length<3){toast('Skriv vilken växt det gäller (minst 3 tecken).')}else{S.lstep=3;render()}` : `S.lstep=2;render()`}">Nästa</button>` : `<button class="btn sm" ${S.busy ? 'disabled' : ''} onclick="sendListing()">${S.busy ? 'Publicerar…' : 'Publicera annons'}</button>`}<button class="btn sm line" onclick="S.newL=false;S.lstep=1;render()">Avbryt</button></div>`;
-  return `${topbar('Ny annons', 'S.newL=false;S.lstep=1;render()')}<div class="pad"><div class="setcard" style="margin-top:10px">${body}${nav}</div></div>`;
+  const nav = `<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">${n > 1 ? `<button class="btn sm line" onclick="S.lstep=${n - 1};render()">Tillbaka</button>` : ''}${n < 3 ? `<button class="btn sm" onclick="${n === 2 ? `if(S.lti.trim().length<3){toast('Skriv vilken växt det gäller (minst 3 tecken).')}else{S.lstep=3;render()}` : `S.lstep=2;render()`}">Nästa</button>` : `<button class="btn sm" ${S.busy ? 'disabled' : ''} onclick="sendListing()">${S.busy ? (S.ledit ? 'Sparar…' : 'Publicerar…') : (S.ledit ? 'Spara ändringar' : 'Publicera annons')}</button>`}<button class="btn sm line" onclick="S.newL=false;S.lstep=1;render()">Avbryt</button></div>`;
+  return `${topbar(S.ledit ? 'Redigera annons' : 'Ny annons', 'S.newL=false;S.lstep=1;render()')}<div class="pad"><div class="setcard" style="margin-top:10px">${body}${nav}</div></div>`;
 }
 function newListingV() {
   if (document.documentElement.getAttribute('data-ui') === 'stad') return newListingStepV();
   const t = LTYPES.find(x => x[0] === S.lt) || LTYPES[0];
-  return `${topbar('Ny annons', 'S.newL=false;render()')}<div class="pad"><div class="setcard" style="margin-top:10px">
+  return `${topbar(S.ledit ? 'Redigera annons' : 'Ny annons', 'S.newL=false;render()')}<div class="pad"><div class="setcard" style="margin-top:10px">
     <label class="fl" style="margin-top:0">Vad vill du göra?</label>
     <div class="chips2 grid2">${LTYPES.map(x => `<button class="${S.lt === x[0] ? 'on' : ''}" onclick="S.lt='${x[0]}';render()">${x[2]}</button>`).join('')}</div>
     <label class="fl" for="lti">${S.lt === 'Önskas' ? 'Vilken växt letar du efter?' : 'Vilken växt?'}</label>
@@ -12730,7 +12744,7 @@ function newListingV() {
     ${S.lt !== 'Önskas' ? `<label class="fl">Foto (valfritt)</label>
     ${S.lphoto ? `<img class="lbig" src="${esc(S.lphotoUrl)}" alt="Valt foto"><button class="btn sm line" onclick="S.lphoto=null;render()">Ta bort foto</button>` : `<label onclick="photoPick(event,this)" class="btn sm line" style="display:inline-flex;gap:8px;align-items:center;cursor:pointer">${ic(CAM, 'currentColor', 18)} Ta eller välj foto<input type="file" accept="image/*" class="sr" onchange="pickLPhoto(this)"></label>`}` : ''}
     ${lRulesV()}<p class="lnote">Annonsen och svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>
-    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap"><button class="btn sm" ${S.busy ? 'disabled' : ''} onclick="sendListing()">${S.busy ? 'Publicerar…' : 'Publicera annons'}</button><button class="btn sm line" onclick="S.newL=false;render()">Avbryt</button></div>
+    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap"><button class="btn sm" ${S.busy ? 'disabled' : ''} onclick="sendListing()">${S.busy ? (S.ledit ? 'Sparar…' : 'Publicerar…') : (S.ledit ? 'Spara ändringar' : 'Publicera annons')}</button><button class="btn sm line" onclick="S.newL=false;render()">Avbryt</button></div>
   </div></div>`;
 }
 async function sendListing() {
@@ -12746,11 +12760,18 @@ async function sendListing() {
   const mo = S.lt !== 'Önskas' ? (S.lmo || []).filter(x => (S.mine || []).some(m => m.id === x.id)) : [];
   S.busy = true; render();
   try {
-    const newId = await api.newListing(S.lt, ti, bo, ci, S.lt !== 'Önskas' ? S.lphoto : null, sell ? { price: Math.min(pr, 1000000), ship: S.lsh || 'hamtas' } : null, { price_max: sell && S.lpm ? Math.min(pr2, 1000000) : null, mothers: mo.length ? mo : null });
+    const ph = S.lt !== 'Önskas' ? S.lphoto : null, sl = sell ? { price: Math.min(pr, 1000000), ship: S.lsh || 'hamtas' } : null, ex = { price_max: sell && S.lpm ? Math.min(pr2, 1000000) : null, mothers: mo.length ? mo : null };
+    if (S.ledit) {
+      await api.updateListing(S.ledit, S.lt, ti, bo, ci, ph, sl, ex);
+      S.lti = ''; S.lbo = ''; S.lpr = ''; S.lpr2 = ''; S.lpm = 0; S.lmo = []; S.lmq = ''; S.lmall = 0; S.lphoto = null; S.newL = false; S.ledit = null;
+      await refreshComm(); toast('Ändringarna är sparade');
+    } else {
+    const newId = await api.newListing(S.lt, ti, bo, ci, ph, sl, ex);
     if (newId) api.notifyListing(newId).catch(e => console.warn('Roothood:', e));
     pushAskValue('listing');
     S.lti = ''; S.lbo = ''; S.lpr = ''; S.lpr2 = ''; S.lpm = 0; S.lmo = []; S.lmq = ''; S.lmall = 0; S.lphoto = null; S.newL = false; S.lf = 'Alla'; S.lcity = '';
     await refreshComm(); toast('Din annons är publicerad');
+    }
   } catch (e) { toast(e.message === 'SWAP_NOT_READY' ? 'Byt & ge bort går inte att använda just nu.' : errMsg(e)); }
   S.busy = false; render();
 }
@@ -12813,7 +12834,7 @@ function listingV() {
   <div class="post" style="margin-top:10px">${whoP(p, (p.city ? p.city + ' · ' : '') + ago(p.created_at), ltPill(p))}
   ${p.photo_url ? `<img class="lbig" src="${esc(p.photo_url)}" alt="${esc(p.title || '')}">` : ''}
   <h2 style="font-size:21px;margin:8px 0">${esc(p.title || '')}${p.taken ? ` <span class="pill">${lTaken(p)}</span>` : ''}</h2>${lPrice(p) ? `<p class="lprice big">${lPrice(p)}${p.ship ? ` <small>· ${SHIP[p.ship] || ''}</small>` : ''}</p>` : ''}${lBodyV(p)}${motherListV(p)}
-  <div class="prow">${mine ? `<button class="btn sm line" onclick="setTaken(${p.id},${!p.taken})">${p.taken ? 'Öppna igen' : 'Markera som ' + lTaken(p).toLowerCase()}</button>` : (p.taken ? '' : `<button class="btn sm" onclick="contactAd(${p.id})">Skicka meddelande</button>`)}<span class="grow"></span>${moreBtn('p', p.id, mine)}</div></div>
+  <div class="prow">${mine ? `<button class="btn sm line" onclick="editListing(${p.id})">Redigera annons</button><button class="btn sm line" onclick="setTaken(${p.id},${!p.taken})">${p.taken ? 'Öppna igen' : 'Markera som ' + lTaken(p).toLowerCase()}</button>` : (p.taken ? '' : `<button class="btn sm" onclick="contactAd(${p.id})">Skicka meddelande</button>`)}<span class="grow"></span>${moreBtn('p', p.id, mine)}</div></div>
   ${p.category === 'Säljes' && !mine ? lSafeV() : ''}<p class="lnote">Svaren syns för alla. Skriv aldrig adress eller telefonnummer, bestäm hellre en plats att ses på.</p>
   <h3 style="margin:20px 0 10px">${p.answers.length ? p.answers.length + ' svar' : 'Inga svar än'}</h3>
   ${answersV(p, false)}${mine ? replyBox(p.id, 'Svara på frågor om din annons') : replyBox(p.id, p.category === 'Önskas' ? 'Har du växten? Skriv till ' + p.author : p.category === 'Säljes' ? 'Vill du köpa? Skriv till ' + p.author : 'Intresserad? Skriv till ' + p.author)}</div>`;
@@ -13842,6 +13863,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.476', '24 nov', ['Du kan nu redigera din egen annons: ändra text, pris, moderplantor och foto med knappen Redigera annons']],
   ['Beta 0.475', '24 nov', ['Annonser med långa texter får snabbknappar som hoppar direkt till varje del, till exempel Toppsticklingar och Stamsticklingar', 'Moderplantor på annonser har en liten växtikon så det syns att de går att trycka på']],
   ['Beta 0.474', '24 nov', ['Ny annons: knapparna ligger i två kolumner, valda moderplantor har en tydligare markering och felrapportknappen skymmer inte längre Publicera annons']],
   ['Beta 0.473', '24 nov', ['Ny annons: moderplantlistan visar de senast tillagda plantorna, med sökruta och Visa alla', 'Ny annons: nya snabbtaggar Toppstickling och Stamstickling']],
@@ -16894,7 +16916,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.475';
+const APP_VERSION = 'Beta 0.476';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
