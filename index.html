@@ -2818,6 +2818,7 @@ const demoApi = {
   async modUsage() { const F = ['ask', 'db', 'id', 'house', 'doc', 'care', 'comm-q', 'bed', 'experts', 'light', 'pets', 'sow']; return F.map((f, i) => ({ feature: f, users: Math.max(1, 14 - i), uses: Math.round(140 / (i + 1)) + 3 })); },
   async modUsageDays(d) { const out = []; for (let i = d - 1; i >= 0; i--) { const t = new Date(Date.now() - i * 864e5); out.push({ day: t.toISOString().slice(0, 10), users: 3 + Math.round(5 + 4 * Math.sin(i / 3) + (d - i) / 6), uses: 20 + ((i * 7) % 15) }); } return out; },
   async modUsageH() { return this.modUsage(); },
+  async modKpi() { return { ret: [{ kohort: '2026-11-02', nya: 10, la_till_vaxt: 8, aktiva_dag1: 7, aktiva_dag7: 5, aktiva_dag30: 0 }], funnel: { konton: 10, med_vaxt: 8, vattnat: 7, atervant: 6 }, play: [{ user_id: 'a', display_name: 'Exempel', active_days: 9, last_day: '2026-11-24', device: 'android' }], rep: { rep_nya_7d: 1, rep_oppna: 0, rep_hanterade: 4, rep_snitt_timmar: 12.5, fb_oppna_fel: 0, fb_oppna_forslag: 0, fb_aldsta_dagar: 0 }, pl: [{ kind: 'samling', plant_id: 1, namn: 'Monstera', n: 4 }, { kind: 'db', plant_id: null, namn: 'totalt', n: 10 }], com: { utan_svar: 0, gamla_utan_basta: 0, vantar_godkannande: 0, aldsta_utan_svar_dagar: 0, fragor_30d: 2 }, oq: [], srch: [], idn: [], pro: { pro_totalt: 2, pro_betalande: 0, pro_gratis: 2, prov_startade: 1, uppsagda: 0, aktiva_ar: 0, aktiva_manad: 0, intakt_manad: 0 } }; },
   async modNotifStats() { return { recipients: 3, sent: 7 }; },
   async modTime() { return [{ feature: 'db', users: 3, secs: 5400, opens: 12 }, { feature: 'hem', users: 4, secs: 2100, opens: 30 }]; },
   async modUsageHours(h) { const now = new Date(); now.setMinutes(0, 0, 0); const out = []; for (let i = 0; i < h; i++) { if (i % 3 === 1) continue; out.push({ hour: new Date(now - i * 36e5).toISOString(), users: 1 + ((i * 5) % 4), uses: 2 + i % 6 }); } return out; },
@@ -3198,6 +3199,7 @@ const sbApi = {
   async modUsageUserDays(u, d) { const { data, error } = await sb.rpc('mod_usage_user_days', { p_user: u, p_days: d }); if (error) throw this._st(error); return data || []; },
   async modUsageH(h) { const { data, error } = await sb.rpc('mod_usage_h', { p_hours: h }); if (error) throw this._st(error); return data || []; },
   async modTime(h) { const { data, error } = await sb.rpc('mod_time', { p_hours: h }); if (error) throw this._st(error); return data || []; },
+  async modKpi() { const r = await Promise.all([sb.rpc('retention_stats'), sb.rpc('mod_kpi_funnel', { p_days: 3650 }), sb.rpc('mod_kpi_playtest', { p_days: 14 }), sb.rpc('mod_kpi_reports'), sb.rpc('mod_kpi_plants'), sb.rpc('mod_kpi_community'), sb.rpc('mod_kpi_open_questions'), sb.rpc('mod_search_stats', { p_days: 30 }), sb.rpc('mod_kpi_identify'), sb.rpc('mod_kpi_pro')]); const er = r.find(x => x.error); if (er) throw this._st(er.error); return { ret: r[0].data || [], funnel: (r[1].data && r[1].data[0]) || null, play: r[2].data || [], rep: (r[3].data && r[3].data[0]) || null, pl: r[4].data || [], com: (r[5].data && r[5].data[0]) || null, oq: r[6].data || [], srch: r[7].data || [], idn: r[8].data || [], pro: (r[9].data && r[9].data[0]) || null }; },
   async modNotifStats(h) { const { data, error } = await sb.rpc('mod_notif_stats', { p_hours: h }); if (error) throw this._st(error); return (data && data[0]) || { recipients: 0, sent: 0 }; },
   async modUsageHours(h) { const { data, error } = await sb.rpc('mod_usage_hours', { p_hours: h }); if (error) throw this._st(error); return data || []; },
   async modUsageUsersH(f, h) { const { data, error } = await sb.rpc('mod_usage_users_h', { p_feature: f || '', p_hours: h }); if (error) throw this._st(error); return data || []; },
@@ -9664,7 +9666,7 @@ function chatV() {
 }
 // ===== Moderering =====
 function openFbReplies() { openMod('nyckl'); S.fbFocus = 'r'; }
-function openMod(tab) { if (!isMod()) return; S.fbFocus = null; stopLight(); S.sel = null; S.modal = null; S.tool = 'mod'; S.modTab = tab || 'open'; S.msOpen = {}; S.modData = null; S.modErr = null; render(); $('#main').scrollTop = 0; loadMod(); }
+function openMod(tab) { if (!isMod()) return; S.fbFocus = null; stopLight(); S.sel = null; S.modal = null; S.tool = 'mod'; S.modTab = tab || 'home'; S.modHQ = ''; S.msOpen = {}; S.modData = null; S.modErr = null; render(); $('#main').scrollTop = 0; loadMod(); }
 async function loadMod() {
   const t = S.modTab; S.modBusy = true;
   try {
@@ -9680,6 +9682,8 @@ async function loadMod() {
     else if (t === 'online') S.modData = await api.modPresence();
     else if (t === 'sok') S.modData = await api.modSearch(S.sokDays || 30);
     else if (t === 'stats') { const P = msPer(); S.msUF = {}; S.msUD = {}; S.msUser = null; const [f, days] = await Promise.all(P.h ? [api.modUsageH(P.h), api.modUsageHours(P.h).then(r => msHourRows(r, P.h))] : [api.modUsage(P.d), api.modUsageDays(P.d)]); const notif = await api.modNotifStats(P.h || P.d * 24).catch(() => null), time = await api.modTime(P.h || P.d * 24).catch(() => null); S.modData = { f, days, notif, time, users: await (P.h ? api.modUsageUsersH(S.msFeat || '', P.h) : api.modUsageUsers(S.msFeat || '', P.d)) }; }
+    else if (t === 'home') { const [pl, fb] = await Promise.all([api.modPlants().catch(() => []), api.modFb().catch(() => [])]); S.modData = { plants: (pl || []).length, fb: fb || [] }; }
+    else if (t === 'kpi') S.modData = await api.modKpi();
     else if (t === 'users') { S.modData = await api.modUsers(S.modUQ || '', 0); S.modUMore = S.modData.length >= (DEMO ? 1e9 : 100); S.modUN = await api.modUserCount().catch(() => null); }
     if (S.fbFocus === 'r') { const un = new Set((S.modFr || []).filter(r => !r.from_team && !r.read_at).map(r => r.feedback_id)); const hit = (Array.isArray(S.modData) ? S.modData : []).filter(f => un.has(f.id)).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]; S.fbFocus = hit ? hit.id : null; S.fbScroll = !!hit; }
     S.modErr = null; S.modOpen = await api.modOpen(); S.modBestN = await api.modBestCount();
@@ -9687,7 +9691,7 @@ async function loadMod() {
   if (t === 'online') modOnlineTick();
   S.modBusy = false; if (S.tool === 'mod') { const y = $('#main').scrollTop; render(); $('#main').scrollTop = y; if (S.fbScroll && typeof S.fbFocus === 'number') { const el = document.getElementById('fbc' + S.fbFocus); S.fbScroll = false; if (el) { el.scrollIntoView({ block: 'start' }); el.classList.add('fbhit'); } } }
 }
-function modTab(t) { S.fbFocus = null; S.modTab = t; S.msOpen = {}; S.modData = null; S.modSel = []; S.modQ = ''; S.modRes = null; S.modUQ = ''; render(); loadMod(); }
+function modTab(t) { S.fbFocus = null; S.modTab = t; S.modHQ = ''; S.msOpen = {}; S.modData = null; S.modSel = []; S.modQ = ''; S.modRes = null; S.modUQ = ''; render(); loadMod(); }
 async function modAct(id, a) { try { await api.modAct(id, a); toast(a === 'hide' ? 'Dolt för alla' : a === 'keep' ? 'Behålls' : 'Visas igen'); } catch (e) { toast(errMsg(e)); } loadMod(); }
 // Gissar om en text inte handlar om växter: längre text utan ett enda växtord.
 const PLANTW = /växt|blad|rot|jord|kruk|vattn|gödsl|blom|frö|stickl|plant|odl|sol|ljus|skugg|ohyra|spinn|lus|mjöldagg|svamp|trädgård|rabatt|träd|busk|gräs|grönsak|tomat|chili|ört|krydd|kaktus|suckulent|orkidé|monstera|pilea|fikus|ormbunk|lök|potatis|sallad|bär|frukt|äpple|ros|perenn|sådd|skörd|kompost|växthus|balkong|fönster|beskär|omplant|näring|fukt|torr|gul|brun|hängig|ny skott|knopp|stam|gren|grader|frost|natt|vår|höst|sommar|vinter|väder|hämta|byt|bortlov|stickling/i;
@@ -9801,6 +9805,31 @@ function statChartsHtml(D, tot) {
   if (D.f.length && tot) out.push(`<div class="setcard msSec${msCls('andel')}" style="margin-top:12px;padding:14px"><button class="msH" aria-expanded="${!!(S.msOpen||{})['andel']}" onclick="msSecTog(this,'andel')"><b>Andel per funktion</b><span class="msChev" aria-hidden="true">${msChev('andel')}</span></button><small class="mut" style="display:block;margin:2px 0 10px">Av alla öppningar under perioden.</small>${donutSvg(D.f, tot)}</div>`);
   return out.join('');
 }
+// Nyckeltal för moderatorer: behåller vi folk, var hoppar nya av, Play-testet och rapporter.
+function kpiSec(k, title, hint, inner) { return `<div class="setcard msSec${msCls(k)}" style="margin-top:12px;padding:14px"><button class="msH" aria-expanded="${!!(S.msOpen || {})[k]}" onclick="msSecTog(this,'${k}')"><b>${title}</b><span class="msChev" aria-hidden="true">${msChev(k)}</span></button><small class="mut" style="display:block;margin:2px 0 10px">${hint}</small>${inner}</div>`; }
+function modKpiV(D) {
+  if (!D || !D.funnel) return '<p class="mut" style="margin:12px 18px">Hämtar…</p>';
+  const pct = (a, b) => b ? Math.round(a / b * 100) + ' %' : '–', F = D.funnel, R = D.rep || {}, play = D.play || [], act = play.filter(x => x.active_days > 0), goal = 12;
+  const day = d => String(d).slice(5).replace('-', '/'), num = v => v == null ? '–' : String(v).replace('.', ',');
+  const ret = (D.ret || []).length ? `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13.5px"><tr class="mut" style="text-align:right"><th style="text-align:left;padding:4px 6px 4px 0;font-weight:600">Vecka från</th><th style="padding:4px 6px">Nya</th><th style="padding:4px 6px">Växt</th><th style="padding:4px 6px">Dag 1</th><th style="padding:4px 6px">Dag 7</th><th style="padding:4px 0 4px 6px">Dag 30</th></tr>${D.ret.map(r => `<tr style="text-align:right"><td style="text-align:left;padding:4px 6px 4px 0">${esc(day(r.kohort))}</td><td style="padding:4px 6px">${r.nya}</td><td style="padding:4px 6px">${pct(r.la_till_vaxt, r.nya)}</td><td style="padding:4px 6px">${pct(r.aktiva_dag1, r.nya)}</td><td style="padding:4px 6px">${pct(r.aktiva_dag7, r.nya)}</td><td style="padding:4px 0 4px 6px">${pct(r.aktiva_dag30, r.nya)}</td></tr>`).join('')}</table></div><small class="mut" style="display:block;margin-top:8px">Andel av de nya den veckan som gjort något i appen (lagt till växt, vattnat, skrivit) minst 1, 7 respektive 30 dagar efter att de skapade konto. Dag 30 blir tomt tills det gått 30 dagar.</small>` : '<small class="mut">Inga konton än.</small>';
+  const steps = [['Skapade konto', F.konton], ['Lade till en växt', F.med_vaxt], ['Vattnade en gång', F.vattnat], ['Kom tillbaka en annan dag', F.atervant]];
+  const fun = steps.map(([n, v], i) => `<div style="margin:8px 0"><div style="display:flex;justify-content:space-between;gap:8px"><span>${n}</span><span><b>${v}</b> <small class="mut">${pct(v, F.konton)}${i ? ' · ' + pct(v, steps[i - 1][1]) + ' av föregående' : ''}</small></span></div><div class="msu-bar"><i style="width:${F.konton ? Math.round(v / F.konton * 100) : 0}%"></i></div></div>`).join('');
+  const pl = `<p style="margin:4px 0 10px;font-size:17px"><b>${act.length} av ${goal}</b> testare aktiva senaste 14 dagarna</p><div class="msu-bar"><i style="width:${Math.min(100, Math.round(act.length / goal * 100))}%"></i></div><small class="mut" style="display:block;margin:8px 0">Räknar alla konton med märket Beta-testare (${play.length} st), eftersom appen inte vet vem som gått med i Googles test. Exakt siffra finns i Play Console.</small>${play.map(x => `<p style="margin:6px 0;display:flex;justify-content:space-between;gap:8px"><span>${esc(x.display_name || 'Okänd')}${devBadge(x.device)}</span><span class="${x.active_days ? '' : 'mut'}">${x.active_days} ${x.active_days === 1 ? 'dag' : 'dagar'}${x.last_day ? ' <small class="mut">senast ' + esc(day(x.last_day)) + '</small>' : ''}</span></p>`).join('')}`;
+  const rp = `<p style="margin:4px 0">Nya rapporter senaste 7 dagarna: <b>${R.rep_nya_7d ?? 0}</b></p><p style="margin:4px 0">Öppna rapporter: <b>${R.rep_oppna ?? 0}</b></p><p style="margin:4px 0">Hanterade rapporter: <b>${R.rep_hanterade ?? 0}</b></p><p style="margin:4px 0">Snittid att hantera en rapport: <b>${R.rep_snitt_timmar == null ? '–' : num(R.rep_snitt_timmar) + ' tim'}</b></p><p style="margin:10px 0 4px">Obehandlade felrapporter: <b>${R.fb_oppna_fel ?? 0}</b></p><p style="margin:4px 0">Obehandlade förslag: <b>${R.fb_oppna_forslag ?? 0}</b></p><p style="margin:4px 0">Äldsta obehandlade: <b>${R.fb_aldsta_dagar ?? 0} ${R.fb_aldsta_dagar === 1 ? 'dag' : 'dagar'}</b></p>`;
+  const PL = D.pl || [], own = PL.filter(x => x.kind === 'samling'), wish = PL.filter(x => x.kind === 'onskan'), dbr = Object.fromEntries(PL.filter(x => x.kind === 'db').map(x => [x.namn, x.n]));
+  const noImg = own.filter(x => !(typeof SHELF_IMG === 'object' && SHELF_IMG[x.plant_id])), miss = (D.srch || []).filter(x => x.zero_n > 0).sort((a, b) => b.zero_n - a.zero_n).slice(0, 10);
+  const top = (L, unit) => L.length ? L.slice(0, 10).map(x => `<p style="margin:5px 0;display:flex;justify-content:space-between;gap:8px"><span>${esc(x.namn)}</span><b>${x.n} ${unit}</b></p>`).join('') : '<small class="mut">Inget än.</small>';
+  const dbline = (n, k) => `<p style="margin:5px 0;display:flex;justify-content:space-between;gap:8px"><span>${n}</span><span><b>${dbr[k] ?? 0}</b> <small class="mut">${pct(dbr[k] || 0, dbr.totalt)}</small></span></p>`;
+  const vx = `<p style="margin:4px 0 6px"><b>Populärast i samlingar</b></p>${top(own, 'st')}<p style="margin:14px 0 6px"><b>Mest önskade</b></p>${top(wish, 'st')}<p style="margin:14px 0 6px"><b>Sökt senaste 30 dagarna men saknas</b></p>${miss.length ? miss.map(x => `<p style="margin:5px 0;display:flex;justify-content:space-between;gap:8px"><span>${esc(x.q)}</span><b>${x.zero_n} ${x.zero_n === 1 ? 'gång' : 'gånger'}</b></p>`).join('') : '<small class="mut">Inga sökningar utan träff.</small>'}<p style="margin:14px 0 6px"><b>Växtdatabasen</b> <small class="mut">(${dbr.totalt ?? 0} godkända växter)</small></p>${dbline('Utan foto', 'utan foto')}${dbline('Utan ljus eller vatten', 'utan ljus eller vatten')}${dbline('Utan jord', 'utan jord')}${dbline('Utan tips', 'utan tips')}<p style="margin:14px 0 6px"><b>Ägda växter utan hyllbild: ${noImg.length}</b> <small class="mut">av ${own.length}</small></p>${noImg.length ? noImg.slice(0, 10).map(x => `<p style="margin:5px 0;display:flex;justify-content:space-between;gap:8px"><span>${esc(x.namn)}</span><span class="mut">${x.n} st</span></p>`).join('') : '<small class="mut">Alla har hyllbild.</small>'}`;
+  const C = D.com || {}, oq = D.oq || [];
+  const cm = `<p style="margin:4px 0">Frågor senaste 30 dagarna: <b>${C.fragor_30d ?? 0}</b></p><p style="margin:4px 0">Frågor utan svar: <b>${C.utan_svar ?? 0}</b></p><p style="margin:4px 0">Äldsta fråga utan svar: <b>${C.aldsta_utan_svar_dagar ?? 0} ${C.aldsta_utan_svar_dagar === 1 ? 'dag' : 'dagar'}</b></p><p style="margin:4px 0">Har svar men inget bästa svar efter 7 dagar: <b>${C.gamla_utan_basta ?? 0}</b></p><p style="margin:4px 0">Bästa svar som väntar på godkännande: <b>${C.vantar_godkannande ?? 0}</b></p>${oq.length ? `<p style="margin:14px 0 6px"><b>Frågor som väntat längst</b></p>${oq.map(x => `<p style="margin:6px 0"><span class="mut" style="font-size:12.5px">${x.kind === 'mystery' ? 'Detektiv' : 'Fråga'} · ${ago(x.created_at)} · ${x.svar} ${x.svar === 1 ? 'svar' : 'svar'}</span><br>${esc(x.body)}</p>`).join('')}` : ''}`;
+  const IDN = D.idn || [], sum = k => IDN.reduce((a, x) => a + (x[k] || 0), 0), mxI = Math.max(1, ...IDN.map(x => x.ident)), today = IDN.length ? IDN[IDN.length - 1] : null;
+  const idv = `<p style="margin:4px 0">Identifiera växt (Pl@ntNet), 30 dagar: <b>${sum('ident')}</b> st</p><p style="margin:4px 0">Idag: <b>${today ? today.ident : 0}</b> st</p><p style="margin:4px 0">Växtdoktorn, 30 dagar: <b>${sum('doktorn')}</b> öppningar</p>${IDN.length ? `<div class="msday" role="img" aria-label="Identifieringar per dag">${IDN.map(x => `<span title="${esc(String(x.dag))}: ${x.ident} identifieringar" style="height:${Math.round(x.ident / mxI * 100)}%"></span>`).join('')}</div><small class="mut">Identifieringar per dag, senaste 30 dagarna.</small>` : ''}<small class="mut" style="display:block;margin-top:8px">Hur ofta identifieringen inte hittar växten i databasen sparas inte än, så den siffran saknas.</small>`;
+  const P = D.pro || {}, kr = v => String(v ?? 0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' kr';
+  const prv = `<p style="margin:4px 0">Konton med Pro: <b>${P.pro_totalt ?? 0}</b></p><p style="margin:4px 0">Betalande: <b>${P.pro_betalande ?? 0}</b> <small class="mut">(år ${P.aktiva_ar ?? 0}, månad ${P.aktiva_manad ?? 0})</small></p><p style="margin:4px 0">Gratis Pro (testperioden, moderatorer): <b>${P.pro_gratis ?? 0}</b></p><p style="margin:4px 0">Provperioder startade: <b>${P.prov_startade ?? 0}</b></p><p style="margin:4px 0">Uppsagda: <b>${P.uppsagda ?? 0}</b></p><p style="margin:10px 0 4px">Uppskattad intäkt per månad: <b>${kr(P.intakt_manad)}</b></p><small class="mut">Räknas från planernas pris (49 kr per månad, 449 kr per år). Exakt siffra finns i Stripe: <a href="https://dashboard.stripe.com/" target="_blank" rel="noopener">dashboard.stripe.com</a></small>`;
+  const fel = `<p style="margin:4px 0">Obehandlade felrapporter från användare: <b>${R.fb_oppna_fel ?? 0}</b></p><p style="margin:10px 0 8px">Krascher och fel i koden samlas i Sentry. Appen kan inte hämta dem själv, så här är en genväg:</p><a class="btn sm line" href="https://roothood.sentry.io/issues/" target="_blank" rel="noopener">Öppna Sentry</a>`;
+  return `<div class="pad">${kpiSec('kret', 'Behåller vi folk?', 'Per vecka där folk skapat konto.', ret)}${kpiSec('kfun', 'Var hoppar nya användare av?', 'Alla konton, steg för steg.', fun)}${kpiSec('kplay', 'Play-testet', 'Aktiva testare de senaste 14 dagarna.', pl)}${kpiSec('krep', 'Rapporter och felrapporter', 'Hur mycket som väntar och hur snabbt det hanteras.', rp)}${kpiSec('kvx', 'Växter', 'Vad folk har, önskar och söker, och vad databasen saknar.', vx)}${kpiSec('kcom', 'Gemenskap', 'Frågor som väntar på svar.', cm)}${kpiSec('kid', 'Identifiering', 'Hur mycket Identifiera växt och Växtdoktorn används.', idv)}${kpiSec('kpro', 'Pro och pengar', 'Betalande, gratis Pro och uppskattad intäkt.', prv)}${kpiSec('kfel', 'Fel och krascher', 'Fel från användare och genväg till Sentry.', fel)}</div>`;
+}
 // Statistik: rutor som går att minimera. Alla börjar minimerade (S.msOpen nollställs när man går in i Statistik).
 function msCls(k) { return (S.msOpen || {})[k] ? '' : ' msMin'; }
 function msChev(k) { return (S.msOpen || {})[k] ? '▴' : '▾'; }
@@ -9837,7 +9866,7 @@ function fbV() { const F = S.fbf || { kind: 'bug' };
   <p class="mut" style="font-size:12.5px;margin:10px 0 0">Vi skickar med vilken sida du var på: <b>${esc(S.fbView || '')}</b>. Även appversion ${APP_VERSION} och vilken telefon du har, så blir felet lättare att hitta.</p>
   <button class="btn wide formbtn" ${S.busy ? 'disabled' : ''} onclick="fbSend()">${S.busy ? 'Skickar…' : 'Skicka'}</button>`; }
 function modFbV(D, t) { const st = { new: 'Ny', seen: 'Sedd', fixed: 'Fixad', wontfix: 'Görs inte' }, kd = { bug: '🐞 Fel', idea: '💡 Förslag', other: 'Annat' };
-  const sorted = [...(D || [])].sort(FB_SORTS[S.modFbSort || 'new'][1]);
+  const sorted = [...(D || [])].sort(FB_SORTS[S.modFbSort || 'urg'][1]);
   return `<div class="pad">${sorted.length ? modStatusGroups(sorted, st).map(([k, L]) => `<details class="mgrp" ${(k === 'fixed' || k === 'wontfix') && !L.some(f => f.id === S.fbFocus) ? '' : 'open'}><summary>${st[k] || 'Övrigt'} <em class="tabn">${L.length}</em></summary>${L.map(f => `<div class="card modc" id="fbc${f.id}" style="padding:14px;margin-bottom:12px"><small class="mut">${kd[f.kind] || ''} · ${esc(f.author || '')} · ${ago(f.created_at)} · ${esc(f.version || '')}</small><p style="white-space:pre-wrap;margin:6px 0">${esc(f.body)}</p>${fbUrls(f.photo_url).length ? `<div class="fbshots">${fbUrls(f.photo_url).map((u, i) => `<img class="fbshot" src="${esc(u)}" alt="Bifogad skärmbild ${i + 1}" onclick="this.classList.toggle('big')" onerror="fbBroken(this)">`).join('')}</div>` : ''}<p style="margin:4px 0;font-size:14px"><b>Sida:</b> ${esc(f.view || 'okänd')}</p>${f.display_info ? `<p style="margin:4px 0;font-size:14px"><b>Inställningar:</b> ${esc(f.display_info)}</p>` : ''}<small class="mut" style="display:block;word-break:break-all">${esc((f.ua || '').slice(0, 120))}</small>
     ${frThreadV(f)}
     <div class="chips2 sm" style="margin-top:8px">${Object.entries(st).map(([k, n]) => `<button class="${f.status === k ? 'on' : ''}" onclick="modFbSet(${f.id},'${k}')">${n}</button>`).join('')}</div></div>`).join('')}</details>`).join('') : `<p class="mut">${t === 'err' ? 'Inga felrapporter än.' : t === 'nyckl' ? 'Inget har kommit in via felknappen än.' : 'Inga förslag eller annan feedback än.'}</p>`}</div>`; }
@@ -9855,9 +9884,12 @@ async function frSend(id) { const body = ((S.frDraft || {})[id] || '').trim(), p
   catch (e) { toast(e.message === 'PHOTO_UPLOAD' ? 'Bilden gick inte att ladda upp. Försök igen.' : e.message === 'FR_NOT_READY' ? 'Det gick inte att skicka just nu. Försök igen senare.' : errMsg(e)); }
   S.frBusy = false; keepMain(); }
 async function modFbSet(id, k) { try { await api.modFbSet(id, k); const x = (S.modData || []).find(y => y.id === id); if (x) x.status = k; keepMain(); } catch (e) { toast(errMsg(e)); } }
-function modUsersV(D) {
+const USORTS = { new: ['Senast gick med', (a, b) => new Date(b.joined || 0) - new Date(a.joined || 0)], plants: ['Flest växter', (a, b) => (b.plants || 0) - (a.plants || 0)], posts: ['Flest inlägg', (a, b) => (b.posts || 0) - (a.posts || 0)], hid: ['Flest dolda inlägg', (a, b) => (b.hidden_posts || 0) - (a.hidden_posts || 0) || (b.posts || 0) - (a.posts || 0)], name: ['Namn A–Ö', (a, b) => String(a.display_name || '').localeCompare(String(b.display_name || ''), 'sv')] };
+function setUSort(v) { S.modUSort = v; keepMain(); }
+function modUsersV(D0) {
+  const D = [...D0].sort(USORTS[S.modUSort || 'new'][1]);
   const q = S.modUQ || '', n = S.modUN, roleTag = r => r === 'admin' ? '<span class="tag lime">Admin</span>' : r === 'mod' ? '<span class="tag lime">Moderator</span>' : '';
-  return `<div class="pad" style="padding-top:10px"><input type="search" class="musearch" placeholder="Sök namn eller ort" value="${esc(q)}" oninput="modUSearch(this.value)" aria-label="Sök användare"><p class="mut" style="margin:8px 2px 4px;font-size:13px">${D.length ? (q ? D.length + ' träffar' : (n != null ? n : D.length) + ' användare') : ''}${S.modUBusy ? ' · söker…' : ''}</p></div>
+  return `<div class="pad" style="padding-top:10px"><input type="search" class="musearch" placeholder="Sök namn eller ort" value="${esc(q)}" oninput="modUSearch(this.value)" aria-label="Sök användare"><div class="modbar" style="margin:8px 0 0"><span class="mut">${D.length ? (q ? D.length + ' träffar' : (n != null ? n : D.length) + ' användare') : ''}${S.modUBusy ? ' · söker…' : ''}</span><label>Sortera <select onchange="setUSort(this.value)">${Object.keys(USORTS).map(k => `<option value="${k}" ${(S.modUSort || 'new') === k ? 'selected' : ''}>${USORTS[k][0]}</option>`).join('')}</select></label></div></div>
   <div class="pad">${D.length ? D.map(u => `<div class="prow2 mur"><button class="popen" onclick="modOpenUser(${jsArg(u.id)})">${avBig(u.display_name, 'av', u.avatar_url, u.id)}<span class="grow"><b>${esc(u.display_name || 'Namnlös')} ${roleTag(u.role)}</b><span>${[u.city ? esc(u.city) : 'Ingen ort', (u.plants || 0) + ' växter', (u.posts || 0) + ' inlägg' + (u.hidden_posts ? ` (${u.hidden_posts} dolda)` : ''), u.joined ? 'gick med ' + new Date(u.joined).toLocaleDateString(LOC(), { day: 'numeric', month: 'short', year: 'numeric' }) : ''].filter(Boolean).join(' · ')}</span></span>${ic(I.back, 'var(--mut)', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`).join('') : '<p class="mut" style="margin:8px 2px">Ingen hittades.</p>'}
   ${S.modUMore ? `<button class="btn line wide" style="margin-top:10px" onclick="modUMore()">Visa fler</button>` : ''}</div>`;
 }
@@ -9909,15 +9941,15 @@ function modOnlineV(D) {
   return `<div class="pad"><p class="mut" style="margin:4px 0 12px;font-size:13px">${on} online · ${idle} inaktiva. Uppdateras var 30:e sekund.</p>
   <div class="setcard" style="padding:6px 14px">${D.length ? D.map(x => { const [c, t] = L[x.status] || L.offline; return `<div class="prow2"><span class="pdot ${c}" aria-hidden="true"></span><button class="grow" style="text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer" onclick="modOpenUser(${jsArg(x.user_id)})"><b>${esc(x.display_name || 'Okänd')}</b><small class="mut" style="display:block">${t}${x.status === 'offline' ? ' · senast ' + ago(x.last_seen) : x.status === 'idle' ? ' · senaste åtgärd ' + ago(x.last_action) : ''}</small></button></div>`; }).join('') : '<p class="mut" style="margin:10px 0">Ingen har varit i appen de senaste 48 timmarna.</p>'}</div></div>`;
 }
-const MOD_TREE = [['Granska', [['open', 'Rapporter'], ['best', 'Bästa svar'], ['plants', 'Växter'], ['feed', 'Gemenskap']]], ['Hantering', [['done', 'Hanterade'], ['users', 'Alla användare']]], ['Appen', [['stats', 'Statistik'], ['sok', 'Sökningar'], ['online', 'Användare online']]], ['Felknappen', [['nyckl', 'Alla'], ['err', 'Felrapporter'], ['fb', 'Feedback']]], ];
+const MOD_TREE = [['Granska', [['open', 'Rapporter'], ['best', 'Bästa svar'], ['plants', 'Växter'], ['feed', 'Gemenskap']]], ['Hantering', [['done', 'Hanterade'], ['users', 'Alla användare']]], ['Appen', [['kpi', 'Nyckeltal'], ['stats', 'Statistik'], ['sok', 'Sökningar'], ['online', 'Användare online']]], ['Felknappen', [['nyckl', 'Alla'], ['err', 'Felrapporter'], ['fb', 'Feedback']]], ];
 function modNavItems(n) { return MOD_TREE.find(([x]) => x === n)[1].concat(n === 'Hantering' && isAdmin() ? [['team', 'Team']] : []).concat(n === 'Appen' && isAdmin() ? [['sentry', 'Sentry-test']] : []); }
 // Testknapp för Sentry: skickar ett testfel så att man ser att felrapporteringen fungerar. Bara för admins.
 function sentryTest() { const msg = document.getElementById('sentrymsg'); const id = (window.Sentry && Sentry.captureException) ? Sentry.captureException(new Error('Roothood testfel från adminknappen ' + new Date().toISOString())) : null; if (msg) msg.textContent = id ? 'Skickat. Event-id: ' + id : 'Sentry är inte laddat. Ladda om appen och försök igen.'; }
 function sentryTestV() { return `<div class="pad"><p>Skickar ett testfel till Sentry. Kontrollera sedan i Sentry-projektet roothood-web.</p><button class="btn" onclick="sentryTest()">Skicka testfel</button><p id="sentrymsg" class="mut" style="margin-top:10px"></p></div>`; }
 function modSecGo(n) { modTab(modNavItems(n)[0][0]); }
-const MOD_SORTS = { n: ['Flest rapporter', (a, b) => (b.n || 0) - (a.n || 0) || new Date(a.created_at) - new Date(b.created_at)], new: ['Nyast först', (a, b) => new Date(b.created_at) - new Date(a.created_at)], old: ['Äldst först', (a, b) => new Date(a.created_at) - new Date(b.created_at)] };
+const MOD_SORTS = { n: ['Mest brådskande (flest rapporter först)', (a, b) => (b.n || 0) - (a.n || 0) || new Date(a.created_at) - new Date(b.created_at)], new: ['Nyast först', (a, b) => new Date(b.created_at) - new Date(a.created_at)], old: ['Äldst först', (a, b) => new Date(a.created_at) - new Date(b.created_at)] };
 function setModSort(v) { S.modSort = v; keepMain(); }
-const FB_SORTS = { new: ['Nyast först', (a, b) => new Date(b.created_at) - new Date(a.created_at)], old: ['Äldst först', (a, b) => new Date(a.created_at) - new Date(b.created_at)], kind: ['Typ', (a, b) => String(a.kind || '').localeCompare(String(b.kind || '')) || new Date(b.created_at) - new Date(a.created_at)] };
+const FB_SORTS = { urg: ['Mest brådskande (äldst först)', (a, b) => new Date(a.created_at) - new Date(b.created_at)], new: ['Nyast först', (a, b) => new Date(b.created_at) - new Date(a.created_at)], old: ['Äldst först', (a, b) => new Date(a.created_at) - new Date(b.created_at)], kind: ['Typ', (a, b) => String(a.kind || '').localeCompare(String(b.kind || '')) || new Date(b.created_at) - new Date(a.created_at)] };
 function setFbSort(v) { S.modFbSort = v; keepMain(); }
 function modSecTog(n) { const c = S.modSec || {}; S.modSec = { ...c, [n]: c[n] !== true }; keepMain(); }
 function modTreeV(t) {
@@ -9938,9 +9970,26 @@ function modStatusGroups(D, st) {
   const rest = D.filter(f => !st[f.status]);
   return rest.length ? g.concat([['', rest]]) : g;
 }
+// Startsida för Moderering: knappar grupperade efter vad som ska göras, med antal som väntar och sökfält.
+const MOD_HOME = [
+  ['Att göra nu', [['open', 'Rapporter', 'ph-flag', 'Inlägg, svar och foton som någon rapporterat'], ['best', 'Bästa svar', 'ph-seal-check', 'Svar som väntar på godkännande'], ['plants', 'Nya växter', 'ph-plant', 'Föreslagna växter att granska'], ['nyckl', 'Felknappen', 'ph-bug', 'Felrapporter och förslag från användarna']]],
+  ['Gemenskap', [['feed', 'Gemenskap', 'ph-chats-circle', 'Senaste inlägg och svar'], ['users', 'Alla användare', 'ph-users', 'Sök och sortera användare'], ['online', 'Användare online', 'ph-wifi-high', 'Vilka som använder appen just nu'], ['done', 'Hanterade rapporter', 'ph-check-circle', 'Rapporter som redan är behandlade']]],
+  ['Appen', [['kpi', 'Nyckeltal', 'ph-chart-line-up', 'Behåller vi folk, Play-testet och rapporter'], ['stats', 'Statistik', 'ph-chart-bar', 'Aktiva personer, funktioner och tid'], ['sok', 'Sökningar', 'ph-magnifying-glass', 'Vad användarna söker efter']]],
+  ['Admin', [['team', 'Team', 'ph-user-gear', 'Lägg till och ta bort moderatorer'], ['sentry', 'Sentry-test', 'ph-warning-circle', 'Skicka ett testfel']]]
+];
+function modTabLabel(t) { for (const [, L] of MOD_HOME) for (const it of L) if (it[0] === t) return it[1]; return t === 'nyckl' ? 'Felknappen' : 'Moderering'; }
+function modHQ(v) { S.modHQ = v; const i = $('#mhq'), pos = i ? i.selectionStart : 0; render(); const j = $('#mhq'); if (j) { j.focus(); try { j.setSelectionRange(pos, pos); } catch (e) {} } }
+function modHomeV(D) {
+  const q = (S.modHQ || '').trim().toLowerCase(), open = f => f.status !== 'fixed' && f.status !== 'wontfix';
+  const cnt = k => k === 'open' ? (S.modOpen || 0) : k === 'best' ? (S.modBestN || 0) : k === 'plants' ? ((D && D.plants) || 0) : k === 'nyckl' ? (((D && D.fb) || []).filter(open).length) : 0;
+  const groups = MOD_HOME.filter(g => g[0] !== 'Admin' || isAdmin()).map(([n, L]) => [n, L.filter(([, l, , h]) => !q || (l + ' ' + h).toLowerCase().includes(q))]).filter(([, L]) => L.length);
+  return `<div class="pad" style="padding-top:10px"><input type="search" class="musearch" id="mhq" placeholder="Sök i Moderering" value="${esc(S.modHQ || '')}" oninput="modHQ(this.value)" aria-label="Sök i Moderering"></div>`
+    + (groups.map(([n, L]) => `<div class="sec"><h2>${n}</h2></div><div class="pad nlist">${L.map(([k, l, i, h]) => { const c = cnt(k), todo = n === 'Att göra nu'; return `<button class="nrow${todo && c ? ' new' : ''}" style="${todo && !c ? 'opacity:.6' : ''}" onclick="modTab('${k}')"><span class="nic">${ic(i, 'currentColor', 22)}</span><span class="grow"><b>${l}</b><small class="mut" style="display:block">${h}</small></span>${c ? `<em class="tabn">${c}</em>` : ''}</button>`; }).join('')}</div>`).join('') || '<p class="mut" style="margin:16px 18px">Inget matchar.</p>');
+}
 function modV() {
-  const t = S.modTab || 'open', D = S.modData, tabs = [['open', 'Rapporter' + (S.modOpen ? ' (' + S.modOpen + ')' : '')], ['best', 'Bästa svar' + (S.modBestN ? ' (' + S.modBestN + ')' : '')], ['plants', 'Växter'], ['done', 'Hanterade'], ['feed', 'Gemenskap'], ['users', 'Alla användare'], ['stats', 'Statistik'], ['sok', 'Sökningar'], ['err', 'Felrapporter'], ['fb', 'Feedback']].concat(isAdmin() ? [['team', 'Team']] : []);
+  const t = S.modTab || 'open', D = S.modData, tabs = [['open', 'Rapporter' + (S.modOpen ? ' (' + S.modOpen + ')' : '')], ['best', 'Bästa svar' + (S.modBestN ? ' (' + S.modBestN + ')' : '')], ['plants', 'Växter'], ['done', 'Hanterade'], ['feed', 'Gemenskap'], ['users', 'Alla användare'], ['kpi', 'Nyckeltal'], ['stats', 'Statistik'], ['sok', 'Sökningar'], ['err', 'Felrapporter'], ['fb', 'Feedback']].concat(isAdmin() ? [['team', 'Team']] : []);
   let body;
+  if (t === 'home') return `${topbar('Moderering', 'S.tool=null;render()')}${S.modErr ? `<p class="formmsg" style="margin:16px 18px">${esc(S.modErr)}</p>` : modHomeV(D)}`;
   if (S.modErr) body = `<p class="formmsg" style="margin:16px 18px">${esc(S.modErr)}</p>`;
   else if (D == null) body = '<p class="mut" style="margin:16px 18px">Hämtar…</p>';
   else if (t === 'open' || t === 'done') {
@@ -9958,6 +10007,8 @@ function modV() {
     body = modOnlineV(D);
   } else if (t === 'sok') {
     body = modSokV(D);
+  } else if (t === 'kpi') {
+    body = modKpiV(D);
   } else if (t === 'stats') {
     body = modStatsV(D);
   } else if (t === 'fb' || t === 'err' || t === 'nyckl') {
@@ -9976,9 +10027,9 @@ function modV() {
   }
   const sortSel = (opts, cur, fn, count) => `<div class="modbar"><span class="mut">${count} ${count === 1 ? 'ärende' : 'ärenden'}</span><label>Sortera <select onchange="${fn}(this.value)">${Object.keys(opts).map(k => `<option value="${k}" ${cur === k ? 'selected' : ''}>${opts[k][0]}</option>`).join('')}</select></label></div>`;
   const sortBar = D && !S.modErr && (t === 'open' || t === 'done') ? sortSel(MOD_SORTS, S.modSort || 'n', 'setModSort', new Set(D.map(r => r.kind + r.target + r.status)).size)
-    : D && !S.modErr && (t === 'fb' || t === 'err' || t === 'nyckl') ? sortSel(FB_SORTS, S.modFbSort || 'new', 'setFbSort', D.length) : '';
-  return `${topbar('Moderering', 'S.tool=null;render()')}
-  ${modTreeV(t)}${sortBar}${body}
+    : D && !S.modErr && (t === 'fb' || t === 'err' || t === 'nyckl') ? sortSel(FB_SORTS, S.modFbSort || 'urg', 'setFbSort', D.length) : '';
+  return `${topbar(modTabLabel(t), "modTab('home')")}
+  ${sortBar}${body}
   <p class="mut" style="font-size:12.5px;margin:14px 18px 24px">Ett inlägg eller svar döljs automatiskt när tre olika personer har rapporterat det. Du kan välja att behålla det eller dölja det.</p>`;
 }
 // ===== Blockera =====
@@ -13708,6 +13759,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.470', '24 nov', ['Moderering: ny startsida med knappar efter vad som ska göras, sökfält och antal som väntar','Moderering: ny flik Nyckeltal med behåll av användare, Play-testet, rapporter, växter, gemenskap, identifiering och Pro','Moderering: sortering efter det mest brådskande i rapporter och felrapporter, och fler sorteringar bland användare']],
   ['Beta 0.469', '24 nov', ['Pelargonium helmsii har fått en egen bild på hyllan i Min samling','Uppdateringsloggen är städad och visar bara sådant som rör dig']],
   ['Beta 0.468', '24 nov', ['Nya växter på hyllan i Min samling: fler Hoya, Anthurium och Philodendron, och 13 nya växter i databasen']],
   ['Beta 0.467', '24 nov', ['Anpassa startskärmen är mindre och lättare att använda: en rad per del, tryck på namnet för att ändra storlek, och genvägarna ligger i grupper du kan öppna']],
@@ -16751,7 +16803,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.469';
+const APP_VERSION = 'Beta 0.470';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -17049,7 +17101,7 @@ function stadSetHome() {
       srow('ph-layout', 'Anpassa startskärmen', '', "go('home');openHomeCfg()"),
       srow(DOORI, 'Mitt hem', (S.home || []).length ? S.home.length + ' rum' : '', 'openHouse()'),
       srow(HOMEI, 'Smarta hemmet', '', 'openSmart()'),
-      isMod() ? srow('ph-shield-check', 'Moderering', S.modOpen ? S.modOpen + ' väntar' : '', "openMod('open')") : ''
+      isMod() ? srow('ph-shield-check', 'Moderering', S.modOpen ? S.modOpen + ' väntar' : '', "openMod('home')") : ''
     ])}
   ${sgroup('Om', [srow('ph-sparkle', 'Nytt i appen', APP_VERSION, 'openNews()'), srow('ph-info', 'Om Roothood', '', "S.setSub='om';render()")])}
   ${S.user && !DEMO ? `<div class="sgroup" style="margin-top:24px"><button class="srow sdanger" onclick="signOut().then(() => { S.tool = null; render(); })"><span class="st">Logga ut</span></button></div>` : ''}
@@ -17187,7 +17239,7 @@ function setSecV(id, icon, title, sub, body) {
 }
 function setTog(id) { S.setOpen = S.setOpen || {}; S.setOpen[id] = !S.setOpen[id]; keepMain(); }
 function setAdvV(id, body) { const on = !!(S.setAdv || {})[id]; return `<div class="setadv"><button class="linkbtn" onclick="S.setAdv=S.setAdv||{};S.setAdv['${id}']=!S.setAdv['${id}'];keepMain()">${on ? 'Dölj avancerat' : 'Avancerat'} ${on ? '▴' : '▾'}</button>${on ? `<div style="margin-top:10px">${body}</div>` : ''}</div>`; }
-function modBtn() { return `<button class="circ lab" onclick="openMod('open')" aria-label="Moderering" title="Moderering">${ic('ph-shield-check', null, 22)}<span class="cl">Moderera</span></button>`; }
+function modBtn() { return `<button class="circ lab" onclick="openMod('home')" aria-label="Moderering" title="Moderering">${ic('ph-shield-check', null, 22)}<span class="cl">Moderera</span></button>`; }
 function gearBtn() { return `<button class="circ lab" onclick="openSettings()" aria-label="Inställningar" title="Inställningar">${ic(GEAR, null, 22)}<span class="cl">Inställningar</span></button>`; }
 function settingsRow() {
   return `<div class="pad" style="padding-top:12px"><button class="setrow" onclick="openSettings()"><span class="tic">${ic(GEAR, 'currentColor', 20)}</span><span class="grow"><b>Inställningar</b><span>Profil, utseende, odlingszon och konto</span></span>${ic(I.back, 'var(--mut)', 18).replace('<svg', '<svg style="transform:rotate(180deg)"')}</button></div>`;

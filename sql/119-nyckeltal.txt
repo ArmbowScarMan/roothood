@@ -1,0 +1,49 @@
+-- Nyckeltal för moderatorer: trappa för nya användare, Play-test och rapporter. Bara läsning.
+
+create or replace function public.mod_kpi_funnel(p_days int default 3650)
+returns table(konton int, med_vaxt int, vattnat int, atervant int)
+language plpgsql stable security definer set search_path to 'public' as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query
+  with u as (select id from profiles where created_at > now() - make_interval(days => greatest(1, least(p_days, 3650))))
+  select count(*)::int,
+    count(*) filter (where exists (select 1 from user_plants p where p.user_id = u.id))::int,
+    count(*) filter (where exists (select 1 from care_log c where c.user_id = u.id and c.kind = 'water')
+                        or exists (select 1 from user_plants p where p.user_id = u.id and p.last_watered is not null))::int,
+    count(*) filter (where (select count(distinct d.day) from usage_daily d where d.user_id = u.id) >= 2)::int
+  from u;
+end $$;
+
+create or replace function public.mod_kpi_playtest(p_days int default 14)
+returns table(user_id uuid, display_name text, active_days int, last_day date, device text)
+language plpgsql stable security definer set search_path to 'public' as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query
+  select p.id, p.display_name,
+    (select count(distinct d.day)::int from usage_daily d where d.user_id = p.id and d.day > current_date - greatest(1, least(p_days, 60))),
+    (select max(d.day) from usage_daily d where d.user_id = p.id),
+    pr.device
+  from profiles p left join presence pr on pr.user_id = p.id
+  where p.beta_tester
+  order by 3 desc, 4 desc nulls last limit 200;
+end $$;
+
+create or replace function public.mod_kpi_reports()
+returns table(rep_nya_7d int, rep_oppna int, rep_hanterade int, rep_snitt_timmar numeric,
+              fb_oppna_fel int, fb_oppna_forslag int, fb_aldsta_dagar int)
+language plpgsql stable security definer set search_path to 'public' as $$
+begin
+  if not public.is_mod() then raise exception 'NOT_MOD'; end if;
+  return query select
+    (select count(*)::int from reports where created_at > now() - interval '7 days'),
+    (select count(*)::int from reports where status = 'open'),
+    (select count(*)::int from reports where status <> 'open'),
+    (select round(avg(extract(epoch from (handled_at - created_at)) / 3600)::numeric, 1) from reports where status <> 'open' and handled_at is not null),
+    (select count(*)::int from feedback where kind = 'bug' and coalesce(status, 'open') not in ('fixed', 'wontfix')),
+    (select count(*)::int from feedback where kind <> 'bug' and coalesce(status, 'open') not in ('fixed', 'wontfix')),
+    (select coalesce(max(extract(day from now() - created_at))::int, 0) from feedback where coalesce(status, 'open') not in ('fixed', 'wontfix'));
+end $$;
+
+grant execute on function public.mod_kpi_funnel(int), public.mod_kpi_playtest(int), public.mod_kpi_reports() to authenticated;
