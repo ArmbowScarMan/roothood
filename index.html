@@ -2498,7 +2498,8 @@ function dayLenH() { const l = sunLoc(), ds = dIso(new Date()), k = ds + '|' + l
 const winterRest = () => dayLenH() < WINTER_H;
 function dayLenTxt() { const m = Math.round(dayLenH() * 60); return Math.floor(m / 60) + ' h ' + (m % 60) + ' min'; }
 function dayLenSent() { return Math.round(dayLenH() * 60) < 5 ? 'Solen går inte upp (polarnatt).' : 'Dagen är bara ' + dayLenTxt() + ' lång.'; }
-const ivOf = m => m.interval && winterRest() && !isOutM(m) ? Math.round(m.interval * 1.5) : m.interval;
+const baseIv = m => (m.details && +m.details.iv) || m.interval;
+const ivOf = m => { const b = baseIv(m); return b && winterRest() && !isOutM(m) ? Math.round(b * 1.5) : b; };
 const left = m => { if (m.remind !== false && sensorDry(m)) return 0; if (!m.interval || m.remind === false) return null; const iv = ivOf(m), s0 = since(m.last_watered); return Math.max(0, iv - (s0 == null ? iv : s0)); };
 const newRemind = () => S.addRemind !== undefined ? S.addRemind : store.get('remindDefault', true);
 const ord = n => (n % 10 === 1 || n % 10 === 2) && n % 100 !== 11 && n % 100 !== 12 ? ':a' : ':e';
@@ -2652,6 +2653,9 @@ const demoApi = {
   async delWatch(id) { store.set('demoWatch', store.get('demoWatch', []).filter(w => w.id !== id)); },
   async notifyListing() { },
   async log(upId) { return store.get('log', []).filter(x => x.user_plant_id === upId); },
+  async allLog() { return store.get('log', []).map(x => ({ user_plant_id: x.user_plant_id, kind: x.kind, done_on: x.done_on, note: x.note })); },
+  async kindLog(kind) { return store.get('log', []).filter(x => x.kind === kind).map(x => ({ user_plant_id: x.user_plant_id, done_on: x.done_on })); },
+  async weekLog(from) { return store.get('log', []).filter(x => x.kind === 'water' && x.done_on >= from).map(x => ({ user_plant_id: x.user_plant_id, done_on: x.done_on })); },
   async addLog(upId, kind, date, note) { const l = store.get('log', []); l.push({ id: Date.now(), user_plant_id: upId, kind, done_on: date, note: note || null, created_at: new Date().toISOString() }); store.set('log', l); },
   async delLog(id) { store.set('log', store.get('log', []).filter(x => x.id !== id)); },
   async savePush() {},
@@ -2930,6 +2934,9 @@ const sbApi = {
   async delWatch(id) { const { error } = await sb.from('listing_watches').delete().eq('id', id); if (error) throw error; },
   async notifyListing(id) { const { data } = await sb.auth.getSession(); await fetch(SUPABASE_URL + '/functions/v1/send-reminders', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + (data.session ? data.session.access_token : '') }, body: JSON.stringify({ event: 'listing', post: id }) }); },
   async saveNotifPrefs(p) { const { error } = await sb.from('profiles').update({ notif_prefs: p }).eq('id', S.user.id); if (error) throw /notif_prefs/.test(error.message || '') ? new Error('Notisinställningarna är inte påslagna än. Kör SQL-filen 087 i Supabase.') : error; },
+  async allLog() { const { data, error } = await sb.from('care_log').select('user_plant_id,kind,done_on,note').order('done_on'); if (error) throw error; return data || []; },
+  async kindLog(kind) { const { data, error } = await sb.from('care_log').select('user_plant_id,done_on').eq('kind', kind); if (error) throw error; return data || []; },
+  async weekLog(from) { const { data, error } = await sb.from('care_log').select('user_plant_id,done_on').eq('kind', 'water').gte('done_on', from); if (error) throw error; return data || []; },
   async log(upId) { const { data, error } = await sb.from('care_log').select('id,user_plant_id,kind,done_on,note,created_at').eq('user_plant_id', upId).order('done_on', { ascending: false }); if (error) throw error; return data; },
   async addLog(upId, kind, date, note) { const { error } = await sb.from('care_log').insert({ user_plant_id: upId, kind, done_on: date, note: note || null }); if (error) throw error; },
   async delLog(id) { const { error } = await sb.from('care_log').delete().eq('id', id); if (error) throw error; },
@@ -3339,7 +3346,7 @@ function myplantV() {
   <div class="addpimg">${myPh(m)}</div>
   ${m.latin ? `<p class="mut" style="margin:10px 0 0"><i>${esc(m.latin)}</i></p>` : ''}
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><span class="tag lime">${esc(m.category || 'Egen växt')}</span><span class="tag green">${d === null ? 'Vattna vid torka' : d === 0 ? 'Vattna idag' : 'Vattnas om ' + d + (d === 1 ? ' dag' : ' dagar')}</span></div>
-  ${m.interval ? `<p style="margin:14px 0 0">Vattna ungefär var ${ivOf(m)}${ord(ivOf(m))} dag.${ivOf(m) !== m.interval ? ' <span class="mut">(Vintervila: ' + m.interval + ' dagar under växtsäsongen.)</span>' : ''}</p>` : ''}
+  ${m.interval ? `<p style="margin:14px 0 0">Vattna ungefär var ${ivOf(m)}${ord(ivOf(m))} dag.${winterRest() && !isOutM(m) ? ' <span class="mut">(Vintervila: ' + baseIv(m) + ' dagar under växtsäsongen.)</span>' : ''}</p>` : ''}
   ${m.notes ? `<div class="tipr" style="margin-top:12px;box-shadow:none"><span class="ck">${ic(I.check, 'currentColor', 16)}</span><div><b>Anteckningar</b><span>${esc(m.notes)}</span></div></div>` : ''}
   ${sensorCard(m, true)}
   ${detailsV(m, true)}
@@ -7889,7 +7896,7 @@ function tlineV() {
   <p class="mut" style="font-size:13px;margin:12px 0 0">Ta ett nytt foto från samma håll då och då, så ser du hur växten växer.</p>`;
 }
 function galleryV(my) {
-  return `<div class="sec"><h2>Mina foton</h2>${my.photos.length > 1 ? `<button class="link3" onclick="openTimeline(${my.id})">${ic('ph-film-strip', 'currentColor', 15)} Tidslinje</button>` : ''}${my.photos.length ? (my.photo ? `<button class="link3" onclick="showDbPhoto(${my.id})">Visa databasens foto</button>` : '<span class="mut" style="font-size:13px">Databasens foto visas</span>') : ''}</div>
+  return `<div class="sec"><h2>Mina foton</h2>${my.photos.length > 1 ? `<button class="link3" onclick="openTimeline(${my.id})">${ic('ph-film-strip', 'currentColor', 15)} Tidslinje</button><button class="link3" onclick="openBA(${my.id})">${ic('ph-arrows-left-right', 'currentColor', 15)} Före/efter</button>` : ''}${my.photos.length ? (my.photo ? `<button class="link3" onclick="showDbPhoto(${my.id})">Visa databasens foto</button>` : '<span class="mut" style="font-size:13px">Databasens foto visas</span>') : ''}</div>
   <div class="gallery">${my.photos.map((u, i) => `<div class="gimg ${my.photo === u ? 'on' : ''}"><button class="gpick" onclick="pickMyPhoto(${my.id},${i})" aria-label="Visa foto ${i + 1} för växten"><img src="${esc(u)}" alt="" loading="lazy"></button>${my.photo === u ? `<span class="gsel">${ic(I.check, 'currentColor', 13)}</span>` : ''}<button class="gdel ${S.del === 'ph' + i ? 'sure' : ''}" onclick="delMyPhoto(${my.id},${i})" aria-label="Ta bort foto ${i + 1}">${S.del === 'ph' + i ? 'Ta bort?' : '×'}</button></div>`).join('')}
   <label onclick="photoPick(event,this)" class="gadd">${ic(CAM, 'currentColor', 22)}<span>Lägg till foto</span><input type="file" accept="image/*" class="sr" onchange="addMyPhoto(${my.id}, this)"></label></div>
   ${my.photos.length ? '<p class="mut" style="font-size:13px;margin:8px 18px 0">Tryck på ett foto för att visa det för växten. Alla dina foton sparas. Andra kan se dem under "Andras bilder" (ändra i Inställningar).</p>' : ''}`;
@@ -8214,6 +8221,9 @@ function diaryV(m, inModal) {
   const g = growthTxt(d);
   return `${inModal ? '' : '<div class="sec"><h2>Växtjournalen</h2></div>'}<div class="diary journal ${inModal ? 'inm' : ''}">${inModal ? '<h3>Växtjournalen</h3>' : ''}
   <div class="dsum"><div><small>Vattnad</small><b>${agoTxt(lw)}</b></div><div><small>Gödslad</small><b>${agoTxt(last('feed'))}</b></div><div><small>Omplanterad</small><b>${agoTxt(last('repot'))}</b></div>${d.h ? `<div><small>Höjd</small><b>${d.h} cm</b>${g ? `<span class="mut" style="font-size:11px">${g}</span>` : ''}</div>` : ''}${d.leaf ? `<div><small>Största blad</small><b>${d.leaf} cm</b></div>` : ''}${d.since ? `<div><small>Hos dig sedan</small><b>${whenTxt(d.since)}</b></div>` : ''}</div>
+  ${ivSugV(m, list)}
+  <div class="chips2 sm" style="margin:8px 0">${m.photos && m.photos.length > 1 ? `<button onclick="openTimeline(${m.id})">${ic('ph-film-strip', 'currentColor', 16)} Tidslinje</button><button onclick="openBA(${m.id})">${ic('ph-arrows-left-right', 'currentColor', 16)} Före/efter</button>` : ''}<button onclick="printTag(${m.id})">${ic('ph-printer', 'currentColor', 16)} Skriv ut skylt</button></div>
+  ${cuttingsV(m)}
   <div class="jquick"><span class="mut">Idag:</span>${['water', 'feed', 'repot', 'prune'].map(k => `<button onclick="jQuick(${m.id},'${k}')">${ic(LOGK[k][1], 'currentColor', 16)} ${LOGK[k][0]}</button>`).join('')}</div>
   ${!inModal && !draft && !(S.jopen || {})[m.id] ? `<button class="btn sm line" style="margin-top:10px" onclick="S.jopen=S.jopen||{};S.jopen[${m.id}]=1;keepMain();setTimeout(()=>{const t=document.getElementById('jn${m.id}');if(t)t.focus()},50)">+ Skriv anteckning</button>` : `<div class="jnote"><textarea id="jn${m.id}" rows="2" maxlength="480" placeholder="Skriv en anteckning, t.ex. nytt blad på gång" oninput="S.jdraft=S.jdraft||{};S.jdraft[${m.id}]=this.value">${esc(draft)}</textarea>
     <div class="chips2 sm jtags">${JTAGS.map(([k, n]) => `<button class="${tag === k ? 'on' : ''}" aria-pressed="${tag === k}" onclick="jTag(${m.id},'${k}')">${n}</button>`).join('')}</div>
@@ -8302,7 +8312,7 @@ function careTasks(m, month) {
   if (month === cur) {
     const L = Array.isArray(S.log[m.id]) ? S.log[m.id] : [], win = { feed: g === 'inne' || g === 'kok' ? 14 : 28, repot: 300, prune: 60 };
     T.forEach(t => { const e = t.k ? L.find(x => x.kind === t.k) : L.find(x => x.kind === 'note' && x.note === 'Gjort: ' + t.t); if (e && (since(e.done_on) ?? 9999) <= (t.k ? win[t.k] : 31)) { t.done = true; t.when = e.done_on; } });
-    const d = left(m); if (d === 0) T.unshift({ k: 'water', t: 'Vattna idag', d: m.interval ? 'Den vattnas ungefär var ' + m.interval + ord(m.interval) + ' dag.' : '' });
+    const d = left(m); if (d === 0) T.unshift({ k: 'water', t: 'Vattna idag', d: m.interval ? 'Den vattnas ungefär var ' + ivOf(m) + ord(ivOf(m)) + ' dag' + (winterRest() && !isOutM(m) ? ' just nu (vintervila).' : '.') : '' });
   }
   return month === cur && winterRest() ? T.filter(t => t.k !== 'feed') : T;
 }
@@ -8525,7 +8535,7 @@ function render() {
     if (keepY != null) m.scrollTop = keepY;
   }
   render.vk = vkey;
-  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'nbrake' ? nbrakeV() : S.modal === 'shareplant' ? sharePlantV() : S.modal === 'watch' ? watchV() : S.modal === 'hvis' ? hvisV() : S.modal === 'soilv' ? jordV() : S.modal === 'pmeas' ? pmeasV() : S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'mf' ? mfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
+  $('#ov').innerHTML = S.modal ? `<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true">${S.modal === 'export' ? exportV() : S.modal === 'ckdue' ? ckDueV() : S.modal === 'repot' ? repotV() : S.modal === 'cal' ? calV() : S.modal === 'trip' ? tripV() : S.modal === 'bloomnow' ? bloomNowV() : S.modal === 'cleanup' ? cleanV() : S.modal === 'ba' ? baV() : S.modal === 'nbrake' ? nbrakeV() : S.modal === 'shareplant' ? sharePlantV() : S.modal === 'watch' ? watchV() : S.modal === 'hvis' ? hvisV() : S.modal === 'soilv' ? jordV() : S.modal === 'pmeas' ? pmeasV() : S.modal === 'psview' ? psViewV() : S.modal === 'duelist' ? dueListV() : S.modal === 'addfr' ? addFriendV() : S.modal === 'alltools' ? allToolsModalV() : S.modal === 'testmsg' ? testerMsgV() : S.modal === 'zonepick' ? zonePickV() : S.modal === 'namepick' ? namePickV() : S.modal === 'scanres' ? scanResV() : S.modal === 'simplepick' ? simplePickV() : S.modal === 'helpme' ? helpMeV() : S.modal === 'support' ? supportV() : S.modal === 'prointro' ? proIntroV() : S.modal === 'dsf' ? dsfV() : S.modal === 'dbf' ? dbfV() : S.modal === 'mf' ? mfV() : S.modal === 'fb' ? fbV() : S.modal === 'pushask' ? pushAskV() : S.modal === 'sowc' ? sowCropV() : S.modal === 'sowadd' ? sowAddV() : S.modal === 'allpl' ? allPlV() : S.modal === 'tline' ? tlineV() : S.modal === 'qadd' ? qaddV() : S.modal === 'askq' ? askQV() : S.modal === 'login' ? loginV() : S.modal === 'report' ? reportV() : S.modal === 'myplant' ? myplantV() : S.modal === 'photo' ? lbV() : S.modal === 'newpw' ? newPwV() : S.modal === 'upd' ? updV() : S.modal === 'hhelp' ? helpHouseV() : S.modal === 'chelp' ? helpCommV() : S.modal === 'pdet' ? pdetV() : S.modal === 'homecfg' ? homeCfgV() : S.modal === 'room' ? roomFormV() : S.modal === 'pickroom' ? pickRoomSheet() : S.modal === 'planpick' ? planPickV() : S.modal === 'roof' ? roofV() : S.modal === 'temple' ? templeV() : S.modal === 'addp' ? addpV() : S.modal === 'flr' ? flrV() : S.modal === 'frask' ? friendAskV() : S.modal === 'dup' ? dupV() : S.modal === 'pro' ? proV() : S.modal === 'bed' ? bedV() :
   S.modal === 'bedhelp' ? bedHelpV() : S.modal === 'bpick' ? bpickV() : addV()}</div></div>` : '';
   iconize($('#ov')); sheetAnim();
   if (keepM != null) { const nm = document.querySelector('#ov .modal'); if (nm) nm.scrollTop = keepM; } render.mk = S.modal;
@@ -11124,12 +11134,303 @@ function toolTile(k, size) {
   return size === 'l' ? `<button class="tool qs wide t-${k}" onclick="${T[2]}"><span class="tic ${T[1]}">${ic(T[0], 'currentColor', 22)}</span><span class="grow"><b>${b[1]}</b></span>${T[3]}</button>`
     : `<button class="tool qs t-${k}" onclick="${T[2]}"><span class="tic ${T[1]}">${ic(T[0], 'currentColor', 22)}</span><b>${b[1]}</b>${T[3]}</button>`;
 }
+// ===== 25 nov: fem nya hjälpmedel =====
+// 1. Förslag om eget vattningsintervall utifrån hur ofta du faktiskt vattnat (inget ändras utan att du trycker Ja)
+function ivSuggest(m, list) {
+  if (!m.interval || isOutM(m) || winterRest()) return null;
+  const hid = store.get('ivHide', {}); if (hid[m.id] && Date.now() - hid[m.id] < 60 * 864e5) return null;
+  const ds = [...new Set((list || []).filter(x => x.kind === 'water').map(x => x.done_on))].sort();
+  if (ds.length < 4) return null;
+  const last = ds.slice(-5), gaps = []; for (let i = 1; i < last.length; i++) gaps.push((Date.parse(last[i]) - Date.parse(last[i - 1])) / 864e5);
+  const avg = Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length), base = baseIv(m);
+  if (!(avg >= 2 && avg <= 60) || Math.abs(avg - base) < 3 || Math.abs(avg - base) / base < 0.3) return null;
+  return avg;
+}
+function ivSugV(m, list) {
+  const own = m.details && +m.details.iv, sug = ivSuggest(m, list);
+  if (!sug && !own) return '';
+  if (sug) return `<div class="setcard" style="margin:10px 0"><b>Passar påminnelsen?</b><div class="mut" style="font-size:14px;margin:4px 0 8px">Du brukar vattna ${esc(m.name)} ungefär var ${sug}${ord(sug)} dag, men påminnelsen är satt till var ${baseIv(m)}${ord(baseIv(m))}. Vill du ändra den?</div><div style="display:flex;gap:8px"><button class="btn sm" onclick="ivAccept(${m.id},${sug})">Ja, var ${sug}${ord(sug)} dag</button><button class="btn sm line" onclick="ivNo(${m.id})">Nej tack</button></div></div>`;
+  return `<p class="mut" style="margin:8px 0;font-size:14px">Din egen påminnelse: var ${own}${ord(own)} dag. <button class="link3" onclick="ivReset(${m.id})">Återställ</button></p>`;
+}
+function ivAccept(id, n) { const m = S.mine.find(x => x.id === id); if (!m) return; const d = { ...(m.details || {}), iv: n }; run(async () => { await api.saveDetails(id, d); m.details = d; S.mine = await api.mine(); }, 'Påminnelsen är ändrad'); }
+function ivReset(id) { const m = S.mine.find(x => x.id === id); if (!m) return; const d = { ...(m.details || {}) }; delete d.iv; run(async () => { await api.saveDetails(id, d); m.details = d; S.mine = await api.mine(); }, 'Påminnelsen är återställd'); }
+function ivNo(id) { const h = store.get('ivHide', {}); h[id] = Date.now(); store.set('ivHide', h); keepMain(); }
+
+// 2. Före/efter: dra för att jämföra två foton av samma växt
+function openBA(id) { const my = S.mine.find(x => x.id === id); if (!my || my.photos.length < 2) return; S.ba = { id, a: 0, b: my.photos.length - 1 }; openModal('ba'); }
+function baV() {
+  const my = S.mine.find(x => x.id === (S.ba || {}).id); if (!my) return '';
+  const P = tlPhotos(my), A = P[Math.min(S.ba.a, P.length - 1)], B = P[Math.min(S.ba.b, P.length - 1)];
+  const lab = (x, i) => 'Foto ' + (i + 1) + (x.d ? ' (' + dayStr(new Date(x.d)) + ')' : '');
+  const sel = (k, v) => `<select onchange="S.ba.${k}=+this.value;render()" style="flex:1;min-width:0">${P.map((x, i) => `<option value="${i}" ${i === v ? 'selected' : ''}>${esc(lab(x, i))}</option>`).join('')}</select>`;
+  const im = (u, extra) => `<img src="${esc(u)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;${extra || ''}">`;
+  return `<div class="mh2"><h2>Före och efter</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
+  <div style="position:relative;width:100%;aspect-ratio:1;overflow:hidden;border-radius:14px;background:#000">${im(B.u)}${im(A.u, 'clip-path:inset(0 50% 0 0)').replace('<img ', '<img id="baTop" ')}<div id="baLine" style="position:absolute;top:0;bottom:0;left:50%;width:3px;background:#fff;box-shadow:0 0 4px rgba(0,0,0,.5)"></div><span style="position:absolute;left:8px;top:8px;background:rgba(0,0,0,.55);color:#fff;border-radius:8px;padding:2px 8px;font-size:12px">Före</span><span style="position:absolute;right:8px;top:8px;background:rgba(0,0,0,.55);color:#fff;border-radius:8px;padding:2px 8px;font-size:12px">Efter</span></div>
+  <input type="range" min="0" max="100" value="50" oninput="baMove(this.value)" aria-label="Dra för att jämföra före och efter" style="width:100%;margin:12px 0">
+  <div style="display:flex;gap:8px"><label style="flex:1;min-width:0"><small class="mut">Före</small>${sel('a', S.ba.a)}</label><label style="flex:1;min-width:0"><small class="mut">Efter</small>${sel('b', S.ba.b)}</label></div>`;
+}
+function baMove(v) { const t = document.getElementById('baTop'), l = document.getElementById('baLine'); if (t) t.style.clipPath = 'inset(0 ' + (100 - v) + '% 0 0)'; if (l) l.style.left = v + '%'; }
+
+// 3. Semester: vilka växter klarar sig själva och vilka behöver hjälp
+function tripList() { const days = S.tripDays || 7; return S.mine.map(m => ({ m, iv: m.interval ? baseIv(m) : null, out: isOutM(m) })).map(x => ({ ...x, ok: x.iv ? days <= Math.round(x.iv * 1.5) : days <= 5 })); }
+function tripV() {
+  const days = S.tripDays || 7, L = tripList(), ok = L.filter(x => x.ok), help = L.filter(x => !x.ok);
+  const nm = x => esc(x.m.name);
+  return `<div class="mh2"><h2>Semester</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
+  <label class="fl" style="margin-top:0">Hur många dagar är du borta?</label>
+  <div class="chips2 sm">${[3, 7, 10, 14, 21, 30].map(n => `<button class="${days === n ? 'on' : ''}" aria-pressed="${days === n}" onclick="S.tripDays=${n};render()">${n} dagar</button>`).join('')}</div>
+  <h3 style="margin:16px 0 6px">Behöver hjälp (${help.length})</h3>
+  ${help.length ? `<div class="dlist">${help.map(x => `<div class="dent"><div class="grow"><b>${nm(x)}</b><span class="mut">${x.iv ? 'Vattnas ungefär var ' + x.iv + ord(x.iv) + ' dag' : 'Vattna vid torka'}${x.out ? ' (ute)' : ''}</span></div></div>`).join('')}</div>
+  <button class="btn wide" style="margin-top:12px" onclick="tripShare()">Dela vattningslistan</button>` : '<p class="mut" style="margin:0">Alla klarar sig själva så länge.</p>'}
+  <h3 style="margin:16px 0 6px">Klarar sig själva (${ok.length})</h3>
+  <p class="mut" style="margin:0;font-size:14px">${ok.length ? ok.map(nm).join(', ') : 'Ingen.'}</p>
+  <p class="mut" style="margin:14px 0 0;font-size:13px">Det här är en grov uppskattning efter hur ofta varje växt vattnas. Vattna gärna extra noga precis innan du åker.</p>`;
+}
+function tripShare() {
+  const days = S.tripDays || 7, help = tripList().filter(x => !x.ok);
+  const txt = 'Vattningslista för ' + days + ' dagar:\n' + help.map(x => '- ' + x.m.name + ': ' + (x.iv ? 'ungefär var ' + x.iv + ord(x.iv) + ' dag' : 'vid torka')).join('\n') + '\n(från Roothood)';
+  if (navigator.share) navigator.share({ text: txt }).catch(() => { });
+  else if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => toast('Listan är kopierad'), () => toast('Kunde inte kopiera'));
+}
+
+// 4. Vad blommar nu: dina växter som brukar blomma den här månaden
+function bloomNowList() { const mo = new Date().getMonth() + 1; return S.mine.map(m => { const p = plantOf(m), b = p && bloomMonths(p); return b && mo >= b[0] && mo <= b[1] ? { m, p, b } : null; }).filter(Boolean); }
+function bloomNowV() {
+  const L = bloomNowList(), N = ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
+  return `<div class="mh2"><h2>Blommar nu</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
+  ${L.length ? `<div class="dlist">${L.map(x => `<div class="dent"><button class="grow" style="text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit" onclick="closeModal();openMine(${x.m.id})"><b>${esc(x.m.name)}</b><span class="mut">Blommar ${N[x.b[0] - 1]} till ${N[x.b[1] - 1]}${(x.p.bloom_color || []).length ? ' · ' + x.p.bloom_color.map(esc).join(', ') : ''}</span></button></div>`).join('')}</div>
+  <p class="mut" style="margin:14px 0 0;font-size:14px">Ta bort vissna blommor och ge näring under blomningen, så blommar många växter längre.</p>` : '<p class="mut">Inga av dina växter brukar blomma den här månaden.</p>'}`;
+}
+
+// 5. Rensa upp: växter som inte vattnats på länge, med frågan om du har kvar dem
+function cleanList() { const k = store.get('cleanKeep', {}); return S.mine.filter(m => m.interval && !isOutM(m) && m.last_watered && since(m.last_watered) >= 60 && !(k[m.id] && Date.now() - k[m.id] < 90 * 864e5)); }
+function cleanV() {
+  const L = cleanList();
+  return `<div class="mh2"><h2>Har du kvar dem?</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
+  <p class="mut" style="margin:0 0 10px;font-size:14px">Du har inte vattnat de här växterna på över två månader. Ta bort de du inte längre har, så slutar de påminna dig.</p>
+  ${L.length ? `<div class="tdlist">${L.map(m => `<div class="tdr" style="flex-wrap:wrap;gap:8px"><div class="grow" style="min-width:0"><b>${esc(m.name)}</b><span class="mut" style="display:block;font-size:13px">Senast vattnad för ${since(m.last_watered)} dagar sedan</span></div><button class="btn sm line" onclick="cleanKeep(${m.id})">Behåll</button><button class="btn sm" onclick="cleanDel(${m.id})">${S.cdel === m.id ? 'Säker? Tryck igen' : 'Ta bort'}</button></div>`).join('')}</div>` : '<p class="mut">Allt ser bra ut. Inga växter att rensa.</p>'}`;
+}
+function cleanKeep(id) { const k = store.get('cleanKeep', {}); k[id] = Date.now(); store.set('cleanKeep', k); S.cdel = null; if (!cleanList().length) S.modal = null; render(); }
+function cleanDel(id) {
+  if (S.cdel !== id) { S.cdel = id; render(); return; }
+  S.cdel = null; S.del = id; removeMine(id);
+  if (!cleanList().length) S.modal = null; render();
+}
+function extraRowV() {
+  repotLoad();
+  const b = [['ph-calendar-blank', 'Kalender', 'openCal()'], ['ph-airplane', 'Semester', "openModal('trip')"]];
+  if (ckDueList().length) b.push(['ph-drop', 'Sticklingar (' + ckDueList().length + ')', "openModal('ckdue')"]);
+  if (repotList().length) b.push(['ph-plant', 'Omplantera (' + repotList().length + ')', "openModal('repot')"]);
+  if (bloomNowList().length) b.push(['ph-flower', 'Blommar nu', "openModal('bloomnow')"]);
+  if (cleanList().length) b.push(['ph-broom', 'Rensa upp', "S.cdel=null;openModal('cleanup')"]);
+  return `<div class="chips2 sm scrx" style="margin:0 18px 8px">${b.map(([i, t, a]) => `<button onclick="${a}">${ic(i, 'currentColor', 16)} ${t}</button>`).join('')}</div>`;
+}
+
+// 6. Dags att omplantera: växter som inte omplanterats på över ett år, bara mars till augusti
+function repotLoad() {
+  if (S.repots !== undefined) return; S.repots = null;
+  api.kindLog('repot').then(l => { const R = {}; l.forEach(x => { if (!R[x.user_plant_id] || x.done_on > R[x.user_plant_id]) R[x.user_plant_id] = x.done_on; }); S.repots = R; if (S.tab === 'mine' && !S.sel && !S.tool && !S.modal) render(); }).catch(e => { console.warn('Roothood:', e); S.repots = {}; });
+}
+function repotLast(m) { return (S.repots && S.repots[m.id]) || null; }
+function repotList() {
+  const mo = new Date().getMonth() + 1; if (mo < 3 || mo > 8 || !S.repots) return [];
+  const k = store.get('repotSnooze', {});
+  return S.mine.filter(m => m.interval && !isOutM(m) && !(k[m.id] && Date.now() - k[m.id] < 60 * 864e5)).filter(m => { const l = repotLast(m), ref = l || (m.created_at ? String(m.created_at).slice(0, 10) : null); return ref && since(ref) >= 365; });
+}
+function repotV() {
+  const L = repotList();
+  return `<div class="mh2"><h2>Dags att omplantera?</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
+  <p class="mut" style="margin:0 0 10px;font-size:14px">Våren och sommaren är bästa tiden. Ta en kruka som är bara 2 cm bredare och ge färsk jord. Det här är bara en påminnelse, bedöm själv om växten behöver det.</p>
+  ${L.length ? `<div class="tdlist">${L.map(m => `<div class="tdr" style="flex-wrap:wrap;gap:8px"><div class="grow" style="min-width:0"><b>${esc(m.name)}</b><span class="mut" style="display:block;font-size:13px">${repotLast(m) ? 'Senast omplanterad ' + agoTxt(repotLast(m)) : 'Ingen omplantering registrerad, växten har du haft över ett år'}</span></div><button class="btn sm line" onclick="repotLater(${m.id})">Senare</button><button class="btn sm" onclick="repotDone(${m.id})">Klart, omplanterad</button></div>`).join('')}</div>` : '<p class="mut">Inget att omplantera just nu.</p>'}`;
+}
+function repotLater(id) { const k = store.get('repotSnooze', {}); k[id] = Date.now(); store.set('repotSnooze', k); if (!repotList().length) S.modal = null; render(); }
+function repotDone(id) { run(async () => { await api.addLog(id, 'repot', today(), ''); S.repots = { ...(S.repots || {}), [id]: today() }; delete S.log[id]; if (!repotList().length) S.modal = null; }, 'Noterat i växtjournalen'); }
+
+// 7. Månadskalender: dagar du vattnat och dagar då vattning väntas
+const MON_N = ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
+const ymd = (y, m, d) => y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+function openCal() { const n = new Date(); S.cal = { y: n.getFullYear(), m: n.getMonth(), sel: today(), done: null }; openModal('cal'); calLoad(); }
+function calLoad() {
+  const c = S.cal; if (!c) return; const key = c.y + '-' + c.m; c.done = null;
+  api.weekLog(ymd(c.y, c.m, 1)).then(l => { if (!S.cal || S.cal.y + '-' + S.cal.m !== key) return; const ids = new Set(S.mine.map(m => m.id)), D = {}; l.filter(x => ids.has(x.user_plant_id) && x.done_on.slice(0, 7) === key.replace(/-(\d+)$/, (_, mm) => '-' + String(+mm + 1).padStart(2, '0'))).forEach(x => { (D[x.done_on] = D[x.done_on] || new Set()).add(x.user_plant_id); }); S.cal.done = D; if (S.modal === 'cal') render(); }).catch(e => { console.warn('Roothood:', e); if (S.cal) { S.cal.done = {}; if (S.modal === 'cal') render(); } });
+}
+function calMove(d) { const c = S.cal; c.m += d; if (c.m < 0) { c.m = 11; c.y--; } if (c.m > 11) { c.m = 0; c.y++; } c.sel = null; render(); calLoad(); }
+function calDue(c) {
+  const D = {}, t = today(), last = ymd(c.y, c.m, new Date(c.y, c.m + 1, 0).getDate()), first = ymd(c.y, c.m, 1);
+  S.mine.forEach(m => { if (!m.interval || !m.last_watered) return; const iv = ivOf(m); if (!iv) return; let d = new Date(m.last_watered + 'T00:00:00'); d.setDate(d.getDate() + iv); for (let i = 0; i < 400; i++) { let k = dayStr(d); if (k < t) k = t; if (k > last) break; if (k >= first) (D[k] = D[k] || new Set()).add(m.id); d.setDate(d.getDate() + iv); } });
+  return D;
+}
+function calV() {
+  const c = S.cal; if (!c) return '';
+  const due = calDue(c), done = c.done || {}, t = today(), nd = new Date(c.y, c.m + 1, 0).getDate(), off = (new Date(c.y, c.m, 1).getDay() + 6) % 7, nm = id => { const m = S.mine.find(x => x.id === id); return m ? esc(m.name) : ''; };
+  let cells = ''; for (let i = 0; i < off; i++) cells += '<i></i>';
+  for (let d = 1; d <= nd; d++) { const k = ymd(c.y, c.m, d), w = done[k] ? done[k].size : 0, u = due[k] ? due[k].size : 0;
+    cells += `<button style="position:relative;aspect-ratio:1;border:${c.sel === k ? '2px solid var(--pri2)' : '1px solid var(--line, #ddd)'};border-radius:10px;background:${k === t ? 'rgba(139,192,106,.25)' : 'transparent'};font:inherit;color:inherit;padding:0" onclick="S.cal.sel='${k}';render()" aria-label="${d} ${MON_N[c.m]}${w ? ', vattnat ' + w : ''}${u ? ', väntar ' + u : ''}"><span style="font-size:13px">${d}</span><span style="position:absolute;left:0;right:0;bottom:3px;display:flex;justify-content:center;gap:3px">${w ? '<b style="width:7px;height:7px;border-radius:50%;background:var(--wat, #3b82c4)"></b>' : ''}${u ? '<b style="width:7px;height:7px;border-radius:50%;background:#C2643F"></b>' : ''}</span></button>`; }
+  const sel = c.sel, sw = sel && done[sel] ? [...done[sel]] : [], su = sel && due[sel] ? [...due[sel]] : [];
+  return `<div class="mh2"><h2>Kalender</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><button class="x40" onclick="calMove(-1)" aria-label="Föregående månad">${ic('ph-caret-left', 'currentColor', 22)}</button><b style="text-transform:capitalize">${MON_N[c.m]} ${c.y}</b><button class="x40" onclick="calMove(1)" aria-label="Nästa månad">${ic('ph-caret-right', 'currentColor', 22)}</button></div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px" class="mut">${['mån', 'tis', 'ons', 'tors', 'fre', 'lör', 'sön'].map(x => `<span>${x}</span>`).join('')}</div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:4px">${cells}</div>
+  <p class="mut" style="margin:10px 0 0;font-size:13px"><b style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--wat, #3b82c4)"></b> vattnat &nbsp; <b style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#C2643F"></b> väntar${c.done === null ? ' · hämtar…' : ''}</p>
+  ${sel ? `<div style="margin-top:10px"><b>${Number(sel.slice(8))} ${MON_N[Number(sel.slice(5, 7)) - 1]}</b>${sw.length ? `<p style="margin:6px 0 0;font-size:14px">Vattnat: ${sw.map(nm).join(', ')}</p>` : ''}${su.length ? `<p style="margin:6px 0 0;font-size:14px">Väntar: ${su.map(nm).join(', ')}</p>` : ''}${!sw.length && !su.length ? '<p class="mut" style="margin:6px 0 0;font-size:14px">Inget den här dagen.</p>' : ''}</div>` : ''}`;
+}
+
+// ===== 25 nov (kväll): önskelista mot annonser, export, plantskylt, dagens växt, sticklingar =====
+// 8. Önskelistan mot annonser: en växt på din önskelista finns till salu, byte eller skänkes
+function wishAdList() {
+  if (!S.user || !Array.isArray(S.listings)) return [];
+  const W = wishList().map(w => { const p = S.plants.find(x => x.id === w.id); return ((p && p.swedish_name) || w.name || '').trim().toLowerCase(); }).filter(n => n.length >= 4);
+  if (!W.length) return [];
+  const hid = store.get('wadHide', []), c = (S.city || '').trim().toLowerCase(), me = S.user.id;
+  const hit = S.listings.filter(p => !p.taken && p.user_id !== me && !hid.includes(p.id)).map(p => { const t = ((p.title || '') + ' ' + (p.body || '')).toLowerCase(), n = W.find(w => t.includes(w)); return n ? { p, n, near: !!(c && String(p.city || '').toLowerCase().includes(c)) } : null; }).filter(Boolean);
+  return hit.sort((a, b) => b.near - a.near).slice(0, 2);
+}
+function wishAdV() {
+  if (!S.user || !wishList().length) return '';
+  if (S.listings == null) { if (!S.localBusy) setTimeout(loadLocal); return ''; }
+  const L = wishAdList(); if (!L.length) return '';
+  return `<div class="pad" style="margin-top:12px"><div class="setcard"><b>Från din önskelista</b>${L.map(x => `<div style="display:flex;align-items:center;gap:8px;margin-top:8px"><button class="grow" style="text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit" onclick="openListing(${x.p.id})"><span style="display:block;font-size:14px"><b>${esc(x.p.title || '')}</b></span><span class="mut" style="font-size:13px">${esc(x.p.category || '')}${x.p.city ? ' · ' + esc(x.p.city) : ''}${x.near ? ' · nära dig' : ''}</span></button><button class="x40" aria-label="Dölj" onclick="wadHide(${x.p.id})">${ic('ph-x', 'currentColor', 18)}</button></div>`).join('')}</div></div>`;
+}
+function wadHide(id) { const h = store.get('wadHide', []); h.push(id); store.set('wadHide', h); render(); }
+
+// 9. Hämta mina växter som CSV (öppnas i Excel och Google Kalkylark)
+function csvCell(v) { v = v == null ? '' : String(v); return /[";\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+function dlFile(name, text) { const b = new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+function exportV() {
+  return `<div class="mh2"><h2>Hämta mina växter</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
+  <p class="mut" style="margin:0 0 12px;font-size:14px">Du får filer du kan öppna i Excel eller Google Kalkylark. Det är dina egna uppgifter, och inget skickas till någon.</p>
+  <button class="btn wide" onclick="exportPlants()">Hämta växter (${S.mine.length})</button>
+  <button class="btn wide line" style="margin-top:8px" onclick="exportJournal()">Hämta journalen</button>`;
+}
+function exportPlants() {
+  const H = ['Namn', 'Latinskt namn', 'Kategori', 'Vattna var X:e dag', 'Senast vattnad', 'Tillagd', 'Anteckningar'];
+  const R = S.mine.map(m => [m.name, m.latin, m.category, m.interval, m.last_watered, m.created_at ? String(m.created_at).slice(0, 10) : '', m.notes]);
+  dlFile('roothood-vaxter.csv', [H].concat(R).map(r => r.map(csvCell).join(';')).join('\r\n')); toast('Filen är hämtad');
+}
+async function exportJournal() {
+  try { const l = await api.allLog(), by = {}; S.mine.forEach(m => by[m.id] = m.name);
+    const K = Object.fromEntries(Object.entries(LOGK).map(([k, v]) => [k, v[0]])), H = ['Datum', 'Växt', 'Typ', 'Anteckning'];
+    const R = l.filter(x => by[x.user_plant_id]).map(x => [x.done_on, by[x.user_plant_id], K[x.kind] || x.kind, x.note]);
+    dlFile('roothood-journal.csv', [H].concat(R).map(r => r.map(csvCell).join(';')).join('\r\n')); toast('Filen är hämtad'); } catch (e) { toast(errMsg(e)); }
+}
+
+// 10. Plantskylt att skriva ut (liten lapp med namn, vattning och ljus)
+function printTag(id) {
+  const m = S.mine.find(x => x.id === id); if (!m) return; const p = plantOf(m);
+  const iv = baseIv(m), rows = [iv ? 'Vattna ungefär var ' + iv + ord(iv) + ' dag' : 'Vattna vid torka', p && p.light_text ? p.light_text : '', p && p.pet_safe === false ? 'Giftig för husdjur' : ''].filter(Boolean);
+  const css = 'body{font-family:Arial,sans-serif;margin:0;padding:12mm}.t{width:80mm;border:2px solid #1F4D3A;border-radius:6mm;padding:6mm;text-align:center}h1{margin:0;font-size:22pt;color:#1F4D3A}i{display:block;margin:2mm 0 4mm;color:#555;font-size:11pt}p{margin:1.5mm 0;font-size:12pt}small{display:block;margin-top:5mm;color:#888;font-size:8pt}';
+  const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f);
+  f.contentDocument.open(); f.contentDocument.write('<!doctype html><meta charset="utf-8"><title>Plantskylt</title><style>' + css + '</style><div class="t"><h1>' + esc(m.name) + '</h1>' + (m.latin ? '<i>' + esc(m.latin) + '</i>' : '') + rows.map(r => '<p>' + esc(r) + '</p>').join('') + '<small>Roothood</small></div>'); f.contentDocument.close();
+  setTimeout(() => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { toast('Kunde inte öppna utskriften'); } setTimeout(() => f.remove(), 60000); }, 300);
+}
+
+// 11. Dagens växt på Hem
+function potdPlant() {
+  const L = S.plants.filter(p => p.photo_url && p.swedish_name && p.latin_name); if (!L.length) return null;
+  const d = new Date(), doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 864e5);
+  return L[(doy * 7919 + d.getFullYear()) % L.length];
+}
+function potdCardV() {
+  if (!S.user || !(S.mine && S.mine.length) || store.get('potdHide', '') === dayStr()) return '';
+  const p = potdPlant(); if (!p) return '';
+  const line = String(p.tips || p.light_text || '').split(/(?<=[.!?])\s/)[0];
+  return `<div class="pad" style="margin-top:12px"><div class="setcard" style="display:flex;gap:12px;align-items:center"><button style="flex:none;width:64px;height:64px;border-radius:12px;overflow:hidden;border:0;padding:0;background:none" onclick="openPlant(${p.id})" aria-label="Öppna ${esc(p.swedish_name)}"><img src="${esc(p.photo_url)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover"></button><button class="grow" style="text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit;min-width:0" onclick="openPlant(${p.id})"><small class="mut">Dagens växt</small><b style="display:block">${esc(p.swedish_name)}</b><span class="mut" style="font-size:13px"><i>${esc(p.latin_name)}</i>${line ? ' · ' + esc(line) : ''}</span></button><button class="x40" aria-label="Dölj" onclick="store.set('potdHide',dayStr());render()">${ic('ph-x', 'currentColor', 20)}</button></div></div>`;
+}
+
+// 12. Sticklingsspårare: sparas i växtens details.cuttings
+const CK_HOW = { vatten: 'i vatten', jord: 'i jord', luft: 'som luftavläggare' };
+const ckOf = m => ((m.details && m.details.cuttings) || []).filter(c => c && c.id);
+function ckSave(m, list, msg) { const d = { ...(m.details || {}), cuttings: list }; run(async () => { await api.saveDetails(m.id, d); m.details = d; S.mine = await api.mine(); }, msg); }
+function ckAdd(id, how) { const m = S.mine.find(x => x.id === id); if (!m) return; const c = { id: Date.now(), d: today(), how, wc: today() }; ckSave(m, ckOf(m).concat([c]), 'Stickling tillagd'); api.addLog(id, 'note', today(), 'Tog en stickling ' + CK_HOW[how]).then(() => { delete S.log[id]; }).catch(e => console.warn('Roothood:', e)); }
+function ckSet(id, cid, patch) { const m = S.mine.find(x => x.id === id); if (!m) return; ckSave(m, ckOf(m).map(c => c.id === cid ? { ...c, ...patch } : c), 'Sparat'); }
+function ckDel(id, cid) { const m = S.mine.find(x => x.id === id); if (!m) return; if (S.ckdel !== cid) { S.ckdel = cid; keepMain(); return; } S.ckdel = null; ckSave(m, ckOf(m).filter(c => c.id !== cid), 'Stickling borttagen'); }
+const ckNeedsWater = c => c.how === 'vatten' && !c.rooted && since(c.wc || c.d) >= 7;
+function ckDueList() { const o = []; S.mine.forEach(m => ckOf(m).forEach(c => { if (ckNeedsWater(c)) o.push({ m, c }); })); return o; }
+function ckDueV() {
+  const L = ckDueList();
+  return `<div class="mh2"><h2>Byt vatten på sticklingar</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
+  ${L.length ? `<div class="tdlist">${L.map(x => `<div class="tdr" style="flex-wrap:wrap;gap:8px"><div class="grow" style="min-width:0"><b>${esc(x.m.name)}</b><span class="mut" style="display:block;font-size:13px">Stickling i vatten, dag ${since(x.c.d)}</span></div><button class="btn sm" onclick="ckSet(${x.m.id},${x.c.id},{wc:today()})">Bytt vatten</button></div>`).join('')}</div>` : '<p class="mut">Allt är bytt. Bra jobbat!</p>'}`;
+}
+function cuttingsV(m) {
+  const L = ckOf(m);
+  const add = `<div class="chips2 sm" style="margin-top:6px"><button onclick="ckAdd(${m.id},'vatten')">+ I vatten</button><button onclick="ckAdd(${m.id},'jord')">+ I jord</button><button onclick="ckAdd(${m.id},'luft')">+ Luftavläggare</button></div>`;
+  return `<div class="sec" style="margin-top:6px"><h3 style="margin:0">Sticklingar</h3></div>${L.length ? `<div class="dlist">${L.map(c => `<div class="dent" style="flex-wrap:wrap;gap:6px"><div class="grow"><b>Stickling ${CK_HOW[c.how] || ''}</b><span class="mut" style="display:block;font-size:13px">Dag ${since(c.d)} · tagen ${esc(c.d)}${c.rooted ? ' · rotad ' + esc(c.rooted) : ''}${c.potted ? ' · omplanterad ' + esc(c.potted) : ''}</span>${ckNeedsWater(c) ? '<span style="display:block;font-size:13px;color:var(--acc);font-weight:600">Dags att byta vatten</span>' : ''}</div>
+    ${c.how === 'vatten' && !c.rooted ? `<button class="btn sm line" onclick="ckSet(${m.id},${c.id},{wc:today()})">Bytt vatten</button>` : ''}${!c.rooted ? `<button class="btn sm line" onclick="ckSet(${m.id},${c.id},{rooted:today()})">Rotad</button>` : ''}${c.rooted && !c.potted ? `<button class="btn sm line" onclick="ckSet(${m.id},${c.id},{potted:today()})">Omplanterad</button>` : ''}<button class="btn sm line" onclick="ckDel(${m.id},${c.id})">${S.ckdel === c.id ? 'Säker?' : 'Ta bort'}</button></div>`).join('')}</div>` : '<p class="mut" style="margin:4px 0 0;font-size:14px">Tog du en stickling? Lägg in den här så följer jag upp och påminner om att byta vatten.</p>'}${add}`;
+}
+
+// ===== Dagens tips på Hem: ett kort tips per dag, anpassat efter månaden. Går att dölja för dagen. =====
+const DAY_TIPS = [
+  [null, 'Stoppa ner fingret 2–3 cm i jorden. Är den torr är det dags att vattna.'],
+  [null, 'Vattna hellre ordentligt och sällan än lite och ofta. Då växer rötterna djupare.'],
+  [null, 'Låt kranvattnet stå framme ett dygn så får det rumstemperatur. Det är snällare mot rötterna.'],
+  [null, 'Krukan behöver hål i botten. Står den i en yttre kruka, töm den på vatten en stund efter vattningen.'],
+  [null, 'Torka av stora blad med en fuktig trasa. Dammiga blad fångar mindre ljus.'],
+  [null, 'Vrid krukan en kvarts varv varje vecka, så växer plantan rakare.'],
+  [null, 'Gula blad nedtill beror ofta på för mycket vatten. Känn på jorden innan du vattnar igen.'],
+  [null, 'Bruna bladspetsar kan bero på torr luft eller kalkhaltigt vatten.'],
+  [null, 'Håll nya växter för sig själva i en till två veckor, så sprids inga skadedjur till de andra.'],
+  [null, 'Sticklingar i glas: byt vattnet varje vecka så håller det sig friskt.'],
+  [null, 'Titta på bladens undersida när du vattnar. Där syns skadedjur först.'],
+  [null, 'Ställ inte krukväxter precis över ett element. Den torra, varma luften stressar dem.'],
+  [null, 'Mögel på jorden? Ta bort översta centimetern och vattna lite mer sällan.'],
+  [null, 'Gula klisterfällor hjälper mot sorgmyggor, de små flygande myggorna vid krukan.'],
+  [null, 'Hängande blad kan betyda både för torrt och för blött. Känn på jorden först.'],
+  [null, 'En ny kruka som är 2 cm bredare räcker vid omplantering. Större kruka ger lätt för blöt jord.'],
+  [null, 'Kolla giftvarningen i appen innan du ställer en växt där katten eller hunden kommer åt.'],
+  [null, 'Ta ett foto i växtjournalen när du köper en ny växt. Då ser du hur den utvecklas.'],
+  [null, 'Orkidéer vattnas lättast genom att doppa krukan en kvart och låta den rinna av.'],
+  [null, 'Kaktusar och suckulenter klarar hellre för torrt än för blött.'],
+  [[11, 12, 1, 2], 'På vintern vilar de flesta växter. Vattna mindre än på sommaren.'],
+  [[11, 12, 1, 2], 'Ge ingen näring på vintern. Växterna tar inte upp den när dagarna är korta.'],
+  [[12, 1, 2], 'Vid minusgrader: flytta växterna en bit från kalla fönsterrutor på natten.'],
+  [[11, 12], 'Julstjärnan vill stå ljust och utan drag. Skydda den mot kyla på hemvägen från butiken.'],
+  [[11, 12, 1], 'Amaryllis: vattna sparsamt tills blomknoppen har kommit en bit upp.'],
+  [[11, 12], 'Julkaktusen tappar lätt knoppar om du flyttar krukan när knopparna har kommit.'],
+  [[11, 12, 1, 2, 3], 'Torr luft inomhus? Ställ flera växter tillsammans, då blir luften lite fuktigare runt dem.'],
+  [[2, 3], 'Nu återvänder ljuset. Tvätta fönstren på insidan så får växterna mer av det.'],
+  [[2, 3], 'Det är dags att så chili och paprika inomhus. De behöver lång tid på sig.'],
+  [[3, 4], 'Börja så tomater inomhus. Sätt dem ljust och svalt så blir plantorna kraftiga.'],
+  [[3, 4, 5], 'Omplantera krukväxter när de börjar växa igen, gärna på våren.'],
+  [[4, 5], 'När nya blad kommer är det dags att börja ge näring igen.'],
+  [[5], 'Vänta med att sätta ut ömtåliga växter tills frostrisken är över. Det varierar mycket i landet.'],
+  [[5, 6], 'Vänj växter vid ute: ställ ut dem en timme första dagen och öka lite för varje dag.'],
+  [[6, 7, 8], 'Krukor ute torkar snabbt i värme. Titta till dem varje dag och vattna helst på morgonen eller kvällen.'],
+  [[6, 7, 8], 'Nyp bort vissna blommor, så blommar pelargon och många andra sommarblommor längre.'],
+  [[6, 7], 'Bakom glas kan middagssolen bränna bladen. Dra undan känsliga växter eller sätt upp en gardin.'],
+  [[8], 'Augusti är en bra månad för att ta sticklingar av pelargoner.'],
+  [[9], 'Ta in ömtåliga krukväxter innan nattfrosten. Titta efter skadedjur först.'],
+  [[9, 10], 'Nu kan du sätta tulpan- och narcisslökar. Plantera dem ungefär tre gånger så djupt som löken är hög.'],
+  [[10], 'Minska vattningen lite i taget nu när dagarna blir kortare.']
+];
+function dayTip() {
+  const d = new Date(), m = d.getMonth() + 1, doy = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 864e5);
+  const L = DAY_TIPS.filter(x => !x[0] || x[0].includes(m));
+  return L[doy % L.length][1];
+}
+function tipCardV() {
+  if (!S.user || !(S.mine && S.mine.length)) return '';
+  if (store.get('tipHide', '') === dayStr()) return '';
+  return `<div class="pad" style="margin-top:12px"><div class="setcard" style="display:flex;gap:12px;align-items:center"><span style="font-size:22px">💡</span><div style="flex:1"><b>Dagens tips</b><div class="mut" style="font-size:14px;margin-top:2px">${esc(dayTip())}</div></div><button class="x40" aria-label="Dölj" onclick="store.set('tipHide',dayStr());render()">${ic('ph-x', 'currentColor', 20)}</button></div></div>`;
+}
+// ===== Veckosammanfattning (söndag och måndag): vänlig, utan poäng eller krav =====
+function weekCardV() {
+  if (!S.user || !(S.mine && S.mine.length)) return '';
+  const dow = new Date().getDay(); if (dow !== 0 && dow !== 1) return '';
+  const key = dayStr(new Date(Date.now() - (dow === 1 ? 1 : 0) * 864e5)); // söndagens datum
+  if (store.get('weekHide', '') === key) return '';
+  if (S.week === undefined) { S.week = null; api.weekLog(daysAgo(6)).then(l => { const ids = new Set(S.mine.map(m => m.id)); const w = l.filter(x => ids.has(x.user_plant_id)); S.week = { n: w.length, k: new Set(w.map(x => x.user_plant_id)).size }; if (S.tab === 'home' && !S.sel && !S.tool) render(); }).catch(e => { console.warn('Roothood:', e); S.week = { n: -1, k: 0 }; }); }
+  const w = S.week; if (!w || w.n < 0) return '';
+  const txt = w.n > 0 ? `Senaste veckan vattnade du ${w.n} ${w.n === 1 ? 'gång' : 'gånger'}${w.k > 1 ? ' på ' + w.k + ' olika växter' : ''}. Bra jobbat!` : 'Lugn vecka! Dina växter klarar sig.';
+  return `<div class="pad" style="margin-top:12px"><div class="setcard" style="display:flex;gap:12px;align-items:center"><span style="font-size:22px">🌿</span><div style="flex:1"><b>Veckan som gått</b><div class="mut" style="font-size:14px;margin-top:2px">${txt}</div></div><button class="x40" aria-label="Dölj" onclick="store.set('weekHide','${key}');render()">${ic('ph-x', 'currentColor', 20)}</button></div></div>`;
+}
 function homeBlocks(intro) {
   const L = homeLayout().filter(x => x.on), out = []; let tiles = [];
   const qfav = L.some(x => x.k === 'quick') ? favs().slice(0, 7) : [];
   // Utan växter ersätts det gamla välkomstkortet av Vad vill du göra först?
   if (!store.get('welcomeDone', false) && !(S.user && !(S.mine && S.mine.length))) out.push(welcomeV());
   out.push(friendReqCard()); out.push(sitReqCard());
+  out.push(weekCardV());
+  out.push(tipCardV()); out.push(potdCardV()); out.push(wishAdV());
   // Nya användare utan växter: bara första steget, resten visas när det finns något att visa
   if (!(S.mine && S.mine.length)) { out.push(S.user ? firstGoalV() : (intro || '')); if (S.user) out.push(helpBtnV()); if (S.user) out.push(`<div class="pad" style="margin-top:12px"><button class="btn wide line" onclick="openDb()">Bläddra bland ${S.plants.length} växter</button></div>`); return out.join('\n'); }
   // Växtbiblioteket: alltid en tydlig väg dit, eftersom den är det mest använda verktyget
@@ -11818,7 +12119,8 @@ function mineV() {
       <div class="side"><label class="camb" onclick="photoPick(event,this)" aria-label="Ta foto på ${esc(m.name)}" title="Ta foto" style="display:inline-flex;width:36px;height:36px;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;color:var(--pri);background:var(--card2,transparent)">${ic(CAM, 'currentColor', 18)}<input type="file" accept="image/*" capture="environment" class="sr" onchange="addMyPhoto(${m.id}, this)"></label>${d !== null || (m.interval && m.remind === false) ? `<button class="wbtn ${d === 0 ? 'due' : ''}" onclick="water(${m.id})" aria-label="Markera ${esc(m.name)} som vattnad">${wStyle() === 'meter' ? dropGauge(m, 28) : '<span class="wdrop" aria-hidden="true">💧</span>'}</button>` : ''}${d === 0 ? `<button class="x" onclick="snooze(${m.id})">Skjut upp</button>` : ''}</div></div>`;
   }).join('');
   return `${topbar('Min samling')}${mtabBar()}
-  ${S.mine.length && stadM ? `<p class="sumline"><span>${S.mine.length} ${S.mine.length === 1 ? 'växt' : 'växter'}</span> · ${due ? `<button class="sumdue" onclick="S.mdue=!S.mdue;S.mAnimDone=false;render()">${due} behöver vatten idag</button>` : '<span>Alla har vatten just nu</span>'}</p>` : ''}
+  ${S.mine.length ? extraRowV() : ''}
+  ${S.mine.length && stadM ? `<p class="sumline"><span>${S.mine.length} ${S.mine.length === 1 ? 'växt' : 'växter'}</span> · ${due ? `<button class="sumdue" onclick="S.mdue=!S.mdue;S.mAnimDone=false;render()">${due} behöver vatten idag</button>${due > 1 ? ` <button class="sumdue" onclick="openDueList()">Vattna alla</button>` : ''}` : '<span>Alla har vatten just nu</span>'}</p>${winterRest() && S.mine.some(m => m.interval && !isOutM(m)) ? `<p class="mut" style="margin:-4px 18px 8px;font-size:13.5px">${ic('ph-snowflake', 'currentColor', 14)} Vintervila: inomhusväxterna vattnas mer sällan nu, så datumen är längre än vanligt.</p>` : ''}` : ''}
   ${S.mine.length && !stadM ? `<p class="sumline2 sumrow"><span><b>${S.mine.length}</b> ${S.mine.length === 1 ? 'växt' : 'växter'}${S.pro ? '' : ' av max ' + FREE_LIMIT} · ${due ? due + ' behöver vatten idag' : 'Alla har vatten just nu'}</span>${S.mine.length ? `<button class="link3 shlink" onclick="shareShelf()">Dela som bild ›</button>` : ''}</p>` : ''}
   ${S.mine.length ? (S.shelfList = shelfItems(), (S.shelfSel && !S.shelfList.some(it => it.key === S.shelfSel) ? (S.shelfSel = null) : 0), shelfHtml()) : ''}
   ${S.mine.length && S.mine.length < 3 && !stadM ? `<div class="addnudge"><span>Lägg till din nästa växt</span><button class="btn sm" onclick="openDb(true)">Sök växter</button></div>` : ''}
@@ -12204,7 +12506,7 @@ const qParts = b => { const i = String(b || '').indexOf(QMARK); return i < 0 ? [
 function plantBrief(m) {
   const d = m.details || {}, L = Array.isArray(S.log[m.id]) ? S.log[m.id] : [], last = k => (L.find(x => x.kind === k) || {}).done_on, lo = t => String(t).toLowerCase();
   const out = [m.name + (m.latin ? ' (' + m.latin + ')' : '')];
-  if (m.interval) out.push('Vattnas ungefär var ' + m.interval + ord(m.interval) + ' dag, senast ' + lo(agoTxt(m.last_watered)));
+  if (m.interval) out.push('Vattnas ungefär var ' + ivOf(m) + ord(ivOf(m)) + ' dag' + (winterRest() && !isOutM(m) ? ' (vintervila)' : '') + ', senast ' + lo(agoTxt(m.last_watered)));
   const f = last('feed'), r = last('repot'); if (f || r) out.push([f ? 'Gödslad ' + lo(agoTxt(f)) : '', r ? 'omplanterad ' + lo(agoTxt(r)) : ''].filter(Boolean).join(', '));
   let rm = null; try { rm = roomOf(m); } catch (e) { console.warn('Roothood:', e); }
   if (rm) out.push('Står i ' + rm.name + ([dirTxt(rm), d.win].filter(Boolean).length ? ' (' + [dirTxt(rm), d.win].filter(Boolean).join(', ') + ')' : '')); else if (d.light) out.push('Plats: ' + d.light);
@@ -13403,8 +13705,23 @@ function openDueList() { openModal('duelist'); }
 function dueListV() {
   const l = dueTodayList();
   return `<div class="mh2"><h2>Att göra idag</h2><button class="x40" onclick="closeModal()" aria-label="Stäng">${ic('ph-x', 'currentColor', 24)}</button></div>
+  ${l.length > 1 ? `<button class="btn" style="width:100%;margin-bottom:12px" onclick="waterAll()">Vattna alla (${l.length})</button><p class="mut" style="margin:0 0 12px;font-size:14px">Eller bocka av en i taget:</p>` : ''}
   ${l.length ? `<div class="dlist"><div class="tdlist">${l.map(m => `<div class="tdr"><button class="tdo" onclick="closeModal();openMine(${m.id})">${mPhoto(m)}<span>Vattna ${esc(m.name)}</span></button><button class="tdc" aria-label="Klart: vattna ${esc(m.name)}" onclick="dueTick(this,${m.id})"><i class="tdd" aria-hidden="true"></i>${ic(I.check, 'currentColor', 16)}</button></div>`).join('')}</div></div>` : `<p class="mut">Allt är klart för idag.</p>`}`;
 }
+// Vattna alla som behöver vatten idag, med ångra. Samma sparfunktion som vid vattning av en växt.
+function waterAll() {
+  const todo = dueTodayList(); if (!todo.length) return;
+  const prev = todo.map(m => ({ id: m.id, last: m.last_watered || null })), ids = todo.map(m => m.id), t = dayStr();
+  run(async () => {
+    for (const m of todo) { await api.water(m.id); try { await api.addLog(m.id, 'water', today(), ''); } catch (e) { console.warn('Roothood:', e); } delete S.log[m.id]; }
+    S.mine = await api.mine();
+    S.dueDone = Object.assign({}, S.dueDone || {}, ...ids.map(i => ({ [i]: t })));
+    if (S.modal === 'duelist') S.modal = null;
+    showUndo(todo.length + ' växter vattnade');
+    const bar = document.getElementById('undobar'); if (bar) bar.querySelector('button').setAttribute('onclick', 'undoWaterAll(' + JSON.stringify(prev).replace(/"/g, '&quot;') + ')');
+  }, 'Alla är vattnade');
+}
+async function undoWaterAll(prev) { hideUndo(); try { for (const x of prev) await api.setWatered(x.id, x.last); S.mine = await api.mine(); S.dueDone = {}; toast('Vattningen är ångrad'); render(); } catch (e) { toast(errMsg(e)); } }
 function dueTick(b, id) {
   b.classList.add('ok'); b.disabled = true;
   try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) { }
@@ -13864,6 +14181,11 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.483', '25 nov', ['Nytt: Önskelistan matchas mot annonser. Finns en växt från din önskelista till salu, byte eller skänkes visas den på Hem', 'Nytt: Hämta mina växter och min journal som fil (Inställningar → Konto)', 'Nytt: Skriv ut en liten plantskylt med namn, vattning och ljus från växtjournalen', 'Nytt: Dagens växt på Hem', 'Nytt: Sticklingar i växtjournalen. Lägg in en stickling, följ rotning och få påminnelse om att byta vatten', 'Nytt: Kalender i Samling visar vilka dagar du vattnat och när nästa vattning väntas', 'Nytt: Omplantera i Samling påminner om växter du inte omplanterat på över ett år (mars till augusti)', 'Nytt: Semester i Samling visar vilka växter som klarar sig själva medan du är borta, och går att dela som lista', 'Nytt: Blommar nu i Samling visar dina växter som brukar blomma den här månaden', 'Nytt: Rensa upp i Samling hjälper dig ta bort växter du inte vattnat på över två månader', 'Nytt: Före/efter på växtsidan. Dra för att jämföra två foton av samma växt', 'Nytt: Appen kan föreslå ett eget vattningsintervall om du vattnar oftare eller sällan än påminnelsen. Inget ändras utan att du säger ja']],
+  ['Beta 0.482', '25 nov', ['Nytt: Dagens tips. Ett kort tips varje dag på Hem, anpassat efter årstiden. Du kan dölja det för dagen']],
+  ['Beta 0.481', '25 nov', ['Nytt: Veckan som gått. På söndagar och måndagar visar Hem hur många gånger du vattnat senaste veckan']],
+  ['Beta 0.480', '25 nov', ['Tydligare vintervila: i Samling och på växterna står det nu varför inomhusväxterna vattnas mer sällan i vinter']],
+  ['Beta 0.479', '25 nov', ['Nytt: Vattna alla på en gång. Tryck Vattna alla i Samling eller i listan Att göra idag, och ångra direkt om du tryckte fel']],
   ['Beta 0.478', '24 nov', ['Hyllan: nya bilder på Cereus, Crassula lanuginosa, Euphorbia lactea Cristata, Gasteria, Nålvårtkaktus, Opuntia och Pengaträd']],
   ['Beta 0.477', '24 nov', ['Rättat: knappen Redigera annons öppnar nu redigeringsformuläret']],
   ['Beta 0.476', '24 nov', ['Du kan nu redigera din egen annons: ändra text, pris, moderplantor och foto med knappen Redigera annons']],
@@ -16919,7 +17241,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.478';
+const APP_VERSION = 'Beta 0.483';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
@@ -17272,7 +17594,7 @@ const STAD_SUBV = {
     <div class="sexpl"><button class="linkbtn" onclick="S.sowMap=!S.sowMap;render()">${S.sowMap ? 'Dölj zonkarta' : 'Visa zonkarta'} ›</button>${S.sowMap ? '<img class="zonkarta" src="zonkarta.jpg" alt="Sveriges odlingszoner, zon 1 till 8 och fjäll" loading="lazy">' : ''}
     <p class="mut">Zon 1 är mildast och zon 8 kallast.<br>Växtsidorna visar om en växt klarar vintern i din zon.</p></div>`; },
   konto: () => { if (!S.user || DEMO) return '<p class="mut sexpl">Logga in för att se ditt konto.</p>';
-    return `${sgroup('', [`<div class="srow sstatic"><span class="st">E-post</span><span class="sv">${esc(S.user.email || '')}</span></div>`, srow('ph-lock', 'Byt lösenord', '', "S.setSub='pw';S.pwMsg='';render()"), srow('ph-house-line', 'Familj', S.fam && S.fam.code ? S.fam.n + (S.fam.n === 1 ? ' person' : ' personer') : '', "S.setSub='familj';render()"), srow('ph-prohibit', 'Blockerade', '', "S.setSub='block';render()")])}
+    return `${sgroup('', [`<div class="srow sstatic"><span class="st">E-post</span><span class="sv">${esc(S.user.email || '')}</span></div>`, srow('ph-lock', 'Byt lösenord', '', "S.setSub='pw';S.pwMsg='';render()"), srow('ph-download-simple', 'Hämta mina växter', '', "openModal('export')"), srow('ph-house-line', 'Familj', S.fam && S.fam.code ? S.fam.n + (S.fam.n === 1 ? ' person' : ' personer') : '', "S.setSub='familj';render()"), srow('ph-prohibit', 'Blockerade', '', "S.setSub='block';render()")])}
     <div class="sexpl">${S.delAcc ? `<div class="delacc"><b>Radera ditt konto?</b><p>Allt försvinner för alltid: dina växter, foton, Växtjournalen, Mitt hem, inlägg, kommentarer, meddelanden och vänner. Det går inte att ångra.</p>
       <label class="fl" for="delw">Skriv RADERA för att bekräfta</label><input id="delw" autocomplete="off" autocapitalize="characters">
       <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn sm danger" onclick="deleteAccount()" ${S.delBusy ? 'disabled' : ''}>${S.delBusy ? 'Raderar…' : 'Radera kontot för alltid'}</button><button class="btn sm line" onclick="S.delAcc=false;render()">Avbryt</button></div></div>`
