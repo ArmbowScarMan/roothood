@@ -84,6 +84,14 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s}
 .ph.has-img img{opacity:1}
 .wthumb{flex:none;width:60px;height:60px;border:0;padding:0;border-radius:12px;overflow:hidden;position:relative;background:none;cursor:pointer}.wthumb .ph{width:100%;height:100%;min-height:0;aspect-ratio:auto;border-radius:12px}
+.sosearch,.sosel{box-sizing:border-box;width:100%;min-height:42px;padding:8px 12px;border-radius:12px;border:1px solid var(--line,#ccd);background:var(--soft,#fff);color:var(--ink);font:inherit;font-size:15px}
+.sosel{flex:1;min-width:0;padding:8px 6px}
+.sorow{display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--line,rgba(128,128,128,.2))}
+.sot{flex:none;width:40px;height:40px;border-radius:10px;overflow:hidden;background:var(--soft,#EDF1EA);display:flex;align-items:center;justify-content:center;font-weight:700}
+.sot img{width:100%;height:100%;object-fit:cover}.sot img.spsh{object-fit:contain}
+.son{flex:1;min-width:0;display:flex;flex-direction:column}.son b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.son small{font-size:12px;opacity:.65}
+.sob{flex:none;min-width:36px;height:34px;padding:0 10px;border-radius:17px;border:1px solid var(--pri);background:none;color:var(--pri);font:inherit;font-size:14px;font-weight:600}
+.sob:disabled{opacity:.35}.sob.pinb.on{background:var(--pri);color:var(--bg,#fff)}
 .spsh{object-fit:contain!important;padding:2px;box-sizing:border-box;background:var(--soft,#EDF1EA)}
 .ph.phs img{object-fit:contain!important;padding:7%;box-sizing:border-box;background:var(--soft,#EDF1EA)}
 .ph.has-img>svg{visibility:hidden}
@@ -7849,8 +7857,8 @@ function todoV() {
   if (!S.user) return '';
   if (stadUI()) return todoStad();
   const l = todoItems();
-  if (!l.length) return `<div class="todoc empty">${ic(I.check, 'var(--pri)', 18)}<b class="grow">Inget att göra just nu</b><button class="link3" onclick="openSow()">${ic(SEEDLING, 'currentColor', 16)} Såkalendern</button></div>${sitterTasksHtml()}`;
-  return `<div class="sec cap2"><h2>Att göra</h2><span class="mut" style="font-size:13px;margin-left:auto">${l.length} ${l.length === 1 ? 'sak' : 'saker'} ·</span><button class="link3 sowl" onclick="openSow()">${ic(SEEDLING, 'currentColor', 15)} Såkalendern</button></div>
+  if (!l.length) return `<div class="todoc empty">${ic(I.check, 'var(--pri)', 18)}<b class="grow">Inget att göra just nu</b></div>${sitterTasksHtml()}`;
+  return `<div class="sec cap2"><h2>Att göra</h2><span class="mut" style="font-size:13px;margin-left:auto">${l.length} ${l.length === 1 ? 'sak' : 'saker'}</span></div>
   <div class="todoc">${l.slice(0, 8).map(x => `<div class="todor"><button class="tchk" aria-label="Klart" ${x.act ? `onclick="${x.act}"` : 'disabled'}></button><button class="ttxt" onclick="${x.open}">${esc(x.txt)}</button></div>`).join('')}${l.length > 8 ? `<small class="mut">och ${l.length - 8} till</small>` : ''}</div>${sitterTasksHtml()}`;
 }
 function homeAlerts(sz) {
@@ -11589,13 +11597,37 @@ function shelfHtml() { const L = S.shelfList || [], si = L.findIndex(it => it.ke
 // Ordna hyllan: fäst växter längst till vänster (sparas i växtens detaljer som pin = 1, 2, 3 ...)
 function shordNm(m) { return ((m.details && m.details.nick) || m.sv || m.baseName || m.name) || 'Växt'; }
 function shordPinned() { return S.mine.filter(m => +((m.details || {}).pin) > 0).sort((a, b) => a.details.pin - b.details.pin); }
+function shordCat(m) { const p = plantById(m.plant_id) || {}; return m.category || p.category || 'Övrigt'; }
+function shordThumb(m) { const u = m.photo; if (u) return `<img src="${esc(u)}" alt="" loading="lazy">`; const f = shelfSrc(m.plant_id); if (f) return `<img class="spsh" src="${f}" alt="" loading="lazy">`; const p = plantById(m.plant_id); if (p && p.photo_url) return `<img src="${esc(p.photo_url)}" alt="" loading="lazy">`; return `<span>${esc((shordNm(m)[0] || '?').toUpperCase())}</span>`; }
+function shordList() {
+  const o = S.so = S.so || { q: '', sort: 'pin', f: 'all', cat: '' }, ql = o.q.trim().toLowerCase();
+  const pinN = m => +((m.details || {}).pin) || 0, nm = m => shordNm(m).toLowerCase();
+  let L = S.mine.slice();
+  if (ql) L = L.filter(m => [shordNm(m), m.name, m.latin].some(x => String(x || '').toLowerCase().includes(ql)));
+  if (o.f === 'pin') L = L.filter(pinN); else if (o.f === 'rest') L = L.filter(m => !pinN(m));
+  if (o.cat) L = L.filter(m => shordCat(m) === o.cat);
+  const byName = (a, b) => nm(a).localeCompare(nm(b), 'sv');
+  if (o.sort === 'az') L.sort(byName);
+  else if (o.sort === 'water') L.sort((a, b) => { const x = left(a), y = left(b); return (x === null ? 99 : x) - (y === null ? 99 : y) || byName(a, b); });
+  else if (o.sort === 'new') L.sort((a, b) => (b.id || 0) - (a.id || 0));
+  else L.sort((a, b) => { const x = pinN(a), y = pinN(b); if (x && y) return x - y; if (x || y) return x ? -1 : 1; return byName(a, b); });
+  const P = shordPinned(), arrows = o.sort === 'pin' && !ql && o.f !== 'rest' && !o.cat;
+  if (!L.length) return '<p class="mut" style="text-align:center;margin:18px 0">Ingen växt matchar.</p>';
+  return L.map(m => { const n = pinN(m), i = P.findIndex(x => x.id === m.id);
+    return `<div class="sorow${n ? ' pin' : ''}"><span class="sot">${shordThumb(m)}</span><span class="son"><b>${n ? n + '. ' : ''}${esc(shordNm(m))}</b><small>${esc(shordCat(m))}</small></span>${n && arrows ? `<button class="sob" ${i === 0 ? 'disabled' : ''} onclick="shordMove(${m.id},-1)" aria-label="Flytta åt vänster">←</button><button class="sob" ${i === P.length - 1 ? 'disabled' : ''} onclick="shordMove(${m.id},1)" aria-label="Flytta åt höger">→</button>` : ''}<button class="sob pinb${n ? ' on' : ''}" onclick="shordPin(${m.id},${n ? 'false' : 'true'})">${n ? 'Fäst ✓' : 'Fäst'}</button></div>`; }).join('');
+}
+function shordRefresh() { const el = document.getElementById('sol'); if (el) el.innerHTML = shordList(); }
+function shordSet(k, v) { S.so = S.so || { q: '', sort: 'pin', f: 'all', cat: '' }; S.so[k] = v; if (k === 'q') return shordRefresh(); render(); }
 function shordV() {
-  const P = shordPinned(), R = S.mine.filter(m => !(+((m.details || {}).pin) > 0));
+  const o = S.so = S.so || { q: '', sort: 'pin', f: 'all', cat: '' }, P = shordPinned(), cats = [...new Set(S.mine.map(shordCat))].sort((a, b) => a.localeCompare(b, 'sv'));
+  const ch = (k, v, t) => `<button class="${o[k] === v ? 'on' : ''}" onclick="shordSet('${k}','${v}')">${t}</button>`;
   return `<div class="mh"><h2>Ordna hyllan</h2><button class="close" onclick="closeModal()" aria-label="Stäng">×</button></div>
-  <p class="mut" style="margin:0 0 12px">Fäst de växter du vill ha längst till vänster. De hamnar först på hyllan, i den ordning du fäster dem.</p>
-  ${P.length ? `<div class="sec"><h2>Fästa</h2></div>${P.map((m, i) => `<div class="setrow" style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><b class="grow">${i + 1}. ${esc(shordNm(m))}</b><button class="btn sm line" ${i === 0 ? 'disabled' : ''} onclick="shordMove(${m.id},-1)" aria-label="Flytta åt vänster">←</button><button class="btn sm line" ${i === P.length - 1 ? 'disabled' : ''} onclick="shordMove(${m.id},1)" aria-label="Flytta åt höger">→</button><button class="btn sm line" onclick="shordPin(${m.id},false)">Ta bort</button></div>`).join('')}` : ''}
-  <div class="sec"><h2>Övriga växter</h2></div>
-  ${R.length ? R.map(m => `<div class="setrow" style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="grow">${esc(shordNm(m))}</span><button class="btn sm" onclick="shordPin(${m.id},true)">Fäst</button></div>`).join('') : '<p class="mut">Alla dina växter är fästa.</p>'}`;
+  <p class="mut" style="margin:0 0 10px;font-size:14px">Fäst växter så hamnar de först på hyllan. <b>${P.length} fästa av ${S.mine.length}</b></p>
+  <input class="sosearch" type="search" placeholder="Sök växt" value="${esc(o.q)}" oninput="shordSet('q',this.value)" aria-label="Sök växt">
+  <div class="chips2 sm" style="margin:8px 0 0">${ch('f', 'all', 'Alla')}${ch('f', 'pin', 'Fästa')}${ch('f', 'rest', 'Ej fästa')}</div>
+  <div style="display:flex;gap:8px;margin:8px 0 10px"><select class="sosel" onchange="shordSet('sort',this.value)" aria-label="Sortera"><option value="pin" ${o.sort === 'pin' ? 'selected' : ''}>Sortera: Fästa först</option><option value="az" ${o.sort === 'az' ? 'selected' : ''}>Sortera: A–Ö</option><option value="water" ${o.sort === 'water' ? 'selected' : ''}>Sortera: Behöver vatten först</option><option value="new" ${o.sort === 'new' ? 'selected' : ''}>Sortera: Nyast först</option></select>
+  <select class="sosel" onchange="shordSet('cat',this.value)" aria-label="Kategori"><option value="">Alla kategorier</option>${cats.map(c => `<option ${o.cat === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
+  <div id="sol">${shordList()}</div>`;
 }
 async function shordSave(list) {
   // list = fästa växter i ny ordning; alla får pin = plats, övriga tas bort
@@ -11628,7 +11660,8 @@ async function shareShelf() {
   L.forEach((it, i) => { const r = Math.floor(i / per), c = i % per, im = imgs[i], y0 = 150 + r * rh, base = y0 + 270;
     if (c === 0) { if (plank) g.drawImage(plank, 0, base - 18, W, 64); else { g.fillStyle = '#c99f6a'; g.fillRect(0, base - 6, W, 18); } }
     if (im) { const k = Math.min((cw - 30) / im.width, 250 / im.height), w = im.width * k, h = im.height * k; g.drawImage(im, c * cw + (cw - w) / 2, base + 8 - h, w, h); }
-    g.fillStyle = '#E9F0E4'; g.font = '600 24px sans-serif'; g.textAlign = 'center'; let t = it.name; while (g.measureText(t).width > cw - 20 && t.length > 4) t = t.slice(0, -2); if (t !== it.name) t += '…'; g.fillText(t, c * cw + cw / 2, base + 74); g.textAlign = 'left'; });
+    g.fillStyle = '#E9F0E4'; g.font = '600 24px sans-serif'; g.textAlign = 'center'; const words = String(it.name).split(' '), lines = ['']; words.forEach(w => { const cur = lines[lines.length - 1], tryL = cur ? cur + ' ' + w : w; if (g.measureText(tryL).width <= cw - 20 || !cur) lines[lines.length - 1] = tryL; else lines.push(w); });
+    lines.slice(0, 2).forEach((ln, li) => { let t = ln; if (li === 1 && lines.length > 2) t += ' …'; while (g.measureText(t).width > cw - 20 && t.length > 4) t = t.slice(0, -2) + '…'; g.fillText(t, c * cw + cw / 2, base + 74 + li * 28); }); g.textAlign = 'left'; });
   g.fillStyle = 'rgba(233,240,228,.55)'; g.font = '700 26px sans-serif'; g.fillText('Roothood', 48, H - 24);
   const blob = await new Promise(ok => cv.toBlob(ok, 'image/png')); if (!blob) return toast('Kunde inte göra bilden');
   const name = 'roothood-min-hylla.png', file = new File([blob], name, { type: 'image/png' });
@@ -14333,6 +14366,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.494', '27 nov', ['Ordna hyllan är nu enklare: sök, sortera och filtrera dina växter, och se små bilder på raderna', 'Långa växtnamn bryts nu över två rader i den delade hyllbilden', 'Borttaget: den extra knappen till Såkalendern bredvid Att göra på Start (den finns bland genvägarna)']],
   ['Beta 0.493', '27 nov', ['Fler växtbilder på Hyllan: 500 växter till har fått egen bild', 'Hyllbilder visas nu överallt där en växt syns, till exempel Dagens växt, Svep bland växter och annonser', 'Nytt: Ordna hyllan. Fäst de växter du är mest stolt över längst till vänster (Ordna på Start)', 'Rättat: Hyllan hoppade tillbaka åt vänster när du scrollade i sidled']],
   ['Beta 0.492', '27 nov', ['Engelska: hela Profil-sidan, märkena och inställningsmenyn är nu översatta, så texten blandas inte längre med svenska när appen är på engelska']],
   ['Beta 0.491', '26 nov', ['Fler växtbilder på Hyllan: 200 växter till har fått egen bild, bland annat Aechmea, Aeonium, Adenium och många fler krukväxter','På växtsidan kan du nu trycka på Se riktigt foto för att byta mellan Hyllbilden och ett riktigt foto av växten','Fler växter i Växtbiblioteket: Monstera Lime och Tillandsia seleriana']],
@@ -17403,7 +17437,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.493';
+const APP_VERSION = 'Beta 0.494';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
