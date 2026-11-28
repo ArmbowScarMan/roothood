@@ -8608,8 +8608,9 @@ let timeF = null, timeT = 0;
 function fmtDur(s) { s = Math.max(0, Math.round(+s || 0)); if (s < 60) return s + ' s'; if (s < 3600) return Math.floor(s / 60) + ' min ' + (s % 60) + ' s'; return Math.floor(s / 3600) + ' h ' + Math.floor((s % 3600) / 60) + ' min'; }
 function timeFlush(leaving) { const now = Date.now(); if (timeF && timeT && S.user && !DEMO && sb && !isAdmin()) { const secs = Math.min(1800, Math.round((now - timeT) / 1000)); if (secs >= 1) { try { sb.rpc('track_time', { p_feature: timeF, p_secs: secs }).then(() => {}, () => {}); } catch (e) { } } } timeT = (leaving || document.hidden) ? 0 : now; }
 function timeSwitch(h) { timeFlush(false); const f = featOf(h); timeF = f ? f.slice(0, 40).toLowerCase().replace(/[^a-z0-9_-]/g, '') : null; }
-document.addEventListener('visibilitychange', () => { if (document.hidden) timeFlush(true); else timeT = timeF ? Date.now() : 0; });
-function trackUse(h) { timeSwitch(h); const f = featOf(h); if (!f || !S.user || DEMO || !sb || isAdmin()) return; const now = Date.now(); if (trackSent[f] && now - trackSent[f] < 6e5) return; trackSent[f] = now; try { sb.rpc('track_use', { p_feature: f.slice(0, 40).toLowerCase().replace(/[^a-z0-9_-]/g, '') }).then(() => {}, () => {}); } catch (e) { } }
+let hidAt = 0;
+document.addEventListener('visibilitychange', () => { if (document.hidden) { timeFlush(true); hidAt = Date.now(); } else { timeT = timeF ? Date.now() : 0; if (hidAt && Date.now() - hidAt >= 18e5) { delete trackSent.appstart; const cf = timeF; trackUse(viewHash(), true); timeF = cf; timeT = cf ? Date.now() : 0; } hidAt = 0; } });
+function trackUse(h, first) { timeSwitch(h); const f = first ? 'appstart' : featOf(h); if (!f || !S.user || DEMO || !sb || isAdmin()) return; const now = Date.now(); if (trackSent[f] && now - trackSent[f] < 6e5) return; trackSent[f] = now; try { sb.rpc('track_use', { p_feature: f.slice(0, 40).toLowerCase().replace(/[^a-z0-9_-]/g, '') }).then(() => {}, () => {}); } catch (e) { } }
 function navTake() { const o = {}; NAVK.forEach(k => o[k] = S[k]); return o; }
 function navBack() { S.lampFrom = false; if (S.tool === 'house' && S.hDirty) saveHomeNow(true); stopLight(); if (((history.state || {}).d || 0) > 0) { try { history.back(); return; } catch (e) { } } S.tool = null; S.sel = null; S.post = null; if (S.tab === 'home') render(); else go('home'); }
 function trackView() {
@@ -8620,7 +8621,7 @@ function trackView() {
     // Efter omladdning kan posten fortfarande säga att en ruta var öppen. Rutan är stängd nu, så posten blir en vanlig vy.
     if (!navReady) { navReady = true; if (hs.m) { history.replaceState(Object.assign({}, hs, { m: 0 }), '', location.hash || h); hs = history.state; } }
     // Första vyn (eller efter omstart): skriv över posten i stället för att lägga till en
-    if (curHash === null) { history.replaceState({ d: 0, st: navTake(), y: 0 }, '', h); curHash = h; saveView(); trackUse(h); hs = history.state; }
+    if (curHash === null) { history.replaceState({ d: 0, st: navTake(), y: 0 }, '', h); curHash = h; saveView(); trackUse(h, true); hs = history.state; }
     // En ruta har stängts med knappen i appen: gå tillbaka en post så att historiken stämmer
     if (!S.modal && hs.m) {
       // Vänta ett ögonblick: öppnas en ny ruta eller vy direkt efter (t.ex. en växt från en lista i en ruta) ska historiken inte backa och stänga den igen
@@ -9792,7 +9793,7 @@ async function modFind(form) { S.modQ = form.mq.value.trim(); try { S.modRes = S
 const KIND_SV = { post: 'Inlägg', answer: 'Svar', photo: 'Foto' };
 // ===== Moderator: alla användare =====
 // Statistik: hur mycket varje funktion används och av vilka
-const FEAT_EXTRA = { 'hem': 'Start', 'samling': 'Min samling', 'profil': 'Profil', 'vaxt': 'Växtsida', 'comm-q': 'Gemenskap: Frågor', 'comm-forum': 'Gemenskap: Forum', 'comm-swap': 'Gemenskap: Köp & sälj', 'comm-show': 'Gemenskap: Visa upp', 'comm-near': 'Gemenskap: Nära dig', 'comm-friends': 'Gemenskap: Vänner', experts: 'Fråga expert', user: 'Andras profiler', mod: 'Moderering', settings: 'Inställningar', msgs: 'Meddelanden', chat: 'Chatt', explore: 'Utforska', season: 'Säsongstips', notif: 'Notiser', learn: 'Lär dig' };
+const FEAT_EXTRA = { 'appstart': 'Appstart', 'discover': 'Upptäck växter', 'hem': 'Tillbaka till Start', 'samling': 'Min samling', 'profil': 'Profil', 'vaxt': 'Växtsida', 'comm-q': 'Gemenskap: Frågor', 'comm-forum': 'Gemenskap: Forum', 'comm-swap': 'Gemenskap: Köp & sälj', 'comm-show': 'Gemenskap: Visa upp', 'comm-near': 'Gemenskap: Nära dig', 'comm-friends': 'Gemenskap: Vänner', experts: 'Fråga expert', user: 'Andras profiler', mod: 'Moderering', settings: 'Inställningar', msgs: 'Meddelanden', chat: 'Chatt', explore: 'Utforska', season: 'Säsongstips', notif: 'Notiser', learn: 'Lär dig' };
 function featName(f) { return FEAT_EXTRA[f] || (QPH[f] && QPH[f][1]) || TOOL_LABEL[f] || f; }
 async function msUserDays(id) {
   const P = msPer(); if (P.h || (S.msUD && S.msUD[id])) return;
@@ -9824,8 +9825,9 @@ function statTilesHtml(D, per, tot) {
   const avgDay = D.days.length ? Math.round(D.days.reduce((a, x) => a + x.users, 0) / D.days.length) : 0;
   const best = D.days.reduce((b, x) => (!b || x.users > b.users ? x : b), null);
   const top = D.f.slice().sort((a, b) => b.uses - a.uses)[0];
-  const tiles = [['Öppningar', tot], ['Tid i appen', totSecs ? fmtDur(totSecs) : '–'], ['Snitt aktiva per ' + per, avgDay], ['Högsta ' + per, best ? best.users + ' (' + best.day + ')' : '–']];
-  return `<div class="stiles">${tiles.map(([l, v]) => `<div class="stile"><small class="mut">${l}</small><b>${v}</b></div>`).join('')}</div>${top && tot ? `<p class="mut" style="margin:0 2px 4px;font-size:14px">Mest använd: <b>${esc(featName(top.feature))}</b>, ${Math.round(top.uses / tot * 100)} % av öppningarna</p>` : ''}`;
+  const hem = (D.f.find(x => x.feature === 'hem') || {}).uses || 0;
+  const tiles = [['Appstarter', D.appstarts || 0], ['Öppnade sidor', tot], ['Tillbaka till Start', hem], ['Tid i appen', totSecs ? fmtDur(totSecs) : '–'], ['Snitt aktiva per ' + per, avgDay], ['Högsta ' + per, best ? best.users + ' (' + best.day + ')' : '–']];
+  return `<div class="stiles">${tiles.map(([l, v]) => `<div class="stile"><small class="mut">${l}</small><b>${v}</b></div>`).join('')}</div>${top && tot ? `<p class="mut" style="margin:0 2px 4px;font-size:14px">Mest använd: <b>${esc(featName(top.feature))}</b>, ${Math.round(top.uses / tot * 100)} % av öppnade sidor</p><p class="mut" style="margin:0 2px 4px;font-size:12.5px">Appstarter räknas när appen öppnas eller när man kommer tillbaka efter minst 30 minuter. Start räknas bara när man går tillbaka dit från en annan sida.</p>` : ''}`;
 }
 const STAT_COL = ['#1f4d3a', '#c77700', '#3a7bd5', '#d64545', '#8e5ea2', '#2a9d8f', '#9aa0a6'];
 const WDAYS = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
@@ -9854,7 +9856,7 @@ function statChartsHtml(D, tot) {
   const P = msPer(), out = [];
   if (!P.h && D.days.length) out.push(`<div class="setcard msSec${msCls('trend')}" style="margin-top:12px;padding:14px"><button class="msH" aria-expanded="${!!(S.msOpen||{})['trend']}" onclick="msSecTog(this,'trend')"><b>Trend</b><span class="msChev" aria-hidden="true">${msChev('trend')}</span></button><small class="mut" style="display:block;margin:2px 0 6px">Aktiva personer och öppningar per dag.</small>${trendSvg(D.days)}<div class="slegend"><span style="color:${STAT_COL[0]}">● Personer</span><span style="color:${STAT_COL[1]}">● Öppningar</span></div></div>`);
   if (!P.h && D.days.length) out.push(`<div class="setcard msSec${msCls('vecka')}" style="margin-top:12px;padding:14px"><button class="msH" aria-expanded="${!!(S.msOpen||{})['vecka']}" onclick="msSecTog(this,'vecka')"><b>Veckomönster</b><span class="msChev" aria-hidden="true">${msChev('vecka')}</span></button><small class="mut" style="display:block;margin:2px 0 10px">Snitt aktiva personer per veckodag.</small>${weekdaySvg(D.days)}</div>`);
-  if (D.f.length && tot) out.push(`<div class="setcard msSec${msCls('andel')}" style="margin-top:12px;padding:14px"><button class="msH" aria-expanded="${!!(S.msOpen||{})['andel']}" onclick="msSecTog(this,'andel')"><b>Andel per funktion</b><span class="msChev" aria-hidden="true">${msChev('andel')}</span></button><small class="mut" style="display:block;margin:2px 0 10px">Av alla öppningar under perioden.</small>${donutSvg(D.f, tot)}</div>`);
+  if (D.f.length && tot) out.push(`<div class="setcard msSec${msCls('andel')}" style="margin-top:12px;padding:14px"><button class="msH" aria-expanded="${!!(S.msOpen||{})['andel']}" onclick="msSecTog(this,'andel')"><b>Andel per funktion</b><span class="msChev" aria-hidden="true">${msChev('andel')}</span></button><small class="mut" style="display:block;margin:2px 0 10px">Av alla öppnade sidor under perioden, utan appstarter.</small>${donutSvg(D.f, tot)}</div>`);
   return out.join('');
 }
 // Nyckeltal för moderatorer: behåller vi folk, var hoppar nya av, Play-testet och rapporter.
@@ -9888,7 +9890,7 @@ function modKpiV(D) {
 function msCls(k) { return (S.msOpen || {})[k] ? '' : ' msMin'; }
 function msChev(k) { return (S.msOpen || {})[k] ? '▴' : '▾'; }
 function msSecTog(b, k) { const c = b.closest('.msSec'), min = c.classList.toggle('msMin'); S.msOpen = { ...(S.msOpen || {}), [k]: !min }; b.querySelector('.msChev').textContent = min ? '▾' : '▴'; b.setAttribute('aria-expanded', String(!min)); }
-function modStatsV(D) { if (!D || !D.f) return '<p class="mut" style="margin:12px 18px">Hämtar…</p>'; const P = msPer(), pk = S.msP || 'd30', per = P.h ? 'timme' : 'dag', mx = Math.max(1, ...D.f.map(x => x.users)), md = Math.max(1, ...D.days.map(x => x.users)), tot = D.f.reduce((a, x) => a + x.uses, 0), maxU = Math.max(1, ...((D.users || []).map(x => x.uses)));
+function modStatsV(D) { if (!D || !D.f) return '<p class="mut" style="margin:12px 18px">Hämtar…</p>'; const AS = D.f.find(x => x.feature === 'appstart'); D = Object.assign({}, D, { f: D.f.filter(x => x.feature !== 'appstart'), appstarts: AS ? AS.uses : 0 }); const P = msPer(), pk = S.msP || 'd30', per = P.h ? 'timme' : 'dag', mx = Math.max(1, ...D.f.map(x => x.users)), md = Math.max(1, ...D.days.map(x => x.users)), tot = D.f.reduce((a, x) => a + x.uses, 0), maxU = Math.max(1, ...((D.users || []).map(x => x.uses)));
   return `<div class="pad"><div class="seg2 inset msper" role="tablist" aria-label="Period">${MS_PER.map(([k, n]) => `<button class="${pk === k ? 'on' : ''}" role="tab" aria-selected="${pk === k}" onclick="S.msP='${k}';S.modData=null;keepMain();loadMod()">${n}</button>`).join('')}</div>
   ${statTilesHtml(D, per, tot)}
   ${statChartsHtml(D, tot)}
@@ -14371,6 +14373,7 @@ function seasonV() {
 
 // ===== Uppdateringslogg =====
 const NEWS = [
+  ['Beta 0.499', '28 nov', ['Moderering: statistiken skiljer nu på appstarter och när någon går tillbaka till Start, och Upptäck växter har fått ett svenskt namn']],
   ['Beta 0.498', '28 nov', ['Moderering: under Nya växter syns nu vem som har lagt till växten, och du kan trycka på namnet för att öppna profilen']],
   ['Beta 0.497', '28 nov', ['Nytt i Växtbiblioteket: kategorin Svamp med 10 svampar du kan odla själv, till exempel ostronskivling, shiitake och Lion\'s mane', 'Över 200 nya växter i Växtbiblioteket: medicinalväxter, damm- och vattenväxter, ängsblommor, citrus, akvarieväxter, sommarlökar, mikrogrönt och groddar, köttätande växter, exotiska frukter, mossor och konstiga växter som Liklilja och Sensitiva', 'Flera växter har fått tips om hur du odlar dem från köket, till exempel avokado från kärna', 'Fler växtbilder på Hyllan: 500 växter till har fått egen bild, bland annat perenner, ormbunkar, hostor, pioner och rosor']],
   ['Beta 0.496', '27 nov', ['Fler växtbilder på Hyllan: nästan 500 växter till har fått egen bild, bland annat Klematis, Hortensia, Syren, Olvon, Rhododendron och prydnadsgräs', 'De 56 nya sommarblommorna i Växtbiblioteket har också fått egna bilder']],
@@ -17446,7 +17449,7 @@ function proCard() {
 
 // ===== Inställningar =====
 const GEAR = 'ph-gear';
-const APP_VERSION = 'Beta 0.498';
+const APP_VERSION = 'Beta 0.499';
 let errToastAt = 0;
 window.addEventListener('error', e => { if (Date.now() - errToastAt < 4000) return; errToastAt = Date.now(); try { toast('Fel: ' + String(e.message || '').slice(0, 90)); } catch (x) {} });
 const PALS = [['ocean', 'Hav', '#5CC8F2'], ['sunset', 'Solnedgång', '#FF9F5A'], ['lavender', 'Lavendel', '#B79CFF'], ['cherry', 'Körsbär', '#FF7FA8'], ['lime', 'Lime', '#D7F25C'], ['mono', 'Svartvit', '#FFFFFF']];
